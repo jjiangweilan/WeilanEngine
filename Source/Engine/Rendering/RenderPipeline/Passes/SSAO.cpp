@@ -12,7 +12,7 @@ void SSAO::Execute(
     Gfx::CommandBuffer* cmd,
     const Gfx::RG::ImageIdentifier& halfResDepth,
     const Gfx::RG::ImageIdentifier& fullResDepth,
-    const Gfx::RG::ImageDescription& fullResDepthDesc,
+    const Gfx::RG::RenderImageDescriptor& fullResDepthDesc,
     RenderPipelineSetting* setting
 )
 {
@@ -26,8 +26,8 @@ void SSAO::Execute(
 
     // Create GPU resources
     Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
-    Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
-    Gfx::RG::ImageDescription fullDesc(
+    Gfx::RG::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
+    Gfx::RG::RenderImageDescriptor fullDesc(
         fullResDepthDesc.GetWidth(),
         fullResDepthDesc.GetHeight(),
         Gfx::GfxFormat::R32_SFloat
@@ -38,7 +38,7 @@ void SSAO::Execute(
     if (setting->ssao.debug_showNormal)
     {
 
-        Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32G32B32A32_SFloat);
+        Gfx::RG::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32G32B32A32_SFloat);
         desc.SetRandomWrite(true);
 
         cmd->AllocateAttachment(debugImage, desc);

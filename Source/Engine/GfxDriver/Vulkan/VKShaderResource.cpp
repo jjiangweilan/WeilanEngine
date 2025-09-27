@@ -2,7 +2,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Libs/Assert.hpp"
-#include "RHI/VKRenderGraph.hpp"
+#include "VKCommandBufferProcessor.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
@@ -123,7 +123,7 @@ void VKShaderResource::Remove(ShaderBindingHandle handle)
 }
 
 VkDescriptorSet VKShaderResource::GetDescriptorSet(
-    uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
+    uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
 )
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
@@ -473,7 +473,7 @@ void* VKShaderResource::ResourceRef::GetRef()
 }
 
 const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
-    uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
+    uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
 )
 {
     SetGroup setGroup = {shaderProgram->GetUUID(), set};

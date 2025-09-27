@@ -251,7 +251,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
     bool hasGameObjectSelected = false;
     // selection outline src pass
     {
-        Gfx::RG::ImageDescription desc{
+        Gfx::RG::RenderImageDescriptor desc{
             sceneImage->GetDescription().width,
             sceneImage->GetDescription().height,
             sceneImage->GetDescription().format

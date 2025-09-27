@@ -22,7 +22,7 @@ private:
     ObjPtr<Shader2> shader;
     Gfx::RG::ImageIdentifier outputID;
     Gfx::RG::ImageIdentifier contactShadowMap = "ContactShadow";
-    Gfx::RG::ImageDescription desc;
+    Gfx::RG::RenderImageDescriptor desc;
     Material mat;
     bool valid = false;
 

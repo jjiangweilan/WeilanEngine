@@ -1,7 +1,7 @@
 #include "VKDataUploader.hpp"
-#include "../VKBuffer.hpp"
-#include "../VKDriver.hpp"
 #include "Profiler/Profiler.hpp"
+#include "VKBuffer.hpp"
+#include "VKDriver.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx
@@ -94,17 +94,19 @@ void VKDataUploader::UploadImage(
 
     memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + takingOffCmd.endOffset + align, data, size);
     float scale = glm::pow(0.5, mipLevel);
-    pendingImageUploads.push_back(PendingImageUpload{
-        vkDst->GetImage(),
-        (uint32_t)(vkDst->GetDescription().width * scale),
-        (uint32_t)(vkDst->GetDescription().height * scale),
-        takingOffCmd.endOffset + align,
-        size,
-        mipLevel,
-        arayLayer,
-        aspect,
-        finalLayout
-    });
+    pendingImageUploads.push_back(
+        PendingImageUpload{
+            vkDst->GetImage(),
+            (uint32_t)(vkDst->GetDescription().width * scale),
+            (uint32_t)(vkDst->GetDescription().height * scale),
+            takingOffCmd.endOffset + align,
+            size,
+            mipLevel,
+            arayLayer,
+            aspect,
+            finalLayout
+        }
+    );
 
     takingOffCmd.endOffset += align + size;
 }

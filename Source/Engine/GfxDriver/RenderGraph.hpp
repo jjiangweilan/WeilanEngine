@@ -9,23 +9,18 @@
 #include <optional>
 #include "Libs/DynamicArray.hpp"
 
-namespace Gfx::VK::RenderGraph
-{
-class Graph;
-}
-
 namespace Gfx::RG
 {
-struct ImageDescription
+struct RenderImageDescriptor
 {
-    ImageDescription() {}
-    ImageDescription(uint32_t width, uint32_t height, Gfx::GfxFormat format, bool randomWrite = false)
+    RenderImageDescriptor() {}
+    RenderImageDescriptor(uint32_t width, uint32_t height, Gfx::GfxFormat format, bool randomWrite = false)
         : data({width, height, format, randomWrite})
     {
         Rehash();
     }
 
-    bool operator==(const ImageDescription& other) const { return data == other.data; }
+    bool operator==(const RenderImageDescriptor& other) const { return data == other.data; }
 
     void SetRandomWrite(bool enable)
     {
@@ -418,7 +413,11 @@ private:
     };
 };
 } // namespace Gfx::RG
-  //
+
+namespace Gfx
+{
+    using RenderImageDescriptor = Gfx::RG::RenderImageDescriptor;
+}
 
 template <>
 struct std::hash<Gfx::RG::RenderPass>

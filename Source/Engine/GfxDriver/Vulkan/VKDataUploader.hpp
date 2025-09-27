@@ -1,7 +1,7 @@
 #pragma once
-#include "Buffer.hpp"
-#include <queue>
 #include "Libs/DynamicArray.hpp"
+#include "VKRawBuffer.hpp"
+#include <queue>
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -92,7 +92,7 @@ private:
     std::vector<VkBufferCopy> copyRegions = {};
     std::vector<VkImageMemoryBarrier> barriers = {};
     std::vector<VkBufferImageCopy> bufferImageCopies = {};
-    Vulkan::Buffer stagingBuffer = {};
+    VKRawBuffer stagingBuffer = {};
 
     bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);
 };

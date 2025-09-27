@@ -266,7 +266,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         auto shader = colorGradingPass.colorGradingShader->GetShaderProgram();
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
         // TODO
-        Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+        Gfx::RG::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
         cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
         colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
         colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
@@ -285,7 +285,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
         {
-            Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+            Gfx::RG::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
             cmd->AllocateAttachment(fxaaPass.fxaaId, resultDesc);
             fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.fxaaId);
             finalColor = fxaaPass.fxaaId;
@@ -463,7 +463,7 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
                             glm::float2 size,
                             glm::float2 screenSize,
                             Gfx::GfxFormat format,
-                            Gfx::RG::ImageDescription& desc)
+                            Gfx::RG::RenderImageDescriptor& desc)
     {
         if (size.x == 0)
         {

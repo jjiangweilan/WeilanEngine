@@ -8,11 +8,11 @@ namespace Rendering::Passes
 
 ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer)
 {
-    mainColorDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
-    albedoImageDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
-    normalImageDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::A2B10G10R10_UNorm, false);
-    maskImageDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::R8G8B8A8_UNorm, false);
-    depthImageDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::D32_SFloat, false);
+    mainColorDescription = Gfx::RG::RenderImageDescriptor(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
+    albedoImageDescription = Gfx::RG::RenderImageDescriptor(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
+    normalImageDescription = Gfx::RG::RenderImageDescriptor(1, 1, Gfx::GfxFormat::A2B10G10R10_UNorm, false);
+    maskImageDescription = Gfx::RG::RenderImageDescriptor(1, 1, Gfx::GfxFormat::R8G8B8A8_UNorm, false);
+    depthImageDescription = Gfx::RG::RenderImageDescriptor(1, 1, Gfx::GfxFormat::D32_SFloat, false);
 
     Gfx::RG::SubpassAttachment lighting{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
     Gfx::RG::SubpassAttachment albedo{1};

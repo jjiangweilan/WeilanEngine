@@ -147,7 +147,7 @@ public:
 
     virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset = 0) = 0;
 
-    virtual void AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
+    virtual void AllocateAttachment(const RG::ImageIdentifier& id, RenderImageDescriptor& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 
     virtual void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp = {}) = 0;

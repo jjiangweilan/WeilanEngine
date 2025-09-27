@@ -16,10 +16,7 @@ class VKImage;
 class VKShaderProgram;
 class VKDescriptorPool;
 class VKDriver;
-namespace VK::RenderGraph
-{
-class Graph;
-}
+class VKCommandBufferProcessor;
 
 struct VKWritableGPUResource
 {
@@ -72,9 +69,9 @@ public:
     void Clear() override;
     void RebuildAll() override;
 
-    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph);
+    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     const std::vector<VKWritableGPUResource>& GetWritableResources(
-        uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
+        uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
     );
 
 protected:

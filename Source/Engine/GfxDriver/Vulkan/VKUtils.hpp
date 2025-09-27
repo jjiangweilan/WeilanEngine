@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-namespace Gfx::VK
+namespace Gfx
 {
 inline bool HasWriteAccessMask(VkAccessFlags flags)
 {

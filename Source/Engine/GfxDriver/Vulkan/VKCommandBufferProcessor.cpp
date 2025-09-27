@@ -1,20 +1,20 @@
-#include "VKRenderGraph.hpp"
-#include "../VKBuffer.hpp"
-#include "../VKContext.hpp"
-#include "../VKDriver.hpp"
-#include "../VKExtensionFunc.hpp"
-#include "../VKShaderProgram.hpp"
-#include "../VKShaderResource.hpp"
-#include "../VKUtils.hpp"
+#include "VKCommandBufferProcessor.hpp"
+#include "VKBuffer.hpp"
+#include "VKContext.hpp"
+#include "VKDriver.hpp"
+#include "VKExtensionFunc.hpp"
+#include "VKShaderProgram.hpp"
+#include "VKShaderResource.hpp"
+#include "VKUtils.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Assert.hpp"
 
-namespace Gfx::VK::RenderGraph
+namespace Gfx
 {
-class Graph::ResourceAllocator
+class VKCommandBufferProcessor::ResourceAllocator
 {
 public:
-    ResourceAllocator(Graph* graph) : graph(graph) {}
+    ResourceAllocator(VKCommandBufferProcessor* graph) : graph(graph) {}
     VKImage* GetImage(const UUID& hash)
     {
         auto iter = images.find(hash);
@@ -25,7 +25,7 @@ public:
         return nullptr;
     }
 
-    VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
+    VKImage* Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc)
     {
         auto iter = images.find(id.GetAsUUID());
         if (iter != images.end() && iter->second.desc == desc)
@@ -72,7 +72,7 @@ public:
                 )
             );
             SPDLOG_TRACE(
-                "VKRenderGraph: create new iamge({}) {}",
+                "VKCommandBufferProcessor: create new iamge({}) {}",
                 reinterpret_cast<size_t>(image.get()),
                 id.GetAsUUID().ToString()
             );
@@ -156,7 +156,7 @@ public:
 
             auto temp = renderPassObj.get();
             SPDLOG_TRACE(
-                "VKRenderGraph: create render pass({}) {}",
+                "VKCommandBufferProcessor: create render pass({}) {}",
                 reinterpret_cast<size_t>(temp),
                 renderPass.GetName()
             );
@@ -212,7 +212,7 @@ private:
     {
         std::unique_ptr<VKImage> image;
         int frameCountFromLastRequest = 0;
-        RG::ImageDescription desc;
+        RenderImageDescriptor desc;
     };
 
     struct AllocatedRenderPass
@@ -240,7 +240,7 @@ private:
         }
     };
 
-    Graph* graph;
+    VKCommandBufferProcessor* graph;
     std::unordered_map<UUID, AllocatedImage> images;
     std::unordered_map<RG::RenderPass, AllocatedRenderPass> renderPasses;
 
@@ -284,7 +284,7 @@ private:
     }
 };
 
-bool Graph::TrackResource(
+bool VKCommandBufferProcessor::TrackResource(
     VKImage* writableResource,
     Gfx::ImageSubresourceRange range,
     VkImageLayout layout,
@@ -333,17 +333,17 @@ bool Graph::TrackResource(
     return false;
 }
 
-VKImage* Graph::Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
+VKImage* VKCommandBufferProcessor::Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc)
 {
     return resourceAllocator->Request(id, desc);
 }
 
-VKRenderPass* Graph::Request(RG::RenderPass& renderPass)
+VKRenderPass* VKCommandBufferProcessor::Request(RG::RenderPass& renderPass)
 {
     return resourceAllocator->Request(renderPass);
 }
 
-bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
+bool VKCommandBufferProcessor::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
 {
     ENGINE_SCOPED_PROFILE("TrackResource");
     auto iter = resourceUsageTracks.find(writableResource->GetUUID());
@@ -387,7 +387,7 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
     return false;
 }
 
-void Graph::GoThroughRenderPass(
+void VKCommandBufferProcessor::GoThroughRenderPass(
     std::vector<VKCmd>& exectedCmds,
     VKRenderPass& renderPass,
     int& visitIndex,
@@ -395,7 +395,7 @@ void Graph::GoThroughRenderPass(
     int& barrierOffsetResult
 )
 {
-    ENGINE_SCOPED_PROFILE("VKRenderGraph - GoThroughRenderPass");
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - GoThroughRenderPass");
     int barrierOffset = barriers.size();
     int barrierCount = 0;
 
@@ -513,7 +513,7 @@ void Graph::GoThroughRenderPass(
     barrierOffsetResult = barrierOffset;
 }
 
-int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
+int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uuid)
 {
     auto iter = resourceUsageTracks.find(uuid);
     ASSERT(iter != resourceUsageTracks.end());
@@ -566,7 +566,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
                     preUsage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
                     if (!image->QueryLayout(subresourceRange, preUsage.layout)) [[unlikely]]
                     {
-                        spdlog::error("VKRenderGraph: image layout not properly handled");
+                        spdlog::error("VKCommandBufferProcessor: image layout not properly handled");
                     }
                     if (HasWriteAccessMask(currentUsage.access) || preUsage.layout != currentUsage.layout)
                     {
@@ -676,7 +676,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
         VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
         if (!image->QueryLayout(subresourceRange, layout)) [[unlikely]]
         {
-            spdlog::error("VKRenderGraph: image layout not properly handled");
+            spdlog::error("VKCommandBufferProcessor: image layout not properly handled");
         }
         if (usageIndex == 0 && barrierCount == 0 && layout != currentUsage.layout)
         {
@@ -781,11 +781,11 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
     return barrierCount;
 }
 
-void Graph::FlushBindResourceTrack() {}
+void VKCommandBufferProcessor::FlushBindResourceTrack() {}
 
-size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
+size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 {
-    ENGINE_SCOPED_PROFILE("VKRenderGraph - TrackResourceForPushDescriptorSet");
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - TrackResourceForPushDescriptorSet");
     int imageIndex = 0;
     int barrierCount = 0;
     auto& pushDescriptorCmd = std::get<VKPushDescriptorCmd>(cmd.args);
@@ -819,9 +819,9 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 
     return barrierCount;
 }
-void Graph::PreExecute(VKFramePrepareData& framePrepare)
+void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
 {
-    ENGINE_SCOPED_PROFILE("VKRenderGraph::PreExecute");
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor::PreExecute");
 
     auto& executedCmds = framePrepare.cmds;
 
@@ -848,7 +848,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: bind resource");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: bind resource");
             auto& args = std::get<VKBindResourceCmd>(cmd.args);
             recordState.bindSetCmdIndex[args.set] = visitIndex;
             recordState.bindedSetUpdateNeeded[args.set] = true;
@@ -859,7 +859,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::CopyBuffer)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: copy buffer");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: copy buffer");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKCopyBufferCmd>(cmd.args);
@@ -876,7 +876,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         {}
         else if (cmd.type == VKCmdType::Blit)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: blit");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: blit");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKBlitCmd>(cmd.args);
@@ -919,7 +919,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::CopyImageToBuffer)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: copy image to buffer");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: copy image to buffer");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
@@ -952,7 +952,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::CopyBufferToImage)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: copy buffer to image");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: copy buffer to image");
             auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
@@ -985,12 +985,12 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: push descriptor set");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: push descriptor set");
             TrackResourceForPushDescriptorSet(cmd, false);
         }
         else if (cmd.type == VKCmdType::Present)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: present");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: present");
             auto& args = std::get<VKPresentCmd>(cmd.args);
             Gfx::ImageSubresourceRange range{
                 .aspectMask = ImageAspectFlags::Color,
@@ -1016,14 +1016,14 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::SetTexture)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: set texture");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: set texture");
             auto& args = std::get<VKSetTextureCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
                 {ResourceType::Image, ObjPtr<Image>(args.image), args.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: set buffer");
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
                 {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
@@ -1034,7 +1034,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::Dispatch)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatch");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: dispatch");
             std::vector<VKImage*> list;
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
@@ -1043,7 +1043,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         }
         else if (cmd.type == VKCmdType::DispatchIndirect)
         {
-            ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatchIndir");
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: dispatchIndir");
             auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
             std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
@@ -1053,7 +1053,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
     }
 }
 
-void Graph::Execute(
+void VKCommandBufferProcessor::Execute(
     VKFramePrepareData& framePrepare,
     VKInflightCmd& inflightCmd,
     int inflightIndex,
@@ -1069,7 +1069,7 @@ void Graph::Execute(
 
     VkCommandBuffer vkcmd = inflightCmd.cmd;
 
-    ENGINE_SCOPED_PROFILE("VKRenderGraph::Execute");
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor::Execute");
 
     // Begin
     bool enableGPUTimestamp = inflightCmd.maxtimestapQueryCount > 0 && featureSettings.enableGPUProfiling;
@@ -1692,7 +1692,7 @@ void Graph::Execute(
     resourceAllocator->Tick();
 }
 
-void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
+void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
     UpdateDescriptorSetBinding(cmd, 0, bindPoint);
     UpdateDescriptorSetBinding(cmd, 1, bindPoint);
@@ -1700,7 +1700,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint 
     UpdateDescriptorSetBinding(cmd, 3, bindPoint);
 }
 
-void Graph::TryBindShader(VkCommandBuffer cmd)
+void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
 {
     if ((exeState.bindedShader != exeState.lastBindedShader || exeState.shaderConfig != exeState.lastShaderConfig) &&
         exeState.lastBindedShader != nullptr)
@@ -1750,7 +1750,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
     }
 }
 
-void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint)
+void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint)
 {
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
@@ -1783,7 +1783,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
     }
 }
 
-void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
+void VKCommandBufferProcessor::PutBarrier(VkCommandBuffer vkcmd, int index)
 {
     Barrier& barrier = barriers[index];
     if (barrier.bufferMemoryBarrierIndex != -1)
@@ -1833,23 +1833,23 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
     }
 }
 
-void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
+void VKCommandBufferProcessor::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 {
     recordState.bindProgramIndex = visitIndex;
 }
 
-VKImage* Graph::GetImage(const UUID& hash)
+VKImage* VKCommandBufferProcessor::GetImage(const UUID& hash)
 {
     return resourceAllocator->GetImage(hash);
 }
 
-Graph::Graph(int inflightCount)
+VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount)
 {
     resourceAllocator = std::make_unique<ResourceAllocator>(this);
 }
-Graph::~Graph() {}
+VKCommandBufferProcessor::~VKCommandBufferProcessor() {}
 
-void Graph::FlushAllBindedSetUpdate(
+void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
@@ -1915,7 +1915,7 @@ void Graph::FlushAllBindedSetUpdate(
     }
 }
 
-Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
+Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
 {
     auto idType = id.GetType();
     if (idType == RG::ImageIdentifier::Type::Image)
@@ -1936,7 +1936,7 @@ Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::
     return nullptr;
 }
 
-Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
+Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::RG::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
 {
     auto idType = id.GetType();
     if (idType == RG::ImageIdentifier::Type::Image)
@@ -1957,4 +1957,4 @@ Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::RG::ImageIdentifier& i
     return nullptr;
 }
 
-} // namespace Gfx::VK::RenderGraph
+} // namespace Gfx::VK

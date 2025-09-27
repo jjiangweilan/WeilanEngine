@@ -10,7 +10,7 @@ public:
     DepthDownSampler();
 
     void Setup(
-        Gfx::RG::ImageIdentifier& srcDepth, Gfx::RG::ImageIdentifier& dstDepth, Gfx::RG::ImageDescription& dstDepthDesc
+        Gfx::RG::ImageIdentifier& srcDepth, Gfx::RG::ImageIdentifier& dstDepth, Gfx::RG::RenderImageDescriptor& dstDepthDesc
     )
     {
         this->srcDepth = srcDepth;
@@ -25,6 +25,6 @@ private:
     Material resource;
     Gfx::RG::ImageIdentifier srcDepth;
     Gfx::RG::ImageIdentifier dstDepth;
-    Gfx::RG::ImageDescription dstDepthDesc;
+    Gfx::RG::RenderImageDescriptor dstDepthDesc;
 };
 } // namespace Rendering::Passes

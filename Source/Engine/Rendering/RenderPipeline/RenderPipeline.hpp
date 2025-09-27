@@ -70,11 +70,11 @@ private:
     Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";
     Gfx::RG::ImageIdentifier finalColor;
 
-    Gfx::RG::ImageDescription mainColorDescription;
-    Gfx::RG::ImageDescription mainDepthDescription;
-    Gfx::RG::ImageDescription albedoGBufferDescription;
-    Gfx::RG::ImageDescription normalGBufferDescription;
-    Gfx::RG::ImageDescription maskGBufferDescription;
+    Gfx::RG::RenderImageDescriptor mainColorDescription;
+    Gfx::RG::RenderImageDescriptor mainDepthDescription;
+    Gfx::RG::RenderImageDescriptor albedoGBufferDescription;
+    Gfx::RG::RenderImageDescriptor normalGBufferDescription;
+    Gfx::RG::RenderImageDescriptor maskGBufferDescription;
 
     RenderConfig renderConfig;
 

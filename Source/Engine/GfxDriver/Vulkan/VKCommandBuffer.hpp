@@ -8,11 +8,8 @@
 
 namespace Gfx
 {
-namespace VK::RenderGraph
-{
-class Graph;
-}
 
+class VKCommandBufferProcessor;
 class VKShaderResource;
 class VKShaderProgram;
 class VKDevice;
@@ -65,7 +62,7 @@ struct VKBeginRenderPassCmd
     VkClearValue clearValues[8];
     int clearValueCount;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -81,7 +78,7 @@ struct VKRGBeginRenderPassCmd
     VkClearValue clearValues[8];
     int clearValueCount;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -142,7 +139,7 @@ struct VKCopyImageToBufferCmd
     BufferImageCopyRegion regions[8];
     int regionsCount;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -168,7 +165,7 @@ struct VKDispatchCmd
     uint32_t groupCountY;
     uint32_t groupCountZ;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -178,7 +175,7 @@ struct VKDispatchIndirectCmd
     VKBuffer* buffer;
     size_t bufferOffset;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -201,7 +198,7 @@ struct VKCopyBufferCmd
     uint32_t copyRegionCount;
     VkBufferCopy copyRegions[8];
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -213,7 +210,7 @@ struct VKCopyBufferToImageCmd
     uint32_t regionCount;
     VkBufferImageCopy regions[8];
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -224,7 +221,7 @@ struct VKBlitCmd
     VKImage* to;
     BlitOp blitOp;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -233,7 +230,7 @@ struct VKPresentCmd
 {
     VKImage* image;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -256,7 +253,7 @@ struct VKInsertLabelCmd
 struct VKAllocateAttachmentCmd
 {
     RG::ImageIdentifier* id;
-    RG::ImageDescription desc;
+    RenderImageDescriptor desc;
 };
 
 struct VKAsyncReadbackCmd
@@ -265,7 +262,7 @@ struct VKAsyncReadbackCmd
     size_t size;
     size_t offset;
 
-    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to VKRenderGraph
+    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to VKCommandBufferProcessor
     // later
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
@@ -281,7 +278,7 @@ struct VKClearColorImageCmd
     Image* image;
     ClearColor clearValue;
 
-    // used in VKRenderGraph
+    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -371,7 +368,7 @@ struct VKCmd
 class VKCommandBuffer : public CommandBuffer
 {
 public:
-    VKCommandBuffer(VK::RenderGraph::Graph* graph) : graph(graph) {}
+    VKCommandBuffer(VKCommandBufferProcessor* graph) : graph(graph) {}
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
     ~VKCommandBuffer() {};
 
@@ -431,7 +428,7 @@ public:
     ) override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc) override;
+    void AllocateAttachment(const RG::ImageIdentifier& id, RenderImageDescriptor& desc) override;
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void SetLineWidth(float lineWidth) override;
 
@@ -453,7 +450,7 @@ private:
     std::string currentLabel;
 
     std::vector<VKCmd> cmds;
-    VK::RenderGraph::Graph* graph;
+    VKCommandBufferProcessor* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 
     friend struct VKFramePrepareData;

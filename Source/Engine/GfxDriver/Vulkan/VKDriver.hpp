@@ -10,8 +10,8 @@
 #include "../GfxDriver.hpp"
 
 #include "GfxDriver/Vulkan/VKWindow.hpp"
-#include "RHI/VKRenderGraph.hpp"
 #include "VKCommandBuffer.hpp"
+#include "VKCommandBufferProcessor.hpp"
 #include "VKCommonDefinations.hpp"
 
 #include "VKCommandPool.hpp"
@@ -21,7 +21,7 @@
 #include "VKShaderProgram.hpp"
 
 #include "Libs/ArenaAllocator.hpp"
-#include "RHI/Buffer.hpp"
+#include "VKRawBuffer.hpp"
 
 namespace Gfx
 {
@@ -165,7 +165,7 @@ public:
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
-    std::unique_ptr<VK::RenderGraph::Graph> renderGraph;
+    std::unique_ptr<VKCommandBufferProcessor> renderGraph;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;
@@ -175,8 +175,8 @@ public:
     void CreateDevice();
     void CreateSurface();
 
-    Vulkan::Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
-    void Driver_DestroyBuffer(Vulkan::Buffer& b);
+    VKRawBuffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
+    void Driver_DestroyBuffer(VKRawBuffer& b);
     bool Present(
         VkSemaphore presentSemaphore,
         VkSwapchainKHR swapChainHandle,

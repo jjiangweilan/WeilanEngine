@@ -19,11 +19,11 @@ private:
     Gfx::RG::ImageIdentifier normal;
     Gfx::RG::ImageIdentifier mask;
     Gfx::RG::ImageIdentifier depth;
-    Gfx::RG::ImageDescription mainColorDescription;
-    Gfx::RG::ImageDescription albedoImageDescription;
-    Gfx::RG::ImageDescription normalImageDescription;
-    Gfx::RG::ImageDescription maskImageDescription;
-    Gfx::RG::ImageDescription depthImageDescription;
+    Gfx::RG::RenderImageDescriptor mainColorDescription;
+    Gfx::RG::RenderImageDescriptor albedoImageDescription;
+    Gfx::RG::RenderImageDescriptor normalImageDescription;
+    Gfx::RG::RenderImageDescriptor maskImageDescription;
+    Gfx::RG::RenderImageDescriptor depthImageDescription;
 
     Gfx::RG::RenderPass gbufferPass{};
     std::unique_ptr<Gfx::Buffer> faceBuffers[6];

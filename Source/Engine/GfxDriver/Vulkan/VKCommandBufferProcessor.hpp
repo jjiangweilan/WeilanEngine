@@ -1,10 +1,10 @@
 #pragma once
-#include "../VKCommandBuffer.hpp"
-#include "../VKInflightCmd.hpp"
 #include "GfxDriver/Vulkan/VKContext.hpp"
+#include "VKCommandBuffer.hpp"
+#include "VKInflightCmd.hpp"
 #include <variant>
 
-namespace Gfx::VK::RenderGraph
+namespace Gfx
 {
 struct RenderPassNode
 {
@@ -41,11 +41,11 @@ struct ResourceUsageTrack
     std::vector<ResourceUsage> currentFrameUsages;
 };
 
-class Graph
+class VKCommandBufferProcessor
 {
 public:
-    Graph(int inflightCount);
-    ~Graph();
+    VKCommandBufferProcessor(int inflightCount);
+    ~VKCommandBufferProcessor();
 
     void Execute(
         VKFramePrepareData& framePrepare,
@@ -57,7 +57,7 @@ public:
     );
 
     VKImage* GetImage(const UUID& id);
-    VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc);
+    VKImage* Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc);
     VKRenderPass* Request(RG::RenderPass& renderPass);
 
 private:
@@ -157,10 +157,8 @@ private:
     void PreExecute(VKFramePrepareData& framePrepare);
 };
 
-Gfx::VKImage* ImageIdentifier_GetImage(
-    const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph = nullptr
+VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);
+VKImageView* ImageIdentifier_GetImageView(
+    const Gfx::RG::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr
 );
-Gfx::VKImageView* ImageIdentifier_GetImageView(
-    const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph = nullptr
-);
-} // namespace Gfx::VK::RenderGraph
+} // namespace Gfx

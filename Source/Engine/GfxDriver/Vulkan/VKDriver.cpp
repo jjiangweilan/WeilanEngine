@@ -5,11 +5,11 @@
 #include "Internal/VKObjectManager.hpp"
 #include "Libs/Assert.hpp"
 #include "Profiler/Profiler.hpp"
-#include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
+#include "VKDataUploader.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKExtensionFunc.hpp"
 #include "VKFence.hpp"
@@ -146,7 +146,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
-    renderGraph = std::make_unique<VK::RenderGraph::Graph>(inflightCount);
+    renderGraph = std::make_unique<VKCommandBufferProcessor>(inflightCount);
 
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
@@ -188,8 +188,8 @@ VKDriver::~VKDriver()
 
     if (instance.debugMessenger != VK_NULL_HANDLE)
     {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT
-        )vkGetInstanceProcAddr(instance.handle, "vkDestroyDebugUtilsMessengerEXT");
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
+            vkGetInstanceProcAddr(instance.handle, "vkDestroyDebugUtilsMessengerEXT");
         if (func != nullptr)
         {
             func(instance.handle, instance.debugMessenger, nullptr);
@@ -686,11 +686,10 @@ bool VKDriver::EndFrame()
     );
     ENGINE_END_PROFILE // Render Graph Execution
 
-    ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
-    CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
+        ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer") CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE // Vulkan End Command Buffer
 
-    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
+        VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1211,11 +1210,11 @@ void VKDriver::CreateDevice()
     }
 }
 
-Vulkan::Buffer VKDriver::Driver_CreateBuffer(
+VKRawBuffer VKDriver::Driver_CreateBuffer(
     size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags
 )
 {
-    Vulkan::Buffer buf;
+    VKRawBuffer buf;
     buf.size = size;
 
     VkBufferCreateInfo vkCreateInfo{};
@@ -1238,7 +1237,7 @@ Vulkan::Buffer VKDriver::Driver_CreateBuffer(
     return buf;
 }
 
-void VKDriver::Driver_DestroyBuffer(Vulkan::Buffer& b)
+void VKDriver::Driver_DestroyBuffer(VKRawBuffer& b)
 {
     memAllocator->DestroyBuffer(b.handle, b.allocation);
 }
@@ -1307,7 +1306,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
     );
 
-    VK::RenderGraph::Graph rg(1);
+    VKCommandBufferProcessor rg(1);
     VKFramePrepareData framePrepareData;
     framePrepareData.AppendVKCommandBuffer(static_cast<VKCommandBuffer*>(&cmd));
 
@@ -1427,7 +1426,8 @@ void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
     for (auto& t : timestamps)
     {
         execReport.timestampQueryLabels[timestampIdx].timestamp =
-            t.timestamp * static_cast<uint64_t>(gpu.physicalDeviceProperties.limits.timestampPeriod
+            t.timestamp * static_cast<uint64_t>(
+                              gpu.physicalDeviceProperties.limits.timestampPeriod
                           ); // I am not sure if this cast is safe, I assume all timestampPeriod is integer even tho the
                              // type is a float
         timestampIdx += 1;

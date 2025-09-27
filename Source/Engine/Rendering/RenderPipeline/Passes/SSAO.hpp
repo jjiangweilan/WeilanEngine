@@ -17,7 +17,7 @@ public:
         Gfx::CommandBuffer* cmd,
         const Gfx::RG::ImageIdentifier& halfResDepth,
         const Gfx::RG::ImageIdentifier& fullResDepth,
-        const Gfx::RG::ImageDescription& fullResDepthDesc,
+        const Gfx::RG::RenderImageDescriptor& fullResDepthDesc,
         RenderPipelineSetting* setting
     );
 

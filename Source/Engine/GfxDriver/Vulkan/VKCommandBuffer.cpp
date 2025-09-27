@@ -4,7 +4,7 @@
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Libs/Assert.hpp"
-#include "RHI/VKRenderGraph.hpp"
+#include "VKCommandBufferProcessor.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
 
@@ -364,7 +364,7 @@ void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buff
     cmds.push_back(VKCmd{VKCmdType::SetBuffer, cmd});
 }
 
-void VKCommandBuffer::AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
+void VKCommandBuffer::AllocateAttachment(const RG::ImageIdentifier& id, RG::RenderImageDescriptor& desc)
 {
     graph->Request(id, desc);
 }
