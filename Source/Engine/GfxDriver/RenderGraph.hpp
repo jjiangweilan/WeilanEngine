@@ -341,18 +341,10 @@ public:
             {
                 for (auto& color : subpass.colors)
                 {
-                    Hash64(hash, color.attachmentIndex);
-                    Hash64(hash, color.loadOp);
-                    Hash64(hash, color.storeOp);
-                    Hash64(hash, color.stencilLoadOp);
-                    Hash64(hash, color.stencilStoreOp);
+                    Hash64(hash, color);
                 }
 
-                Hash64(hash, subpass.depth.attachmentIndex);
-                Hash64(hash, subpass.depth.loadOp);
-                Hash64(hash, subpass.depth.storeOp);
-                Hash64(hash, subpass.depth.stencilLoadOp);
-                Hash64(hash, subpass.depth.stencilStoreOp);
+                Hash64(hash, subpass.depth);
             }
 
             this->hash = hash;
@@ -396,7 +388,7 @@ public:
 
     bool operator==(const RenderPass& other) const
     {
-        return name == other.name && attachments == other.attachments && subpasses == other.subpasses;
+        return attachments == other.attachments && subpasses == other.subpasses;
     }
 
 private:

@@ -522,18 +522,11 @@ void VKCommandBuffer::ClearColorImage(Image* image, const ClearColor& color)
     cmds.push_back(VKCmd{VKCmdType::ClearColorImage, cmd});
 }
 
-void VKCommandBuffer::SetClearValues(std::span<Gfx::ClearValue> clearValues)
-{
-    VKSetClearValuesCmd cmd{};
-    cmd.clearValues = std::vector(clearValues.begin(), clearValues.end());
-
-    cmds.push_back(VKCmd{VKCmdType::SetClearValues, cmd});
-}
-
-void VKCommandBuffer::BeginRenderPass(std::span<const Gfx::ImageIdentifier> images)
+void VKCommandBuffer::BeginRenderPass(std::span<const RenderAttachment> images, std::span<ClearValue> clearValues)
 {
     VKDynamicRenderPassCmd cmd{};
-    cmd.imageIdentifiers = images;
+    cmd.imageIdentifiers = std::vector(images.begin(), images.end());
+    cmd.clearValues = std::vector(clearValues.begin(), clearValues.end());
 
     cmds.push_back(VKCmd{VKCmdType::DynamicBeginRenderPass, cmd});
 }

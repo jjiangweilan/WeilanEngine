@@ -1,6 +1,5 @@
 #pragma once
 #include "GfxDriver/Vulkan/VKContext.hpp"
-#include "Libs/PodVector.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKInflightCmd.hpp"
 #include <variant>
@@ -105,8 +104,6 @@ private:
         VKRenderPass* renderPass;
         bool overrideViewport = false;
         bool overrideScissor = false;
-        bool overrideRenderPassClearValues = false;
-        PodVector<Gfx::ClearValue> renderPassClearValues;
         int currentTimestapQueryIndex = 0;
     } exeState;
 
@@ -158,6 +155,14 @@ private:
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PreExecute(VKFramePrepareData& framePrepare);
+    void BeginRenderPass(
+        VkCommandBuffer vkcmd,
+        VKRenderPass* renderPass,
+        VkClearValue* clearValues,
+        int clearValueCount,
+        int barrierOffset,
+        int barrierCount
+    );
 };
 
 VKImage* ImageIdentifier_GetImage(const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);

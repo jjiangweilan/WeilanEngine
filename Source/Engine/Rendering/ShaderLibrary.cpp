@@ -1320,7 +1320,6 @@ ShaderLibrary& ShaderLibrary::Singleton()
 
 ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
 {
-    std::scoped_lock lock(lk);
     auto shaderIter = library.find(name);
     if (shaderIter != library.end())
     {

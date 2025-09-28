@@ -2,7 +2,6 @@
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Libs/DynamicArray.hpp"
-#include "Libs/PodVector.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
 #include <vulkan/vulkan.h>
@@ -91,7 +90,13 @@ struct VKRGBeginRenderPassCmd
 
 struct VKDynamicRenderPassCmd
 {
-    PodVector<ImageIdentifier> imageIdentifiers;
+    std::vector<RenderAttachment> imageIdentifiers;
+    std::vector<ClearValue> clearValues;
+
+    // used in VKCommandBufferProcessor
+    VKRenderPass* resolvedRenderPass;
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKEndRenderPassCmd
@@ -300,7 +305,6 @@ struct VKNoneCmd
 enum class VKCmdType
 {
     None,
-    SetClearValues,
     DrawIndexed,
     DrawIndexedIndirect,
     DrawIndirect,
@@ -342,7 +346,6 @@ struct VKCmd
     VKCmdType type;
     std::variant<
         VKNoneCmd,
-        VKSetClearValuesCmd,
         VKDrawIndexedCmd,
         VKDrawIndexedIndirectCmd,
         VKDrawIndirectCmd,
@@ -399,8 +402,7 @@ public:
     void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
     void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
 
-    void SetClearValues(std::span<Gfx::ClearValue> clearValues) override;
-    void BeginRenderPass(std::span<const Gfx::ImageIdentifier> images) override;
+    void BeginRenderPass(std::span<const RenderAttachment> images, std::span<ClearValue> clearValues) override;
 
     void BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;

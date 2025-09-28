@@ -111,13 +111,15 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // clear albedo to black
         // masks to 1 (mainly for ao)
+        Gfx::RenderAttachment gbufferAttachments[] = {
+            {mainColor, Gfx::AttachmentLoadOperation::Clear},
+            {albedoGBuffer, Gfx::AttachmentLoadOperation::Clear},
+            {normalGBuffer, Gfx::AttachmentLoadOperation::Clear},
+            {maskGBuffer, Gfx::AttachmentLoadOperation::Clear},
+            {mainDepth, Gfx::AttachmentLoadOperation::Clear}
+        };
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1.0f, 1.0f, 1.0f, 1.0f}, {0, 0}};
-        gbufferPass.pass.SetAttachment(0, mainColor);
-        gbufferPass.pass.SetAttachment(1, albedoGBuffer);
-        gbufferPass.pass.SetAttachment(2, normalGBuffer);
-        gbufferPass.pass.SetAttachment(3, maskGBuffer);
-        gbufferPass.pass.SetAttachment(4, mainDepth);
-        cmd->BeginRenderPass(gbufferPass.pass, clears);
+        cmd->BeginRenderPass(gbufferAttachments, clears);
 
         // draw
         sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex);
@@ -197,10 +199,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         if (specularCube)
             shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube->GetGfxImage());
 
-        shadingPass.pass.SetAttachment(0, mainColor);
-        shadingPass.pass.SetAttachment(1, mainDepth);
-
-        cmd->BeginRenderPass(shadingPass.pass, lightingPassClearValues);
+        Gfx::RenderAttachment lightingPassAttachments[] = {
+            {mainColor, Gfx::AttachmentLoadOperation::Load},
+            {mainDepth, Gfx::AttachmentLoadOperation::Load}
+        };
+        cmd->BeginRenderPass(lightingPassAttachments, lightingPassClearValues);
         cmd->BindResource(1, shadingPass.gpuResource.get());
         cmd->BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
         cmd->Draw(6, 1, 0, 0);
@@ -214,11 +217,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Forward Pass
     cmd->BeginLabel("Forward", &labelColors.passColor[0]);
     {
-        forwardPass.pass.SetAttachment(0, mainColor);
-        forwardPass.pass.SetAttachment(1, mainDepth);
-
+        Gfx::RenderAttachment forwardPassAttachments[] = {
+            {mainColor, Gfx::AttachmentLoadOperation::Load},
+            {mainDepth, Gfx::AttachmentLoadOperation::Load}
+        };
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
-        cmd->BeginRenderPass(forwardPass.pass, clears);
+        cmd->BeginRenderPass(forwardPassAttachments, clears);
 
         if (renderConfig.drawGraphics)
         {
@@ -240,7 +244,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // draw objects
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
-        cmd->BeginRenderPass(forwardPass.pass, clears);
+        cmd->BeginRenderPass(forwardPassAttachments, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
         cmd->EndLabel(); // Forward Objects
 
@@ -323,22 +327,6 @@ RenderPipeline::PerScene::PerScene()
 
 RenderPipeline::ShadingPass::ShadingPass()
 {
-    pass = Gfx::RenderPass("shading", 1, 2);
-    Gfx::SubpassAttachment lightingPassAttachment{
-        0,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store
-    };
-
-    Gfx::SubpassAttachment depthAttachment{
-        1,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::DontCare,
-    };
-    Gfx::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
-    pass.SetSubpass(0, lightingPassAttachments, depthAttachment);
     gpuResource = GetGfxDriver()->CreateShaderResource();
     perMaterialBuffer = GetGfxDriver()->CreateBuffer(
         sizeof(GPUParameter::DeferredPBRShadingInput),
@@ -351,18 +339,6 @@ RenderPipeline::ShadingPass::ShadingPass()
     brdfPreIntegeral = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/BRDFPreintegral.ktx");
     gpuResource->SetImage("specularBRDFIntegrationMap", brdfPreIntegeral->GetGfxImage());
     shadingShader = ShaderLibrary::GetShader(ShaderLibrary::DeferredPBRShading);
-}
-
-RenderPipeline::GBufferPass::GBufferPass()
-{
-    pass = Gfx::RenderPass("gbuffer", 1, 5);
-    Gfx::SubpassAttachment lighting{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
-    Gfx::SubpassAttachment albedo{1};
-    Gfx::SubpassAttachment normal{2};
-    Gfx::SubpassAttachment property{3};
-    Gfx::SubpassAttachment depth{4};
-    Gfx::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
-    pass.SetSubpass(0, subpassAttachments, depth);
 }
 
 RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow()
@@ -380,17 +356,6 @@ RenderPipeline::FXAAPass::FXAAPass()
     pass.SetSubpass(0, attachments);
 }
 
-RenderPipeline::ForwardPass::ForwardPass()
-{
-    pass = Gfx::RenderPass::Default(
-        "Forward Pass",
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store
-    );
-}
-
 void RenderPipeline::FXAAPass::Execute(
     Gfx::CommandBuffer& cmd,
     const glm::float4& sourceSize,
@@ -401,8 +366,11 @@ void RenderPipeline::FXAAPass::Execute(
     pass.SetAttachment(0, dst);
     resource->SetImage("source", GetGfxDriver()->GetImageFromRenderGraph(src));
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-    cmd.BeginRenderPass(dst);
-    cmd.BeginRenderPass(pass, clears);
+    Gfx::RenderAttachment attachments[] = {
+        {dst, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
+    };
+    cmd.BeginRenderPass(attachments, clears);
+    // cmd.BeginRenderPass(pass, clears);
     cmd.SetPushConstant(shader->GetShaderProgram(), (void*)&sourceSize[0]);
     cmd.BindResource(0, resource.get());
     cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
@@ -512,10 +480,6 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
 
 void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize)
 {
-    auto camGo = camera.GetGameObject();
-    auto& renderingScene = scene.GetRenderingScene();
-    auto sceneEnvironment = renderingScene.GetSceneEnvironment();
-
     auto& cameraParam = perScene.cameraParameter;
     auto& sceneParam = perScene.sceneParameter;
     auto& mainLightShadowParam = perScene.mainLightShadowParameter;

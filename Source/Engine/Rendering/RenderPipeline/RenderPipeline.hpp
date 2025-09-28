@@ -97,23 +97,10 @@ private:
         std::unique_ptr<Gfx::Buffer> mainLightShadow{};
     } perScene{};
 
-    struct GBufferPass
-    {
-        GBufferPass();
-        Gfx::RenderPass pass;
-    } gbufferPass{};
-
-    struct ForwardPass
-    {
-        ForwardPass();
-        Gfx::RenderPass pass;
-    } forwardPass{};
-
     struct ShadingPass
     {
         ShadingPass();
 
-        Gfx::RenderPass pass;
         GPUParameter::DeferredPBRShadingInput cpuParameter{};
         std::unique_ptr<Gfx::ShaderResource> gpuResource;
         std::unique_ptr<Gfx::Buffer> perMaterialBuffer;

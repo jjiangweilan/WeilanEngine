@@ -98,7 +98,7 @@ public:
             for (auto& subpass : renderPass.GetSubpasses())
             {
                 std::vector<Attachment> colors;
-                for (SubpassAttachment color : subpass.colors)
+                for (const SubpassAttachment& color : subpass.colors)
                 {
                     const auto& id = attachments[color.attachmentIndex];
                     auto idType = id.GetType();
@@ -845,7 +845,53 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
+
             auto renderPass = resourceAllocator->Request(args.renderPass);
+            GoThroughRenderPass(executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+        }
+        else if (cmd.type == VKCmdType::DynamicBeginRenderPass)
+        {
+            auto& args = std::get<VKDynamicRenderPassCmd>(cmd.args);
+            auto& imgs = args.imageIdentifiers;
+
+            std::optional<SubpassAttachment> depthAttachmentDescription = std::nullopt;
+            auto lastImage = ImageIdentifier_GetImage(imgs.back().image, this);
+            bool hasDepth = !imgs.empty() && IsDepthStencilFormat(lastImage->GetDescription().format);
+            if (hasDepth)
+            {
+                auto& depthRenderAttachment = *imgs.end();
+                depthAttachmentDescription = SubpassAttachment{
+                    (int)imgs.size() - 1,
+                    imgs.back().loadOp,
+                    imgs.back().storeOp,
+                    imgs.back().stencilLoadOp,
+                    imgs.back().stencilStoreOp
+                };
+            }
+
+            int colorAttachmentCount = imgs.size() - (hasDepth ? 1 : 0);
+            int subpassCount = 1;
+
+            RenderPass passDescriptor(subpassCount, imgs.size());
+
+            std::vector<SubpassAttachment> colorAttachmentDescriptions(colorAttachmentCount);
+            int idx = 0;
+            std::transform(
+                imgs.begin(),
+                hasDepth ? imgs.end() - 1 : imgs.end(),
+                colorAttachmentDescriptions.begin(),
+                [&idx](RenderAttachment& atta)
+                { return SubpassAttachment{idx++, atta.loadOp, atta.storeOp, atta.stencilLoadOp, atta.stencilStoreOp}; }
+            );
+            passDescriptor.SetSubpass(0, colorAttachmentDescriptions, depthAttachmentDescription);
+
+            for (int attachmentIdx = 0; attachmentIdx < (idx + (hasDepth ? 1 : 0)); ++attachmentIdx)
+            {
+                passDescriptor.SetAttachment(attachmentIdx, imgs[attachmentIdx].image);
+            }
+
+            VKRenderPass* renderPass = Request(passDescriptor);
+            args.resolvedRenderPass = renderPass;
             GoThroughRenderPass(executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::BindResource)
@@ -1175,18 +1221,31 @@ void VKCommandBufferProcessor::Execute(
                     // vkCmdSetEvent(vkcmd, cmd.asyncReadback.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
                     break;
                 }
-            case VKCmdType::SetClearValues:
-                {
-                    auto& args = std::get<VKSetClearValuesCmd>(cmd.args);
-                    exeState.overrideRenderPassClearValues = true;
-                    exeState.renderPassClearValues = args.clearValues;
-                    break;
-                }
             case Gfx::VKCmdType::DynamicBeginRenderPass:
                 {
                     auto& args = std::get<VKDynamicRenderPassCmd>(cmd.args);
+                    VKRenderPass* renderPasss = args.resolvedRenderPass;
+                    std::span<ClearValue> clearValues = args.clearValues;
 
-                    // TODO:...
+                    auto& subpasses = renderPasss->GetSubpesses();
+                    size_t clearCount = subpasses[0].colors.size() + (subpasses[0].depth.has_value() ? 1 : 0);
+                    std::vector<VkClearValue> clearValuesFinal(clearCount, {{{0, 0, 0, 0}}});
+
+                    ASSERT(clearValues.size() == clearValuesFinal.size());
+
+                    for (int i = 0; i < clearValues.size() && i < clearValuesFinal.size(); i++)
+                    {
+                        memcpy(&clearValuesFinal[i], &clearValues[i], sizeof(VkClearColorValue));
+                    }
+
+                    BeginRenderPass(
+                        vkcmd,
+                        renderPasss,
+                        clearValuesFinal.data(),
+                        clearValuesFinal.size(),
+                        args.barrierOffset,
+                        args.barrierCount
+                    );
                     break;
                 }
             case VKCmdType::BeginRenderPass:
@@ -1578,54 +1637,14 @@ void VKCommandBufferProcessor::Execute(
                 {
                     auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
                     Gfx::VKRenderPass* renderPass = resourceAllocator->Request(args.renderPass);
-                    VkRenderPass vkRenderPass = renderPass->GetHandle();
-                    exeState.renderPass = renderPass;
-                    exeState.subpassIndex = 0;
-
-                    // framebuffer has to get inside the execution function due to how
-                    // RenderPass handle swapchain image as framebuffer attachment
-                    VkFramebuffer vkFramebuffer = renderPass->GetFrameBuffer();
-
-                    auto extent = renderPass->GetExtent();
-                    VkRenderPassBeginInfo renderPassBeginInfo;
-                    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                    renderPassBeginInfo.pNext = VK_NULL_HANDLE;
-                    renderPassBeginInfo.renderPass = vkRenderPass;
-                    renderPassBeginInfo.framebuffer = vkFramebuffer;
-                    renderPassBeginInfo.renderArea = {{0, 0}, {extent.width, extent.height}};
-                    renderPassBeginInfo.clearValueCount = args.clearValueCount;
-                    renderPassBeginInfo.pClearValues = args.clearValues;
-
-                    auto barrierOffset = args.barrierOffset;
-                    auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
-
-                    if (!exeState.overrideViewport)
-                    {
-                        VkViewport viewport;
-                        viewport.x = 0.0f;
-                        viewport.y = 0.0f;
-                        viewport.width = (float)extent.width;
-                        viewport.height = (float)extent.height;
-                        viewport.minDepth = 0.0f;
-                        viewport.maxDepth = 1.0f;
-                        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
-                    }
-                    exeState.overrideViewport = false;
-
-                    if (!exeState.overrideScissor)
-                    {
-                        VkRect2D scissor;
-                        scissor.offset = {0, 0};
-                        scissor.extent = {extent.width, extent.height};
-                        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
-                    }
-                    exeState.overrideScissor = false;
-
-                    vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                    BeginRenderPass(
+                        vkcmd,
+                        renderPass,
+                        args.clearValues,
+                        args.clearValueCount,
+                        args.barrierOffset,
+                        args.barrierCount
+                    );
                     break;
                 }
             case Gfx::VKCmdType::BeginLabel:
@@ -1973,6 +1992,63 @@ Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::ImageIdentifier& id, G
     }
 
     return nullptr;
+}
+
+void VKCommandBufferProcessor::BeginRenderPass(
+    VkCommandBuffer vkcmd,
+    VKRenderPass* renderPass,
+    VkClearValue* clearValues,
+    int clearValueCount,
+    int barrierOffset,
+    int barrierCount
+)
+{
+    VkRenderPass vkRenderPass = renderPass->GetHandle();
+    exeState.renderPass = renderPass;
+    exeState.subpassIndex = 0;
+
+    // framebuffer has to get inside the execution function due to how
+    // RenderPass handle swapchain image as framebuffer attachment
+    VkFramebuffer vkFramebuffer = renderPass->GetFrameBuffer();
+
+    auto extent = renderPass->GetExtent();
+    VkRenderPassBeginInfo renderPassBeginInfo;
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.pNext = VK_NULL_HANDLE;
+    renderPassBeginInfo.renderPass = vkRenderPass;
+    renderPassBeginInfo.framebuffer = vkFramebuffer;
+    renderPassBeginInfo.renderArea = {{0, 0}, {extent.width, extent.height}};
+    renderPassBeginInfo.clearValueCount = clearValueCount;
+    renderPassBeginInfo.pClearValues = clearValues;
+
+    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+    {
+        PutBarrier(vkcmd, b);
+    }
+
+    if (!exeState.overrideViewport)
+    {
+        VkViewport viewport;
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)extent.width;
+        viewport.height = (float)extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
+        exeState.overrideViewport = false;
+    }
+
+    if (!exeState.overrideScissor)
+    {
+        VkRect2D scissor;
+        scissor.offset = {0, 0};
+        scissor.extent = {extent.width, extent.height};
+        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
+        exeState.overrideScissor = false;
+    }
+
+    vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 } // namespace Gfx

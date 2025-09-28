@@ -213,7 +213,6 @@ private:
     Slang::ComPtr<slang::ISession> session;
     std::unordered_map<std::string, ShaderModule> library;
     const char* shaderRootPath = GetShaderRootPath();
-    std::mutex lk;
 
     ShaderLibrary();
 

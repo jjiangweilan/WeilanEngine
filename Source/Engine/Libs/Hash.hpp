@@ -12,8 +12,3 @@ inline void Hash64(uint64_t& seed, void* data, size_t size)
 {
     seed ^= XXH3_64bits(data, size) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 }
-
-inline void Hash64Combine(uint64_t& seed, const uint64_t& hash)
-{
-    seed ^= hash + 0x9e3779b9 + (seed<<6) + (seed>>2);
-}

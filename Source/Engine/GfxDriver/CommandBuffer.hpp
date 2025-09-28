@@ -46,6 +46,15 @@ struct Viewport
     float maxDepth;
 };
 
+struct RenderAttachment
+{
+    ImageIdentifier image;
+    Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
+    Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
+};
+
 struct DescriptorBinding
 {
     uint32_t dstBinding;
@@ -86,9 +95,7 @@ public:
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) = 0;
 
-    virtual void SetClearValues(std::span<Gfx::ClearValue> clearValues) = 0;
-    virtual void BeginRenderPass(std::span<const Gfx::ImageIdentifier> images) = 0;
-
+    virtual void BeginRenderPass(std::span<const RenderAttachment> images, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void NextRenderPass() = 0;
     virtual void EndRenderPass() = 0;
@@ -154,14 +161,6 @@ public:
     virtual void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 
     virtual void Blit(ImageIdentifier src, ImageIdentifier dst, BlitOp blitOp = {}) = 0;
-
-    template <class... ImageIdentifierType>
-        requires(std::is_same_v<ImageIdentifierType, ImageIdentifier> && ...)
-    void BeginRenderPass(const ImageIdentifierType&... images)
-    {
-        Gfx::ImageIdentifier imgArray[] = {images...};
-        BeginRenderPass(imgArray);
-    }
 
     void UpdateViewportAndScissor(uint32_t width, uint32_t height)
     {
