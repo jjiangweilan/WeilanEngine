@@ -13,7 +13,7 @@ public:
     {
         resize(other.m_Size);
 
-        for (auto curr = m_Data, src = other.m_Data; curr != curr + m_Size; ++curr, src++)
+        for (auto curr = m_Data, src = other.m_Data; curr != m_Data + m_Size; ++curr, src++)
         {
             *curr = *src;
         }
@@ -85,7 +85,6 @@ public:
     void ensure_size_uninitialized(size_t size)
     {
         T* newData = nullptr;
-        size_t delta = 0;
 
         if (m_Size < size)
         {
