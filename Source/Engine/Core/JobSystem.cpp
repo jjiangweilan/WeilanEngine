@@ -40,7 +40,7 @@ int JobSystem::GetTotalWorkers()
     int totalWorkers = std::thread::hardware_concurrency();
     if (totalWorkers == 0)
     {
-        totalWorkers = 6;
+        totalWorkers = 4;
     }
 
     totalWorkers -= 1; // Reserve one thread for main thread
