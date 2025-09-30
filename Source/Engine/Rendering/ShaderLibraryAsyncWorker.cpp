@@ -1204,6 +1204,12 @@ public:
 
 class ShaderLibraryAsyncWorker::CompileWorker
 {
+    struct CachedShaderInformation
+    {
+        ShaderPermutation permutation;
+        ShaderFeatures shaderFeatures;
+    };
+
     JobHandle workingThread;
 
     MPMCQueue<CompileJobParams> workQueue;
@@ -1211,7 +1217,7 @@ class ShaderLibraryAsyncWorker::CompileWorker
 
     Slang::ComPtr<slang::IGlobalSession> globalSession;
     Slang::ComPtr<slang::ISession> session;
-    std::pmr::unordered_map<std::string, ShaderFeatures> cachedShaderFeatures;
+    std::unordered_map<std::string, CachedShaderInformation> compiledShaderInformationCache;
 
 public:
     CompileWorker() : workQueue(4), compiledQueue(4) { Init(); }
@@ -1222,6 +1228,22 @@ public:
         createGlobalSession(globalSession.writeRef());
 
         LoadSession();
+    }
+
+    void ReloadAllShaders()
+    {
+        WaitForAll();
+        GetGfxDriver()->WaitForIdle();
+
+        LoadSession();
+
+        auto copy = compiledShaderInformationCache;
+        compiledShaderInformationCache.clear();
+
+        for (auto& shader : copy)
+        {
+            PushWork(CompileJobParams{shader.first.c_str(), shader.second.permutation});
+        }
     }
 
     void WaitForAll() { workingThread.Wait(); }
@@ -1326,11 +1348,11 @@ public:
 private:
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
 
-    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName)
+    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName, ShaderPermutation permutation)
     {
-        auto iter = cachedShaderFeatures.find(shaderName);
+        auto iter = compiledShaderInformationCache.find(shaderName);
 
-        if (iter == cachedShaderFeatures.end())
+        if (iter == compiledShaderInformationCache.end())
         {
             globalSession = session->getGlobalSession();
             ComPtr<slang::IBlob> diagnostics;
@@ -1352,11 +1374,11 @@ private:
                 }
             }
 
-            cachedShaderFeatures[shaderName] = features;
-            return cachedShaderFeatures[shaderName]; // returning a reference
+            compiledShaderInformationCache[shaderName] = {permutation, features};
+            return compiledShaderInformationCache[shaderName].shaderFeatures; // returning a reference
         }
 
-        return iter->second;
+        return iter->second.shaderFeatures;
     }
 
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& features)
@@ -1419,7 +1441,7 @@ private:
         ShaderCompiler compiler;
         Gfx::PipelineInfo pipelineInfo{};
         Gfx::PipelineConfig pipelineConfig{};
-        auto& features = RetriveShaderFeatures(shaderName);
+        auto& features = RetriveShaderFeatures(shaderName, permutation);
         outFeature = features;
         auto featureStrings = features.GetFeautresFromBitmask(permutation);
         try
@@ -1522,6 +1544,11 @@ void ShaderLibraryAsyncWorker::CompileShader(const char* shaderName, ShaderPermu
 void ShaderLibraryAsyncWorker::WaitForAll()
 {
     compileWorker->WaitForAll();
+}
+
+void ShaderLibraryAsyncWorker::ReloadAllShaders()
+{
+    compileWorker->ReloadAllShaders();
 }
 
 std::optional<AsyncCompiledData> ShaderLibraryAsyncWorker::PollCompiled()

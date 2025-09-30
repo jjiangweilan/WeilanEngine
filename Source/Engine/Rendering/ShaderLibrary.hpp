@@ -153,6 +153,8 @@ public:
         return Singleton().QueryShaderFeaturesImpl(name);
     }
 
+    static void WaitForShaderCompilation() { Singleton().WaitForAllImpl(); }
+
     static void DestorySlangInstance() { return Singleton().DestorySlangInstanceImpl(); }
 
     static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
@@ -172,6 +174,7 @@ private:
 
     void Init();
     void LoadSession();
+    void WaitForAllImpl() { asyncWorker.WaitForAll(); }
     void DestorySlangInstanceImpl();
     ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);

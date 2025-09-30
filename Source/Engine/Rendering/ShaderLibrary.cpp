@@ -1409,15 +1409,15 @@ const ShaderFeatures& ShaderLibrary::RetriveShaderFeatures(const char* shaderNam
 
 void ShaderLibrary::ReloadAllShadersImpl()
 {
-    GetGfxDriver()->WaitForIdle();
-    LoadSession();
+    asyncWorker.ReloadAllShaders();
 
-    for (auto& shader : library)
+    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
     {
-        for (auto& m : shader.second.shaders)
-        {
-            m.second.Recompile(this);
-        }
+        library[compiled->name].shaders.emplace(
+            compiled->permutation,
+            CompiledShader(std::move(compiled->shader), compiled->permutation)
+        );
+        library[compiled->name].features = compiled->shaderFeature;
     }
 }
 

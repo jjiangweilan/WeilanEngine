@@ -99,8 +99,8 @@ public:
     ShaderLibraryAsyncWorker();
     ~ShaderLibraryAsyncWorker();
     void CompileShader(const char* name, ShaderPermutation permutation);
-
     void WaitForAll();
+    void ReloadAllShaders();
     std::optional<AsyncCompiledData> PollCompiled();
 
 private:

@@ -91,6 +91,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     luaBackend->Init(assetDatabase->GetAssetDirectory().string().c_str());
     gameLoop = std::make_unique<GameLoop>();
+
+    ShaderLibrary::Singleton().WaitForShaderCompilation();
 }
 
 bool WeilanEngine::BeginFrame()
