@@ -3,58 +3,11 @@
 #include "Libs/Hash.hpp"
 #include "Rendering/Shader.hpp"
 #include "Shader2.hpp"
+#include "ShaderLibraryAsyncWorker.hpp"
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
-
-#define MAX_SHADER_FEATURE_COUNT 64
-using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
-
-struct ShaderToggleFeature
-{
-    std::string name = "";
-    bool defaultValue = false;
-};
-
-struct ShaderFeatures
-{
-    template <class Iterable>
-    ShaderPermutation GetPermutation(const Iterable& names) const
-    {
-        ShaderPermutation perm{};
-        for (const std::string& name : names)
-        {
-            uint32_t bitIndex = 0;
-            auto iter = featureToBitMask.find(name);
-            if (iter != featureToBitMask.end())
-            {
-                bitIndex = iter->second;
-                perm.set(bitIndex, true);
-            }
-        }
-
-        return perm;
-    }
-
-    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation) const
-    {
-        std::vector<std::string> result{};
-        for (int bit = 0; bit < permutation.size(); ++bit)
-        {
-            if (permutation.test(bit))
-            {
-                result.push_back(bitMaskToFeature.at(bit));
-            }
-        }
-
-        return result;
-    }
-
-    std::unordered_map<uint32_t, std::string> bitMaskToFeature{};
-    std::unordered_map<std::string, uint32_t> featureToBitMask{};
-    std::vector<ShaderToggleFeature> toggleFeatures{};
-};
 
 enum class Shaders : int
 {
@@ -91,6 +44,33 @@ enum class Shaders : int
 
 class ShaderLibrary
 {
+    struct CompiledShader
+    {
+        CompiledShader() : shader(nullptr), permutation() {}
+        CompiledShader(std::unique_ptr<Gfx::ShaderProgram>&& shader, ShaderPermutation permutation)
+            : shader(std::move(shader)), shaderHandle(this->shader.get()), permutation(permutation)
+        {}
+        CompiledShader(CompiledShader&& other) = default;
+
+        std::unique_ptr<Gfx::ShaderProgram> shader;
+        Shader2 shaderHandle; // contains the shader object and return it to user
+        ShaderPermutation permutation;
+
+        void Recompile(ShaderLibrary* parent);
+    };
+
+    struct ShaderModule
+    {
+        ShaderFeatures features;
+        std::unordered_map<ShaderPermutation, CompiledShader> shaders;
+    };
+
+    Slang::ComPtr<slang::IGlobalSession> globalSession;
+    Slang::ComPtr<slang::ISession> session;
+    std::unordered_map<std::string, ShaderModule> library;
+    const char* shaderRootPath = GetShaderRootPath();
+    ShaderLibraryAsyncWorker asyncWorker;
+
 public:
     static constexpr const char* ShaderNameMap[] = {
         "DeferredPBRShading",
@@ -188,32 +168,6 @@ public:
     static ShaderLibrary& Singleton();
 
 private:
-    struct CompiledShader
-    {
-        CompiledShader() : shader(nullptr), permutation() {}
-        CompiledShader(std::unique_ptr<Gfx::ShaderProgram>&& shader, ShaderPermutation permutation)
-            : shader(std::move(shader)), shaderHandle(this->shader.get()), permutation(permutation)
-        {}
-        CompiledShader(CompiledShader&& other) = default;
-
-        std::unique_ptr<Gfx::ShaderProgram> shader;
-        Shader2 shaderHandle; // contains the shader object and return it to user
-        ShaderPermutation permutation;
-
-        void Recompile(ShaderLibrary* parent);
-    };
-
-    struct ShaderModule
-    {
-        ShaderFeatures features;
-        std::unordered_map<ShaderPermutation, CompiledShader> shaders;
-    };
-
-    Slang::ComPtr<slang::IGlobalSession> globalSession;
-    Slang::ComPtr<slang::ISession> session;
-    std::unordered_map<std::string, ShaderModule> library;
-    const char* shaderRootPath = GetShaderRootPath();
-
     ShaderLibrary();
 
     void Init();

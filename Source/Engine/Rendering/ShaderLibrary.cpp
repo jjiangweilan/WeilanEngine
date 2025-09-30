@@ -1330,12 +1330,17 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
         }
     }
 
-    std::unique_ptr<Gfx::ShaderProgram> newShader = CompileShader(name, permutation);
-    if (newShader == nullptr)
+    asyncWorker.CompileShader(name, permutation);
+    asyncWorker.WaitForAll();
+    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
     {
-        return nullptr;
+        library[name].shaders.emplace(
+            compiled->permutation,
+            CompiledShader(std::move(compiled->shader), compiled->permutation)
+        );
+        library[name].features = compiled->shaderFeature;
     }
-    library[name].shaders.emplace(permutation, CompiledShader(std::move(newShader), permutation));
+
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }
 

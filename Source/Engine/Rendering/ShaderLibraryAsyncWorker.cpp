@@ -1,6 +1,7 @@
 #include "ShaderLibraryAsyncWorker.hpp"
 #include "Core/JobSystem.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/EnumStringMapping.hpp"
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>
@@ -11,6 +12,42 @@ using Slang::ComPtr;
 
 struct CompileJobParams
 {
+    CompileJobParams() noexcept : shaderName(""), permutation() {}
+    CompileJobParams(std::string&& name, ShaderPermutation&& permutation) noexcept
+        : shaderName(std::move(name)), permutation(std::move(permutation))
+    {}
+    CompileJobParams(const std::string& name, const ShaderPermutation& permutation) noexcept
+        : shaderName(name), permutation(permutation)
+    {}
+
+    // Add copy constructor and move operations as noexcept
+    CompileJobParams(const CompileJobParams& other) noexcept
+        : shaderName(other.shaderName), permutation(other.permutation)
+    {}
+    CompileJobParams(CompileJobParams&& other) noexcept
+        : shaderName(std::move(other.shaderName)), permutation(std::move(other.permutation))
+    {}
+    CompileJobParams& operator=(const CompileJobParams& other) noexcept
+    {
+        if (this != &other)
+        {
+            shaderName = other.shaderName;
+            permutation = other.permutation;
+        }
+        return *this;
+    }
+    CompileJobParams& operator=(CompileJobParams&& other) noexcept
+    {
+        if (this != &other)
+        {
+            shaderName = std::move(other.shaderName);
+            permutation = std::move(other.permutation);
+        }
+        return *this;
+    }
+
+    ~CompileJobParams() noexcept = default;
+
     std::string shaderName;
     ShaderPermutation permutation;
 };
@@ -1177,13 +1214,17 @@ class ShaderLibraryAsyncWorker::CompileWorker
     std::pmr::unordered_map<std::string, ShaderFeatures> cachedShaderFeatures;
 
 public:
+    CompileWorker() : workQueue(4), compiledQueue(4) { Init(); }
+
     void Init()
     {
         globalSession = nullptr;
         createGlobalSession(globalSession.writeRef());
 
-        LoadSession()
+        LoadSession();
     }
+
+    void WaitForAll() { workingThread.Wait(); }
 
     void LoadSession()
     {
@@ -1195,7 +1236,7 @@ public:
             .profile = globalSession->findProfile("spirv_1_6+spv_image_gather_extended"),
             .flags = 0
         };
-        const char* searchPaths[] = { GetShaderRootPath() };
+        const char* searchPaths[] = {GetShaderRootPath()};
         slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
         bool debug = true;
 
@@ -1264,8 +1305,8 @@ public:
 
     void PushWork(CompileJobParams params)
     {
-        workQueue.push(params);
-        if (workingThread.IsFinished())
+        workQueue.try_push(std::move(params));
+        if (!workingThread.IsValid() || workingThread.IsFinished())
         {
             TickOff();
         }
@@ -1274,7 +1315,7 @@ public:
     std::optional<AsyncCompiledData> PollCompiled()
     {
         AsyncCompiledData data;
-        if (compiledQueue.pop(data))
+        if (compiledQueue.try_pop(data))
         {
             return data;
         }
@@ -1285,41 +1326,64 @@ public:
 private:
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
 
-    const ShaderFeatures& QueryShaderFeatures(const char* name)
+    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName)
     {
-        auto iter = cachedShaderFeatures.find(name);
+        auto iter = cachedShaderFeatures.find(shaderName);
+
         if (iter == cachedShaderFeatures.end())
         {
-            return RetriveShaderFeatures(name);
+            globalSession = session->getGlobalSession();
+            ComPtr<slang::IBlob> diagnostics;
+
+            ComPtr<slang::IModule> module;
+            module = session->loadModule(shaderName, diagnostics.writeRef());
+            ShaderCompiler::DiagnoseIfNeeded(diagnostics);
+
+            ShaderFeatures features{};
+
+            if (module)
+            {
+                CollectToggleFeatures(module, features.toggleFeatures);
+                for (int featureIndex = 0; featureIndex < features.toggleFeatures.size() && featureIndex < 64;
+                     ++featureIndex)
+                {
+                    features.featureToBitMask[features.toggleFeatures[featureIndex].name] = featureIndex;
+                    features.bitMaskToFeature[featureIndex] = features.toggleFeatures[featureIndex].name;
+                }
+            }
+
+            cachedShaderFeatures[shaderName] = features;
+            return cachedShaderFeatures[shaderName]; // returning a reference
         }
 
         return iter->second;
     }
 
-    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName)
+    void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& features)
     {
-        globalSession = session->getGlobalSession();
-        ComPtr<slang::IBlob> diagnostics;
-
-        ComPtr<slang::IModule> module;
-        module = session->loadModule(shaderName, diagnostics.writeRef());
-        ShaderCompiler::DiagnoseIfNeeded(diagnostics);
-
-        ShaderFeatures features{};
-
-        if (module)
+        auto moduleReflection = module->getModuleReflection();
+        for (auto child : moduleReflection->getChildren())
         {
-            CollectToggleFeatures(module, features.toggleFeatures);
-            for (int featureIndex = 0; featureIndex < features.toggleFeatures.size() && featureIndex < 64;
-                 ++featureIndex)
+            auto type = child->getKind();
+            Slang::ComPtr<slang::IBlob> blob;
+            if (type == slang::DeclReflection::Kind::Variable)
             {
-                features.featureToBitMask[features.toggleFeatures[featureIndex].name] = featureIndex;
-                features.bitMaskToFeature[featureIndex] = features.toggleFeatures[featureIndex].name;
+                auto asVariable = child->asVariable();
+                bool hasExtern = asVariable->findModifier(slang::Modifier::Extern) != nullptr;
+                bool hasStatic = asVariable->findModifier(slang::Modifier::Static) != nullptr;
+                bool hasConst = asVariable->findModifier(slang::Modifier::Const) != nullptr;
+
+                if (hasExtern && hasStatic && hasConst)
+                {
+                    ShaderToggleFeature f;
+                    f.name = child->getName();
+
+                    // TODO we need a way to know how to get default value
+                    f.defaultValue = false;
+                    features.push_back(f);
+                }
             }
         }
-
-        cachedShaderFeatures[shaderName].features = features;
-        return cachedShaderFeatures[shaderName].features; // returning a reference
     }
 
     void TickOff()
@@ -1332,19 +1396,31 @@ private:
                     CompileJobParams params;
                     workQueue.pop(params);
 
-                    auto shaderProgram = CompileShader(params.shaderName.data(), params.permutation);
-                    compiledQueue.push({params.shaderName, params.permutation, std::move(shaderProgram)});
+                    ShaderFeatures compiledShaderFeature;
+                    auto shaderProgram =
+                        CompileShader(params.shaderName.data(), params.permutation, compiledShaderFeature);
+
+                    AsyncCompiledData compiledData(
+                        std::move(params.shaderName),
+                        std::move(params.permutation),
+                        std::move(compiledShaderFeature),
+                        std::move(shaderProgram)
+                    );
+                    compiledQueue.try_push(std::move(compiledData));
                 }
             }
         );
     }
 
-    std::unique_ptr<Gfx::ShaderProgram> CompileShader(const char* shaderName, ShaderPermutation permutation)
+    std::unique_ptr<Gfx::ShaderProgram> CompileShader(
+        const char* shaderName, ShaderPermutation permutation, ShaderFeatures& outFeature
+    )
     {
         ShaderCompiler compiler;
         Gfx::PipelineInfo pipelineInfo{};
         Gfx::PipelineConfig pipelineConfig{};
-        auto& features = QueryShaderFeatures(shaderName);
+        auto& features = RetriveShaderFeatures(shaderName);
+        outFeature = features;
         auto featureStrings = features.GetFeautresFromBitmask(permutation);
         try
         {
@@ -1436,9 +1512,16 @@ ShaderLibraryAsyncWorker::ShaderLibraryAsyncWorker()
     compileWorker = std::make_unique<CompileWorker>();
 }
 
+ShaderLibraryAsyncWorker::~ShaderLibraryAsyncWorker() = default;
+
 void ShaderLibraryAsyncWorker::CompileShader(const char* shaderName, ShaderPermutation permutation)
 {
-    compileWorker->PushWork({std::string(shaderName), permutation});
+    compileWorker->PushWork(CompileJobParams(std::string(shaderName), permutation));
+}
+
+void ShaderLibraryAsyncWorker::WaitForAll()
+{
+    compileWorker->WaitForAll();
 }
 
 std::optional<AsyncCompiledData> ShaderLibraryAsyncWorker::PollCompiled()

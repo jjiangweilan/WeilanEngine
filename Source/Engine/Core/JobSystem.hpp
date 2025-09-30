@@ -11,6 +11,7 @@ public:
     JobHandle() : f() {}
     JobHandle(std::future<void>&& f) : f(std::move(f)) {}
     bool IsFinished() { return f.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; }
+    bool IsValid() { return f.valid(); }
     void Wait()
     {
         if (f.valid())
