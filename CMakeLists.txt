@@ -173,8 +173,9 @@ set(SPDLOG_FMT_EXTERNAL ON)
 FetchContent_MakeAvailable(SPDLOG)
 
 FetchContent_Declare(rapidyaml
-    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_TAG v0.7.2
+    # GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_REPOSITORY https://github.com/jjiangweilan/rapidyaml.git # temp fix a problem where clang in windows doesn't have alloca.h header https://github.com/biojppm/rapidyaml/issues/539
+    GIT_TAG v0.9.0_patch
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )

@@ -1,5 +1,6 @@
 #include "ShaderLibraryAsyncWorker.hpp"
 #include "Core/JobSystem.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>
@@ -1166,11 +1167,19 @@ public:
 
 class ShaderLibraryAsyncWorker::CompileWorker
 {
+    JobHandle workingThread;
+
+    MPMCQueue<CompileJobParams> workQueue;
+    MPMCQueue<AsyncCompiledData> compiledQueue;
+
+    Slang::ComPtr<slang::IGlobalSession> globalSession;
+    Slang::ComPtr<slang::ISession> session;
+    std::pmr::unordered_map<std::string, ShaderFeatures> cachedShaderFeatures;
+
 public:
     void Init()
     {
         globalSession = nullptr;
-        compileWorker = std::make_unique<CompileWorker>();
         createGlobalSession(globalSession.writeRef());
 
         LoadSession()
@@ -1186,7 +1195,7 @@ public:
             .profile = globalSession->findProfile("spirv_1_6+spv_image_gather_extended"),
             .flags = 0
         };
-        const char* searchPaths[] = {shaderRootPath};
+        const char* searchPaths[] = { GetShaderRootPath() };
         slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
         bool debug = true;
 
@@ -1274,6 +1283,45 @@ public:
     }
 
 private:
+    inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
+
+    const ShaderFeatures& QueryShaderFeatures(const char* name)
+    {
+        auto iter = cachedShaderFeatures.find(name);
+        if (iter == cachedShaderFeatures.end())
+        {
+            return RetriveShaderFeatures(name);
+        }
+
+        return iter->second;
+    }
+
+    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName)
+    {
+        globalSession = session->getGlobalSession();
+        ComPtr<slang::IBlob> diagnostics;
+
+        ComPtr<slang::IModule> module;
+        module = session->loadModule(shaderName, diagnostics.writeRef());
+        ShaderCompiler::DiagnoseIfNeeded(diagnostics);
+
+        ShaderFeatures features{};
+
+        if (module)
+        {
+            CollectToggleFeatures(module, features.toggleFeatures);
+            for (int featureIndex = 0; featureIndex < features.toggleFeatures.size() && featureIndex < 64;
+                 ++featureIndex)
+            {
+                features.featureToBitMask[features.toggleFeatures[featureIndex].name] = featureIndex;
+                features.bitMaskToFeature[featureIndex] = features.toggleFeatures[featureIndex].name;
+            }
+        }
+
+        cachedShaderFeatures[shaderName].features = features;
+        return cachedShaderFeatures[shaderName].features; // returning a reference
+    }
+
     void TickOff()
     {
         workingThread = JobSystem::Instance().Schedule(
@@ -1296,11 +1344,10 @@ private:
         ShaderCompiler compiler;
         Gfx::PipelineInfo pipelineInfo{};
         Gfx::PipelineConfig pipelineConfig{};
-        auto& features = QueryShaderFeaturesImpl(shaderName);
+        auto& features = QueryShaderFeatures(shaderName);
         auto featureStrings = features.GetFeautresFromBitmask(permutation);
         try
         {
-            ShaderFeatures features{};
             auto compileResult =
                 compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
 
@@ -1382,21 +1429,19 @@ private:
 
         return GetGfxDriver()->CreateShaderProgram(createInfo);
     }
-
-    JobHandle workingThread;
-
-    MPMCQueue<CompileJobParams> workQueue;
-    MPMCQueue<AsyncCompiledData> compiledQueue;
-
-    Slang::ComPtr<slang::IGlobalSession> globalSession;
-    Slang::ComPtr<slang::ISession> session;
 };
 
-void ShaderLibraryAsyncWorker::LoadShader(const char* name, ShaderPermutation permutation)
+ShaderLibraryAsyncWorker::ShaderLibraryAsyncWorker()
 {
-    compileWorker->PushWork({std::string(name), permutation});
+    compileWorker = std::make_unique<CompileWorker>();
 }
 
-std::unique_ptr<Gfx::ShaderProgram> ShaderLibraryAsyncWorker::CompileShader(
-    const char* shaderName, ShaderPermutation permutation
-)
+void ShaderLibraryAsyncWorker::CompileShader(const char* shaderName, ShaderPermutation permutation)
+{
+    compileWorker->PushWork({std::string(shaderName), permutation});
+}
+
+std::optional<AsyncCompiledData> ShaderLibraryAsyncWorker::PollCompiled()
+{
+    return compileWorker->PollCompiled();
+}

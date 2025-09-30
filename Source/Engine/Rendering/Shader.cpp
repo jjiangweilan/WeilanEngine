@@ -1,7 +1,6 @@
 #include "Shader.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Assert.hpp"
-#include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <spdlog/spdlog.h>
 

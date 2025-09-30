@@ -18,7 +18,10 @@ struct AsyncCompiledData
 class ShaderLibraryAsyncWorker
 {
 public:
-    void LoadShader(const char* name, ShaderPermutation permutation);
+    ShaderLibraryAsyncWorker();
+    void CompileShader(const char* name, ShaderPermutation permutation);
+
+    std::optional<AsyncCompiledData> PollCompiled();
 
 private:
     class CompileWorker;
