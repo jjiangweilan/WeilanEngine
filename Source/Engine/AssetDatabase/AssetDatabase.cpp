@@ -917,3 +917,5 @@ void AssetDatabase::LoadAssetDatas()
         }
     }
 }
+
+ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path) {}

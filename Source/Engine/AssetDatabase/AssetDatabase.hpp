@@ -6,6 +6,41 @@
 
 class AssetDatabase
 {
+    static AssetDatabase*& SingletonReference();
+    std::filesystem::path projectRoot;
+    std::filesystem::path assetDirectory;
+    std::filesystem::path assetDatabaseDirectory;
+    ImportDatabase importDatabase;
+
+    class Assets
+    {
+    public:
+        struct PathHasher
+        {
+            size_t operator()(const std::filesystem::path& path) const { return std::filesystem::hash_value(path); }
+        };
+        Asset* Add(std::unique_ptr<AssetData>&& asset);
+
+        // used for internal asset, internal asset needs to first Add to Assets but it doesn't have contained objects
+        // yet, so after it loads it needs to update
+        void UpdateAssetData(AssetData* assetData);
+        AssetData* GetAssetData(const std::filesystem::path& path);
+
+        // get by asset's uuid
+        AssetData* GetAssetData(const UUID& uuid);
+
+        std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
+        std::unordered_map<UUID, AssetData*> byUUID;
+        std::vector<std::unique_ptr<AssetData>> data;
+    } assets;
+
+    SerializeReferenceResolveMap referenceResolveMap;
+    std::unordered_map<UUID, int*> managedObjectCounters;
+
+    std::vector<AssetData*> internalAssets;
+    bool requestShaderRefresh = false;
+    bool requestShaderRefreshAll = false;
+
 public:
     AssetDatabase() {};
 
@@ -16,7 +51,7 @@ public:
     // Asset* LoadAsset(std::filesystem::path path);
     // Asset* LoadAssetByID(const UUID& uuid);
 
-    void LoadAssetAsync(const std::filesystem::path& path);
+    ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
     std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
@@ -104,41 +139,6 @@ public:
     void Remove(const std::filesystem::path& path);
 
 private:
-    static AssetDatabase*& SingletonReference();
-    std::filesystem::path projectRoot;
-    std::filesystem::path assetDirectory;
-    std::filesystem::path assetDatabaseDirectory;
-    ImportDatabase importDatabase;
-
-    class Assets
-    {
-    public:
-        struct PathHasher
-        {
-            size_t operator()(const std::filesystem::path& path) const { return std::filesystem::hash_value(path); }
-        };
-        Asset* Add(std::unique_ptr<AssetData>&& asset);
-
-        // used for internal asset, internal asset needs to first Add to Assets but it doesn't have contained objects
-        // yet, so after it loads it needs to update
-        void UpdateAssetData(AssetData* assetData);
-        AssetData* GetAssetData(const std::filesystem::path& path);
-
-        // get by asset's uuid
-        AssetData* GetAssetData(const UUID& uuid);
-
-        std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
-        std::unordered_map<UUID, AssetData*> byUUID;
-        std::vector<std::unique_ptr<AssetData>> data;
-    } assets;
-
-    SerializeReferenceResolveMap referenceResolveMap;
-    std::unordered_map<UUID, int*> managedObjectCounters;
-
-    std::vector<AssetData*> internalAssets;
-    bool requestShaderRefresh = false;
-    bool requestShaderRefreshAll = false;
-
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
 
