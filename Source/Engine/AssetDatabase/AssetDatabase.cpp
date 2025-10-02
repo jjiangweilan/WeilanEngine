@@ -768,17 +768,22 @@ void AssetDatabase::LoadAssetDatas()
     }
 }
 
-// ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
-// {
-//     const UUID& uuid = GetUUIDFromPath(path);
-//
-//     if (uuid == UUID::GetEmptyUUID())
-//     {
-//         return nullptr;
-//     }
-//
-//     return ObjPtr<Asset>(uuid);
-// }
+ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
+{
+    ObjPtr<Asset> ptr = asyncLoadProcessor.AsyncLoadFromPath(path);
+
+    return ptr;
+}
+
+const UUID& AssetDatabase::GetUUIDFromPath(const std::filesystem::path& path)
+{
+    if (AssetData* assetData = assetFileSystem.GetAssetData(path))
+    {
+        return assetData->GetAssetUUID();
+    }
+
+    return UUID::GetEmptyUUID();
+}
 
 const std::filesystem::path& AssetDatabase::GetAssetPath(const UUID& uuid)
 {

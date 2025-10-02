@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "AssetDatabase/Private/AssetFileSystem.hpp"
+#include "AssetDatabase/Private/AsyncLoadProcessor.hpp"
 #include "Core/Asset.hpp"
 #include "Private/AssetData.hpp"
 #include <filesystem>
@@ -14,6 +15,7 @@ class AssetDatabase
 
     ImportDatabase importDatabase;
     AssetFileSystem assetFileSystem;
+    AsyncLoadProcessor asyncLoadProcessor;
 
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
@@ -43,7 +45,7 @@ public:
     std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
     void SaveDirtyAssets();
     void RemoveAssetData(AssetData* ad);
-    // ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
+    ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
@@ -81,7 +83,7 @@ private:
     void LoadEngineInternal();
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void LoadAssetDatas();
-    // const UUID& GetUUIDFromPath(const std::filesystem::path& path);
+    const UUID& GetUUIDFromPath(const std::filesystem::path& path);
 
     // used to set instance
     friend class WeilanEngine;
