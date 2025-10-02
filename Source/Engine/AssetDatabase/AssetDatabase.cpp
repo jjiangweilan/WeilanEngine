@@ -1,14 +1,20 @@
 #include "AssetDatabase.hpp"
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Component/GameScript.hpp"
-#include "Core/Scene/Scene.hpp"
-#include "GfxDriver/GfxDriver.hpp"
-#include "Importers.hpp"
-#include "Libs/Utils.hpp"
 #include "Scripting/LuaBackend.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
+
+AssetDatabase* AssetDatabase::Singleton() { return SingletonReference(); }
+const std::filesystem::path& AssetDatabase::GetAssetDirectory() const { return assetDirectory; }
+const std::vector<AssetData*>& AssetDatabase::GetInternalAssets() const { return assetFileSystem.GetInternalAssets(); }
+std::filesystem::path AssetDatabase::AbsolutePathToAssetPath(const std::filesystem::path& absolutePath) { return std::filesystem::relative(absolutePath, assetDirectory); }
+const std::filesystem::path& AssetDatabase::GetProjectRoot() const { return projectRoot; }
+const std::filesystem::path& AssetDatabase::GetProjectAssetDatabaseDirectory() const { return assetDatabaseDirectory; }
+nlohmann::json AssetDatabase::GetAssetMeta(Asset& asset) { AssetData* data = assetFileSystem.GetAssetData(asset.GetUUID()); if (data) { return data->GetMeta(); } return nlohmann::json::object(); }
+void AssetDatabase::SetAssetMeta(Asset& asset, const nlohmann::json& meta) { AssetData* data = assetFileSystem.GetAssetData(asset.GetUUID()); if (data) { data->SetMeta(meta); } }
+const std::vector<std::unique_ptr<AssetData>>& AssetDatabase::GetAssetData() { return assetFileSystem.GetAssetData(); }
 
 void AssetDatabase::Init(const std::filesystem::path& projectRoot)
 {
@@ -41,7 +47,7 @@ void AssetDatabase::SaveAsset(Asset& asset)
     if (asset.IsExternalAsset() || HasFlag(asset.GetFlags(), AssetState::DontSave))
         return;
     // this method only saves asset that is already imported
-    AssetData* assetData = assets.GetAssetData(asset.GetUUID());
+    AssetData* assetData = assetFileSystem.GetAssetData(asset.GetUUID());
 
     if (assetData != nullptr)
     {
@@ -51,7 +57,7 @@ void AssetDatabase::SaveAsset(Asset& asset)
 
 bool AssetDatabase::IsAssetInDatabase(Asset& asset)
 {
-    return assets.GetAssetData(asset.GetUUID()) != nullptr;
+    return assetFileSystem.GetAssetData(asset.GetUUID()) != nullptr;
 }
 
 std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> pathes)
@@ -84,7 +90,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
     for (int i = 0; i < validPathes.size(); ++i)
     {
         auto& path = validPathes[i];
-        auto assetData = assets.GetAssetData(path);
+        auto assetData = assetFileSystem.GetAssetData(path);
         asyncImport[i].assetData = assetData;
         asyncImport[i].absoluteAssetPath = assetDirectory / path;
         if (assetData)
@@ -163,7 +169,8 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                     std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), validPathes[i], projectRoot);
                 ad->SaveToDisk(projectRoot);
 
-                assets.Add(std::move(ad));
+                data.push_back(std::move(ad));
+                assetFileSystem.Add(ad.get());
             }
         }
 
@@ -256,7 +263,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 
 Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReimport)
 {
-    auto assetData = assets.GetAssetData(uuid);
+    auto assetData = assetFileSystem.GetAssetData(uuid);
     if (assetData)
     {
         auto asset = LoadAsset(assetData->GetAssetPath(), forceReimport);
@@ -335,13 +342,14 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 
             SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
 
-            Asset* temp = assets.Add(std::move(newAssetData));
+            Asset* temp = assetFileSystem.Add(newAssetData.get());
+            data.push_back(std::move(newAssetData));
 
             return temp;
         }
         else
         {
-            if (AssetData* ad = assets.GetAssetData(path))
+            if (AssetData* ad = assetFileSystem.GetAssetData(path))
             {
                 auto asset = ad->SetAsset(std::move(a), projectRoot);
                 SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
@@ -351,38 +359,9 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
     return nullptr;
 }
 
-Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
-{
-    Asset* asset = assetData->GetAsset();
-    UpdateAssetData(assetData.get());
-    data.push_back(std::move(assetData));
-
-    return asset;
-}
-
-AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)
-{
-    auto iter = byPath.find(path);
-    if (iter != byPath.end())
-    {
-        return iter->second;
-    }
-
-    return nullptr;
-}
-AssetData* AssetDatabase::Assets::GetAssetData(const UUID& uuid)
-{
-    auto iter = byUUID.find(uuid);
-    if (iter != byUUID.end())
-    {
-        return iter->second;
-    }
-    return nullptr;
-}
-
 void AssetDatabase::SaveDirtyAssets()
 {
-    for (auto& a : assets.data)
+    for (auto& a : data)
     {
         Asset* asset = a->GetAsset();
         if (asset)
@@ -423,13 +402,15 @@ void AssetDatabase::LoadEngineInternal()
     for (int i = 0; i < pathes.size(); ++i)
     {
         UUID assetDataUUID(pathes[i], UUID::FromStrTag{});
-        auto assetData = assets.GetAssetData(assetDataUUID);
+        auto assetData = assetFileSystem.GetAssetData(assetDataUUID);
         if (assetData == nullptr)
         {
             auto newAssetData =
                 std::make_unique<AssetData>(assetDataUUID, pathes[i], AssetData::InternalAssetDataTag{});
             assetData = newAssetData.get();
-            assets.Add(std::move(newAssetData));
+
+            assetFileSystem.Add(assetData);
+            data.push_back(std::move(newAssetData));
         }
 
         if (assetData->IsValid())
@@ -449,18 +430,7 @@ void AssetDatabase::LoadEngineInternal()
     for (auto a : validAssetData)
     {
         a->SaveToDisk(projectRoot);
-        assets.UpdateAssetData(a);
-    }
-}
-
-void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)
-{
-    byPath[assetData->GetAssetPath().string()] = assetData;
-    byUUID[assetData->GetAssetUUID()] = assetData;
-
-    for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
-    {
-        byUUID[iter.second] = assetData;
+        assetFileSystem.Add(a);
     }
 }
 
@@ -478,32 +448,6 @@ void AssetDatabase::RefreshShader()
         ShaderLibrary::ReloadAllShaders();
         Material::RebuildAllMaterials();
         requestShaderRefreshAll = false;
-    }
-}
-
-void AssetDatabase::SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported)
-{
-    auto importedAssetPaths = assetData->GetImportedAssetPaths();
-    assetData->SetImportedAssetPaths(newImported);
-
-    std::vector<std::filesystem::path> toRemove;
-    for (auto& oldp : importedAssetPaths)
-    {
-        auto findResult = std::find(newImported.begin(), newImported.end(), oldp);
-        if (findResult == newImported.end())
-        {
-            toRemove.push_back(*findResult);
-        }
-    }
-
-    for (auto r : toRemove)
-    {
-        std::error_code e;
-        std::filesystem::remove(r, e);
-        if (e.value() != 0)
-        {
-            spdlog::error("failed to remove {}", e.message());
-        }
     }
 }
 
@@ -580,7 +524,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         return nullptr;
 
     // find the asset if it's already imported
-    auto assetData = assets.GetAssetData(path);
+    auto assetData = assetFileSystem.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;
     // this asset is already imported once, we can read its meta
     if (assetData)
@@ -607,7 +551,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 
         if (assetData != nullptr)
         {
-            SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+            assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
         }
     }
 
@@ -641,8 +585,10 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     {
         std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
         assetData = ad.get();
-        assets.Add(std::move(ad));
-        SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+
+        assetFileSystem.Add(ad.get());
+        data.push_back(std::move(ad));
+        assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
     }
     else
     {
@@ -693,108 +639,14 @@ void AssetDatabase::CreateFolderAtPath(const std::filesystem::path& path)
 
 void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
 {
-    if (oldPath == newPath)
-        return;
-
-    auto fullNewPath = GetAssetDirectory() / newPath;
-    auto fullOldPath = GetAssetDirectory() / oldPath;
-    if (!std::filesystem::exists(fullNewPath.parent_path()) || !std::filesystem::exists(fullOldPath))
-    {
-        return;
-    }
-
-    // collect all data before we actually move any file
-    std::vector<AssetData*> moveAssetFiles;
-
-    if (std::filesystem::is_directory(fullOldPath))
-    {
-        for (auto entry : std::filesystem::recursive_directory_iterator(fullOldPath))
-        {
-            if (entry.is_regular_file())
-            {
-                auto relativeAssetPath = std::filesystem::relative(entry.path(), GetAssetDirectory());
-                AssetData* assetData = assets.GetAssetData(relativeAssetPath);
-                if (assetData != nullptr)
-                {
-                    moveAssetFiles.push_back(assetData);
-                }
-            }
-        }
-    }
-    else if (std::filesystem::is_regular_file(fullOldPath))
-    {
-        AssetData* assetData =
-            assets.GetAssetData(oldPath); // at this point old path must be a relative path in Assets directory
-        if (assetData != nullptr)
-        {
-            moveAssetFiles.push_back(assetData);
-        }
-    }
-    else
-        return; // anything else return
-
-    std::error_code renameErrorCode;
-    std::filesystem::rename(fullOldPath, fullNewPath, renameErrorCode);
-
-    // move failed
-    if (renameErrorCode)
-        return;
-
-    // change assetData information
-    for (auto& d : moveAssetFiles)
-    {
-        d->SetAssetPath(newPath, GetAssetDirectory());
-        assets.byPath.erase(oldPath);
-        assets.byPath[newPath] = d;
-
-        d->SaveToDisk(GetProjectRoot());
-
-        // TODO: meta
-    }
+    // TODO: sync async works before accessing assetFileSystem
+    assetFileSystem.Rename(oldPath, newPath);
 }
 
 void AssetDatabase::Remove(const std::filesystem::path& path)
 {
-    auto fullPath = GetAssetDirectory() / path;
-
-    if (!std::filesystem::exists(fullPath))
-        return;
-
-    auto RemoveAsset = [&](const std::filesystem::path& path)
-    {
-        auto assetPath = std::filesystem::relative(path, GetAssetDirectory());
-
-        auto assetData = assets.GetAssetData(assetPath);
-
-        if (assetData)
-        {
-            // set assetData's imported file to nothing (effectly remove all imported assets)
-            SyncImportedAssetFiles(assetData, {});
-
-            std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString());
-
-            assets.data.erase(
-                std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; })
-            );
-        }
-    };
-
-    if (std::filesystem::is_directory(fullPath))
-    {
-        for (auto entry : std::filesystem::recursive_directory_iterator(fullPath))
-        {
-            if (entry.is_regular_file())
-            {
-                RemoveAsset(entry.path());
-            }
-        }
-    }
-    else
-    {
-        RemoveAsset(fullPath);
-    }
-
-    std::filesystem::remove_all(fullPath);
+    // TODO: sync async works before accessing assetFileSystem
+    assetFileSystem.Remove(path);
 }
 
 void AssetDatabase::RemoveAssetData(AssetData* assetData)
@@ -805,46 +657,24 @@ void AssetDatabase::RemoveAssetData(AssetData* assetData)
     if (e.value() == 0)
     {
         auto iter = std::find_if(
-            assets.data.begin(),
-            assets.data.end(),
+            data.begin(),
+            data.end(),
             [assetData](const std::unique_ptr<AssetData>& dd) { return dd.get() == assetData; }
         );
 
-        if (iter != assets.data.end())
+        if (iter != data.end())
         {
-            assets.data.erase(iter);
+            data.erase(iter);
         }
 
-        for (auto& p : assets.byPath)
-        {
-            if (p.second == assetData)
-            {
-                assets.byPath.erase(p.first);
-                break;
-            }
-        }
-
-        for (auto& p : assets.byUUID)
-        {
-            if (p.second == assetData)
-            {
-                assets.byUUID.erase(p.first);
-                break;
-            }
-        }
+        assetFileSystem.RemoveAssetData(assetData);
     }
 }
 
 void AssetDatabase::UnloadAsset(Asset& asset)
 {
-    const UUID& uuid = asset.GetUUID();
-    auto byUUIDIter = assets.byUUID.find(uuid);
-
-    if (byUUIDIter != assets.byUUID.end())
-    {
-        AssetData* ptr = byUUIDIter->second;
-        ptr->asset = nullptr;
-    }
+    // TODO: sync async works before accessing assetFileSystem
+    assetFileSystem.UnloadAsset(asset);
 }
 
 void AssetDatabase::ReloadScripts()
@@ -876,10 +706,10 @@ void AssetDatabase::ReloadScripts()
 
 std::vector<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
 {
-    auto iter = assets.byUUID.find(uuid);
-    if (iter != assets.byUUID.end())
+    auto assetData = assetFileSystem.GetAssetData(uuid);
+    if (assetData)
     {
-        auto absolutePath = iter->second->GetAssetAbsolutePath();
+        auto absolutePath = assetData->GetAssetAbsolutePath();
         if (std::filesystem::exists(absolutePath))
         {
             std::ifstream f(absolutePath, std::ios::binary);
@@ -908,7 +738,8 @@ void AssetDatabase::LoadAssetDatas()
 
             if (ad->IsValid())
             {
-                assets.Add(std::move(ad));
+                assetFileSystem.Add(ad.get());
+                data.push_back(std::move(ad));
             }
             else
             {
@@ -918,4 +749,24 @@ void AssetDatabase::LoadAssetDatas()
     }
 }
 
-ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path) {}
+ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
+{
+    const UUID& uuid = GetUUIDFromPath(path);
+
+    if (uuid == UUID::GetEmptyUUID())
+    {
+        return nullptr;
+    }
+
+    return ObjPtr<Asset>(uuid);
+}
+
+const std::filesystem::path& AssetDatabase::GetAssetPath(const UUID& uuid)
+{
+    auto assetData = assetFileSystem.GetAssetData(uuid);
+    if (assetData)
+        return assetData->GetAssetPath();
+
+    static std::filesystem::path empty = "";
+    return empty;
+}

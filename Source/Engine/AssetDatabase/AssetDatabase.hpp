@@ -1,7 +1,8 @@
 #pragma once
 #include "AssetDatabase/Importers/AssetLoader.hpp"
+#include "AssetDatabase/Private/AssetFileSystem.hpp"
 #include "Core/Asset.hpp"
-#include "Internal/AssetData.hpp"
+#include "Private/AssetData.hpp"
 #include <filesystem>
 
 class AssetDatabase
@@ -10,34 +11,15 @@ class AssetDatabase
     std::filesystem::path projectRoot;
     std::filesystem::path assetDirectory;
     std::filesystem::path assetDatabaseDirectory;
+
     ImportDatabase importDatabase;
-
-    class Assets
-    {
-    public:
-        struct PathHasher
-        {
-            size_t operator()(const std::filesystem::path& path) const { return std::filesystem::hash_value(path); }
-        };
-        Asset* Add(std::unique_ptr<AssetData>&& asset);
-
-        // used for internal asset, internal asset needs to first Add to Assets but it doesn't have contained objects
-        // yet, so after it loads it needs to update
-        void UpdateAssetData(AssetData* assetData);
-        AssetData* GetAssetData(const std::filesystem::path& path);
-
-        // get by asset's uuid
-        AssetData* GetAssetData(const UUID& uuid);
-
-        std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
-        std::unordered_map<UUID, AssetData*> byUUID;
-        std::vector<std::unique_ptr<AssetData>> data;
-    } assets;
+    AssetFileSystem assetFileSystem;
 
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
-
+    std::vector<std::unique_ptr<AssetData>> data;
     std::vector<AssetData*> internalAssets;
+
     bool requestShaderRefresh = false;
     bool requestShaderRefreshAll = false;
 
@@ -58,39 +40,24 @@ public:
 
     std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
 
-    void UnloadAsset(Asset& asset);
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
-    void SaveAsset(Asset& asset);
 
     bool IsAssetInDatabase(Asset& asset);
 
+    void RemoveAssetData(AssetData* ad);
+    void SaveAsset(Asset& asset);
     void ReloadScripts();
-
     void RequestShaderRefresh(bool all = false);
     void RefreshShader();
-    const std::filesystem::path& GetAssetPath(const UUID& uuid)
-    {
-        auto assetData = assets.GetAssetData(uuid);
-        if (assetData)
-            return assetData->GetAssetPath();
+    void UnloadAsset(Asset& asset);
 
-        static std::filesystem::path empty = "";
-        return empty;
-    }
+    const std::filesystem::path& GetAssetPath(const UUID& uuid);
 
-    // remove assetdata in filesystem
-    void RemoveAssetData(AssetData* ad);
+    const std::filesystem::path& GetAssetDirectory() const;
+    const std::vector<AssetData*>& GetInternalAssets() const;
+    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath);
 
-    const std::filesystem::path& GetAssetDirectory() const { return assetDirectory; }
-
-    const std::vector<AssetData*>& GetInternalAssets() const { return internalAssets; }
-
-    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath)
-    {
-        return std::filesystem::relative(absolutePath, assetDirectory);
-    }
-
-    static AssetDatabase* Singleton() { return SingletonReference(); }
+    static AssetDatabase* Singleton();
 
     template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
     void CopyThroughSerialization(T& origin, T& copy)
@@ -107,31 +74,14 @@ public:
         copy.OnLoaded();
     }
 
-    const std::filesystem::path& GetProjectRoot() const { return projectRoot; }
+    const std::filesystem::path& GetProjectRoot() const;
 
-    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const { return assetDatabaseDirectory; }
+    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const;
 
-    nlohmann::json GetAssetMeta(Asset& asset)
-    {
-        AssetData* data = assets.GetAssetData(asset.GetUUID());
-        if (data)
-        {
-            return data->GetMeta();
-        }
+    nlohmann::json GetAssetMeta(Asset& asset);
 
-        return nlohmann::json::object();
-    }
-
-    void SetAssetMeta(Asset& asset, const nlohmann::json& meta)
-    {
-        AssetData* data = assets.GetAssetData((asset.GetUUID()));
-
-        if (data)
-        {
-            data->SetMeta(meta);
-        }
-    }
-    const std::vector<std::unique_ptr<AssetData>>& GetAssetData() { return assets.data; }
+    void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
+    const std::vector<std::unique_ptr<AssetData>>& GetAssetData();
 
     // file system
     void CreateFolderAtPath(const std::filesystem::path& path);
@@ -143,8 +93,8 @@ private:
     void LoadEngineInternal();
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
-    void SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported);
     void LoadAssetDatas();
+    const UUID& GetUUIDFromPath(const std::filesystem::path& path);
 
     // used to set instance
     friend class WeilanEngine;
