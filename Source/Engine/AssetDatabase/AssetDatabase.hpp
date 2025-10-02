@@ -17,7 +17,7 @@ class AssetDatabase
 
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
-    std::vector<std::unique_ptr<AssetData>> data;
+    std::vector<std::unique_ptr<AssetData>> assetDatas;
     std::vector<AssetData*> internalAssets;
 
     bool requestShaderRefresh = false;
@@ -26,38 +26,39 @@ class AssetDatabase
 public:
     AssetDatabase() {};
 
+    static AssetDatabase* Singleton();
     void Init(const std::filesystem::path& projectRoot);
-    void SaveDirtyAssets();
-
-    // path: relative path as projectRoot/Assets/{path}
-    // Asset* LoadAsset(std::filesystem::path path);
-    // Asset* LoadAssetByID(const UUID& uuid);
-
-    ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
-    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
-    Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
-    std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
-
-    std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
-
-    Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
-
-    bool IsAssetInDatabase(Asset& asset);
-
-    void RemoveAssetData(AssetData* ad);
-    void SaveAsset(Asset& asset);
-    void ReloadScripts();
-    void RequestShaderRefresh(bool all = false);
-    void RefreshShader();
-    void UnloadAsset(Asset& asset);
-
-    const std::filesystem::path& GetAssetPath(const UUID& uuid);
 
     const std::filesystem::path& GetAssetDirectory() const;
     const std::vector<AssetData*>& GetInternalAssets() const;
-    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath);
+    const std::filesystem::path& GetProjectRoot() const;
+    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const;
+    const std::vector<std::unique_ptr<AssetData>>& GetAssetData();
 
-    static AssetDatabase* Singleton();
+    void ReloadScripts();
+    void RequestShaderRefresh(bool all = false);
+    void RefreshShader();
+
+    std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
+    std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
+    void SaveDirtyAssets();
+    void RemoveAssetData(AssetData* ad);
+    // ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
+    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
+    Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
+    Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
+    bool IsAssetInDatabase(Asset& asset);
+    void SaveAsset(Asset& asset);
+    void UnloadAsset(Asset& asset);
+    nlohmann::json GetAssetMeta(Asset& asset);
+    const std::filesystem::path& GetAssetPath(const UUID& uuid);
+    void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
+
+    // file system
+    void CreateFolderAtPath(const std::filesystem::path& path);
+    void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+    void Remove(const std::filesystem::path& path);
+    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath);
 
     template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
     void CopyThroughSerialization(T& origin, T& copy)
@@ -74,27 +75,13 @@ public:
         copy.OnLoaded();
     }
 
-    const std::filesystem::path& GetProjectRoot() const;
-
-    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const;
-
-    nlohmann::json GetAssetMeta(Asset& asset);
-
-    void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
-    const std::vector<std::unique_ptr<AssetData>>& GetAssetData();
-
-    // file system
-    void CreateFolderAtPath(const std::filesystem::path& path);
-    void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
-    void Remove(const std::filesystem::path& path);
-
 private:
+    AssetData* AddAssetData(std::unique_ptr<AssetData>&& newAssetData);
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
-
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void LoadAssetDatas();
-    const UUID& GetUUIDFromPath(const std::filesystem::path& path);
+    // const UUID& GetUUIDFromPath(const std::filesystem::path& path);
 
     // used to set instance
     friend class WeilanEngine;

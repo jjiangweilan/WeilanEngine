@@ -304,12 +304,11 @@ size_t JsonSerializer::GetArraySize(std::string_view name)
 
 const nlohmann::json& JsonSerializer::GetJsonObject(std::string_view name)
 {
-    static nlohmann::json::object_t empty;
-
     if (j.is_object())
     {
         return j[TO_JSON_PTR(name)];
     }
 
+    static nlohmann::json::object_t empty;
     return empty;
 }

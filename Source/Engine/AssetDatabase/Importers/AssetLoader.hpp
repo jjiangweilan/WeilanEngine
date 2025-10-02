@@ -22,6 +22,15 @@ private:
 
 class AssetLoader
 {
+protected:
+    // asset to import
+    std::filesystem::path absoluteAssetPath{};
+
+    // meta in the AssetDatabase
+    nlohmann::json meta;
+    ImportDatabase* importDatabase;
+    std::vector<std::unique_ptr<AssetLoader>> dependencies;
+
 public:
     virtual ~AssetLoader() {}
     virtual void Setup(
@@ -53,13 +62,6 @@ public:
     virtual void HandleReload(Asset* loaded) {}
 
 protected:
-    // asset to import
-    std::filesystem::path absoluteAssetPath{};
-
-    // meta in the AssetDatabase
-    nlohmann::json meta;
-    ImportDatabase* importDatabase;
-
     static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
     {
         auto tokens = Utils::SplitString(exts, ',');

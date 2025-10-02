@@ -12,6 +12,42 @@ using AssetMeta = nlohmann::json;
 // an AssetData represent an imported Asset, it contains meta information about the asset and the asset itself
 class AssetData
 {
+    // scaii code stands for Wei Lan Engine AssetFile
+    static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
+
+    // each AssetData has an uuid
+    UUID assetDataUUID;
+
+    // the uuid of the asset this assetData linked to
+    UUID assetUUID;
+
+    // the resource's type id
+    ObjectTypeID assetTypeID;
+
+    long long lastWriteTime;
+
+    // this is the path to the resource the AssetFile linked to
+    // relative path in Assets/
+    // if it's an engine internal file it be _engine_internal/xxx
+    std::filesystem::path assetPath;
+    std::filesystem::path absolutePath;
+
+    std::vector<std::filesystem::path> importedAssetFilePaths;
+
+    nlohmann::json meta = nlohmann::json::object();
+
+    bool isValid = false;
+
+    std::unique_ptr<Asset> asset;
+
+    std::unordered_map<std::string, UUID> nameToUUID;
+    std::string GetNameToUUIDKey(Asset* obj);
+
+    bool dirty = false;
+    bool internal = false;
+
+    friend class AssetFileSystem;
+
 public:
     struct InternalAssetDataTag
     {};
@@ -77,40 +113,4 @@ public:
     std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
     const nlohmann::json& GetMeta() { return meta; }
-private:
-    // scaii code stands for Wei Lan Engine AssetFile
-    static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
-
-    // each AssetData has an uuid
-    UUID assetDataUUID;
-
-    // the uuid of the asset this assetData linked to
-    UUID assetUUID;
-
-    // the resource's type id
-    ObjectTypeID assetTypeID;
-
-    long long lastWriteTime;
-
-    // this is the path to the resource the AssetFile linked to
-    // relative path in Assets/
-    // if it's an engine internal file it be _engine_internal/xxx
-    std::filesystem::path assetPath;
-    std::filesystem::path absolutePath;
-
-    std::vector<std::filesystem::path> importedAssetFilePaths;
-
-    nlohmann::json meta = nlohmann::json::object();
-
-    bool isValid = false;
-
-    std::unique_ptr<Asset> asset;
-
-    std::unordered_map<std::string, UUID> nameToUUID;
-    std::string GetNameToUUIDKey(Asset* obj);
-
-    bool dirty = false;
-    bool internal = false;
-
-    friend class AssetDatabase;
 };

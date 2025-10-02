@@ -217,6 +217,14 @@ set(KTX_FEATURE_TESTS OFF)
 set(KTX_FEATURE_TOOLS OFF)
 FetchContent_MakeAvailable(ktx_software)
 
+set(BOOST_INCLUDE_LIBRARIES unordered)
+set(BOOST_ENABLE_CMAKE ON)
+FetchContent_Declare(
+  Boost
+  GIT_REPOSITORY https://github.com/boostorg/boost.git
+  GIT_TAG boost-1.89.0
+)
+FetchContent_MakeAvailable(Boost)
 
 FetchContent_Declare(
         assimp
@@ -334,6 +342,7 @@ target_link_libraries( WeilanEngine
     glm
     slang
     Jolt
+    Boost::unordered
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp

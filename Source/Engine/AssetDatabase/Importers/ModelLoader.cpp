@@ -301,6 +301,7 @@ private:
         {
             aiString texName;
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
+
             Texture* tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(std::filesystem::relative(
                 absoluteAssetPath.parent_path() / texName.C_Str(),
                 AssetDatabase::Singleton()->GetAssetDirectory()
