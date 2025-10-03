@@ -7,9 +7,6 @@ class InternalAssetLoader : public AssetLoader
     DECLARE_ASSET_LOADER();
 
 public:
-    bool ImportNeeded() override { return false; };
-    std::vector<std::filesystem::path> Import() override { return {}; }
-    bool IsInternalAsset() override { return true; }
 
     void Load() override;
     void GetReferenceResolveData(Serializer*& serializer, SerializeReferenceResolveMap*& resolveMap) override;

@@ -1,23 +1,30 @@
 #include "AsyncLoadProcessor.hpp"
 #include "Core/JobSystem.hpp"
 
-UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
+ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
 {
+    ScopedJobCounter _c(jobCounter);
+
+    AssetData* assetData = assetFileSystem->GetAssetData(path);
     UUID ret = UUID::GetEmptyUUID();
 
-    auto absoluteAssetPath = assetDirectory / path;
+    if (!loadingAssets.try_emplace_or_visit(path, assetData->GetAssetUUID(), [&ret](auto& val) { ret = val.second; }))
+    {
+        return ObjPtr<Asset>(ret);
+    }
 
-    std::filesystem::path ext = absoluteAssetPath.extension();
+    std::filesystem::path ext = path.extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
 
     // if this asset is already loaded, we can just try its UUID
-    AssetData* assetData = assetFileSystem->GetAssetData(path);
+    ASSERT(assetData != nullptr);
+
     Asset* asset;
     if (assetData)
         asset = assetData->GetAsset();
 
     // Case: asset is already loaded
-    if (assetData && asset)
+    if (asset)
     {
         ret = asset->GetUUID();
 
@@ -26,16 +33,17 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
         payload.assetData = assetData;
         payload.asset = asset;
 
-        asyncProcessedPayload.emplace(ret, payload);
+        asyncProcessedPayload.emplace(ret, std::move(payload));
     }
     // Case: has assetData but the actual asset is not loaded
-    else if (assetData && !asset)
+    else
     {
         ret = assetData->GetAssetUUID();
 
+        jobCounter++;
         auto job = [this, ret, path, assetData]()
         {
-            auto loadedAsset = LoadAsset(path, assetData);
+            auto loadedAsset = LoadAssetJob(path, assetData);
 
             AsyncProcessedPayload payload{};
             payload.loadingStatus = AssetLoadingStatus::Loading;
@@ -44,59 +52,110 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
             payload.loadedAsset = std::move(loadedAsset);
 
             asyncProcessedPayload.emplace(ret, std::move(payload));
-        };
-
-        JobSystem::Instance().Schedule(std::move(job));
-    }
-    // Case: no assetData and no asset
-    else
-    {
-        std::unique_ptr<AssetData> createdAssetData = CreateAssetData();
-        ret = createdAssetData->GetAssetUUID();
-
-        auto job =
-            [this, ret, path, createdAssetData = std::unique_ptr<AssetData>(std::move(createdAssetData))]() mutable
-        {
-            auto loadedAsset = LoadAsset(path, createdAssetData.get());
-
-            AsyncProcessedPayload payload{};
-            payload.loadingStatus = AssetLoadingStatus::Loading;
-            payload.assetData = createdAssetData.get();
-            payload.asset = loadedAsset.get();
-            payload.loadedAsset = std::move(loadedAsset);
-            payload.createdAssetData = std::move(createdAssetData);
-
-            asyncProcessedPayload.emplace(ret, std::move(payload));
+            jobCounter--;
         };
 
         JobSystem::Instance().Schedule(std::move(job));
     }
 
-    return ret;
+    return ObjPtr<Asset>(ret);
 }
 
-std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path& path, AssetData* assetData)
+std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const std::filesystem::path& path, AssetData* assetData)
 {
-    const AssetMeta& assetMeta = assetData->GetMeta();
-    auto ext = path.extension();
-    auto absoluteAssetPath = assetDirectory / path;
+    // copy json meta is slow, so we use pointer here
+    static nlohmann::json empty = nlohmann::json::object();
+    const nlohmann::json* assetMeta = &empty;
 
+    // use path relative to AssetDirectory
+    if (path.is_absolute())
+        return nullptr;
+
+    // find the asset if it's already imported
+    auto absoluteAssetPath = assetData->GetAssetAbsolutePath();
+
+    if (!std::filesystem::exists(absoluteAssetPath))
+        return nullptr;
+
+    // this asset is already imported once, we can read its meta
+    ASSERT(assetData != nullptr);
+    assetMeta = &assetData->GetMeta();
+
+    // override the asset path because this asset may be an internal asset
+    absoluteAssetPath = assetData->GetAssetAbsolutePath();
+
+    std::filesystem::path ext = absoluteAssetPath.extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
     if (loader == nullptr)
         return nullptr;
 
-    loader->Setup(*importDatabase, absoluteAssetPath, assetMeta);
+    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
-    bool importNeeded = loader->ImportNeeded();
-    std::vector<std::filesystem::path> importedAssetFilePaths;
-    if (importNeeded)
+    Asset* asset = assetData ? assetData->GetAsset() : nullptr;
+    bool isReload = asset == nullptr;
+
+    loader->Load();
+    std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
+
+    // failed to load asset
+    if (newAsset == nullptr)
     {
-        importedAssetFilePaths = loader->Import();
+        return nullptr;
+    }
 
-        if (assetData != nullptr)
+    asset = newAsset.get();
+
+    // newly imported or loaded, resolve references
+    Serializer* serializer;
+    SerializeReferenceResolveMap* localResolveMap;
+    loader->GetReferenceResolveData(serializer, localResolveMap);
+
+    if (serializer)
+    {
+        for (auto& uuid : serializer->GetReferencedObjects())
         {
-            assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+            auto assetData = assetFileSystem->GetAssetData(uuid);
+            if (assetData)
+            {
+                AsyncLoadFromPath(assetData->GetAssetPath());
+            }
         }
     }
+
+    // asset->OnLoaded();
+
+    return newAsset;
 }
-std::unique_ptr<AssetData> AsyncLoadProcessor::CreateAssetData() {}
+
+void AsyncLoadProcessor::SyncLoad()
+{
+    if (std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID())
+    {
+        while (jobCounter != 0)
+            std::this_thread::yield();
+
+        asyncProcessedPayload.visit_all(
+            [projectRoot = this->projectRoot](std::pair<const UUID, AsyncProcessedPayload>& payload)
+            {
+                if (payload.second.loadedAsset)
+                {
+                    auto asset =
+                        payload.second.assetData->SetAsset(std::move(payload.second.loadedAsset), projectRoot);
+                }
+            }
+        );
+
+        asyncProcessedPayload.visit_all(
+            [projectRoot = this->projectRoot](std::pair<const UUID, AsyncProcessedPayload>& payload)
+            {
+                if (payload.second.asset)
+                {
+                    payload.second.asset->OnLoaded();
+                }
+            }
+        );
+
+        asyncProcessedPayload.clear();
+        loadingAssets.clear();
+    }
+}

@@ -12,13 +12,8 @@ class TextureLoader : public AssetLoader
     DECLARE_ASSET_LOADER()
 
 public:
-    bool ImportNeeded() override;
-    std::vector<std::filesystem::path> Import() override;
     void Load() override;
-    std::unique_ptr<Asset> RetrieveAsset() override
-    {
-        return std::move(texture);
-    }
+    std::unique_ptr<Asset> RetrieveAsset() override { return std::move(texture); }
 
     void HandleReload(Asset* loaded) override;
     static const std::vector<std::type_index>& GetImportTypes();

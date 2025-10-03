@@ -1,6 +1,6 @@
 #pragma once
 #include "AssetData.hpp"
-#include "AssetDatabase/Importers/AssetLoader.hpp"
+#include "AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Core/Asset.hpp"
 #include <filesystem>
 

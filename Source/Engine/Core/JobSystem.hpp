@@ -7,9 +7,12 @@
 
 class JobHandle
 {
+    std::future<void> f;
+
 public:
     JobHandle() : f() {}
     JobHandle(std::future<void>&& f) : f(std::move(f)) {}
+    JobHandle(JobHandle&& other) noexcept : f(std::move(other.f)) {}
     bool IsFinished() { return f.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; }
     bool IsValid() { return f.valid(); }
     void Wait()
@@ -17,9 +20,14 @@ public:
         if (f.valid())
             f.wait();
     }
-
-private:
-    std::future<void> f;
+    JobHandle& operator=(JobHandle&& other) noexcept
+    {
+        if (this != &other)
+        {
+            f = std::move(other.f);
+        }
+        return *this;
+    }
 };
 
 class JobSystem

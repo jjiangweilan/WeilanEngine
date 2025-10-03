@@ -12,11 +12,6 @@ const std::vector<std::type_index>& ShaderLoader::GetImportTypes()
     return types;
 }
 
-bool ShaderLoader::ImportNeeded()
-{
-    return false;
-}
-
 void ShaderLoader::Load()
 {
     nlohmann::json shaderPasses = meta["compiledShaderPasses"];

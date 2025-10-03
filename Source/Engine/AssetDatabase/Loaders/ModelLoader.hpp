@@ -1,5 +1,4 @@
 #pragma once
-
 #include "AssetLoader.hpp"
 
 class ModelLoader : public AssetLoader
@@ -7,11 +6,6 @@ class ModelLoader : public AssetLoader
     DECLARE_ASSET_LOADER()
 
 public:
-    bool ImportNeeded() override
-    {
-        return false;
-    }
-    std::vector<std::filesystem::path> Import() override {return {};}
 
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override

@@ -35,6 +35,21 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
     SetDirty();
 }
 
+void Material::RawSetTexture(const std::string& param, const ObjPtr<Texture>& texture)
+{
+    auto iter = textureValues.find(param);
+    bool same = false;
+    if (iter != textureValues.end())
+    {
+        same = iter->second == texture;
+    }
+
+    if (same)
+        return;
+
+    textureValues[param] = texture;
+}
+
 void Material::SetTexture(
     const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
 )

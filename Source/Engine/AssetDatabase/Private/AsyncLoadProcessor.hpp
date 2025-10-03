@@ -1,9 +1,13 @@
 #pragma once
-#include "AssetDatabase/Importers/AssetLoader.hpp"
+#include "AssetDatabase/Importers/AssetImporter.hpp"
+#include "AssetDatabase/Loaders/AssetLoader.hpp"
 #include "AssetDatabase/Private/AssetFileSystem.hpp"
+#include "Core/JobSystem.hpp"
 #include "Libs/MPMCQueue.hpp"
 #include "Libs/UUID.hpp"
+#include "Libs/SpinLock.hpp"
 #include <boost/unordered/concurrent_flat_map.hpp>
+#include <boost/lockfree/stack.hpp>
 
 enum class AssetLoadingStatus
 {
@@ -19,14 +23,13 @@ struct AsyncProcessedPayload
     Asset* asset;
 
     std::unique_ptr<Asset> loadedAsset;
-    std::unique_ptr<AssetData> createdAssetData;
 
     AsyncProcessedPayload() = default;
 
     AsyncProcessedPayload(const AsyncProcessedPayload&) = delete;
     AsyncProcessedPayload(AsyncProcessedPayload&& other) noexcept
         : loadingStatus(other.loadingStatus), assetData(other.assetData), asset(other.asset),
-          loadedAsset(std::move(other.loadedAsset)), createdAssetData(std::move(other.createdAssetData))
+          loadedAsset(std::move(other.loadedAsset))
     {}
 
     AsyncProcessedPayload& operator=(const AsyncProcessedPayload& other) = delete;
@@ -38,7 +41,6 @@ struct AsyncProcessedPayload
             assetData = other.assetData;
             asset = other.asset;
             loadedAsset = std::move(other.loadedAsset);
-            createdAssetData = std::move(other.createdAssetData);
         }
 
         return *this;
@@ -47,17 +49,40 @@ struct AsyncProcessedPayload
 
 class AsyncLoadProcessor
 {
+    struct ScopedJobCounter
+    {
+        ScopedJobCounter(std::atomic_int& counter) : counter(counter) { counter++; }
+        ~ScopedJobCounter() { counter--; }
+
+        std::atomic_int& counter;
+    };
     const ImportDatabase* importDatabase;
     const AssetFileSystem* assetFileSystem;
     std::filesystem::path assetDirectory;
-    boost::unordered::concurrent_flat_map<UUID, AsyncProcessedPayload> asyncProcessedPayload;
+    std::filesystem::path projectRoot;
+
+    boost::unordered::concurrent_flat_map<UUID, AsyncProcessedPayload, std::hash<UUID>> asyncProcessedPayload;
+    boost::unordered::concurrent_flat_map<std::filesystem::path, UUID> loadingAssets;
+
+    std::atomic_int jobCounter = 0;
 
 public:
-    UUID AsyncLoadFromPath(const std::filesystem::path& path);
+    void Init(
+        const ImportDatabase* importDatabase,
+        const AssetFileSystem* assetFileSystem,
+        const std::filesystem::path& assetDirectory,
+        const std::filesystem::path& projectRoot
+    )
+    {
+        this->importDatabase = importDatabase;
+        this->assetFileSystem = assetFileSystem;
+        this->assetDirectory = assetDirectory;
+        this->projectRoot = projectRoot;
+    }
+
+    ObjPtr<Asset> AsyncLoadFromPath(const std::filesystem::path& path);
+    void SyncLoad();
 
 private:
-    void AssetLoadingJob(AssetData* assetData, Asset* asset);
-
-    std::unique_ptr<Asset> LoadAsset(const std::filesystem::path& path, AssetData* assetData);
-    std::unique_ptr<AssetData> CreateAssetData();
+    std::unique_ptr<Asset> LoadAssetJob(const std::filesystem::path& path, AssetData* assetData);
 };

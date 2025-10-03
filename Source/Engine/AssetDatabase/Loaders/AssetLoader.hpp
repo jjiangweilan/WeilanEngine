@@ -1,24 +1,11 @@
 #pragma once
+#include "AssetDatabase/Private/AssetData.hpp"
+#include "AssetDatabase/Private/ImportDatabase.hpp"
 #include "Core/Asset.hpp"
-#include "Libs/PodVector.hpp"
 #include "Libs/Serialization/Serializer.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <typeindex>
-
-class ImportDatabase
-{
-public:
-    void Init(const std::filesystem::path& importDatabaseRoot) { this->importDatabaseRoot = importDatabaseRoot; }
-    PodVector<uint8_t> ReadFile(const std::string& filename) const;
-
-    std::filesystem::path GetImportAssetPath(const std::string& filename) const;
-
-private:
-    const size_t streamBufSize = 1024 * 1024;
-    PodVector<char> streamBuf = PodVector<char>(streamBufSize); // LTS for multithreading?
-    std::filesystem::path importDatabaseRoot;
-};
 
 class AssetLoader
 {
@@ -26,27 +13,21 @@ protected:
     // asset to import
     std::filesystem::path absoluteAssetPath{};
 
-    // meta in the AssetDatabase
-    nlohmann::json meta;
-    const ImportDatabase* importDatabase;
     std::vector<std::unique_ptr<AssetLoader>> dependencies;
+    const ImportDatabase* importDatabase;
+    AssetMeta meta;
 
 public:
     virtual ~AssetLoader() {}
-    virtual void Setup(
-        const ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta
-    )
+    void Setup(const ImportDatabase* importDatabase, const std::filesystem::path& assetPath, const AssetMeta& meta)
     {
         this->absoluteAssetPath = assetPath;
+        this->importDatabase = importDatabase;
         this->meta = meta;
-        this->importDatabase = &importDatabase;
     }
 
     virtual bool IsInternalAsset() { return false; }
-    virtual bool ImportNeeded() = 0;
 
-    // imported file path
-    virtual std::vector<std::filesystem::path> Import() = 0;
     virtual void Load() = 0;
 
     // no need to override if this data import doesn't need reference resolving
@@ -56,7 +37,6 @@ public:
         resolveMap = nullptr;
     }
     virtual std::unique_ptr<Asset> RetrieveAsset() = 0;
-    virtual nlohmann::json GetMeta() { return meta; }
 
     // reload is called after RetrieveAsset so the loaded object is passed from outside
     virtual void HandleReload(Asset* loaded) {}

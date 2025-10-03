@@ -1,3 +1,5 @@
+#pragma once
+
 #include <atomic>
 #include <spdlog/spdlog.h>
 
@@ -15,6 +17,7 @@ public:
 
     void unlock() { flag.clear(std::memory_order_release); }
 
+    bool isLocked() { return flag.test(std::memory_order_acquire); }
 private:
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
 };

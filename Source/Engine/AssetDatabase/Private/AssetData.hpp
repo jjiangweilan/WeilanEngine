@@ -29,19 +29,18 @@ class AssetData
     // this is the path to the resource the AssetFile linked to
     // relative path in Assets/
     // if it's an engine internal file it be _engine_internal/xxx
-    std::filesystem::path assetPath;
-    std::filesystem::path absolutePath;
+    std::filesystem::path assetPath = {};
+    std::filesystem::path absolutePath = {};
 
-    std::vector<std::filesystem::path> importedAssetFilePaths;
+    std::vector<std::filesystem::path> importedAssetFilePaths = {};
 
     nlohmann::json meta = nlohmann::json::object();
 
     bool isValid = false;
 
-    std::unique_ptr<Asset> asset;
+    std::unique_ptr<Asset> asset = nullptr;
 
-    std::unordered_map<std::string, UUID> nameToUUID;
-    std::string GetNameToUUIDKey(Asset* obj);
+    std::unordered_map<std::string, UUID> nameToUUID = {};
 
     bool dirty = false;
     bool internal = false;
@@ -65,7 +64,10 @@ public:
     // used for internal Asset
     AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
 
-    // used for async unimported asset that needs 
+    // used for new asset (just import)
+    AssetData();
+
+    // used for async unimported asset that needs
     ~AssetData();
 
     const UUID& GetAssetUUID() const { return assetUUID; }
@@ -85,10 +87,10 @@ public:
         absolutePath = assetsDirectory / path;
     }
 
+    std::string GetNameToUUIDKey(Asset* obj);
+
     const std::filesystem::path& GetAssetPath() { return assetPath; };
-
     const std::filesystem::path& GetAssetAbsolutePath() { return absolutePath; }
-
     void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot);
     Asset* GetAsset();

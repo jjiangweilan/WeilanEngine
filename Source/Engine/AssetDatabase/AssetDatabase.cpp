@@ -1,5 +1,6 @@
 #include "AssetDatabase.hpp"
-#include "AssetDatabase/Importers/AssetLoader.hpp"
+#include "AssetDatabase/Importers/AssetImporter.hpp"
+#include "AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Scripting/LuaBackend.hpp"
 #include <future>
@@ -20,6 +21,7 @@ nlohmann::json AssetDatabase::GetAssetMeta(Asset& asset)
     }
     return nlohmann::json::object();
 }
+
 void AssetDatabase::SetAssetMeta(Asset& asset, const nlohmann::json& meta)
 {
     AssetData* data = assetFileSystem.GetAssetData(asset.GetUUID());
@@ -38,7 +40,9 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
     this->projectRoot = projectRoot;
     this->assetDirectory = projectRoot / "Assets";
     this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
-    this->importDatabase.Init(projectRoot / "ImportDatabase");
+
+    importDatabase.Init(projectRoot / "ImportDatabase");
+    asyncLoadProcessor.Init(&importDatabase, &assetFileSystem, assetDirectory, projectRoot);
 
     if (!std::filesystem::exists(assetDirectory))
     {
@@ -57,6 +61,7 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
 
     LoadAssetDatas();
     LoadEngineInternal();
+    EnsureAllFilesAreImported(assetDirectory);
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -77,212 +82,23 @@ bool AssetDatabase::IsAssetInDatabase(Asset& asset)
     return assetFileSystem.GetAssetData(asset.GetUUID()) != nullptr;
 }
 
-std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> pathes)
+void AssetDatabase::Reimport(const std::filesystem::path& path)
 {
-    struct AsyncImport
-    {
-        // 0: init, 1: imported, 2: invalid, 3. async external import 4. async internal import
-        int stateTrack;
-        std::filesystem::path absoluteAssetPath;
-        AssetData* assetData = nullptr;
-        std::unique_ptr<Asset> newAsset = nullptr;
-        std::future<void> import;
-        std::unique_ptr<SerializeReferenceResolveMap> resolveMap = nullptr;
-        std::unique_ptr<JsonSerializer> ser = nullptr;
-    };
-
-    std::vector<std::filesystem::path> validPathes{};
-    for (auto& path : pathes)
-    {
-        if (AssetRegistry::IsExtensionAnAsset(path.extension().string()))
-        {
-            validPathes.push_back(path);
-        }
-    }
-
-    const int size = validPathes.size();
-    std::vector<Asset*> results(size, nullptr);
-    std::vector<AsyncImport> asyncImport(size);
-
-    for (int i = 0; i < validPathes.size(); ++i)
-    {
-        auto& path = validPathes[i];
-        auto assetData = assetFileSystem.GetAssetData(path);
-        asyncImport[i].assetData = assetData;
-        asyncImport[i].absoluteAssetPath = assetDirectory / path;
-        if (assetData)
-        {
-            // override the asset path because this asset may be an internal asset
-            asyncImport[i].absoluteAssetPath = assetData->GetAssetAbsolutePath();
-            auto a = assetData->GetAsset();
-            if (a)
-            {
-                results[i] = a;
-                asyncImport[i].stateTrack = 1;
-            }
-        }
-
-        if (!std::filesystem::exists(asyncImport[i].absoluteAssetPath))
-        {
-            asyncImport[i].stateTrack = 2;
-        }
-    }
-
-    for (int i = 0; i < size; ++i)
-    {
-        if (asyncImport[i].stateTrack == 0)
-        {
-            std::filesystem::path ext = asyncImport[i].absoluteAssetPath.extension();
-            asyncImport[i].newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
-
-            if (asyncImport[i].newAsset->IsExternalAsset())
-            {
-                asyncImport[i].stateTrack = 3;
-                asyncImport[i].import = std::async(
-                    std::launch::async,
-                    [asyncImport = &asyncImport[i]]()
-                    { asyncImport->newAsset->LoadFromFile(asyncImport->absoluteAssetPath.string().c_str()); }
-                );
-            }
-            else
-            {
-                std::ifstream f(asyncImport[i].absoluteAssetPath, std::ios::binary);
-                if (f.is_open() && f.good())
-                {
-                    asyncImport[i].stateTrack = 4;
-                    size_t fileSize = std::filesystem::file_size(asyncImport[i].absoluteAssetPath);
-                    std::vector<uint8_t> binary(fileSize);
-                    f.read((char*)binary.data(), fileSize);
-                    asyncImport[i].resolveMap = std::make_unique<SerializeReferenceResolveMap>();
-                    asyncImport[i].ser = std::make_unique<JsonSerializer>(binary, asyncImport[i].resolveMap.get());
-                    asyncImport[i].import = std::async(
-                        std::launch::async,
-                        [asyncImport = &asyncImport[i]]()
-                        { asyncImport->newAsset->Deserialize(asyncImport->ser.get()); }
-                    );
-                }
-                else
-                {
-                    asyncImport[i].stateTrack = 1;
-                }
-            }
-        }
-    }
-
-    for (int i = 0; i < size; ++i)
-    {
-        if (asyncImport[i].stateTrack == 3 || asyncImport[i].stateTrack == 4)
-        {
-            asyncImport[i].import.wait();
-            results[i] = asyncImport[i].newAsset.get();
-            if (asyncImport[i].assetData)
-            {
-                asyncImport[i].assetData->SetAsset(std::move(asyncImport[i].newAsset), projectRoot);
-            }
-            // a new asset needs to be recored/imported in assetDatabase
-            else
-            {
-                std::unique_ptr<AssetData> ad =
-                    std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), validPathes[i], projectRoot);
-                ad->SaveToDisk(projectRoot);
-
-                AddAssetData(std::move(ad));
-            }
-        }
-
-        if (asyncImport[i].stateTrack == 4)
-        {
-            auto& referencedObjects = asyncImport[i].ser->GetReferencedObjects();
-            const auto& managedObjectCounters = asyncImport[i].ser->GetManagedObjects();
-            this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
-
-            for (auto& uuid : referencedObjects)
-            {
-                LoadAssetByID(uuid);
-            }
-
-            auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
-            {
-                while (!resolves.empty())
-                {
-                    auto& toresolve = resolves.back();
-                    if (toresolve.target != nullptr)
-                        *toresolve.target = resolved;
-                    if (toresolve.callback)
-                        toresolve.callback(resolved);
-
-                    resolves.pop_back();
-                }
-            };
-
-            for (auto& iter : *asyncImport[i].resolveMap)
-            {
-                if (iter.second.empty())
-                    continue;
-                // resolve external reference
-                Asset* externalAsset = LoadAssetByID(iter.first);
-                if (externalAsset)
-                {
-                    ResolveAll(iter.second, externalAsset);
-                }
-
-                // resolve internal reference
-                // currently I didn't resolve reference to external contained object
-                // that can be done by cache a list of contained objects
-                const auto& objs = (*asyncImport[i].ser).GetContainedObjects();
-                auto containedObj = objs.find(iter.first);
-                if (containedObj != objs.end())
-                {
-                    auto resolved = containedObj->second;
-                    ResolveAll(iter.second, resolved);
-                }
-
-                // add whatever is not resolved to assetDatabase's resolve map
-                if (!iter.second.empty())
-                {
-                    auto& vec = referenceResolveMap[iter.first];
-                    for (auto& r : iter.second)
-                    {
-                        vec.emplace_back(r.target, r.targetUUID, r.callback);
-                    }
-                }
-            }
-        }
-
-        // see if there is any reference need to be resolved to this object
-        if (results[i] != nullptr)
-        {
-            auto iter = referenceResolveMap.find(results[i]->GetUUID());
-            if (iter != referenceResolveMap.end())
-            {
-                for (auto& resolve : iter->second)
-                {
-                    if (resolve.target != nullptr)
-                        *resolve.target = results[i];
-                    if (resolve.callback)
-                    {
-                        resolve.callback(results[i]);
-                    }
-                }
-                referenceResolveMap.erase(iter);
-            }
-        }
-    }
-
-    for (auto a : results)
-    {
-        if (a != nullptr)
-            a->OnLoaded();
-    }
-    return results;
+    ImportAssetIfNeeded(path, true);
 }
 
-Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReimport)
+void AssetDatabase::ReimportByID(const UUID& uuid)
+{
+    auto assetPath = assetFileSystem.GetAssetData(uuid)->GetAssetPath();
+    ImportAssetIfNeeded(assetPath, true);
+}
+
+Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
 {
     auto assetData = assetFileSystem.GetAssetData(uuid);
     if (assetData)
     {
-        auto asset = LoadAsset(assetData->GetAssetPath(), forceReimport);
+        auto asset = LoadAsset(assetData->GetAssetPath(), forceReload);
 
         if (asset)
         {
@@ -395,6 +211,11 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
+    for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
+    {
+        ShaderLibrary::GetShader(ShaderLibrary::ShaderNameMap[i], 0);
+    }
+
     std::vector<std::string> pathes;
     for (auto entry : std::filesystem::recursive_directory_iterator("./Assets"))
     {
@@ -516,8 +337,20 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
     }
 }
 
-Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
+ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path path, bool forceReimport)
 {
+    auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
+
+    return loaded;
+}
+
+Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
+{
+    auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
+    asyncLoadProcessor.SyncLoad();
+
+    return loaded.Get();
+
     // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
     /* Debug Comment */
@@ -537,51 +370,36 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 
     // find the asset if it's already imported
     auto assetData = assetFileSystem.GetAssetData(path);
-    auto absoluteAssetPath = assetDirectory / path;
-    // this asset is already imported once, we can read its meta
-    if (assetData)
-    {
-        assetMeta = &assetData->GetMeta();
+    auto absoluteAssetPath = assetData->GetAssetAbsolutePath();
 
-        // override the asset path because this asset may be an internal asset
-        absoluteAssetPath = assetData->GetAssetAbsolutePath();
-    }
     if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
+
+    // this asset is already imported once, we can read its meta
+    ASSERT(assetData != nullptr);
+    assetMeta = &assetData->GetMeta();
+
+    // override the asset path because this asset may be an internal asset
+    absoluteAssetPath = assetData->GetAssetAbsolutePath();
 
     std::filesystem::path ext = absoluteAssetPath.extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
     if (loader == nullptr)
         return nullptr;
-    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
-    bool importNeeded = forceReimport || loader->ImportNeeded();
-    std::vector<std::filesystem::path> importedAssetFilePaths;
-    if (importNeeded)
-    {
-        importedAssetFilePaths = loader->Import();
-
-        if (assetData != nullptr)
-        {
-            assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
-        }
-    }
+    loader->Setup(&importDatabase, absoluteAssetPath, *assetMeta);
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
-    bool alreadyLoaded = asset != nullptr;
-    bool loadNeeded = importNeeded ? importNeeded : asset == nullptr;
+    bool loadNeeded = asset == nullptr || forceReload;
+    bool isReload = asset == nullptr;
 
     // no import and load process taken, this asset is ready to be used
-    if (!importNeeded && !loadNeeded)
+    if (!loadNeeded)
     {
         return asset;
     }
 
-    if (loadNeeded)
-    {
-        loader->Load();
-    }
-
+    loader->Load();
     std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
 
     // failed to load asset
@@ -592,31 +410,16 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 
     asset = newAsset.get();
 
-    // make sure we have the assetData ready
-    if (!assetData)
+    // this needs to be done after importing becuase if not we don't have internal game object's name to
+    // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+    // happen before reference resolve so that it has the correct UUID
+    asset = assetData->SetAsset(std::move(newAsset), projectRoot);
+
+    // this asset has a aseet data and is already loaded, it's a reload!
+    if (forceReload)
     {
-        std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-        assetData = ad.get();
-
-        AddAssetData(std::move(ad));
-        assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+        loader->HandleReload(asset);
     }
-    else
-    {
-        // this needs to be done after importing becuase if not we don't have internal game object's name to
-        // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
-        // happen before reference resolve so that it has the correct UUID
-        asset = assetData->SetAsset(std::move(newAsset), projectRoot);
-
-        // this asset has a aseet data and is already loaded, it's a reload!
-        if (alreadyLoaded)
-        {
-            loader->HandleReload(asset);
-        }
-    }
-
-    assetData->SetMeta(loader->GetMeta());
-    assetData->SaveToDisk(projectRoot);
 
     // newly imported or loaded, resolve references
     Serializer* serializer;
@@ -768,12 +571,12 @@ void AssetDatabase::LoadAssetDatas()
     }
 }
 
-ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
-{
-    ObjPtr<Asset> ptr = asyncLoadProcessor.AsyncLoadFromPath(path);
-
-    return ptr;
-}
+// ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
+//{
+//     ObjPtr<Asset> ptr = asyncLoadProcessor.AsyncLoadFromPath(path);
+//
+//     return ptr;
+// }
 
 const UUID& AssetDatabase::GetUUIDFromPath(const std::filesystem::path& path)
 {
@@ -831,4 +634,63 @@ AssetData* AssetDatabase::AddAssetData(std::unique_ptr<AssetData>&& newAssetData
     }
 
     return nullptr;
+}
+
+void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& directory)
+{
+    for (auto const& dirEntry : std::filesystem::directory_iterator{directory})
+    {
+        if (dirEntry.is_regular_file())
+        {
+            const auto& path = dirEntry.path();
+            ImportAssetIfNeeded(path, false);
+        }
+        else if (dirEntry.is_directory())
+        {
+            EnsureAllFilesAreImported(dirEntry.path());
+        }
+    }
+}
+
+void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& inPath, bool forceReimport)
+{
+    auto path = AbsolutePathToAssetPath(inPath);
+    auto ext = path.extension();
+    std::unique_ptr<AssetImporter> importer = AssetImporterRegistry::CreateAssetImporterByExtension(ext.string());
+
+    if (importer == nullptr)
+        return;
+
+    static nlohmann::json empty = nlohmann::json::object();
+    const nlohmann::json* assetMeta = &empty;
+
+    auto assetData = assetFileSystem.GetAssetData(path);
+
+    // this asset is already imported once, we can read its meta
+    if (!assetData)
+        assetData = AddAssetData(std::make_unique<AssetData>());
+
+    // override the asset path because this asset may be an internal asset
+    assetMeta = &assetData->GetMeta();
+    auto absoluteAssetPath = assetData->GetAssetAbsolutePath();
+
+    if (!std::filesystem::exists(absoluteAssetPath))
+        return;
+
+    importer->Setup(importDatabase, absoluteAssetPath, *assetMeta);
+
+    bool importNeeded = forceReimport || importer->ImportNeeded();
+    std::vector<std::filesystem::path> importedAssetFilePaths;
+    if (importNeeded)
+    {
+        importedAssetFilePaths = importer->Import();
+
+        if (assetData != nullptr)
+        {
+            assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+        }
+    }
+
+    assetData->SetMeta(importer->GetMeta());
+    assetData->SaveToDisk(projectRoot);
 }

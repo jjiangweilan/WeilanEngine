@@ -131,9 +131,16 @@ private:
                 attributes.AddAttribute("TANGENT0", VertexAttributeSemantics::Tangent, 0, tangentSize);
             }
 
-            const char* texCoordNames[8] =
-                {"TEXCOORD0", "TEXCOORD1", "TEXCOORD2", "TEXCOORD3", "TEXCOORD4", "TEXCOORD5", "TEXCOORD6", "TEXCOORD7"
-                };
+            const char* texCoordNames[8] = {
+                "TEXCOORD0",
+                "TEXCOORD1",
+                "TEXCOORD2",
+                "TEXCOORD3",
+                "TEXCOORD4",
+                "TEXCOORD5",
+                "TEXCOORD6",
+                "TEXCOORD7"
+            };
             const int MaxTexcoordChannels = 1;
             for (int i = 0; i < MaxTexcoordChannels; ++i)
             {
@@ -302,16 +309,16 @@ private:
             aiString texName;
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
 
-            Texture* tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(std::filesystem::relative(
-                absoluteAssetPath.parent_path() / texName.C_Str(),
-                AssetDatabase::Singleton()->GetAssetDirectory()
-            )));
-            if (tex)
-            {
-                mat->SetTexture(bindingName, tex);
-                mat->EnableFeature(keyword);
-                return true;
-            }
+            auto tex = AssetDatabase::Singleton()->LoadAssetAsync_Experimental(
+                std::filesystem::relative(
+                    absoluteAssetPath.parent_path() / texName.C_Str(),
+                    AssetDatabase::Singleton()->GetAssetDirectory()
+                )
+            );
+
+            mat->RawSetTexture(bindingName, tex.Get());
+            mat->EnableFeature(keyword);
+            return true;
         }
 
         return false;
@@ -334,10 +341,12 @@ private:
                     {
                         aiString texName;
                         material->Get(AI_MATKEY_TEXTURE(textureTypes[i], 0), texName);
-                        texturePaths.insert(std::filesystem::relative(
-                            absoluteAssetPath.parent_path() / texName.C_Str(),
-                            AssetDatabase::Singleton()->GetAssetDirectory()
-                        ));
+                        texturePaths.insert(
+                            std::filesystem::relative(
+                                absoluteAssetPath.parent_path() / texName.C_Str(),
+                                AssetDatabase::Singleton()->GetAssetDirectory()
+                            )
+                        );
                     }
                 }
             }

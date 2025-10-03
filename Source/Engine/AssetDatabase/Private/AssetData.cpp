@@ -110,6 +110,8 @@ AssetData::AssetData(const UUID& assetUUID, const std::filesystem::path& interna
     }
 }
 
+AssetData::AssetData() : assetUUID(), assetDataUUID(), lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID()) {}
+
 AssetData::~AssetData() {}
 
 Asset* AssetData::GetAsset()
