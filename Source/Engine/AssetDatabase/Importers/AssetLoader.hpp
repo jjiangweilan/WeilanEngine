@@ -10,13 +10,13 @@ class ImportDatabase
 {
 public:
     void Init(const std::filesystem::path& importDatabaseRoot) { this->importDatabaseRoot = importDatabaseRoot; }
-    PodVector<uint8_t> ReadFile(const std::string& filename);
+    PodVector<uint8_t> ReadFile(const std::string& filename) const;
 
-    std::filesystem::path GetImportAssetPath(const std::string& filename);
+    std::filesystem::path GetImportAssetPath(const std::string& filename) const;
 
 private:
     const size_t streamBufSize = 1024 * 1024;
-    PodVector<char> streamBuf = PodVector<char>(streamBufSize);
+    PodVector<char> streamBuf = PodVector<char>(streamBufSize); // LTS for multithreading?
     std::filesystem::path importDatabaseRoot;
 };
 
@@ -28,13 +28,13 @@ protected:
 
     // meta in the AssetDatabase
     nlohmann::json meta;
-    ImportDatabase* importDatabase;
+    const ImportDatabase* importDatabase;
     std::vector<std::unique_ptr<AssetLoader>> dependencies;
 
 public:
     virtual ~AssetLoader() {}
     virtual void Setup(
-        ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta
+        const ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta
     )
     {
         this->absoluteAssetPath = assetPath;

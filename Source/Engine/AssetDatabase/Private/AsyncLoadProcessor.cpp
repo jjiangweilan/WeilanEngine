@@ -35,7 +35,7 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
 
         auto job = [this, ret, path, assetData]()
         {
-            auto loadedAsset = LoadAsset(path, assetData->GetMeta());
+            auto loadedAsset = LoadAsset(path, assetData);
 
             AsyncProcessedPayload payload{};
             payload.loadingStatus = AssetLoadingStatus::Loading;
@@ -51,26 +51,33 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
     // Case: no assetData and no asset
     else
     {
-        auto createdAssetData = CreateAssetData();
+        std::unique_ptr<AssetData> createdAssetData = CreateAssetData();
         ret = createdAssetData->GetAssetUUID();
 
-        auto loadedAsset = LoadAsset(path, assetData->GetMeta());
+        auto job =
+            [this, ret, path, createdAssetData = std::unique_ptr<AssetData>(std::move(createdAssetData))]() mutable
+        {
+            auto loadedAsset = LoadAsset(path, createdAssetData.get());
 
-        AsyncProcessedPayload payload{};
-        payload.loadingStatus = AssetLoadingStatus::Loading;
-        payload.assetData = assetData;
-        payload.asset = loadedAsset.get();
-        payload.loadedAsset = std::move(loadedAsset);
-        payload.createdAssetData = std::move(createdAssetData);
+            AsyncProcessedPayload payload{};
+            payload.loadingStatus = AssetLoadingStatus::Loading;
+            payload.assetData = createdAssetData.get();
+            payload.asset = loadedAsset.get();
+            payload.loadedAsset = std::move(loadedAsset);
+            payload.createdAssetData = std::move(createdAssetData);
 
-        asyncProcessedPayload.emplace(ret, std::move(payload));
+            asyncProcessedPayload.emplace(ret, std::move(payload));
+        };
+
+        JobSystem::Instance().Schedule(std::move(job));
     }
 
     return ret;
 }
 
-std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path& path, const AssetMeta& assetMeta)
+std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path& path, AssetData* assetData)
 {
+    const AssetMeta& assetMeta = assetData->GetMeta();
     auto ext = path.extension();
     auto absoluteAssetPath = assetDirectory / path;
 
@@ -79,5 +86,17 @@ std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path
         return nullptr;
 
     loader->Setup(*importDatabase, absoluteAssetPath, assetMeta);
+
+    bool importNeeded = loader->ImportNeeded();
+    std::vector<std::filesystem::path> importedAssetFilePaths;
+    if (importNeeded)
+    {
+        importedAssetFilePaths = loader->Import();
+
+        if (assetData != nullptr)
+        {
+            assetFileSystem.SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+        }
+    }
 }
 std::unique_ptr<AssetData> AsyncLoadProcessor::CreateAssetData() {}

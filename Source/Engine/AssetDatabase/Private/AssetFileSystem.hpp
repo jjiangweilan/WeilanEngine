@@ -23,8 +23,8 @@ public:
     void SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported);
 
     Asset* Add(AssetData* assetData);
-    AssetData* GetAssetData(const std::filesystem::path& path);
-    AssetData* GetAssetData(const UUID& uuid);
+    AssetData* GetAssetData(const std::filesystem::path& path) const;
+    AssetData* GetAssetData(const UUID& uuid) const;
 
     void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
     void Remove(const std::filesystem::path& path);

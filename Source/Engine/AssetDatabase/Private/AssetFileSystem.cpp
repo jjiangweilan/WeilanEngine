@@ -15,7 +15,7 @@ Asset* AssetFileSystem::Add(AssetData* assetData)
     return asset;
 }
 
-AssetData* AssetFileSystem::GetAssetData(const std::filesystem::path& path)
+AssetData* AssetFileSystem::GetAssetData(const std::filesystem::path& path) const
 {
     auto iter = byPath.find(path);
     if (iter != byPath.end())
@@ -26,7 +26,7 @@ AssetData* AssetFileSystem::GetAssetData(const std::filesystem::path& path)
     return nullptr;
 }
 
-AssetData* AssetFileSystem::GetAssetData(const UUID& uuid)
+AssetData* AssetFileSystem::GetAssetData(const UUID& uuid) const
 {
     auto iter = byUUID.find(uuid);
     if (iter != byUUID.end())

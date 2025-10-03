@@ -1,11 +1,11 @@
 #include "AssetLoader.hpp"
 #include <fstream>
 #include <iostream>
-PodVector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
+PodVector<uint8_t> ImportDatabase::ReadFile(const std::string& filename) const
 {
     std::ifstream f;
     auto absoluteAssetPath = importDatabaseRoot / filename;
-    f.rdbuf()->pubsetbuf(streamBuf.data(), streamBufSize);
+    // f.rdbuf()->pubsetbuf(streamBuf.data(), streamBufSize);
     f.open(absoluteAssetPath, std::ios::binary);
     if (!f.good())
         return {};
@@ -15,7 +15,7 @@ PodVector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
     return d;
 }
 
-std::filesystem::path ImportDatabase::GetImportAssetPath(const std::string& filename)
+std::filesystem::path ImportDatabase::GetImportAssetPath(const std::string& filename) const
 {
     return importDatabaseRoot / filename;
 }

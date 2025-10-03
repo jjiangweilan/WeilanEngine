@@ -47,8 +47,8 @@ struct AsyncProcessedPayload
 
 class AsyncLoadProcessor
 {
-    ImportDatabase* importDatabase;
-    AssetFileSystem* assetFileSystem;
+    const ImportDatabase* importDatabase;
+    const AssetFileSystem* assetFileSystem;
     std::filesystem::path assetDirectory;
     boost::unordered::concurrent_flat_map<UUID, AsyncProcessedPayload> asyncProcessedPayload;
 
@@ -58,6 +58,6 @@ public:
 private:
     void AssetLoadingJob(AssetData* assetData, Asset* asset);
 
-    std::unique_ptr<Asset> LoadAsset(const std::filesystem::path& path, const AssetMeta& assetMeta);
+    std::unique_ptr<Asset> LoadAsset(const std::filesystem::path& path, AssetData* assetData);
     std::unique_ptr<AssetData> CreateAssetData();
 };
