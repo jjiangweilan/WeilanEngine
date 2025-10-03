@@ -64,6 +64,8 @@ public:
 
     // used for internal Asset
     AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
+
+    // used for async unimported asset that needs 
     ~AssetData();
 
     const UUID& GetAssetUUID() const { return assetUUID; }

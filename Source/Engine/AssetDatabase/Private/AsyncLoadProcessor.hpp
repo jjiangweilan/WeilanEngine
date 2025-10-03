@@ -14,6 +14,13 @@ enum class AssetLoadingStatus
 
 struct AsyncProcessedPayload
 {
+    AssetLoadingStatus loadingStatus;
+    AssetData* assetData;
+    Asset* asset;
+
+    std::unique_ptr<Asset> loadedAsset;
+    std::unique_ptr<AssetData> createdAssetData;
+
     AsyncProcessedPayload() = default;
 
     AsyncProcessedPayload(const AsyncProcessedPayload&) = delete;
@@ -36,17 +43,11 @@ struct AsyncProcessedPayload
 
         return *this;
     }
-
-    AssetLoadingStatus loadingStatus;
-    AssetData* assetData;
-    Asset* asset;
-
-    std::unique_ptr<Asset> loadedAsset;
-    std::unique_ptr<AssetData> createdAssetData;
 };
 
 class AsyncLoadProcessor
 {
+    ImportDatabase* importDatabase;
     AssetFileSystem* assetFileSystem;
     std::filesystem::path assetDirectory;
     boost::unordered::concurrent_flat_map<UUID, AsyncProcessedPayload> asyncProcessedPayload;
@@ -55,6 +56,8 @@ public:
     UUID AsyncLoadFromPath(const std::filesystem::path& path);
 
 private:
-    static std::unique_ptr<Asset> LoadAsset(const std::filesystem::path& path);
-    static std::unique_ptr<AssetData> CreateAssetData();
+    void AssetLoadingJob(AssetData* assetData, Asset* asset);
+
+    std::unique_ptr<Asset> LoadAsset(const std::filesystem::path& path, const AssetMeta& assetMeta);
+    std::unique_ptr<AssetData> CreateAssetData();
 };

@@ -10,14 +10,16 @@ JobSystem::JobSystem() : mainThreadJobs(jobCapacityPerWorker), done(false)
 
     for (int i = 0; i < TotalWorkers; i++)
     {
-        workers.push_back(std::make_unique<std::thread>(
-            [this, i]()
-            {
-                currentWorkerIdx = i;
-                this->WorkerThread(i);
-                currentWorkerIdx = -1;
-            }
-        ));
+        workers.push_back(
+            std::make_unique<std::thread>(
+                [this, i]()
+                {
+                    currentWorkerIdx = i;
+                    this->WorkerThread(i);
+                    currentWorkerIdx = -1;
+                }
+            )
+        );
     }
 }
 
@@ -48,9 +50,13 @@ int JobSystem::GetTotalWorkers()
     return totalWorkers;
 }
 
-JobHandle JobSystem::Schedule(const std::function<void()>& f)
+JobHandle JobSystem::Schedule(std::function<void()>&& f)
 {
-    auto packed = std::packaged_task<void()>(f);
+    return ScheduleInternal(std::packaged_task<void()>(std::move(f)));
+}
+
+JobHandle JobSystem::ScheduleInternal(std::packaged_task<void()>&& packed)
+{
     auto future = packed.get_future();
 
     // Select the job queue to schedule the job
@@ -66,6 +72,11 @@ JobHandle JobSystem::Schedule(const std::function<void()>& f)
     workerSignal.notify_one();
 
     return JobHandle(std::move(future));
+}
+
+JobHandle JobSystem::Schedule(const std::function<void()>& f)
+{
+    return ScheduleInternal(std::packaged_task<void()>(f));
 }
 
 bool JobSystem::TryPopLocalJob(Job& f)

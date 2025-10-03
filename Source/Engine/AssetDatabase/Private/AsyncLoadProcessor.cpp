@@ -1,4 +1,5 @@
 #include "AsyncLoadProcessor.hpp"
+#include "Core/JobSystem.hpp"
 
 UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
 {
@@ -32,21 +33,28 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
     {
         ret = assetData->GetAssetUUID();
 
-        auto loadedAsset = LoadAsset(path);
+        auto job = [this, ret, path, assetData]()
+        {
+            auto loadedAsset = LoadAsset(path, assetData->GetMeta());
 
-        AsyncProcessedPayload payload{};
-        payload.loadingStatus = AssetLoadingStatus::Loading;
-        payload.assetData = assetData;
-        payload.asset = loadedAsset.get();
-        payload.loadedAsset = std::move(loadedAsset);
+            AsyncProcessedPayload payload{};
+            payload.loadingStatus = AssetLoadingStatus::Loading;
+            payload.assetData = assetData;
+            payload.asset = loadedAsset.get();
+            payload.loadedAsset = std::move(loadedAsset);
 
-        asyncProcessedPayload.emplace(ret, std::move(payload));
+            asyncProcessedPayload.emplace(ret, std::move(payload));
+        };
+
+        JobSystem::Instance().Schedule(std::move(job));
     }
     // Case: no assetData and no asset
     else
     {
         auto createdAssetData = CreateAssetData();
-        auto loadedAsset = LoadAsset(path);
+        ret = createdAssetData->GetAssetUUID();
+
+        auto loadedAsset = LoadAsset(path, assetData->GetMeta());
 
         AsyncProcessedPayload payload{};
         payload.loadingStatus = AssetLoadingStatus::Loading;
@@ -61,5 +69,15 @@ UUID AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
     return ret;
 }
 
-std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path& path) {}
+std::unique_ptr<Asset> AsyncLoadProcessor::LoadAsset(const std::filesystem::path& path, const AssetMeta& assetMeta)
+{
+    auto ext = path.extension();
+    auto absoluteAssetPath = assetDirectory / path;
+
+    std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+    if (loader == nullptr)
+        return nullptr;
+
+    loader->Setup(*importDatabase, absoluteAssetPath, assetMeta);
+}
 std::unique_ptr<AssetData> AsyncLoadProcessor::CreateAssetData() {}

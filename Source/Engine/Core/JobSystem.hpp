@@ -30,6 +30,7 @@ public:
     const int TotalWorkers = GetTotalWorkers();
     const int jobCapacityPerWorker = 256;
     JobHandle Schedule(const std::function<void()>& f);
+    JobHandle Schedule(std::function<void()>&& f);
     void Execute();
     const std::thread::id& GetMainThreadID() { return mainThreadID; }
     void WaitAll();
@@ -58,4 +59,5 @@ private:
     bool TryPopMainThreadJob(Job& f);
     bool TryStealOtherJob(Job& f);
     void WorkerThread(int workerIdx);
+    JobHandle ScheduleInternal(std::packaged_task<void()>&& packed);
 };
