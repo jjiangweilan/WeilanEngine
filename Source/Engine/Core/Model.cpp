@@ -342,3 +342,8 @@ void Model::SetMaterialKeywords(ModelNode& node)
         SetMaterialKeywords(n);
     }
 }
+
+void Model::OnLoaded()
+{
+    std::for_each(materials.begin(), materials.end(), [](auto& m) { m->OnLoaded(); });
+}

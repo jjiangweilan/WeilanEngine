@@ -143,6 +143,8 @@ public:
         return Singleton().GetShaderImpl(name, permutation);
     }
 
+    static void CompileAllDefaultShaders() { return Singleton().CompileAllDefaultShadersImpl(); }
+
     static ObjPtr<Shader2> GetShader(const char* name, const std::vector<std::string>& permutations)
     {
         return Singleton().GetShaderImpl(name, QueryShaderFeatures(name).GetPermutation(permutations));
@@ -183,6 +185,7 @@ private:
     std::unique_ptr<Gfx::ShaderProgram> CompileShader(const char* shaderName, ShaderPermutation permutation);
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
+    void CompileAllDefaultShadersImpl();
     void CheckPushconstant(
         slang::VariableLayoutReflection* param,
         Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],

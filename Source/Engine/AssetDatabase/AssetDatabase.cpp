@@ -211,10 +211,7 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-    for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
-    {
-        ShaderLibrary::GetShader(ShaderLibrary::ShaderNameMap[i], 0);
-    }
+    ShaderLibrary::CompileAllDefaultShaders();
 
     std::vector<std::string> pathes;
     for (auto entry : std::filesystem::recursive_directory_iterator("./Assets"))

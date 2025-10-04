@@ -1220,7 +1220,7 @@ class ShaderLibraryAsyncWorker::CompileWorker
     std::unordered_map<std::string, CachedShaderInformation> compiledShaderInformationCache;
 
 public:
-    CompileWorker() : workQueue(4), compiledQueue(4) { Init(); }
+    CompileWorker() : workQueue(32), compiledQueue(32) { Init(); }
 
     void Init()
     {

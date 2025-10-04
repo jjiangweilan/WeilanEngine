@@ -27,13 +27,6 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path&
     if (asset)
     {
         ret = asset->GetUUID();
-
-        AsyncProcessedPayload payload{};
-        payload.loadingStatus = AssetLoadingStatus::Ready;
-        payload.assetData = assetData;
-        payload.asset = asset;
-
-        asyncProcessedPayload.emplace(ret, std::move(payload));
     }
     // Case: has assetData but the actual asset is not loaded
     else

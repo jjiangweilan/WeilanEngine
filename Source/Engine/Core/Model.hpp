@@ -72,6 +72,8 @@ public:
         std::vector<std::unique_ptr<Animation>>&& animations
     );
 
+    void OnLoaded() override;
+
 private:
     bool assimpLoaded = false;
     std::vector<std::unique_ptr<Mesh>> meshes;
@@ -99,5 +101,4 @@ private:
 
     std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n, GameObject* parent);
     void SetMaterialKeywords(ModelNode& node);
-
 };

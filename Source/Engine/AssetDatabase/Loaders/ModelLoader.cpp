@@ -316,7 +316,7 @@ private:
                 )
             );
 
-            mat->RawSetTexture(bindingName, tex.Get());
+            mat->RawSetTexture(bindingName, ObjPtr<Texture>(std::move(tex)));
             mat->EnableFeature(keyword);
             return true;
         }

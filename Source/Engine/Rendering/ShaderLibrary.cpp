@@ -1535,3 +1535,23 @@ void ShaderLibrary::DestorySlangInstanceImpl()
     session = nullptr;
     globalSession = nullptr;
 }
+
+void ShaderLibrary::CompileAllDefaultShadersImpl()
+{
+
+    for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
+    {
+        asyncWorker.CompileShader(ShaderLibrary::ShaderNameMap[i], 0);
+    }
+
+    asyncWorker.WaitForAll();
+
+    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
+    {
+        library[compiled->name].shaders.emplace(
+            compiled->permutation,
+            CompiledShader(std::move(compiled->shader), compiled->permutation)
+        );
+        library[compiled->name].features = compiled->shaderFeature;
+    }
+}
