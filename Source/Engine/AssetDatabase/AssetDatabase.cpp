@@ -348,6 +348,7 @@ ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path p
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
 {
+    ImportAssetIfNeeded(path, false);
     // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
     /* Debug Comment */
@@ -683,7 +684,9 @@ void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool 
 
     // this asset is already imported once, we can read its meta
     if (!assetData)
-        assetData = AddAssetData(std::make_unique<AssetData>());
+    {
+        assetData = AddAssetData(std::make_unique<AssetData>(path));
+    }
 
     // override the asset path because this asset may be an internal asset
     assetMeta = &assetData->GetMeta();

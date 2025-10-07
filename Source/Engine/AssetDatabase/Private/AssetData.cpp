@@ -124,6 +124,10 @@ Asset* AssetData::GetAsset()
     return nullptr;
 }
 
+AssetData::AssetData(const std::filesystem::path& assetPath)
+    : assetPath(assetPath), assetUUID(), assetDataUUID(), lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID())
+{}
+
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& inAsset, const std::filesystem::path& projectRoot)
 {
     this->asset = std::move(inAsset); // note: asset UUID  will be updated laster in UpdateAssetUUIDs

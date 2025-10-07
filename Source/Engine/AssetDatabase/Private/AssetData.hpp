@@ -50,6 +50,9 @@ class AssetData
 public:
     struct InternalAssetDataTag
     {};
+
+    AssetData();
+
     // this is used when saving an Asset
     AssetData(
         std::unique_ptr<Asset>&& resource,
@@ -65,7 +68,7 @@ public:
     AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
 
     // used for new asset (just import)
-    AssetData();
+    AssetData(const std::filesystem::path& assetPath);
 
     // used for async unimported asset that needs
     ~AssetData();
