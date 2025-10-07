@@ -25,7 +25,7 @@ public:
         this->importDatabase = &importDatabase;
         this->meta = meta;
     }
-
+    virtual ~AssetImporter() {}
     virtual nlohmann::json GetMeta() { return meta; }
     virtual std::vector<std::filesystem::path> Import() = 0;
     virtual bool ImportNeeded() = 0;

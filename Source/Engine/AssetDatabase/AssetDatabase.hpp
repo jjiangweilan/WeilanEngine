@@ -20,7 +20,6 @@ class AssetDatabase
     AsyncLoadProcessor asyncLoadProcessor;
 
     SerializeReferenceResolveMap referenceResolveMap;
-    std::unordered_map<UUID, int*> managedObjectCounters;
     std::vector<std::unique_ptr<AssetData>> assetDatas;
     std::vector<AssetData*> internalAssets;
 

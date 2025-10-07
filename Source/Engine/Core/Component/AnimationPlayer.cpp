@@ -255,6 +255,9 @@ bool AnimationPlayer::SetClipInternal(
     float& durationInSeconds
 )
 {
+    if (animation == nullptr)
+        return false;
+
     isPlaying = false;
     auto iter = animation->GetAnimationClips().find(animationName);
     if (iter != animation->GetAnimationClips().end())

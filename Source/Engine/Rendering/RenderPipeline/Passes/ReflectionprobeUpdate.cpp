@@ -1,4 +1,4 @@
-#include "ReflectionProbeUpdate.hpp"
+#include "ReflectionProbeupdate.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/RenderingUtils.hpp"

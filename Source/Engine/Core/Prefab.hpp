@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Asset.hpp"
-
+#include <memory>
 class GameObject;
 class Prefab : public Asset
 {
