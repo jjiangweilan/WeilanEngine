@@ -288,7 +288,7 @@ void MeshRenderer::TransformChanged()
 
 void MeshRenderer::CheckSkeleton()
 {
-    if (!meshes.empty())
+    if (!meshes.empty() && meshes[0])
     {
         hasSkeleton = meshes[0]->HasSkeleton();
     }

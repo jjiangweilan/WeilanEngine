@@ -4,21 +4,13 @@
 #include "AssetDatabase/Private/AssetFileSystem.hpp"
 #include "Core/JobSystem.hpp"
 #include "Libs/MPMCQueue.hpp"
-#include "Libs/UUID.hpp"
 #include "Libs/SpinLock.hpp"
-#include <boost/unordered/concurrent_flat_map.hpp>
+#include "Libs/UUID.hpp"
 #include <boost/lockfree/stack.hpp>
-
-enum class AssetLoadingStatus
-{
-    Ready,
-    Loading,
-    NotLoaded
-};
+#include <boost/unordered/concurrent_flat_map.hpp>
 
 struct AsyncProcessedPayload
 {
-    AssetLoadingStatus loadingStatus;
     AssetData* assetData;
     Asset* asset;
 
@@ -28,8 +20,7 @@ struct AsyncProcessedPayload
 
     AsyncProcessedPayload(const AsyncProcessedPayload&) = delete;
     AsyncProcessedPayload(AsyncProcessedPayload&& other) noexcept
-        : loadingStatus(other.loadingStatus), assetData(other.assetData), asset(other.asset),
-          loadedAsset(std::move(other.loadedAsset))
+        : assetData(other.assetData), asset(other.asset), loadedAsset(std::move(other.loadedAsset))
     {}
 
     AsyncProcessedPayload& operator=(const AsyncProcessedPayload& other) = delete;
@@ -37,7 +28,6 @@ struct AsyncProcessedPayload
     {
         if (this != &other)
         {
-            loadingStatus = other.loadingStatus;
             assetData = other.assetData;
             asset = other.asset;
             loadedAsset = std::move(other.loadedAsset);
@@ -80,9 +70,10 @@ public:
         this->projectRoot = projectRoot;
     }
 
+    void PollAsyncLoading();
     ObjPtr<Asset> AsyncLoadFromPath(const std::filesystem::path& path);
+    std::unique_ptr<Asset> LoadAssetJob(const std::filesystem::path& path, AssetData* assetData);
     void SyncLoad();
 
 private:
-    std::unique_ptr<Asset> LoadAssetJob(const std::filesystem::path& path, AssetData* assetData);
 };

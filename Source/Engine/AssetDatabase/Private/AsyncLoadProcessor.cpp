@@ -39,7 +39,6 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path&
             auto loadedAsset = LoadAssetJob(path, assetData);
 
             AsyncProcessedPayload payload{};
-            payload.loadingStatus = AssetLoadingStatus::Loading;
             payload.assetData = assetData;
             payload.asset = loadedAsset.get();
             payload.loadedAsset = std::move(loadedAsset);
@@ -127,28 +126,39 @@ void AsyncLoadProcessor::SyncLoad()
         while (jobCounter != 0)
             std::this_thread::yield();
 
-        asyncProcessedPayload.visit_all(
-            [projectRoot = this->projectRoot](std::pair<const UUID, AsyncProcessedPayload>& payload)
-            {
-                if (payload.second.loadedAsset)
-                {
-                    auto asset =
-                        payload.second.assetData->SetAsset(std::move(payload.second.loadedAsset), projectRoot);
-                }
-            }
-        );
+        PollAsyncLoading();
+    }
+}
 
-        asyncProcessedPayload.visit_all(
-            [projectRoot = this->projectRoot](std::pair<const UUID, AsyncProcessedPayload>& payload)
-            {
-                if (payload.second.asset)
-                {
-                    payload.second.asset->OnLoaded();
-                }
-            }
-        );
+void AsyncLoadProcessor::PollAsyncLoading()
+{
+    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
 
-        asyncProcessedPayload.clear();
-        loadingAssets.clear();
+    std::vector<std::pair<UUID, AssetData*>> finishedJobs{};
+
+    asyncProcessedPayload.visit_all(
+        [projectRoot = this->projectRoot, &finishedJobs](std::pair<const UUID, AsyncProcessedPayload>& payload)
+        {
+            if (payload.second.loadedAsset)
+            {
+                auto asset = payload.second.assetData->SetAsset(std::move(payload.second.loadedAsset), projectRoot);
+            }
+
+            finishedJobs.emplace_back(payload.first, payload.second.assetData);
+        }
+    );
+
+    for (auto& finished : finishedJobs)
+    {
+        if (auto asset = finished.second->GetAsset())
+        {
+            asset->OnLoaded();
+        }
+    }
+
+    for (auto& finished : finishedJobs)
+    {
+        asyncProcessedPayload.erase(finished.first);
+        loadingAssets.erase(finished.second->GetAssetPath());
     }
 }

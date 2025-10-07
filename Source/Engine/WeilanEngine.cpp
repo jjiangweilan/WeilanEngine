@@ -134,6 +134,8 @@ void WeilanEngine::EndFrame()
     ENGINE_BEGIN_PROFILE("End Frame");
     event->Reset();
 
+    assetDatabase->PollAsyncLoadingResults();
+
     // submit anything in the active command and present the surface
     if (gfxDriver->EndFrame())
         event->swapchainRecreated.state = true;

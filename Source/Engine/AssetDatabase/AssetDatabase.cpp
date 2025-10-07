@@ -3,6 +3,7 @@
 #include "AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Scripting/LuaBackend.hpp"
+#include "Core/Scene/Scene.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -253,6 +254,11 @@ void AssetDatabase::LoadEngineInternal()
 
     for (auto& p : importPathes)
     {
+        ImportAssetIfNeeded(p, false);
+    }
+
+    for (auto& p : importPathes)
+    {
         LoadAsset(p);
     }
     // LoadAssets(others);
@@ -260,7 +266,6 @@ void AssetDatabase::LoadEngineInternal()
     for (auto a : validAssetData)
     {
         a->SaveToDisk(projectRoot);
-        assetFileSystem.Add(a);
     }
 }
 
@@ -343,11 +348,6 @@ ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path p
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
 {
-    auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
-    asyncLoadProcessor.SyncLoad();
-
-    return loaded.Get();
-
     // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
     /* Debug Comment */
@@ -497,6 +497,23 @@ void AssetDatabase::UnloadAsset(Asset& asset)
     assetFileSystem.UnloadAsset(asset);
 }
 
+Scene* AssetDatabase::LoadScene(const UUID& sceneUUID)
+{
+    auto assetData = assetFileSystem.GetAssetData(sceneUUID);
+    if (assetData)
+    {
+        auto scene = asyncLoadProcessor.LoadAssetJob(assetData->GetAssetPath(), assetData);
+        if (scene)
+        {
+            Asset* scenePtr = assetData->SetAsset(std::move(scene), projectRoot);
+            scenePtr->OnLoaded();
+            return static_cast<Scene*>(scenePtr);
+        }
+    }
+
+    return nullptr;
+}
+
 void AssetDatabase::ReloadScripts()
 {
     auto gameScripts = Object::GetObjectsOfType<GameScript>();
@@ -640,7 +657,9 @@ void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& direc
         if (dirEntry.is_regular_file())
         {
             const auto& path = dirEntry.path();
-            ImportAssetIfNeeded(path, false);
+
+            auto assetPath = AbsolutePathToAssetPath(path);
+            ImportAssetIfNeeded(assetPath, false);
         }
         else if (dirEntry.is_directory())
         {
@@ -649,9 +668,8 @@ void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& direc
     }
 }
 
-void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& inPath, bool forceReimport)
+void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool forceReimport)
 {
-    auto path = AbsolutePathToAssetPath(inPath);
     auto ext = path.extension();
     std::unique_ptr<AssetImporter> importer = AssetImporterRegistry::CreateAssetImporterByExtension(ext.string());
 
@@ -690,4 +708,9 @@ void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& inPath, boo
 
     assetData->SetMeta(importer->GetMeta());
     assetData->SaveToDisk(projectRoot);
+}
+
+void AssetDatabase::PollAsyncLoadingResults()
+{
+    asyncLoadProcessor.PollAsyncLoading();
 }

@@ -106,7 +106,7 @@ GameEditor::GameEditor(const char* path)
     UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
-        auto scene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
+        auto scene = (Scene*)engine->assetDatabase->LoadScene(lastActiveSceneUUID);
         SceneManager::SetActiveScene(scene);
         loop->SetScene(*scene);
     }
@@ -326,8 +326,9 @@ void GameEditor::ShowSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)
-            ));
+            SceneManager::SetActiveScene(
+                (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath))
+            );
             openSceneWindow = false;
         }
 
