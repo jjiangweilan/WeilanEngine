@@ -68,7 +68,7 @@ public:
     AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
 
     // used for new asset (just import)
-    AssetData(const std::filesystem::path& assetPath);
+    AssetData(const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot);
 
     // used for async unimported asset that needs
     ~AssetData();

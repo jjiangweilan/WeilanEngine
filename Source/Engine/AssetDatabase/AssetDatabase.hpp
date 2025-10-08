@@ -59,6 +59,7 @@ public:
     void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
 
     void PollAsyncLoadingResults();
+    void EnsureAllFilesAreImported();
 
     // file system
     void CreateFolderAtPath(const std::filesystem::path& path);

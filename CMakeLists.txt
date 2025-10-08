@@ -111,13 +111,14 @@ endfunction()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
-    GIT_TAG "v2025.16"
+    GIT_TAG "v2025.18.1"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
 )
 set(SLANG_ENABLE_DXIL OFF)
 set(SLANG_ENABLE_GFX OFF)
 set(SLANG_ENABLE_SLANGD OFF)
+set(SLANG_ENABLE_SLANGI OFF)
 set(SLANG_ENABLE_SLANGC OFF)
 set(SLANG_ENABLE_TESTS OFF)
 set(SLANG_ENABLE_RELEASE_DEBUG_INFO OFF)
@@ -127,11 +128,13 @@ set(SLANG_ENABLE_OPTIX OFF)
 set(SLANG_ENABLE_NVAPI OFF)
 set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
+set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
 FetchContent_MakeAvailable(Slang)
 
-add_dependencies(slang
-slang-glslang
-)
+# add_dependencies(slang
+# slang-glslang
+# )
 
 FetchContent_Declare(SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -196,6 +199,8 @@ FetchContent_Declare(glm
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )
+set(GLM_BUILD_TESTS OFF)
+set(GLM_BUILD_INSTALL OFF)
 FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(vma
@@ -423,7 +428,7 @@ if (UNIT_TEST)
 endif()
 
 SetDependencyFolder(slang Slang)
-SetDependencyFolder(slang-glslang Slang)
+# SetDependencyFolder(slang-glslang Slang)
 SetDependencyFolder(ryml::ryml ryml)
 SetDependencyFolder(SDL2::SDL2 SDL2)
 SetDependencyFolder(sdl_headers_copy SDL2)

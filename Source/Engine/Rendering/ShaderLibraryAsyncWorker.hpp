@@ -101,6 +101,7 @@ public:
     void CompileShader(const char* name, ShaderPermutation permutation);
     void WaitForAll();
     void ReloadAllShaders();
+    void CleanUp();
     std::optional<AsyncCompiledData> PollCompiled();
 
 private:

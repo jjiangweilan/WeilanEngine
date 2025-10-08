@@ -124,8 +124,9 @@ Asset* AssetData::GetAsset()
     return nullptr;
 }
 
-AssetData::AssetData(const std::filesystem::path& assetPath)
-    : assetPath(assetPath), assetUUID(), assetDataUUID(), lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID())
+AssetData::AssetData(const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot)
+    : assetPath(assetPath), assetUUID(), absolutePath(projectRoot / "Assets" / assetPath), assetDataUUID(),
+      lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID())
 {}
 
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& inAsset, const std::filesystem::path& projectRoot)

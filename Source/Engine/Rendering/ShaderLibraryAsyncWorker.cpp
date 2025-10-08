@@ -772,10 +772,8 @@ public:
                     vertexAttribute.format = MapSlangFormat(strView);
                     if (vertexAttribute.format == Gfx::GfxFormat::Invalid)
                     {
-                        spdlog::warn(
-                            "provided shader UnderlyingFormat type is not supported, fall back to "
-                            "R32G32B32A32_SFloat"
-                        );
+                        spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
+                                     "R32G32B32A32_SFloat");
                         vertexAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -842,10 +840,8 @@ public:
                     fragmentAttribute.format = MapSlangFormat(strView);
                     if (fragmentAttribute.format == Gfx::GfxFormat::Invalid)
                     {
-                        spdlog::warn(
-                            "provided shader UnderlyingFormat type is not supported, fall back to "
-                            "R32G32B32A32_SFloat"
-                        );
+                        spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
+                                     "R32G32B32A32_SFloat");
                         fragmentAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -1554,4 +1550,9 @@ void ShaderLibraryAsyncWorker::ReloadAllShaders()
 std::optional<AsyncCompiledData> ShaderLibraryAsyncWorker::PollCompiled()
 {
     return compileWorker->PollCompiled();
+}
+
+void ShaderLibraryAsyncWorker::CleanUp()
+{
+    compileWorker = nullptr;
 }

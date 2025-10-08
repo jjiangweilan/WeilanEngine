@@ -199,7 +199,9 @@ void MeshRenderer::UpdateSkinning()
 
 void MeshRenderer::ValidateSkinning()
 {
-    if (hasSkeleton && !skinning.enabled && !meshes.empty() && !materials.empty())
+    CheckSkeleton();
+
+    if (!skinning.enabled && !meshes.empty() && !materials.empty())
     {
         auto mesh = meshes[0];
         if (mesh != nullptr && mesh->HasSkeleton())

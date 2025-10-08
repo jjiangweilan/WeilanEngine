@@ -39,6 +39,7 @@ enum class Shaders : int
     BilateralUpScale,
     DepthDownSampler,
     ContactShadow,
+    Ocean,
     MAX_COUNT
 };
 
@@ -100,7 +101,8 @@ public:
         "Blit",
         "BilateralUpScale",
         "DepthDownSampler",
-        "ContactShadow/ContactShadow"
+        "ContactShadow/ContactShadow",
+        "Ocean",
     };
 
     // ***** Deprecating *****

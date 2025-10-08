@@ -374,7 +374,10 @@ void Material::OnLoaded()
 {
     for (auto& kv : textureValues)
     {
-        SetTextureInternal(kv.first, kv.second, std::nullopt);
+        if (kv.second != nullptr)
+        {
+            SetTextureInternal(kv.first, kv.second, std::nullopt);
+        }
     }
 }
 

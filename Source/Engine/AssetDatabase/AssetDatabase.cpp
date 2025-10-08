@@ -685,7 +685,7 @@ void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool 
     // this asset is already imported once, we can read its meta
     if (!assetData)
     {
-        assetData = AddAssetData(std::make_unique<AssetData>(path));
+        assetData = AddAssetData(std::make_unique<AssetData>(path, projectRoot));
     }
 
     // override the asset path because this asset may be an internal asset
