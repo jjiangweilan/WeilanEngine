@@ -58,6 +58,7 @@ public:
     const std::filesystem::path& GetAssetPath(const UUID& uuid);
     void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
 
+    void SyncLoadingResults();
     void PollAsyncLoadingResults();
     void EnsureAllFilesAreImported();
 

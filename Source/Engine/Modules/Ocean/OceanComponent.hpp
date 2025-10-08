@@ -7,7 +7,8 @@
 class OceanComponent : public RenderingComponent<OceanComponent>
 {
     DECLARE_RENDERING_COMPONENT(OceanComponent);
-    DECLARE_SERIALIZATION()
+    void Serialize(Serializer* ser) const override;
+    void Deserialize(Serializer* ser) override;
 
     ObjPtr<Mesh> plane;
     ObjPtr<Shader2> oceanShader;

@@ -2,8 +2,8 @@
 #include "AssetDatabase/Importers/AssetImporter.hpp"
 #include "AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Core/Component/GameScript.hpp"
-#include "Scripting/LuaBackend.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Scripting/LuaBackend.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -716,4 +716,9 @@ void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool 
 void AssetDatabase::PollAsyncLoadingResults()
 {
     asyncLoadProcessor.PollAsyncLoading();
+}
+
+void AssetDatabase::SyncLoadingResults()
+{
+    asyncLoadProcessor.SyncLoad();
 }

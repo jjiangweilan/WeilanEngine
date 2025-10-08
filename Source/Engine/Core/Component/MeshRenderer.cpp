@@ -88,25 +88,14 @@ const std::vector<ObjPtr<Material>>& MeshRenderer::GetMaterials()
     return materials;
 }
 
-void MeshRenderer::Serialize(Serializer* s) const
-{
-    Component::Serialize(s);
-    s->Serialize("meshes", meshes);
-    s->Serialize("materials", materials);
-    s->Serialize("aabbMin", aabb.min);
-    s->Serialize("aabbMax", aabb.max);
-    s->Serialize("wantsToEnableSkinning", wantsToEnableSkinning);
-}
-
-void MeshRenderer::Deserialize(Serializer* s)
-{
-    Component::Deserialize(s);
-    s->Deserialize("meshes", meshes);
-    s->Deserialize("materials", materials);
-    s->Deserialize("aabbMin", aabb.min);
-    s->Deserialize("aabbMax", aabb.max);
-    s->Deserialize("wantsToEnableSkinning", wantsToEnableSkinning);
-}
+DEFINE_SERIALIZATION(
+    MeshRenderer,
+    SER(meshes),
+    SER(materials),
+    SER(aabbMin, aabb.min),
+    SER(aabbMax, aabb.max),
+    SER(wantsToEnableSkinning)
+);
 
 std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
 {

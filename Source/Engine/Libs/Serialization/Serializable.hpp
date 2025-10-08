@@ -26,22 +26,22 @@ struct SerializationPack
     void Serialize(Serializer* ser) const override;                                                                    \
     void Deserialize(Serializer* ser) override;
 
-#define SER(x) SerializationPack(#x, &x)
+#define SER1(x) SerializationPack(#x, &x)
+#define SER2(name, x) SerializationPack(#name, &x)
+#define SER_EXPAND(x) x
+#define GET_MACRO(_1, _2, name, ...) name
+#define SER(...) SER_EXPAND(GET_MACRO(__VA_ARGS__, SER2, SER1)(__VA_ARGS__))
 
 #define DEFINE_SERIALIZATION(TypeName, ...)                                                                            \
     void TypeName::Serialize(Serializer* ser) const                                                                    \
     {                                                                                                                  \
+        Component::Serialize(ser);                                                                                     \
         [&](auto&&... fields)                                                                                          \
-        {                                                                                                              \
-            int namesIdx = 0;                                                                                          \
-            for_each_argument([&namesIdx, ser](auto&& arg) { ser->Serialize(arg.name, arg.val); }, fields...);         \
-        }(__VA_ARGS__);                                                                                                \
+        { for_each_argument([ser](auto&& arg) { ser->Serialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);     \
     }                                                                                                                  \
     void TypeName::Deserialize(Serializer* ser)                                                                        \
     {                                                                                                                  \
+        Component::Deserialize(ser);                                                                                   \
         [&](auto&&... fields)                                                                                          \
-        {                                                                                                              \
-            int namesIdx = 0;                                                                                          \
-            for_each_argument([&namesIdx, ser](auto&& arg) { ser->Deserialize(arg.name, arg.val); }, fields...);       \
-        }(__VA_ARGS__);                                                                                                \
+        { for_each_argument([ser](auto&& arg) { ser->Deserialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);   \
     }
