@@ -7,6 +7,7 @@
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Modules/Ocean/OceanComponent.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Rendering/Renderers/ParticleRenderer.hpp"
@@ -246,6 +247,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPassAttachments, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
+
+        auto oceanComponents = scene.GetRenderingScene().GetRenderingObjects<OceanComponent>();
         cmd->EndLabel(); // Forward Objects
 
         // draw particles

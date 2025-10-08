@@ -35,3 +35,18 @@ public:
         RemoveFromRenderingScene(RenderingObject<T>::renderObjectTypeID);
     }
 };
+
+#define DECLARE_RENDERING_COMPONENT(TypeName)                                                                          \
+    DECLARE_OBJECT()                                                                                                   \
+public:                                                                                                                \
+    TypeName() : RenderingComponent<TypeName>(nullptr) {}                                                              \
+    TypeName(GameObject* gameObject) : RenderingComponent<TypeName>(gameObject) {}                                     \
+    const std::string& GetName() override;
+
+#define DEFINE_RENDERING_COMPONENT(TypeName, UUID)                                                                     \
+    DEFINE_OBJECT(TypeName, UUID)                                                                                      \
+    const std::string& TypeName::GetName()                                                                             \
+    {                                                                                                                  \
+        static std::string name = #TypeName;                                                                           \
+        return name;                                                                                                   \
+    }

@@ -405,7 +405,6 @@ void Serializer::Deserialize(std::string_view name, RefPtr<T>& val, const Refere
     Deserialize(name, val.GetPtrRef(), callback);
 }
 
-
 template <class T>
 concept CanBeSerializerParameter = requires(T a, Serializer* s) {
     s->Serialize("", a);
