@@ -184,7 +184,7 @@ static void ProfileTree(const ProfileScope& scope, int id)
     ImGui::PopID();
 }
 
-void GameEditor::ShowGameProfiler(Profiler& cpuProfiler)
+void GameEditor::ShowGameProfiler(IProfiler& cpuProfiler)
 {
 
     // auto& gpuProfiles = GetGfxDriver()->GetFrameProfiles();

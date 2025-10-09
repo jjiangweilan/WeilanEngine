@@ -1,8 +1,16 @@
 #include "Profiler.hpp"
+#include "Core/JobSystem.hpp"
+#include "NoOpProfiler.hpp"
 
-Profiler& Profiler::GetSingleton()
+IProfiler& Profiler::GetSingleton()
 {
+    static NoOpProfiler noopProfiler;
     static Profiler profiler;
+
+    if (std::this_thread::get_id() != JobSystem::Instance().GetMainThreadID())
+    {
+        return noopProfiler;
+    }
     return profiler;
 }
 
@@ -47,7 +55,8 @@ void Profiler::BeginManual(std::string_view label, uint64_t timestamp)
     if (actuallyPaused)
         return;
     auto now = std::chrono::time_point<std::chrono::nanoseconds>(std::chrono::nanoseconds(timestamp));
-    std::unique_ptr<ProfileScope> newScope = std::make_unique<ProfileScope>(ProfileScope(std::string(label), now, 0, {}));
+    std::unique_ptr<ProfileScope> newScope =
+        std::make_unique<ProfileScope>(ProfileScope(std::string(label), now, 0, {}));
 
     if (!activeScopes.empty())
     {

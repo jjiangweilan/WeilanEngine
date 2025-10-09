@@ -304,6 +304,7 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
     const float labelHeight = 40.0f;       // Height for the text label below icon
     const float totalItemWidth = iconSize + iconPadding * 2;
     const float totalItemHeight = iconSize + labelHeight + iconPadding * 2;
+    bool openCreateMenuPopup = false;
 
     // Calculate how many icons fit horizontally
     ImVec2 contentRegion = ImGui::GetContentRegionAvail();
@@ -323,19 +324,23 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
 
     ImGui::Separator();
 
-    ImVec2 directoryCursorStart = ImGui::GetCursorPos();
-    ImVec2 browserRegionMax = ImGui::GetContentRegionMax();
-    ImVec2 clickRegionSize = browserRegionMax - directoryCursorStart;
-    ImGui::InvisibleButton("right-click context menu", clickRegionSize);
-
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-    {
-        spdlog::info("hello");
-    }
-
     // Begin child region for scrolling
     if (ImGui::BeginChild("IconGrid", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
+        ImVec2 directoryCursorStart = ImGui::GetCursorPos();
+        ImVec2 browserRegionMax = ImGui::GetWindowContentRegionMax();
+        ImVec2 clickRegionSize = browserRegionMax - directoryCursorStart;
+
+        ImGui::SetNextItemAllowOverlap();
+        ImGui::InvisibleButton("right-click context menu", clickRegionSize);
+
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        {
+            openCreateMenuPopup = true;
+        }
+
+        ImGui::SetCursorPos(directoryCursorStart);
+
         int currentColumn = 0;
 
         // Collect entries (directories first, then files)
@@ -381,6 +386,9 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         }
     }
     ImGui::EndChild();
+
+    if (openCreateMenuPopup)
+        ImGui::OpenPopup("CreateMenu");
 
     // Handle right-click context menu on empty space
     if (ImGui::BeginPopupContextWindow("CreateMenu"))

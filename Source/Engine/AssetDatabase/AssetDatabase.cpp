@@ -457,17 +457,29 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
 
 void AssetDatabase::Remove(const std::filesystem::path& path)
 {
-    // TODO: sync async works before accessing assetFileSystem
-    AssetData* assetData = assetFileSystem.GetAssetData(path);
-
-    if (assetData)
+    auto absolutePath = assetDirectory / path;
+    if (std::filesystem::is_directory(absolutePath))
     {
-        assetDatas.erase(
-            std::remove_if(assetDatas.begin(), assetDatas.end(), [&](auto& d) { return d.get() == assetData; })
-        );
+        for(auto iter : std::filesystem::directory_iterator(absolutePath))
+        {
+            Remove(iter.path());
+        }
+        std::filesystem::remove(absolutePath);
     }
+    else
+    {
+        // TODO: sync async works before accessing assetFileSystem
+        AssetData* assetData = assetFileSystem.GetAssetData(path);
 
-    assetFileSystem.Remove(path);
+        if (assetData)
+        {
+            assetDatas.erase(
+                std::remove_if(assetDatas.begin(), assetDatas.end(), [&](auto& d) { return d.get() == assetData; })
+            );
+        }
+
+        assetFileSystem.Remove(path);
+    }
 }
 
 void AssetDatabase::RemoveAssetData(AssetData* assetData)

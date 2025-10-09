@@ -104,7 +104,7 @@ public:
     );
 
     void SetGPUProfilerEnabled(bool enabled) override;
-    const Profiler& GetGPUProfiler() override { return profiler; }
+    const IProfiler& GetGPUProfiler() override { return profiler; }
 
     void GenerateMipmaps(Gfx::Image& image) override
     {

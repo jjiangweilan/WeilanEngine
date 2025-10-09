@@ -97,7 +97,7 @@ private:
     void SceneTree(
         GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
     );
-    void ShowGameProfiler(Profiler& profiler);
+    void ShowGameProfiler(IProfiler& profiler);
     void ShowEngineResourceDebug();
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);

@@ -1,52 +1,45 @@
 #pragma once
+
+#include "IProfiler.hpp"
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <stack>
 #include <string>
-#include <memory>
 
-struct ProfileScope
-{
-    std::string label;
-    std::chrono::time_point<std::chrono::nanoseconds> startTime;
-    int64_t totalTime = 0;
-    float GetMilliseconds() const { return totalTime * 1e-3f; }
-    std::vector<std::unique_ptr<ProfileScope>> children;
-};
-
-class Profiler
+class Profiler : public IProfiler
 {
 public:
     inline static int MAX_FRAME_TRACKED = 800;
 
     Profiler() { frameProfiles.resize(MAX_FRAME_TRACKED); }
-    bool IsPaused() const { return paused; }
-    void Pause() const { paused = true; }
-    void Resume() const { paused = false; }
-    void Begin(std::string_view label);
-    void End();
+    bool IsPaused() const override { return paused; }
+    void Pause() const override { paused = true; }
+    void Resume() const override { paused = false; }
+    void Begin(std::string_view label) override;
+    void End() override;
 
-    void BeginFrame();
-    void EndFrame();
+    void BeginFrame() override;
+    void EndFrame() override;
 
     // timestamp in nanoseconds
-    void BeginFrameManual(uint64_t timestamp);
-    void EndFrameManual(uint64_t timestamp);
-    void BeginManual(std::string_view label, uint64_t timestamp);
-    void EndManual(uint64_t timestamp);
+    void BeginFrameManual(uint64_t timestamp) override;
+    void EndFrameManual(uint64_t timestamp) override;
+    void BeginManual(std::string_view label, uint64_t timestamp) override;
+    void EndManual(uint64_t timestamp) override;
 
-    const ProfileScope& GetLatestProfile() const
+    const ProfileScope& GetLatestProfile() const override
     {
         return *frameProfiles[inProfiling ? currentFrame : currentFrame - 1];
     }
 
-    std::vector<float> GetFlattendFrametime() const;
-    int GetLatestFrameIndex() const { return inProfiling ? currentFrame : currentFrame - 1; }
-    const std::vector< std::unique_ptr<ProfileScope>>& GetFrameProfiles() const { return frameProfiles; }
-    int GetFrameIndex() const { return currentFrame; }
-    int GetTrackCycles() const { return trackCycles; }
+    std::vector<float> GetFlattendFrametime() const override;
+    int GetLatestFrameIndex() const override { return inProfiling ? currentFrame : currentFrame - 1; }
+    const std::vector<std::unique_ptr<ProfileScope>>& GetFrameProfiles() const override { return frameProfiles; }
+    int GetFrameIndex() const override { return currentFrame; }
+    int GetTrackCycles() const override { return trackCycles; }
 
-    static Profiler& GetSingleton();
+    static IProfiler& GetSingleton();
 
 private:
     mutable bool paused = false;

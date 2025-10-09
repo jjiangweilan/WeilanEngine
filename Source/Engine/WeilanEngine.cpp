@@ -36,6 +36,7 @@ WeilanEngine::~WeilanEngine()
     DeinitAssetDatabase();
     ShaderLibrary::Singleton().DestoryShaderLibrary();
     DeinitJoltPhysics();
+    gfxDriver = nullptr;
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     DeinitSDL();
