@@ -251,7 +251,10 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             {
                 std::filesystem::path path = entry.path().string();
                 path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
-                EditorGUI::DragDropSource(path, [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); });
+                EditorGUI::DragDropSource(
+                    path,
+                    [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); }
+                );
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
@@ -319,6 +322,16 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
     ImGui::Text("Current: %s", std::filesystem::relative(path, engine->GetProjectAssetPath()).string().c_str());
 
     ImGui::Separator();
+
+    ImVec2 directoryCursorStart = ImGui::GetCursorPos();
+    ImVec2 browserRegionMax = ImGui::GetContentRegionMax();
+    ImVec2 clickRegionSize = browserRegionMax - directoryCursorStart;
+    ImGui::InvisibleButton("right-click context menu", clickRegionSize);
+
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        spdlog::info("hello");
+    }
 
     // Begin child region for scrolling
     if (ImGui::BeginChild("IconGrid", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))

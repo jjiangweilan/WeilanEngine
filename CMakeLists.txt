@@ -111,7 +111,7 @@ endfunction()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
-    GIT_TAG "v2025.18.1"
+    GIT_TAG "v2025.18.2"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
 )
