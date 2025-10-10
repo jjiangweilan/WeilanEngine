@@ -33,26 +33,7 @@ ENUM_FLAGS(DragDropTag, int);
 class EditorGUI
 {
 public:
-    static bool SelectWithSearchBar(const char* menuName, const std::vector<std::string>& items, int& outSelectedIndex)
-    {
-        bool selected = false;
-        if (ImGui::BeginMenu(menuName))
-        {
-            for (int idx = 0; idx < items.size(); idx++)
-            {
-                if (ImGui::MenuItem(items[idx].c_str()))
-                {
-                    outSelectedIndex = idx;
-                    selected = true;
-                    break;
-                }
-            }
-
-            ImGui::EndMenu();
-        }
-
-        return selected;
-    }
+    static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex);
 
     template <class T>
     static bool Property(const char* name, T& val)

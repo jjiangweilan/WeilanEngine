@@ -202,4 +202,24 @@ void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
         }
     }
 }
+
+bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex)
+{
+    bool selected = false;
+    ImGui::SetKeyboardFocusHere(0);
+    InputText("##search", search, "Search Bar");
+    for (int idx = 0; idx < items.size(); idx++)
+    {
+        if (Utils::strContians(Utils::strToLower(items[idx]), Utils::strToLower(search)))
+        {
+            if (ImGui::MenuItem(items[idx].c_str()))
+            {
+                outSelectedIndex = idx;
+                selected = true;
+                break;
+            }
+        }
+    }
+    return selected;
+}
 } // namespace Editor

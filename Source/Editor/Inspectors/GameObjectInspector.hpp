@@ -35,6 +35,7 @@ private:
     float angle;
     Component* contextComponent = nullptr;
     int contextComponentIdx = -1;
+    std::string searchComponent = "";
 };
 
 } // namespace Editor

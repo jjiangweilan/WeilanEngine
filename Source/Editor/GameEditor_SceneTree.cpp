@@ -174,7 +174,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
     {
         if (ImGui::BeginMenu("Create Objects"))
         {
-            if (ImGui::MenuItem("Create Object"))
+            if (ImGui::MenuItem("New GameObject"))
             {
                 scene.CreateGameObject();
             }

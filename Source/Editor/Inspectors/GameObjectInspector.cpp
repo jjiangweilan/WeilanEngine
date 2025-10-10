@@ -18,17 +18,22 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 {
     ImGui::BeginMenuBar();
     // Create Component
+
     if (ImGui::BeginMenu("Create Component"))
     {
         auto componentNames = ObjectRegistry::GetComponentTypeNames();
-        std::sort(componentNames.begin(), componentNames.end(), [](auto& l, auto& r) { return l < r; });
-        for (auto& componentName : ObjectRegistry::GetComponentTypeNames())
+        std::sort(componentNames.begin(), componentNames.end(), [](auto& l, auto& r)
+                  { return l < r; });
+
+        int selected = -1;
+        if (EditorGUI::SearchableMenuItems(componentNames, searchComponent, selected))
         {
-            if (ImGui::MenuItem(componentName.c_str()))
-                target->AddComponent(componentName);
+            auto& componentName = componentNames[selected];
+            target->AddComponent(componentName);
         }
 
         ImGui::EndMenu();
+        lastFrameHasSearchComponentMenu = true;
     }
     ImGui::EndMenuBar();
 
