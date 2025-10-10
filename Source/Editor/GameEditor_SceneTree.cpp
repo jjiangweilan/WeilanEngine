@@ -141,7 +141,8 @@ void GameEditor::ShowSceneTree(Scene& scene)
             if (std::find_if(
                     selects.begin(),
                     selects.end(),
-                    [this](ObjPtr<Object>& o) { return o.Get() == sceneTreeContextObject; }
+                    [this](ObjPtr<Object>& o)
+                    { return o.Get() == sceneTreeContextObject; }
                 ) != selects.end())
             {
                 for (auto& s : selects)
@@ -171,9 +172,13 @@ void GameEditor::ShowSceneTree(Scene& scene)
     }
     if (ImGui::BeginPopup(sceneTreeContextMenu))
     {
-        if (ImGui::BeginMenu("Create 3D Objects"))
+        if (ImGui::BeginMenu("Create Objects"))
         {
-            if (ImGui::MenuItem("Cube"))
+            if (ImGui::MenuItem("Create Object"))
+            {
+                scene.CreateGameObject();
+            }
+            else if (ImGui::MenuItem("Cube"))
             {
                 AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.fbx");
             }
@@ -198,7 +203,8 @@ void GameEditor::SceneTree(
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](ObjPtr<Object>& o) { return o.Get() == go; });
+    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](ObjPtr<Object>& o)
+                                    { return o.Get() == go; });
     if (selectsIter != selects.end())
     {
         nodeFlags |= ImGuiTreeNodeFlags_Selected;

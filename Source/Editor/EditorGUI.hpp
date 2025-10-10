@@ -33,7 +33,28 @@ ENUM_FLAGS(DragDropTag, int);
 class EditorGUI
 {
 public:
-    template<class T>
+    static bool SelectWithSearchBar(const char* menuName, const std::vector<std::string>& items, int& outSelectedIndex)
+    {
+        bool selected = false;
+        if (ImGui::BeginMenu(menuName))
+        {
+            for (int idx = 0; idx < items.size(); idx++)
+            {
+                if (ImGui::MenuItem(items[idx].c_str()))
+                {
+                    outSelectedIndex = idx;
+                    selected = true;
+                    break;
+                }
+            }
+
+            ImGui::EndMenu();
+        }
+
+        return selected;
+    }
+
+    template <class T>
     static bool Property(const char* name, T& val)
     {
         if constexpr (std::is_same_v<T, int>)
@@ -542,7 +563,7 @@ public:
         Text(label, value.c_str());
     }
 
-    template<typename... Args>
+    template <typename... Args>
     static void TextFormatted(const char* label, const char* format, Args... args)
     {
         if (ImGui::BeginTable("##text_formatted_table", 2, ImGuiTableFlags_SizingStretchProp))
@@ -729,7 +750,7 @@ public:
         }
 
         std::strcpy(textArea.data(), text.data());
-        
+
         bool changed = false;
         if (ImGui::BeginTable("##inputtext_string_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
