@@ -11,7 +11,7 @@ Gfx::Image* InterleavedGradientNoise::GetNoiseTexture() const
             interleavedGradientNoiseDesc,
             Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage
         );
-        auto interleavedGradientNoiseShader = ShaderLibrary::GetShader(ShaderLibrary::InterleavedGradientNoise);
+        auto interleavedGradientNoiseShader = ShaderLibrary::GetShader(Shaders::InterleavedGradientNoise);
         interleavedGradientNoiseMat.SetShader(interleavedGradientNoiseShader);
         interleavedGradientNoiseMat.SetTexture("tex", interleavedGradientNoise.get());
         auto cmd = GetGfxDriver()->CreateCommandBuffer();

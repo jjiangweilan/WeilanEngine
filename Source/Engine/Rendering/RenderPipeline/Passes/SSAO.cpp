@@ -4,7 +4,7 @@ namespace Rendering::Passes
 {
 SSAO::SSAO()
 {
-    ssaoShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_SSAO);
+    ssaoShader = ShaderLibrary::GetShader(Shaders::PostProcess_SSAO);
     mat.SetShader(ssaoShader);
 }
 

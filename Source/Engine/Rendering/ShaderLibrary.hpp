@@ -73,51 +73,17 @@ public:
         SHADER_ENUMS(_SHADER_ENUMS_PICK_SECOND)
     };
 
-    // ***** Deprecating *****
-    static constexpr const char* DeferredPBRShading = "DeferredPBRShading";
-    static constexpr const char* SceneLit = "SceneLit";
-    static constexpr const char* SceneLitSkinned = "SceneLitSkinned";
-    static constexpr const char* PlaneGrid = "PlaneGrid";
-    static constexpr const char* ImGui = "ImGui";
-    static constexpr const char* LineShader = "LineShader";
-    static constexpr const char* TriangleShader = "TriangleShader";
-    static constexpr const char* JoltDebugShader = "Specific/JoltDebugShader";
-    static constexpr const char* PostProcess_OutlineFullScreenPass =
-        "PostProcess/Outline/OutlineFullScreenPass";
-    static constexpr const char* PostProcess_OutlineRawColorPass =
-        "PostProcess/Outline/OutlineRawColorPass";
-    static constexpr const char* PostProcess_SSAO = "PostProcess/SSAO";
-    static constexpr const char* ShadowMapObject = "ShadowMapObject";
-    static constexpr const char* ShadowMapObjectSkinned =
-        "ShadowMapObjectSkinned";
-    static constexpr const char* ScreenSpaceShadow = "ScreenSpaceShadow";
-    static constexpr const char* FXAA = "FXAA";
-    static constexpr const char* PrimitiveShape = "PrimitiveShape";
-    static constexpr const char* SimpleForwardLit = "SimpleForwardLit";
-    static constexpr const char* SimpleColor = "SimpleColor";
-    static constexpr const char* VolumetricCloud = "VolumetricCloud";
-    static constexpr const char* Skybox = "Skybox";
-    static constexpr const char* ColorGrading = "ColorGrading";
-    static constexpr const char* InterleavedGradientNoise =
-        "InterleavedGradientNoise";
-    static constexpr const char* SHProbe = "SHProbe";
-    static constexpr const char* Particle = "Particles/Particle";
-    // **************
-    //
-
     static const char* GetShaderName(Shaders shader)
     {
         return ShaderNameMap[(int)shader];
     }
 
-    static ObjPtr<Shader2>
-    GetShader(Shaders shader, ShaderPermutation permutation = ShaderPermutation())
+    static Shader2* GetShader(Shaders shader, ShaderPermutation permutation = ShaderPermutation())
     {
         return Singleton().GetShaderImpl(ShaderNameMap[(int)shader], permutation);
     }
 
-    static ObjPtr<Shader2>
-    GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
+    static Shader2* GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {
         return Singleton().GetShaderImpl(name, permutation);
     }
@@ -127,8 +93,7 @@ public:
         return Singleton().CompileAllDefaultShadersImpl();
     }
 
-    static ObjPtr<Shader2>
-    GetShader(const char* name, const std::vector<std::string>& permutations)
+    static Shader2* GetShader(const char* name, const std::vector<std::string>& permutations)
     {
         return Singleton().GetShaderImpl(
             name,
@@ -167,8 +132,7 @@ private:
     void LoadSession();
     void WaitForAllImpl() { asyncWorker.WaitForAll(); }
     void DestorySlangInstanceImpl();
-    ObjPtr<Shader2>
-    GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
+    Shader2* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
     void ReloadAllShadersImpl();
     inline const char* GetShaderRootPath()

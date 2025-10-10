@@ -341,17 +341,17 @@ RenderPipeline::ShadingPass::ShadingPass()
     gpuResource->SetBuffer("perMaterial", perMaterialBuffer.get());
     brdfPreIntegeral = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/BRDFPreintegral.ktx");
     gpuResource->SetImage("specularBRDFIntegrationMap", brdfPreIntegeral->GetGfxImage());
-    shadingShader = ShaderLibrary::GetShader(ShaderLibrary::DeferredPBRShading);
+    shadingShader = ShaderLibrary::GetShader(Shaders::DeferredPBRShading);
 }
 
 RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow()
 {
-    shader = ShaderLibrary::GetShader(ShaderLibrary::ScreenSpaceShadow);
+    shader = ShaderLibrary::GetShader(Shaders::ScreenSpaceShadow);
 }
 
 RenderPipeline::FXAAPass::FXAAPass()
 {
-    shader = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
+    shader = ShaderLibrary::GetShader(Shaders::FXAA);
     resource = GetGfxDriver()->CreateShaderResource();
 
     Gfx::SubpassAttachment attachmentDesc{0, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store};
@@ -383,7 +383,7 @@ void RenderPipeline::FXAAPass::Execute(
 
 RenderPipeline::ColorGradingPass::ColorGradingPass()
 {
-    colorGradingShader = ShaderLibrary::GetShader(ShaderLibrary::ColorGrading);
+    colorGradingShader = ShaderLibrary::GetShader(Shaders::ColorGrading);
     mat.SetShader(colorGradingShader);
 }
 

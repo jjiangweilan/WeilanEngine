@@ -1318,7 +1318,7 @@ ShaderLibrary& ShaderLibrary::Singleton()
     return singleton;
 }
 
-ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
+Shader2* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
 {
     auto shaderIter = library.find(name);
     if (shaderIter != library.end())

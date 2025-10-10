@@ -14,8 +14,8 @@ void ShadowRenderer::Init()
         Gfx::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
     );
     pass.SetName("ShadowMap pass");
-    shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);
-    shadowMapShaderSkinned = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObjectSkinned);
+    shadowMapShader = ShaderLibrary::GetShader(Shaders::ShadowMapObject);
+    shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
 
     shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
 

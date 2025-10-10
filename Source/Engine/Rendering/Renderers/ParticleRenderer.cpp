@@ -6,7 +6,7 @@ namespace Rendering
 {
 ParticleRenderer::ParticleRenderer()
 {
-    particleShader = ShaderLibrary::GetShader(ShaderLibrary::Particle);
+    particleShader = ShaderLibrary::GetShader(Shaders::Particle);
     parameterSetIdx = particleShader->GetSet(Gfx::DescriptorSetSemantics::Material);
 }
 void ParticleRenderer::Draw(Gfx::CommandBuffer& cmd, const ParticleDraw& draw)

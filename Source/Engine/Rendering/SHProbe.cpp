@@ -196,7 +196,7 @@ void SHProbe::DebugDrawProbe(const float3& position)
     if (debugMaterial == nullptr)
     {
         debugMaterial = std::make_unique<Material>();
-        debugMaterial->SetShader(ShaderLibrary::GetShader(ShaderLibrary::SHProbe));
+        // debugMaterial->SetShader(ShaderLibrary::GetShader(Shaders::SHProbe)); TODO: Add SHProbe to Shaders
         debugMaterial->GetShaderResource()->SetBuffer("sh", sh.get());
     }
 

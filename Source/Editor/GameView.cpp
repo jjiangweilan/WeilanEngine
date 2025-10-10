@@ -100,8 +100,8 @@ void GameView::Init()
     Gfx::SubpassAttachment colorVec[] = {color};
     editorFinalColorBlitPass.SetSubpass(0, colorVec);
 
-    outlineRawColorPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineRawColorPass);
-    outlineFullScreenPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineFullScreenPass);
+    outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
+    outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
 
     ChangeGameScreenResolution({1920, 1080});
 }

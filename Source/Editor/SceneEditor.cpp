@@ -89,14 +89,14 @@ void SceneEditor::Init(EditorContext* editorContext)
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
-    outlineRawColorPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineRawColorPass);
-    outlineFullScreenPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineFullScreenPass);
+    outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
+    outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
 
     editorWorldSpaceGrid.plane =
         static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
             ->GetMeshes()[0]
             .get();
-    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(ShaderLibrary::PlaneGrid);
+    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(Shaders::PlaneGrid);
 
     ChangeGameScreenResolution({256, 256});
 }

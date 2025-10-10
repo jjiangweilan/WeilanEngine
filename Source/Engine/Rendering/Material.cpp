@@ -235,6 +235,12 @@ float Material::GetFloat(const std::string& param, const std::string& member)
     }
     return 0;
 }
+
+void Material::SetShader(Shaders shader)
+{
+    SetShader(ShaderLibrary::ShaderNameMap[(int)shader]);
+}
+
 void Material::SetShader(Shader2* shader)
 {
     if (this->shaderInUse.Get() != shader)

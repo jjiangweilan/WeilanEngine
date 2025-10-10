@@ -42,6 +42,7 @@ public:
     void SetShader(std::string_view shaderName);
     ObjPtr<Shader2> GetShader() { return shaderInUse; }
     void SetShader(Shader2* shader);
+    void SetShader(Shaders shader);
 
     Gfx::ShaderProgram* GetShaderProgram();
 

@@ -13,7 +13,7 @@ struct SkyboxPass
     SkyboxPass()
     {
         cube = EngineInternalResources::GetCubeMesh();
-        skyboxShader = ShaderLibrary::GetShader(ShaderLibrary::Skybox);
+        skyboxShader = ShaderLibrary::GetShader(Shaders::Skybox);
     }
 
     void Execute(Gfx::CommandBuffer* cmd)

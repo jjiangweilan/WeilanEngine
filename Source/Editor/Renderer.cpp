@@ -58,7 +58,7 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
     VertexAttributes v = GetFixedVertexAttributes();
     vertexBuffer->SetVertexAttributes(0, v);
 
-    shader = ShaderLibrary::GetShader(ShaderLibrary::ImGui);
+    shader = ShaderLibrary::GetShader(Shaders::ImGui);
 
     this->fontImage = fontImage;
     this->finalImage = finalImage;

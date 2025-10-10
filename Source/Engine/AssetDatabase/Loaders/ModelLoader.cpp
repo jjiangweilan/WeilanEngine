@@ -78,7 +78,7 @@ private:
         {
             if (scene->mMeshes[node->mMeshes[m]]->HasBones())
             {
-                materials[scene->mMeshes[node->mMeshes[m]]->mMaterialIndex]->SetShader(ShaderLibrary::SceneLitSkinned);
+                materials[scene->mMeshes[node->mMeshes[m]]->mMaterialIndex]->SetShader(Shaders::SceneLitSkinned);
                 materials[scene->mMeshes[node->mMeshes[m]]->mMaterialIndex]->EnableFeature("_Vertex_Skeleton");
             }
             modelNode.meshes.push_back({node->mMeshes[m], scene->mMeshes[node->mMeshes[m]]->mMaterialIndex});
@@ -360,7 +360,7 @@ private:
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {
             std::unique_ptr<Material> mat = std::make_unique<Material>();
-            mat->SetShader(ShaderLibrary::SceneLit);
+            mat->SetShader(Shaders::SceneLit);
             auto material = scene->mMaterials[materialIndex];
             std::string materialName = material->GetName().C_Str();
             if (materialName.empty())

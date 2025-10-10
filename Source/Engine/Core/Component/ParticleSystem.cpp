@@ -12,7 +12,7 @@ void ParticleSystem::OnInit()
         particleMesh = EngineInternalResources::GetModels().sphere;
     }
 
-    particleParameters->SetShader(ShaderLibrary::GetShader(ShaderLibrary::Particle));
+    particleParameters->SetShader(ShaderLibrary::GetShader(Shaders::Particle));
 
     UpdatePositionBuffer();
 }

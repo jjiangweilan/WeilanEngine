@@ -165,7 +165,7 @@ void RenderingScene::BVHDebug()
     ImGui::InputInt("Debug Level", &debugLevel);
     ImGui::End();
     static Mesh* mesh = EngineInternalResources::GetModels().cube;
-    static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleColor));
+    static Material mat = Material(ShaderLibrary::GetShader(Shaders::SimpleColor));
     Frustum frustum = scene->GetMainCamera()->GetFrustum();
 
     auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
