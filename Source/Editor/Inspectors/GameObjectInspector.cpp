@@ -33,9 +33,8 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         }
 
         ImGui::EndMenu();
-        lastFrameHasSearchComponentMenu = true;
     }
-    ImGui::EndMenuBar();
+    ImGui::EndMenuBar(); 
 
     EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
 

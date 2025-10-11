@@ -283,7 +283,7 @@ public:
         auto access = typeLayout->getResourceAccess();
         ASSERT(typeLayout->getBindingRangeCount() == 1);
         {
-#define MAP_SLANG_DESCRIPTOR_TYPE_CASE(from, to)                                                                       \
+#define MAP_SLANG_DESCRIPTOR_TYPE_CASE(from, to) \
     case slang::BindingType::from: return Gfx::DescriptorType::to;
 
             auto rangeType = typeLayout->getBindingRangeType(0);
@@ -1320,6 +1320,8 @@ ShaderLibrary& ShaderLibrary::Singleton()
 
 Shader2* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
 {
+    std::scoped_lock lk(syncAccess);
+
     auto shaderIter = library.find(name);
     if (shaderIter != library.end())
     {

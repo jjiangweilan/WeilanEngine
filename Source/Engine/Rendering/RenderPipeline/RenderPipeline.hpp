@@ -5,12 +5,13 @@
 #include "Modules/VolumetricCloud/Cloud.hpp"
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/SSAO.hpp"
+#include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderPipeline/Passes/ReflectionprobeUpdate.hpp"
+#include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "SkyboxPass.hpp"
-#include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 
 class Scene;
 class Camera;
@@ -39,22 +40,6 @@ struct RenderConfig
 
 class RenderPipeline
 {
-public:
-    RenderPipeline();
-    ~RenderPipeline();
-
-    void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
-    void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
-    void RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize);
-
-    const Gfx::ImageIdentifier& GetOutputColor();
-    const auto& GetOutputDepth() { return mainDepth; }
-    auto GetRenderPipelineSetting() const { return setting; }
-    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
-
-    void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
-
-private:
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
     std::unique_ptr<Passes::ReflectionProbeUpdate> reflectionProbeUpdate;
@@ -170,16 +155,30 @@ private:
 
     ObjPtr<RenderPipelineSetting> setting;
     RenderingData renderingData;
-
     Gfx::RenderPass skyboxOnlyPass = Gfx::RenderPass(1, 1);
+    ContactShadowPass contactShadowPass; // new contact shadow pass (deferred insertion point)
 
+public:
+    RenderPipeline();
+    ~RenderPipeline();
+
+    void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
+    void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
+    void RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize);
+
+    const Gfx::ImageIdentifier& GetOutputColor();
+    const auto& GetOutputDepth() { return mainDepth; }
+    auto GetRenderPipelineSetting() const { return setting; }
+    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
+    void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
+
+private:
     bool FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
     void BlitToFinalColor(Gfx::CommandBuffer* cmd);
     Gfx::ImageIdentifier GetFinalColor();
     Gfx::CommandBuffer* GetCommandBuffer();
     bool IsCommandBufferOverriden();
-
-    ContactShadowPass contactShadowPass; // new contact shadow pass (deferred insertion point)
+    void ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, RenderEvents event); // new method for handling render events
 };
 } // namespace Rendering

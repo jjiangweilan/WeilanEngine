@@ -5,9 +5,11 @@ BasedOnStyle:  LLVM
 AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AlignArrayOfStructures: None
-AlignConsecutiveAssignments: None
+# AlignConsecutiveAssignments: true
 # AlignConsecutiveBitFields: None
-# AlignConsecutiveDeclarations: None
+# AlignConsecutiveDeclarations:
+#   Enabled: true
+#   AlignFunctionDeclarations: true
 AlignEscapedNewlines: Right
 # AlignOperands:   Align
 # AlignTrailingComments: true

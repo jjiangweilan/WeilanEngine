@@ -68,6 +68,9 @@ class ShaderLibrary
     const char* shaderRootPath = GetShaderRootPath();
     ShaderLibraryAsyncWorker asyncWorker;
 
+    // TODO: shader compilation can be trigger in multithreading when loading resources like Material, a proper method is needed to handle this case
+    std::mutex syncAccess;
+
 public:
     static constexpr const char* ShaderNameMap[] = {
         SHADER_ENUMS(_SHADER_ENUMS_PICK_SECOND)

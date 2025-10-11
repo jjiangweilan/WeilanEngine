@@ -7,14 +7,17 @@
 class OceanComponent : public RenderingComponent<OceanComponent>
 {
     DECLARE_RENDERING_COMPONENT(OceanComponent);
-    void Serialize(Serializer* ser) const override;
-    void Deserialize(Serializer* ser) override;
+    DECLARE_SERIALIZATION();
 
     ObjPtr<Mesh> plane;
     ObjPtr<Shader2> oceanShader;
 
 public:
     void OnInit() override;
+    void Render(Gfx::CommandBuffer& cmd) override;
+
+protected:
+    Rendering::RenderEvents DefineRenderEvent() override { return Rendering::RenderEvents::ForwardOpaque; }
 
 private:
 };

@@ -13,6 +13,15 @@ MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, n
 
 MeshRenderer::MeshRenderer() : Component(nullptr), meshes(), materials() {};
 
+DEFINE_SERIALIZATION(
+    MeshRenderer,
+    SER(meshes),
+    SER(materials),
+    SER(aabbMin, aabb.min),
+    SER(aabbMax, aabb.max),
+    SER(wantsToEnableSkinning)
+);
+
 void MeshRenderer::SetMesh(Mesh* mesh)
 {
     Mesh* meshes[] = {mesh};
@@ -87,15 +96,6 @@ const std::vector<ObjPtr<Material>>& MeshRenderer::GetMaterials()
 {
     return materials;
 }
-
-DEFINE_SERIALIZATION(
-    MeshRenderer,
-    SER(meshes),
-    SER(materials),
-    SER(aabbMin, aabb.min),
-    SER(aabbMax, aabb.max),
-    SER(wantsToEnableSkinning)
-);
 
 std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
 {

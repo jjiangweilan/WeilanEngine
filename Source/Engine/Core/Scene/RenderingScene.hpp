@@ -19,18 +19,18 @@ class GrassSurface;
 class Cloud;
 class ParticleSystem;
 
-#define RENDERING_SCENE_OBJECT_API(Type, name, container)                                                              \
-    void AddRenderObject(Type& name)                                                                                   \
-    {                                                                                                                  \
-        AddSpecialObject(name, container);                                                                             \
-    }                                                                                                                  \
-    void RemoveRenderObject(Type& name)                                                                                \
-    {                                                                                                                  \
-        RemoveSpecialObject(name, container);                                                                          \
-    }                                                                                                                  \
-    std::span<Type*> Get##Type##s()                                                                                    \
-    {                                                                                                                  \
-        return container;                                                                                              \
+#define RENDERING_SCENE_OBJECT_API(Type, name, container) \
+    void AddRenderObject(Type& name)                      \
+    {                                                     \
+        AddSpecialObject(name, container);                \
+    }                                                     \
+    void RemoveRenderObject(Type& name)                   \
+    {                                                     \
+        RemoveSpecialObject(name, container);             \
+    }                                                     \
+    std::span<Type*> Get##Type##s()                       \
+    {                                                     \
+        return container;                                 \
     }
 
 struct BoundingVolumeHierarchy
@@ -85,6 +85,11 @@ public:
     RenderingObjectList::ObjectList GetRenderingObjects()
     {
         return renderingObjects.GetRenderingObjects(RenderingObject<T>::renderObjectTypeID);
+    }
+
+    RenderingObjectList::ObjectList GetRenderingObjectsByEvent(Rendering::RenderEvents event)
+    {
+        return renderingObjects.GetRenderingObjectsByEvent(event);
     }
 
     RenderingObjectList::ObjectIndex AddRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)

@@ -225,6 +225,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPassAttachments, clears);
 
+        ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
+
         if (renderConfig.drawGraphics)
         {
             cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
@@ -248,7 +250,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginRenderPass(forwardPassAttachments, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
 
-        auto oceanComponents = scene.GetRenderingScene().GetRenderingObjects<OceanComponent>();
         cmd->EndLabel(); // Forward Objects
 
         // draw particles
@@ -645,6 +646,16 @@ void RenderPipeline::CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, R
         volumetricCloud->GetShaderResource()
     );
     cmd.Dispatch((renderingData.gpuCamera->screenSize.x + 7) / 8, (renderingData.gpuCamera->screenSize.y + 7) / 8, 1);
+}
+
+void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, RenderEvents event)
+{
+    RenderingObjectList::ObjectList renderingObjects = scene.GetRenderingScene().GetRenderingObjectsByEvent(event);
+
+    for (auto obj : renderingObjects)
+    {
+        obj->Render(cmd);
+    }
 }
 
 } // namespace Rendering
