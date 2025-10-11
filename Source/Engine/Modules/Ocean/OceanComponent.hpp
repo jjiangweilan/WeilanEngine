@@ -17,7 +17,5 @@ public:
     void Render(Gfx::CommandBuffer& cmd) override;
 
 protected:
-    Rendering::RenderEvents DefineRenderEvent() override { return Rendering::RenderEvents::ForwardOpaque; }
-
 private:
 };

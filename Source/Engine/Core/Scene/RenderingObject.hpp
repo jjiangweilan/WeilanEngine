@@ -5,20 +5,16 @@
 
 class RenderingObjectBase
 {
-protected:
     Rendering::RenderEvents renderEvent = Rendering::RenderEvents::None;
 
 public:
-    RenderingObjectBase()
-    {
-        renderEvent = DefineRenderEvent();
-    };
+    RenderingObjectBase() {};
 
     virtual void Render(Gfx::CommandBuffer& cmd) {};
     Rendering::RenderEvents GetRenderEvent() { return renderEvent; }
 
 protected:
-    virtual Rendering::RenderEvents DefineRenderEvent() { return renderEvent; }
+    Rendering::RenderEvents SetRenderEvent(Rendering::RenderEvents renderEvent) { return this->renderEvent = renderEvent; }
 };
 
 class RenderingObjectID

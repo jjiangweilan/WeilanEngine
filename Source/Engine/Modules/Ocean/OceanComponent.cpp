@@ -9,6 +9,8 @@ DEFINE_SERIALIZATION(
 
 void OceanComponent::OnInit()
 {
+    SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
+
     oceanShader = ShaderLibrary::GetShader(Shaders::Ocean);
 }
 
