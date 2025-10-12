@@ -56,7 +56,7 @@ private:
     bool isAltDown = false;
     float editorCameraSpeed = 5.0f;
     Gfx::RenderPass editorFinalColorBlitPass = Gfx::RenderPass(1, 1);
-    ObjPtr<Shader2> editorFinalColorBlitShader;
+    ObjPtr<Shader> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
 
     struct
@@ -84,7 +84,7 @@ private:
 
         // expecting 1x1m, origin in the center of the geometry
         Mesh* plane;
-        ObjPtr<Shader2> gridShader;
+        ObjPtr<Shader> gridShader;
         glm::vec3 pos; // dynamically centered around editor camera
         const glm::vec3 scale = glm::vec3(
             50, 1, 50
@@ -128,8 +128,8 @@ private:
     bool firstFrame = true;
     ObjPtr<Camera> gameCamera = nullptr;
     ObjPtr<Camera> editorCamera = nullptr;
-    ObjPtr<Shader2> outlineRawColorPassShader;
-    ObjPtr<Shader2> outlineFullScreenPassShader;
+    ObjPtr<Shader> outlineRawColorPassShader;
+    ObjPtr<Shader> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
     Gfx::ImageIdentifier outlineSrcRT;

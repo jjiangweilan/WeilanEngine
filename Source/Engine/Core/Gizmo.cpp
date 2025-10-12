@@ -6,9 +6,9 @@
 #include "Rendering/Graphics.hpp"
 #include <glm/glm.hpp>
 
-ObjPtr<Shader2> GizmoBase::GetBillboardShader()
+ObjPtr<Shader> GizmoBase::GetBillboardShader()
 {
-    static ObjPtr<Shader2> shader = nullptr;
+    static ObjPtr<Shader> shader = nullptr;
     if (shader == nullptr)
         shader = ShaderLibrary::GetShader("Billboard");
 
@@ -22,7 +22,7 @@ public:
     GizmoDrawLight(const glm::vec3& position) : position(position) {}
     void Draw(Gfx::CommandBuffer& cmd) override
     {
-        ObjPtr<Shader2> shader = GizmoBase::GetBillboardShader();
+        ObjPtr<Shader> shader = GizmoBase::GetBillboardShader();
 
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
@@ -83,7 +83,7 @@ public:
     GizmoDrawCamera(const glm::vec3& position) : position(position) {}
     void Draw(Gfx::CommandBuffer& cmd) override
     {
-        ObjPtr<Shader2> shader = GizmoBase::GetBillboardShader();
+        ObjPtr<Shader> shader = GizmoBase::GetBillboardShader();
 
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
@@ -144,7 +144,7 @@ public:
     GizmoDrawIcon(Texture* icon, const glm::vec3& position) {};
     void Draw(Gfx::CommandBuffer& cmd) override
     {
-        ObjPtr<Shader2> shader = GizmoBase::GetBillboardShader();
+        ObjPtr<Shader> shader = GizmoBase::GetBillboardShader();
 
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
@@ -309,7 +309,7 @@ GizmoBase* Gizmos::DrawCamera(const glm::vec3& position)
     return t;
 }
 
-GizmoBase* Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix)
+GizmoBase* Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader> shader, const glm::mat4& modelMatrix)
 {
     auto g = std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix);
     auto t = g.get();

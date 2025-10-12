@@ -2,7 +2,7 @@
 #include "Core/Component/RenderingComponent.hpp"
 
 #include "Core/Ptr.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 
 class OceanComponent : public RenderingComponent<OceanComponent>
 {
@@ -10,7 +10,7 @@ class OceanComponent : public RenderingComponent<OceanComponent>
     DECLARE_SERIALIZATION();
 
     ObjPtr<Mesh> plane;
-    ObjPtr<Shader2> oceanShader;
+    ObjPtr<Shader> oceanShader;
 
 public:
     void OnInit() override;

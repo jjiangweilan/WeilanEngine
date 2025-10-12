@@ -31,7 +31,7 @@ private:
     float3 position;
     glm::quat rotation;
     float3 extent;
-    ObjPtr<Shader2> forwardLitShader = nullptr;
+    ObjPtr<Shader> forwardLitShader = nullptr;
     float2 previousMouseDelta = float2(0, 0);
 
     float4x4 GetBoxTransformMatrix(const float3& dir);

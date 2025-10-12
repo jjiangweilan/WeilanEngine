@@ -12,7 +12,7 @@ public:
     using GizmoList = std::list<GizmoState>;
 
     void DrawMesh(
-        GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix
+        GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader> shader, const glm::mat4& modelMatrix
     );
     void DrawMesh(GizmoHandle& handle, Mesh* mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix);
 

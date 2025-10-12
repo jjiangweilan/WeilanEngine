@@ -1,6 +1,6 @@
 #pragma once
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Shader2.hpp"
+#include "Shader.hpp"
 #include <memory>
 #include <slang-com-ptr.h>
 #include <slang.h>

@@ -89,7 +89,7 @@ class RenderPipeline
         GPUParameter::DeferredPBRShadingInput cpuParameter{};
         std::unique_ptr<Gfx::ShaderResource> gpuResource;
         std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
-        ObjPtr<Shader2> shadingShader;
+        ObjPtr<Shader> shadingShader;
 
         Texture* brdfPreIntegeral;
 
@@ -112,7 +112,7 @@ class RenderPipeline
         ColorGradingPass();
         Gfx::ImageIdentifier colorGradingId = Gfx::ImageIdentifier("Color Grading");
         Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("Color Grading");
-        ObjPtr<Shader2> colorGradingShader;
+        ObjPtr<Shader> colorGradingShader;
         Material mat;
     } colorGradingPass;
 
@@ -133,7 +133,7 @@ class RenderPipeline
             const Gfx::ImageIdentifier& dst
         );
 
-        ObjPtr<Shader2> shader;
+        ObjPtr<Shader> shader;
         std::unique_ptr<Gfx::ShaderResource> resource;
     } fxaaPass{};
 
@@ -141,7 +141,7 @@ class RenderPipeline
     {
         ScreenSpaceShadow();
 
-        ObjPtr<Shader2> shader{};
+        ObjPtr<Shader> shader{};
 
     } screenSpaceShadowPass{};
 

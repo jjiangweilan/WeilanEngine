@@ -1319,7 +1319,7 @@ ShaderLibrary& ShaderLibrary::Singleton()
     return singleton;
 }
 
-Shader2* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
+Shader* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
 {
     std::scoped_lock lk(syncAccess);
 

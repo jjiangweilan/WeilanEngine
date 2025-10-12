@@ -39,7 +39,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    Shader2* compute = nullptr;// (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IrradianceMapGeneration.comp");
+    Shader* compute = nullptr;// (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IrradianceMapGeneration.comp");
 
     Gfx::BufferImageCopyRegion srcCopy[] = {
         {0,
@@ -104,7 +104,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    Shader2* compute = nullptr;
+    Shader* compute = nullptr;
         //(Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
 
     Gfx::BufferImageCopyRegion srcCopy[] = {
@@ -134,7 +134,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         pc.texelSize = {1.0f / mipCubemapSize, 1.0f / mipCubemapSize, mipCubemapSize, mipCubemapSize};
         pc.mip = mip;
 
-        Shader2* shaderProgram = nullptr;//  compute->GetShaderProgram({ "LIGHT_IBL" });
+        Shader* shaderProgram = nullptr;//  compute->GetShaderProgram({ "LIGHT_IBL" });
         cmd->BindResource(2, mat->GetShaderResource());
         cmd->SetPushConstant(shaderProgram->GetShaderProgram(), &pc);
         cmd->BindShaderProgram(shaderProgram->GetShaderProgram(), shaderProgram->GetShaderProgram()->GetDefaultShaderConfig());

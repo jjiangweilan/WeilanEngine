@@ -26,7 +26,7 @@ public:
      */
     static void SetActiveCarrier(GameObject* carrier);
     static void ClearActiveCarrier();
-    static ObjPtr<Shader2> GetBillboardShader();
+    static ObjPtr<Shader> GetBillboardShader();
 
     /**
      * @brief Tick gizmo for editor interaction

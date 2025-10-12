@@ -2,7 +2,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/DrawList.hpp"
 #include "Rendering/RenderingData.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 #include <memory>
 
 namespace Rendering
@@ -25,8 +25,8 @@ private:
     Gfx::ImageIdentifier shadowMapId;
     Gfx::ImageDescription shadowDescription;
     std::unique_ptr<Gfx::Image> shadowMap;
-    ObjPtr<Shader2> shadowMapShader;
-    ObjPtr<Shader2> shadowMapShaderSkinned;
+    ObjPtr<Shader> shadowMapShader;
+    ObjPtr<Shader> shadowMapShaderSkinned;
 
     bool updateMainLightShadow = true;
 

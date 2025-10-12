@@ -45,7 +45,7 @@ private:
     bool isAltDown = false;
     bool visible = false;
     Gfx::RenderPass editorFinalColorBlitPass = Gfx::RenderPass(1, 1);
-    ObjPtr<Shader2> editorFinalColorBlitShader;
+    ObjPtr<Shader> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
     bool isWindowFocused = false;
 
@@ -97,8 +97,8 @@ private:
 
     bool firstFrame = true;
     ObjPtr<Camera> gameCamera = nullptr;
-    ObjPtr<Shader2> outlineRawColorPassShader;
-    ObjPtr<Shader2> outlineFullScreenPassShader;
+    ObjPtr<Shader> outlineRawColorPassShader;
+    ObjPtr<Shader> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
     Gfx::ImageIdentifier outlineSrcRT;

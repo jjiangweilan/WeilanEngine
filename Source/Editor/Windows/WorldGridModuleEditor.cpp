@@ -11,7 +11,7 @@ class WorldGridModuleEditor : public Window
     DECLARE_EDITOR_WINDOW(WorldGridModuleEditor)
     bool showGrid;
     Mesh* plane;
-    Shader2* gridShader;
+    Shader* gridShader;
     glm::vec3 pos = glm::vec3(0);
     glm::vec3 scale = glm::vec3(10);
     glm::vec3 rotation;

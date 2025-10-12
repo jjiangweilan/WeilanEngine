@@ -2,13 +2,13 @@
 
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Graphics/Mesh.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 namespace Rendering::RenderPasses
 {
 struct SkyboxPass
 {
     Submesh* cube;
-    ObjPtr<Shader2> skyboxShader;
+    ObjPtr<Shader> skyboxShader;
 
     SkyboxPass()
     {

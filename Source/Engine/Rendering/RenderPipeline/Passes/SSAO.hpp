@@ -3,7 +3,7 @@
 #include "Pass.hpp"
 #include "Rendering/Material.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 
 namespace Rendering::Passes
 {
@@ -25,7 +25,7 @@ public:
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:
-    ObjPtr<Shader2> ssaoShader;
+    ObjPtr<Shader> ssaoShader;
     DepthAwareBilateralUpsampler upscaler;
     Material mat;
     Material bilateralMat;

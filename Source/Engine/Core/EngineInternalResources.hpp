@@ -28,9 +28,9 @@ public:
     static Models& GetModels() { return GetSingleton().models; }
     static Material* GetDefaultMaterial() { return GetSingleton().defaultMaterial; }
     static Material* GetDefaultGridMaterial() { return GetSingleton().defaultGridMaterial; }
-    static Shader2& GetLineShader() { return *GetSingleton().lineShader; }
-    static Shader2& GetTriangleShader() { return *GetSingleton().triangleShader; }
-    static Shader2& GetJoltDebugShader() { return *GetSingleton().joltDebugShader; }
+    static Shader& GetLineShader() { return *GetSingleton().lineShader; }
+    static Shader& GetTriangleShader() { return *GetSingleton().triangleShader; }
+    static Shader& GetJoltDebugShader() { return *GetSingleton().joltDebugShader; }
     static Texture& GetBlackTexture() { return *GetSingleton().blackTexture; }
     static Texture& GetWhiteTexture() { return *GetSingleton().whiteTexture; }
 
@@ -42,11 +42,11 @@ private:
     Material* defaultGridMaterial;
 
     // gizmos
-    Shader2* lineShader;
-    Shader2* triangleShader;
+    Shader* lineShader;
+    Shader* triangleShader;
 
     // jolt debug
-    Shader2* joltDebugShader;
+    Shader* joltDebugShader;
 
     Texture* blackTexture;
     Texture* whiteTexture;

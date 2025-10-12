@@ -3,21 +3,21 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include <unordered_map>
 
-class Shader2 : public Object
+class Shader : public Object
 {
     DECLARE_OBJECT();
 
 public:
-    Shader2() : Object(), shaderProgram(nullptr) {}
-    Shader2(Gfx::ShaderProgram* shaderProgram) : Object(), shaderProgram(shaderProgram)
+    Shader() : Object(), shaderProgram(nullptr) {}
+    Shader(Gfx::ShaderProgram* shaderProgram) : Object(), shaderProgram(shaderProgram)
     {
         SetName(shaderProgram->GetName());
     }
-    Shader2(const Shader2& other) : Object(other), shaderProgram(other.shaderProgram) { SetName(other.name); }
-    Shader2(Shader2&& other) : Object(std::move(other)), shaderProgram(other.shaderProgram) {}
+    Shader(const Shader& other) : Object(other), shaderProgram(other.shaderProgram) { SetName(other.name); }
+    Shader(Shader&& other) : Object(std::move(other)), shaderProgram(other.shaderProgram) {}
 
-    Shader2 operator=(const Shader2& other) = delete;
-    bool operator==(const Shader2& other) const { return shaderProgram == other.shaderProgram; }
+    Shader operator=(const Shader& other) = delete;
+    bool operator==(const Shader& other) const { return shaderProgram == other.shaderProgram; }
     Gfx::ShaderProgram* operator->() { return shaderProgram; }
 
     Gfx::ShaderProgram* GetShaderProgram() { return shaderProgram; }

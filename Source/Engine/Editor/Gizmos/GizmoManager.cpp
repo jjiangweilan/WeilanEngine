@@ -45,7 +45,7 @@ bool GizmoManager::ValidateGizmoHandle(GizmoHandle& handle)
 }
 
 void GizmoManager::DrawMesh(
-    GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix
+    GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader> shader, const glm::mat4& modelMatrix
 )
 {
     Draw<GizmoDrawMesh>(handle, mesh, submeshIndex, shader, modelMatrix);

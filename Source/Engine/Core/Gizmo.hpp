@@ -18,7 +18,7 @@ class Gizmos
 {
 public:
     static GizmoBase* DrawInteractiveBox(InteractiveBox& box, const float3& position, float3& size);
-    static GizmoBase* DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix);
+    static GizmoBase* DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader> shader, const glm::mat4& modelMatrix);
     static GizmoBase* DrawMesh(Mesh& mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix);
     static GizmoBase* DrawLight(const glm::vec3& position);
     static GizmoBase* DrawCamera(const glm::vec3& position);

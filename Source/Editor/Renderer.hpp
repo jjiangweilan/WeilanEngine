@@ -1,6 +1,6 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <tuple>
 
@@ -19,7 +19,7 @@ private:
     std::unique_ptr<Gfx::Buffer> vertexBuffer = nullptr;
     std::vector<ImDrawVert> vtxDst;
     std::vector<ImDrawIdx> idxDst;
-    ObjPtr<Shader2> shader = nullptr;
+    ObjPtr<Shader> shader = nullptr;
     Gfx::Image* fontImage = nullptr;
     Gfx::Image* finalImage = nullptr;
     ImDrawData* drawData;

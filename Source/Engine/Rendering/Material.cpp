@@ -13,7 +13,7 @@ Material::Material(std::string_view shaderName)
     SetShader(shaderName);
 }
 
-Material::Material(ObjPtr<Shader2> shader)
+Material::Material(ObjPtr<Shader> shader)
 {
     shaderResource = GetGfxDriver()->CreateShaderResource();
     SetShaderNoProtection(shader);
@@ -241,7 +241,7 @@ void Material::SetShader(Shaders shader)
     SetShader(ShaderLibrary::ShaderNameMap[(int)shader]);
 }
 
-void Material::SetShader(Shader2* shader)
+void Material::SetShader(Shader* shader)
 {
     if (this->shaderInUse.Get() != shader)
     {
@@ -275,7 +275,7 @@ void Material::SetShader(std::string_view shaderName)
     }
 }
 
-void Material::SetShaderNoProtection(ObjPtr<Shader2> shaderProgram)
+void Material::SetShaderNoProtection(ObjPtr<Shader> shaderProgram)
 {
     this->shaderInUse = shaderProgram;
     uploadNeeded = true;
@@ -542,7 +542,7 @@ const Gfx::PipelineConfig& Material::GetShaderConfig()
         return shaderConfig;
     else
     {
-        Shader2* s = shaderInUse;
+        Shader* s = shaderInUse;
         return s->GetShaderProgram()->GetDefaultShaderConfig();
     }
 }

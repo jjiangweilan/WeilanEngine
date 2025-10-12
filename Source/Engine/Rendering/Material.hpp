@@ -6,7 +6,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
 #include <string>
@@ -27,7 +27,7 @@ class Material : public Asset
 public:
     Material();
     Material(std::string_view shaderName);
-    Material(ObjPtr<Shader2> shader);
+    Material(ObjPtr<Shader> shader);
     Material(const Material& other) = delete;
     ~Material() override;
 
@@ -40,8 +40,8 @@ public:
 
     void SetShader_Lua(const char* shaderName) { SetShader(shaderName); }
     void SetShader(std::string_view shaderName);
-    ObjPtr<Shader2> GetShader() { return shaderInUse; }
-    void SetShader(Shader2* shader);
+    ObjPtr<Shader> GetShader() { return shaderInUse; }
+    void SetShader(Shader* shader);
     void SetShader(Shaders shader);
 
     Gfx::ShaderProgram* GetShaderProgram();
@@ -119,7 +119,7 @@ private:
 
     std::string shaderName;
     const ShaderFeatures* shaderFeatures = nullptr;
-    ObjPtr<Shader2> shaderInUse = nullptr;
+    ObjPtr<Shader> shaderInUse = nullptr;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::PipelineConfig shaderConfig;
     bool overrideShaderConfig = false;
@@ -139,7 +139,7 @@ private:
         uint8_t* buf,
         size_t bufSize
     );
-    void SetShaderNoProtection(ObjPtr<Shader2> shaderProgram);
+    void SetShaderNoProtection(ObjPtr<Shader> shaderProgram);
     Gfx::ShaderResource* ValidateGetShaderResource();
     void SetTextureInternal(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption

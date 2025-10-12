@@ -2,7 +2,7 @@
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Libs/Math.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 #include <span>
 
 class Submesh;
@@ -24,7 +24,7 @@ public:
     void Draw(Gfx::CommandBuffer& cmd, const ParticleDraw& draw);
 
 private:
-    ObjPtr<Shader2> particleShader;
+    ObjPtr<Shader> particleShader;
     int parameterSetIdx;
 };
 } // namespace Rendering

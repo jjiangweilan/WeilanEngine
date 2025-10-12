@@ -123,8 +123,8 @@ private:
 
     std::unique_ptr<Gfx::RenderPass_Deprecated> probeOctahedralPass;
     Probe* probe;
-    Shader2* probeCubemapShader;
-    Shader2* octahedralRemapShader;
-    Shader2* GetOctahedralRemapBaker();
+    Shader* probeCubemapShader;
+    Shader* octahedralRemapShader;
+    Shader* GetOctahedralRemapBaker();
 };
 } // namespace Rendering::LFP

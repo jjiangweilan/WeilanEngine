@@ -148,7 +148,7 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     probe->baked = true;
 }
 
-Shader2* ProbeBaker::GetOctahedralRemapBaker()
+Shader* ProbeBaker::GetOctahedralRemapBaker()
 {
     return nullptr;
     //static Obsolete::Shader* octahedralRemapBakerShader = nullptr;

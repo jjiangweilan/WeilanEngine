@@ -1,7 +1,7 @@
 #pragma once
 #include "Libs/DynamicArray.hpp"
 #include "Libs/Hash.hpp"
-#include "Shader2.hpp"
+#include "Shader.hpp"
 #include "ShaderLibraryAsyncWorker.hpp"
 #include <slang-com-ptr.h>
 #include <slang.h>
@@ -49,7 +49,7 @@ class ShaderLibrary
         CompiledShader(CompiledShader&& other) = default;
 
         std::unique_ptr<Gfx::ShaderProgram> shader;
-        Shader2 shaderHandle; // contains the shader object and return it to user
+        Shader shaderHandle; // contains the shader object and return it to user
         ShaderPermutation permutation;
 
         void Recompile(ShaderLibrary* parent);
@@ -80,12 +80,12 @@ public:
         return ShaderNameMap[(int)shader];
     }
 
-    static Shader2* GetShader(Shaders shader, ShaderPermutation permutation = ShaderPermutation())
+    static Shader* GetShader(Shaders shader, ShaderPermutation permutation = ShaderPermutation())
     {
         return Singleton().GetShaderImpl(ShaderNameMap[(int)shader], permutation);
     }
 
-    static Shader2* GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
+    static Shader* GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {
         return Singleton().GetShaderImpl(name, permutation);
     }
@@ -95,7 +95,7 @@ public:
         return Singleton().CompileAllDefaultShadersImpl();
     }
 
-    static Shader2* GetShader(const char* name, const std::vector<std::string>& permutations)
+    static Shader* GetShader(const char* name, const std::vector<std::string>& permutations)
     {
         return Singleton().GetShaderImpl(
             name,
@@ -134,7 +134,7 @@ private:
     void LoadSession();
     void WaitForAllImpl() { asyncWorker.WaitForAll(); }
     void DestorySlangInstanceImpl();
-    Shader2* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
+    Shader* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
     void ReloadAllShadersImpl();
     inline const char* GetShaderRootPath()

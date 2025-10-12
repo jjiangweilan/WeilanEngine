@@ -19,7 +19,7 @@ public:
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, Light* mainLight, Gfx::Image* depthTex);
 
 private:
-    ObjPtr<Shader2> shader;
+    ObjPtr<Shader> shader;
     Gfx::ImageIdentifier outputID;
     Gfx::ImageIdentifier contactShadowMap = "ContactShadow";
     Gfx::RenderImageDescriptor desc;

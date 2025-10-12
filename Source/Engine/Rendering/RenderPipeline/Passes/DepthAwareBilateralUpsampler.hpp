@@ -1,6 +1,6 @@
 #pragma once
 #include "Rendering/Material.hpp"
-#include "Rendering/Shader2.hpp"
+#include "Rendering/Shader.hpp"
 
 namespace Rendering::Passes
 {
@@ -30,7 +30,7 @@ public:
     void Execute(Gfx::CommandBuffer& cmd);
 
 private:
-    ObjPtr<Shader2> shader;
+    ObjPtr<Shader> shader;
 
     Material resource;
 
