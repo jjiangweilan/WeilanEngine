@@ -26,15 +26,24 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                   { return l < r; });
 
         int selected = -1;
-        if (EditorGUI::SearchableMenuItems(componentNames, searchComponent, selected))
+        int firstItem = -1;
+        if (EditorGUI::SearchableMenuItems(componentNames, searchComponent, selected, firstItem))
         {
             auto& componentName = componentNames[selected];
             target->AddComponent(componentName);
         }
 
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter) && firstItem != -1)
+        {
+            auto& componentName = componentNames[firstItem];
+            target->AddComponent(componentName);
+
+            ImGui::CloseCurrentPopup();
+        }
+
         ImGui::EndMenu();
     }
-    ImGui::EndMenuBar(); 
+    ImGui::EndMenuBar();
 
     EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
 

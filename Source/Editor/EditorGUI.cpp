@@ -205,13 +205,24 @@ void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
 
 bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex)
 {
+    int firstItemIdx = -1;
+    return SearchableMenuItems(items, search, outSelectedIndex, firstItemIdx);
+}
+
+bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem)
+{
+    firstItem = -1;
     bool selected = false;
+
     ImGui::SetKeyboardFocusHere(0);
     InputText("##search", search, "Search Bar");
     for (int idx = 0; idx < items.size(); idx++)
     {
         if (Utils::strContians(Utils::strToLower(items[idx]), Utils::strToLower(search)))
         {
+            if (firstItem == -1)
+                firstItem = idx;
+
             if (ImGui::MenuItem(items[idx].c_str()))
             {
                 outSelectedIndex = idx;

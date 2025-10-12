@@ -34,6 +34,7 @@ class EditorGUI
 {
 public:
     static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex);
+    static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem);
 
     template <class T>
     static bool Property(const char* name, T& val)
