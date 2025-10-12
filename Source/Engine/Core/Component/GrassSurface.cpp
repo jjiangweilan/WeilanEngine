@@ -1,7 +1,6 @@
 #include "GrassSurface.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Rendering/Shader.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 DEFINE_OBJECT(GrassSurface, "8B141EA8-BD84-4800-91AA-B07FCA7C7605")
 

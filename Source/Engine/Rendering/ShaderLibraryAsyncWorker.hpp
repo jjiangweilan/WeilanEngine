@@ -1,11 +1,11 @@
 #pragma once
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/Shader.hpp"
 #include "Shader2.hpp"
 #include <memory>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <spdlog/spdlog.h>
+#include <bitset>
 
 #define MAX_SHADER_FEATURE_COUNT 64
 using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;

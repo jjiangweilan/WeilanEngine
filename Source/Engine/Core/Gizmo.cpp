@@ -4,7 +4,6 @@
 #include "Editor/Gizmos/MeshGizmo.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Rendering/Graphics.hpp"
-#include "Rendering/Shader.hpp"
 #include <glm/glm.hpp>
 
 ObjPtr<Shader2> GizmoBase::GetBillboardShader()

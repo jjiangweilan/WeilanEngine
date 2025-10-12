@@ -116,9 +116,9 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
             // draw opaque objects
             DispatchBake(cmd, drawList, 0, drawList->alphaTestIndex);
             // draw alpha tested objects
-            Obsolete::Shader::EnableFeature("_AlphaTest");
+            // Obsolete::Shader::EnableFeature("_AlphaTest");
             DispatchBake(cmd, drawList, drawList->alphaTestIndex, drawList->transparentIndex);
-            Obsolete::Shader::DisableFeature("_AlphaTest");
+            // Obsolete::Shader::DisableFeature("_AlphaTest");
         }
         cmd.EndRenderPass();
     }
@@ -139,8 +139,8 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     cmd.BeginRenderPass(*probeOctahedralPass, projectClears);
     cmd.BindResource(2, reprojectMaterial.GetShaderResource());
     cmd.BindShaderProgram(
-        octahedralRemapShader->GetDefaultShaderProgram(),
-        octahedralRemapShader->GetDefaultShaderConfig()
+        octahedralRemapShader->GetShaderProgram(),
+        octahedralRemapShader->GetShaderProgram()->GetDefaultShaderConfig()
     );
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();
@@ -148,16 +148,17 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     probe->baked = true;
 }
 
-Obsolete::Shader* ProbeBaker::GetOctahedralRemapBaker()
+Shader2* ProbeBaker::GetOctahedralRemapBaker()
 {
-    static Obsolete::Shader* octahedralRemapBakerShader = nullptr;
-    if (!octahedralRemapBakerShader)
-    {
-        octahedralRemapBakerShader = (Obsolete::Shader*)AssetDatabase::Singleton()->LoadAsset(
-            "_engine_internal/Shaders/LightFieldProbes/OctahedralRemapBaker.shad"
-        );
-    }
-    return octahedralRemapBakerShader;
+    return nullptr;
+    //static Obsolete::Shader* octahedralRemapBakerShader = nullptr;
+    //if (!octahedralRemapBakerShader)
+    //{
+    //    octahedralRemapBakerShader = (Obsolete::Shader*)AssetDatabase::Singleton()->LoadAsset(
+    //        "_engine_internal/Shaders/LightFieldProbes/OctahedralRemapBaker.shad"
+    //    );
+    //}
+    //return octahedralRemapBakerShader;
 }
 
 REGISTER_MAIN_MENU_ITEM("Editor/ProbeBaker") {}

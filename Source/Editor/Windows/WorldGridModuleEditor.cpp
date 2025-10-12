@@ -2,7 +2,6 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Model.hpp"
-#include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/imgui.h"
 class Shader;
 namespace Editor
@@ -12,7 +11,7 @@ class WorldGridModuleEditor : public Window
     DECLARE_EDITOR_WINDOW(WorldGridModuleEditor)
     bool showGrid;
     Mesh* plane;
-    Obsolete::Shader* gridShader;
+    Shader2* gridShader;
     glm::vec3 pos = glm::vec3(0);
     glm::vec3 scale = glm::vec3(10);
     glm::vec3 rotation;
@@ -37,8 +36,7 @@ class WorldGridModuleEditor : public Window
         plane = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
                     ->GetMeshes()[0]
                     .get();
-        gridShader =
-            static_cast<Obsolete::Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
+        gridShader = ShaderLibrary::GetShader(Shaders::PlaneGrid);
     }
 
     void ShowGrid()

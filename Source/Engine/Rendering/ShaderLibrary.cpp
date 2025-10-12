@@ -1,6 +1,7 @@
 #include "ShaderLibrary.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/EnumStringMapping.hpp"
+#include "Libs/Utils.hpp"
 #include <Libs/Assert.hpp>
 #include <fstream>
 #include <regex>

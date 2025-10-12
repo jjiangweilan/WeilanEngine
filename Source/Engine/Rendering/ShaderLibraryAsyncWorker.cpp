@@ -2,6 +2,7 @@
 #include "Core/JobSystem.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/EnumStringMapping.hpp"
+#include "Libs/Utils.hpp"
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>

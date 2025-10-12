@@ -8,6 +8,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <set>
 DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf,fbx")
 
 struct ModelImporterImple

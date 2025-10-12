@@ -4,7 +4,7 @@
 #include "AssetDatabase/Exporters/KtxExporter.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/Image.hpp"
-#include "Rendering/Shader.hpp"
+#include "Rendering/Shader2.hpp"
 namespace Rendering
 {
 void GenerateBRDFResponseTexture(const char* path)
@@ -26,9 +26,9 @@ void GenerateBRDFResponseTexture(const char* path)
 
     std::unique_ptr<Gfx::CommandBuffer> cmd = GetGfxDriver()->CreateCommandBuffer();
 
-    Obsolete::ComputeShader* compute =
-        (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
-    Gfx::ShaderProgram* program = compute->GetShaderProgram({"BRDF_IBL"});
+    ASSERT(false && "IBLBRDF.comp is obsolete, please update to new shader system");
+    Shader2* compute = nullptr;// (Shader2*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
+    Gfx::ShaderProgram* program = nullptr;// compute->GetShaderProgram({ "BRDF_IBL" });
 
     glm::vec4 texelSize = {1.0f / imgDesc.width, 1.0f / imgDesc.height, imgDesc.width, imgDesc.height};
     cmd->SetPushConstant(program, &texelSize);

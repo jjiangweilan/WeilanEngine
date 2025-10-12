@@ -2,7 +2,6 @@
 #include "Core/Texture.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/Shader.hpp"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "AssetDatabase/Exporters/KtxExporter.hpp"
@@ -40,9 +39,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    Obsolete::ComputeShader* compute = (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset(
-        "_engine_internal/Shaders/Utils/IrradianceMapGeneration.comp"
-    );
+    Shader2* compute = nullptr;// (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IrradianceMapGeneration.comp");
 
     Gfx::BufferImageCopyRegion srcCopy[] = {
         {0,
@@ -54,8 +51,8 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     cmd->SetTexture("_Src", *srcImage);
     cmd->SetTexture("_Dst", *dstCuebmap);
     glm::vec4 texelSize = {1.0f / irradianceMapSize, 1.0f / irradianceMapSize, irradianceMapSize, irradianceMapSize};
-    cmd->SetPushConstant(compute->GetDefaultShaderProgram(), &texelSize);
-    cmd->BindShaderProgram(compute->GetDefaultShaderProgram(), compute->GetDefaultShaderConfig());
+    cmd->SetPushConstant(compute->GetShaderProgram(), &texelSize);
+    cmd->BindShaderProgram(compute->GetShaderProgram(), compute->GetShaderProgram()->GetDefaultShaderConfig());
     cmd->Dispatch(irradianceMapSize / 8, irradianceMapSize / 8, 6);
 
     auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
@@ -107,8 +104,8 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    Obsolete::ComputeShader* compute =
-        (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
+    Shader2* compute = nullptr;
+        //(Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
 
     Gfx::BufferImageCopyRegion srcCopy[] = {
         {0,
@@ -137,10 +134,10 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         pc.texelSize = {1.0f / mipCubemapSize, 1.0f / mipCubemapSize, mipCubemapSize, mipCubemapSize};
         pc.mip = mip;
 
-        auto shaderProgram = compute->GetShaderProgram({"LIGHT_IBL"});
+        Shader2* shaderProgram = nullptr;//  compute->GetShaderProgram({ "LIGHT_IBL" });
         cmd->BindResource(2, mat->GetShaderResource());
-        cmd->SetPushConstant(shaderProgram, &pc);
-        cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd->SetPushConstant(shaderProgram->GetShaderProgram(), &pc);
+        cmd->BindShaderProgram(shaderProgram->GetShaderProgram(), shaderProgram->GetShaderProgram()->GetDefaultShaderConfig());
         cmd->Dispatch(glm::ceil(mipCubemapSize / 8.0f), glm::ceil(mipCubemapSize / 8), 6);
     }
 

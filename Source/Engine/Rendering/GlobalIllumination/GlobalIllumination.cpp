@@ -31,23 +31,11 @@ struct ProbeFace
     void Init(Gfx::Image* albedoCubemap, Gfx::Image* normalCubemap, Gfx::Image* depthCubeMap, uint32_t face)
     {
         gbufferPass = GetGfxDriver()->CreateRenderPass();
-        albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *albedoCubemap,
-            Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
-        });
+        albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*albedoCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
 
-        normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *normalCubemap,
-            Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
-        });
+        normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*normalCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
 
-        depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *depthCubeMap,
-            Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}
-        });
+        depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*depthCubeMap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}});
 
         Gfx::Attachment albedoAttachment{
             albedoView.get(),
@@ -207,8 +195,8 @@ public:
             cmd.BeginRenderPass(*probeOctahedralPass, projectClears);
             cmd.BindResource(2, reprojectMaterial.GetShaderResource());
             cmd.BindShaderProgram(
-                octahedralRemapShader->GetDefaultShaderProgram(),
-                octahedralRemapShader->GetDefaultShaderConfig()
+                octahedralRemapShader->GetShaderProgram(),
+                octahedralRemapShader->GetShaderProgram()->GetDefaultShaderConfig()
             );
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
@@ -241,10 +229,9 @@ private:
 
     std::unique_ptr<Gfx::RenderPass_Deprecated> probeOctahedralPass;
     Probe* probe;
-    Obsolete::Shader* probeCubemapShader;
-    Obsolete::Shader* octahedralRemapShader;
-
-    Obsolete::Shader* GetOctahedralRemapBaker();
+    Shader2* probeCubemapShader;
+    Shader2* octahedralRemapShader;
+    Shader2* GetOctahedralRemapBaker();
 
     void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from, int to)
     {

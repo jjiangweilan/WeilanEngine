@@ -2,7 +2,6 @@
 
 #include "Core/Graphics/Mesh.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/Shader.hpp"
 
 class EngineInternalResources
 {

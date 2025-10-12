@@ -18,7 +18,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
     void DrawInspector(GameEditor& editor) override
     {
         Mesh* sphere = EngineInternalResources::GetModels().sphere;
-        Obsolete::Shader* previewShader = GetLightFieldProbePreviewShader();
+        Shader2* previewShader = GetLightFieldProbePreviewShader();
 
         glm::vec3 gridMin, gridMax;
         target->GetGrid(gridMin, gridMax);
@@ -119,16 +119,9 @@ private:
     bool showCubemapFrustum = false;
     bool debug = false;
     std::vector<std::unique_ptr<Material>> previewMaterials;
-    Obsolete::Shader* GetLightFieldProbePreviewShader()
+    Shader2* GetLightFieldProbePreviewShader()
     {
-        static Obsolete::Shader* previewShader;
-        if (!previewShader)
-        {
-            previewShader = (Obsolete::Shader*)AssetDatabase::Singleton()->LoadAsset(
-                "_engine_internal/Shaders/LightFieldProbes/LightFieldProbePreview.shad"
-            );
-        }
-        return previewShader;
+        return nullptr; // TODO: LightFieldProbePreview shader _engine_internal/Shaders/LightFieldProbes/LightFieldProbePreview.shad
     }
 };
 

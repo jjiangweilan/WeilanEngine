@@ -1,7 +1,6 @@
 #pragma once
 #include "Libs/DynamicArray.hpp"
 #include "Libs/Hash.hpp"
-#include "Rendering/Shader.hpp"
 #include "Shader2.hpp"
 #include "ShaderLibraryAsyncWorker.hpp"
 #include <slang-com-ptr.h>

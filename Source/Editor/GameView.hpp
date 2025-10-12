@@ -2,7 +2,6 @@
 #include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
-#include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include <list>

@@ -5,7 +5,6 @@
 #include "Editor/EditorContext.hpp"
 #include "Editor/Gizmos/GizmoManager.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
-#include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include <list>

@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Component/GrassSurface.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
-#include "Rendering/Shader.hpp"
 
 class GrassSurfaceRenderer
 {

@@ -1,11 +1,11 @@
 #include "Importers.hpp"
-#include "Rendering/Material.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "Core/Texture.hpp"
 #include "Libs/Assert.hpp"
+#include "Rendering/Material.hpp"
 #include "spdlog/spdlog.h"
 #include <filesystem>
 #include <fstream>
@@ -33,7 +33,7 @@ static void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::s
 static void SetGameObjectNameAndUUID(GameObject* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
-std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shader)
+std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader2* shader)
 {
     // read uuid file
     std::filesystem::path path(cpath);
@@ -92,8 +92,8 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
         std::unique_ptr<Material> mat = std::make_unique<Material>();
         SetAssetNameAndUUID(mat.get(), jsonData, "materials", i);
 
-        //if (shader)
-           // mat->SetShader(shader);
+        // if (shader)
+        //  mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
         auto config = *mat->GetShaderConfig();
@@ -295,15 +295,15 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     // vertexBuffer
     std::vector<VertexBinding> bindings;
     std::unique_ptr<unsigned char> vertexBuffer = std::unique_ptr<unsigned char>(new unsigned char[vertexBufferSize]);
-#define ATTRIBUTE_WRITE(attrName)                                                                                      \
-    int index##attrName = primitiveJson["attributes"].value(#attrName, -1);                                            \
-    if (index##attrName != -1)                                                                                         \
-    {                                                                                                                  \
-        bindings.push_back({dstOffset, 0});                                                                            \
-        std::size_t byteLength =                                                                                       \
-            WriteAccessorDataToBuffer(j, vertexBuffer.get(), dstOffset, binaryData, index##attrName);                  \
-        dstOffset += byteLength;                                                                                       \
-        bindings.back().byteSize = byteLength;                                                                         \
+#define ATTRIBUTE_WRITE(attrName)                                                                     \
+    int index##attrName = primitiveJson["attributes"].value(#attrName, -1);                           \
+    if (index##attrName != -1)                                                                        \
+    {                                                                                                 \
+        bindings.push_back({dstOffset, 0});                                                           \
+        std::size_t byteLength =                                                                      \
+            WriteAccessorDataToBuffer(j, vertexBuffer.get(), dstOffset, binaryData, index##attrName); \
+        dstOffset += byteLength;                                                                      \
+        bindings.back().byteSize = byteLength;                                                        \
     }
 
     std::size_t dstOffset = 0;
