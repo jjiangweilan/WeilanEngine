@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <glm/glm.hpp>
 
-#include <string_view>
 #include "Libs/DynamicArray.hpp"
+#include <string_view>
 
 // interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
 //

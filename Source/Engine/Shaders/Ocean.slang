@@ -15,13 +15,22 @@ struct VertexInput
     float3 position : POSITION;
 };
 
+[[Global]]
 ParameterBlock<PerScene> perScene;
+
+struct PushConstant
+{
+    float4x4 model;
+};
+
+[vk_push_constant]
+PushConstant ps;
 
 [shader("vertex")]
 VertexOutput Vertex(VertexInput input)
 {
     VertexOutput output;
-    output.position = float4(input.position, 1.0);
+    output.position = mul(perScene.camera.viewProjection, mul(ps.model, float4(input.position, 1.0)));
     return output;
 }
 

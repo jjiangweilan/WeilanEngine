@@ -7,15 +7,16 @@
 class OceanComponent : public RenderingComponent<OceanComponent>
 {
     DECLARE_RENDERING_COMPONENT(OceanComponent);
-    DECLARE_SERIALIZATION();
 
-    ObjPtr<Mesh> plane;
+    std::unique_ptr<Mesh> plane;
     ObjPtr<Shader> oceanShader;
+
+    Material material;
+    int materialSet;
 
 public:
     void OnInit() override;
     void Render(Gfx::CommandBuffer& cmd) override;
 
-protected:
 private:
 };

@@ -1,7 +1,7 @@
 #include "ShaderLibrary.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/EnumStringMapping.hpp"
 #include "Libs/Utils.hpp"
+#include "Rendering/EnumStringMapping.hpp"
 #include <Libs/Assert.hpp>
 #include <fstream>
 #include <regex>
@@ -1413,14 +1413,36 @@ const ShaderFeatures& ShaderLibrary::RetriveShaderFeatures(const char* shaderNam
 void ShaderLibrary::ReloadAllShadersImpl()
 {
     asyncWorker.ReloadAllShaders();
+    asyncWorker.WaitForAll();
 
+    // TODO: removed shader is not handled, they remains in this process session
     while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
     {
-        library[compiled->name].shaders.emplace(
-            compiled->permutation,
-            CompiledShader(std::move(compiled->shader), compiled->permutation)
-        );
-        library[compiled->name].features = compiled->shaderFeature;
+        auto& compiledCache = library[compiled->name];
+        auto& shaders = compiledCache.shaders;
+        auto iter = shaders.find(compiled->permutation);
+        if (iter != shaders.end())
+        {
+            iter->second.ReplaceShader(std::move(compiled->shader));
+        }
+        else
+        {
+            shaders.emplace(
+                compiled->permutation,
+                CompiledShader(std::move(compiled->shader), compiled->permutation)
+            );
+        }
+
+        compiledCache.features = compiled->shaderFeature;
+    }
+}
+
+void ShaderLibrary::CompiledShader::ReplaceShader(std::unique_ptr<Gfx::ShaderProgram>&& newShader)
+{
+    if (newShader)
+    {
+        shader = std::move(newShader);
+        shaderHandle.ReplaceShader(shader.get());
     }
 }
 

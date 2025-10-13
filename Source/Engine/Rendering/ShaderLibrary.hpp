@@ -52,10 +52,13 @@ class ShaderLibrary
         Shader shaderHandle; // contains the shader object and return it to user
         ShaderPermutation permutation;
 
+        [[deprecated("use ReplaceShader")]]
         void Recompile(ShaderLibrary* parent);
+
+        void ReplaceShader(std::unique_ptr<Gfx::ShaderProgram>&& newShader);
     };
 
-    struct ShaderModule
+    struct ShaderCached
     {
         ShaderFeatures features;
         std::unordered_map<ShaderPermutation, CompiledShader> shaders;
@@ -63,7 +66,7 @@ class ShaderLibrary
 
     Slang::ComPtr<slang::IGlobalSession> globalSession;
     Slang::ComPtr<slang::ISession> session;
-    std::unordered_map<std::string, ShaderModule> library;
+    std::unordered_map<std::string, ShaderCached> library;
     const char* shaderRootPath = GetShaderRootPath();
     ShaderLibraryAsyncWorker asyncWorker;
 
