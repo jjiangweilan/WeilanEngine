@@ -14,7 +14,8 @@ void DrawMesh(Gfx::CommandBuffer& cmd, Mesh& mesh, Material& material, const flo
         {
             cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
-            cmd.BindResource(materialSet, materialResource);
+            if (materialSet >= 0)
+                cmd.BindResource(materialSet, materialResource);
             cmd.BindShaderProgram(shaderProgram, material.GetShaderConfig());
             cmd.SetPushConstant(shaderProgram, (void*)&transform);
             cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);

@@ -18,5 +18,5 @@ int Shader::GetSet(Gfx::DescriptorSetSemantics setSlot)
     {
         return set->setNum;
     }
-    return 0;
+    return -1;
 }

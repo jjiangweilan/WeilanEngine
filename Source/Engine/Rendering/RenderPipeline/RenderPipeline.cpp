@@ -218,12 +218,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Forward Pass
     cmd->BeginLabel("Forward", &labelColors.passColor[0]);
     {
+
         Gfx::RenderAttachment forwardPassAttachments[] = {
             {mainColor, Gfx::AttachmentLoadOperation::Load},
             {mainDepth, Gfx::AttachmentLoadOperation::Load}
         };
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPassAttachments, clears);
+        cmd->BindResource(0, perScene.globalResource.get());
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
 

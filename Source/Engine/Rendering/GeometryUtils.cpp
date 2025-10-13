@@ -26,10 +26,10 @@ std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int
         {
             int idx = y * vertCountX + x;
             float fx = (float)x / (float)(vertCountX - 1);
-            float fy = (float)y / (float)(vertCountY - 1);
+            float fz = (float)y / (float)(vertCountY - 1);
             // Centered plane: shift by half width/height so it spans [-width/2, width/2] x [-height/2, height/2]
-            positions[idx] = glm::vec3(fx * width - width * 0.5f, fy * height - height * 0.5f, 0.0f);
-            uvs[idx] = glm::vec2(fx, fy);
+            positions[idx] = glm::vec3(fx * width - width * 0.5f, 0, fz * height - height * 0.5f);
+            uvs[idx] = glm::vec2(fx, fz);
         }
     }
 
@@ -44,14 +44,13 @@ std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int
             uint32_t v1 = v0 + 1;
             uint32_t v2 = (y + 1) * vertCountX + x;
             uint32_t v3 = v2 + 1;
-            // Triangle 1: v0, v1, v2
             indices.push_back(v0);
+            indices.push_back(v2);
+            indices.push_back(v1);
+
             indices.push_back(v1);
             indices.push_back(v2);
-            // Triangle 2: v1, v3, v2
-            indices.push_back(v1);
             indices.push_back(v3);
-            indices.push_back(v2);
         }
     }
 
@@ -68,7 +67,7 @@ std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int
     submesh.SetVertexAttribute(std::move(attributes));
 
     // AABB in local space.
-    AABB aabb(glm::vec3(-0.5f * width, -0.5f * height, 0.0f), glm::vec3(0.5f * width, 0.5f * height, 0.0f));
+    AABB aabb(glm::vec3(-0.5f * width, 0, -0.5f * height), glm::vec3(0.5f * width, 0, 0.5f * height));
     submesh.SetAABB(aabb);
 
     submesh.Apply();

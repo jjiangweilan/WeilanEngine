@@ -1,5 +1,6 @@
 #if CONFIG
 name: Ocean
+cull: none
 #endif
 
 import WeilanEngine;
@@ -30,7 +31,9 @@ PushConstant ps;
 VertexOutput Vertex(VertexInput input)
 {
     VertexOutput output;
-    output.position = mul(perScene.camera.viewProjection, mul(ps.model, float4(input.position, 1.0)));
+    float3 wave = input.position;
+    wave.y = sin(wave.x + perScene.scene.time) * sin(wave.z + perScene.scene.time);
+    output.position = mul(perScene.camera.viewProjection, mul(ps.model, float4(wave, 1.0)));
     return output;
 }
 
