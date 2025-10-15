@@ -1,5 +1,12 @@
 #pragma once
 #include "Core/Ptr.hpp"
+#include "Libs/EnumFlags.hpp"
+
+enum class TransformFlag : uint32_t
+{
+    None = 0,
+    DontChangeHierarchy
+};
 
 class GameObject;
 enum class RotationCoordinate
@@ -14,7 +21,7 @@ class TransformNode
     DECLARE_SERIALIZABLE()
 
     TransformNode* parent;
-    std::vector<TransformNode> children;
+    std::vector<TransformNode*> children;
     ObjPtr<GameObject> gameObject;
 
     glm::vec3 position = glm::vec3(0);
@@ -26,10 +33,13 @@ class TransformNode
     mutable glm::mat4 worldMatrix;
     mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
+    TransformFlag flags = TransformFlag::None;
+
+    bool valid = false;
 
 public:
-    TransformNode& AddChild();
-    void RemoveChild(int index);
+    void SetParent(TransformNode* parent, bool keepWorldSpacePostion = true);
+    void RemoveChild(TransformNode* node);
     std::span<TransformNode> GetChildren() const;
 
     void SetLocalRotation(const glm::quat& rotation);

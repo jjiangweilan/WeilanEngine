@@ -6,8 +6,11 @@
 class TransformRoot : public Serializable
 {
     DECLARE_SERIALIZATION();
+    struct TransformPool
+    {
+    };
 
-    std::vector<TransformNode> roots;
+    std::vector<std::unique_ptr<TransformNode>> nodes;
 
 public:
 };
