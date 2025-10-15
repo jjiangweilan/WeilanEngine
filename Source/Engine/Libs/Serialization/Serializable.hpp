@@ -22,9 +22,13 @@ struct SerializationPack
     T* val;
 };
 
-#define DECLARE_SERIALIZATION()                                                                                        \
-    void Serialize(Serializer* ser) const override;                                                                    \
+#define DECLARE_SERIALIZATION()                     \
+    void Serialize(Serializer* ser) const override; \
     void Deserialize(Serializer* ser) override;
+
+#define DECLARE_SERIALIZABLE()             \
+    void Serialize(Serializer* ser) const; \
+    void Deserialize(Serializer* ser);
 
 #define SER1(x) SerializationPack(#x, &x)
 #define SER2(name, x) SerializationPack(#name, &x)
@@ -32,16 +36,28 @@ struct SerializationPack
 #define GET_MACRO(_1, _2, name, ...) name
 #define SER(...) SER_EXPAND(GET_MACRO(__VA_ARGS__, SER2, SER1)(__VA_ARGS__))
 
-#define DEFINE_SERIALIZATION(TypeName, ...)                                                                            \
-    void TypeName::Serialize(Serializer* ser) const                                                                    \
-    {                                                                                                                  \
-        Component::Serialize(ser);                                                                                     \
-        [&](auto&&... fields)                                                                                          \
-        { for_each_argument([ser](auto&& arg) { ser->Serialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);     \
-    }                                                                                                                  \
-    void TypeName::Deserialize(Serializer* ser)                                                                        \
-    {                                                                                                                  \
-        Component::Deserialize(ser);                                                                                   \
-        [&](auto&&... fields)                                                                                          \
-        { for_each_argument([ser](auto&& arg) { ser->Deserialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);   \
+#define INLINE_DEFINE_SERIALIZABLE(...)                                                                              \
+    void Serialize(Serializer* ser) const                                                                            \
+    {                                                                                                                \
+        [&](auto&&... fields)                                                                                        \
+        { for_each_argument([ser](auto&& arg) { ser->Serialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);   \
+    }                                                                                                                \
+    void Deserialize(Serializer* ser)                                                                                \
+    {                                                                                                                \
+        [&](auto&&... fields)                                                                                        \
+        { for_each_argument([ser](auto&& arg) { ser->Deserialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__); \
+    }
+
+#define DEFINE_SERIALIZATION(TypeName, ...)                                                                          \
+    void TypeName::Serialize(Serializer* ser) const                                                                  \
+    {                                                                                                                \
+        Component::Serialize(ser);                                                                                   \
+        [&](auto&&... fields)                                                                                        \
+        { for_each_argument([ser](auto&& arg) { ser->Serialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);   \
+    }                                                                                                                \
+    void TypeName::Deserialize(Serializer* ser)                                                                      \
+    {                                                                                                                \
+        Component::Deserialize(ser);                                                                                 \
+        [&](auto&&... fields)                                                                                        \
+        { for_each_argument([ser](auto&& arg) { ser->Deserialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__); \
     }
