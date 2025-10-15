@@ -10,56 +10,55 @@ class RenderPipelineSetting : public Asset
     DECLARE_ASSET();
 
 public:
-    struct PostProcess : Serializable
+    bool fxaa = true;
+    bool frustumCull = true;
+    bool shadowFrustumCull = true;
+
+    DECLARE_SERIALIZATION()
+
+    struct PostProcess
     {
         bool colorGrading = true;
 
-        void Serialize(Serializer* s) const override { SERIALIZE(s, colorGrading); }
-        void Deserialize(Serializer* s) override { DESERIALIZE(s, colorGrading); }
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(colorGrading)
+        );
     } postProcess;
 
-    struct ShadowMap : Serializable
+    struct ShadowMap
     {
         float constantBias = 0.01f;
         float normalBias = 0.01f;
 
-        void Serialize(Serializer* s) const override
-        {
-            SERIALIZE(s, constantBias);
-            SERIALIZE(s, normalBias);
-        }
-        void Deserialize(Serializer* s) override
-        {
-            DESERIALIZE(s, constantBias);
-            DESERIALIZE(s, normalBias);
-        }
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(constantBias),
+            SER(normalBias)
+        );
+
     } shadowMap;
 
-    struct ContactShadow : Serializable
+    struct ContactShadow
     {
         bool enabled = true;
         float thickness = 0.005f;
-        void Serialize(Serializer* s) const override
-        {
-            SERIALIZE(s, enabled);
-            SERIALIZE(s, thickness);
-        }
-        void Deserialize(Serializer* s) override
-        {
-            DESERIALIZE(s, enabled);
-            DESERIALIZE(s, thickness);
-        }
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(thickness)
+        )
     } contactShadow;
 
-    struct DebugDraw : Serializable
+    struct DebugDraw
     {
         bool drawMeshRendererAABB = false;
 
-        void Serialize(Serializer* s) const override { SERIALIZE(s, drawMeshRendererAABB); }
-        void Deserialize(Serializer* s) override { DESERIALIZE(s, drawMeshRendererAABB); }
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(drawMeshRendererAABB)
+        );
+
     } debugDraw;
 
-    struct SSAO : Serializable
+    struct SSAO
     {
         bool enabled = true;
         bool enableUpscaler = true;
@@ -72,40 +71,19 @@ public:
         float bilateralUpScaleIntegerCoordSigma = 0.6;
         float bilateralUpScaleDepthDiffSigma = 0.6;
 
-        void Serialize(Serializer* s) const override
-        {
-            SERIALIZE(s, enabled);
-            SERIALIZE(s, enableUpscaler);
-            SERIALIZE(s, debug_showNormal);
-            SERIALIZE(s, strength);
-            SERIALIZE(s, scaling);
-            SERIALIZE(s, falloff);
-            SERIALIZE(s, bias);
-            SERIALIZE(s, bilateralUpScaleKernelSize);
-            SERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
-            SERIALIZE(s, bilateralUpScaleDepthDiffSigma);
-        }
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(enableUpscaler),
+            SER(debug_showNormal),
+            SER(strength),
+            SER(scaling),
+            SER(falloff),
+            SER(bias),
+            SER(bilateralUpScaleKernelSize),
+            SER(bilateralUpScaleIntegerCoordSigma),
+            SER(bilateralUpScaleDepthDiffSigma)
+        )
 
-        void Deserialize(Serializer* s) override
-        {
-            DESERIALIZE(s, enabled);
-            DESERIALIZE(s, enableUpscaler);
-            DESERIALIZE(s, debug_showNormal);
-            DESERIALIZE(s, strength);
-            DESERIALIZE(s, scaling);
-            DESERIALIZE(s, falloff);
-            DESERIALIZE(s, bias);
-            DESERIALIZE(s, bilateralUpScaleKernelSize);
-            DESERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
-            DESERIALIZE(s, bilateralUpScaleDepthDiffSigma);
-        }
     } ssao;
-
-    bool fxaa = true;
-    bool frustumCull = true;
-    bool shadowFrustumCull = true;
-
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
 };
 } // namespace Rendering
