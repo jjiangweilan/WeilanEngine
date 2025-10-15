@@ -10,6 +10,12 @@ class RenderPipelineSetting : public Asset
     DECLARE_ASSET();
 
 public:
+    bool fxaa = true;
+    bool frustumCull = true;
+    bool shadowFrustumCull = true;
+
+    DECLARE_SERIALIZATION()
+
     struct PostProcess
     {
         bool colorGrading = true;
@@ -79,12 +85,5 @@ public:
         )
 
     } ssao;
-
-    bool fxaa = true;
-    bool frustumCull = true;
-    bool shadowFrustumCull = true;
-
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
 };
 } // namespace Rendering
