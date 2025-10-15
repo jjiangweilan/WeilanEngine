@@ -15,6 +15,7 @@ MeshRenderer::MeshRenderer() : Component(nullptr), meshes(), materials() {};
 
 DEFINE_SERIALIZATION(
     MeshRenderer,
+    Component,
     SER(meshes),
     SER(materials),
     SER(aabbMin, aabb.min),
