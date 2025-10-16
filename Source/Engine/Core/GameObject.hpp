@@ -37,32 +37,34 @@ class Prefab;
 class PhysicsBody;
 using PhysicsContactCallback =
     std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
+
 class GameObject : public Object
 {
     DECLARE_OBJECT();
 
+    // Prefab & Flags
     ObjPtr<Prefab> prefab = nullptr;
     GameObjectFlag flags = GameObjectFlag::None;
 
-    // a prototype GameObject stores all it's children
+    // Transform data
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
-    // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     mutable glm::mat4 localMatrix;
     mutable glm::mat4 worldMatrix;
 
-    // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
-    // wantsToBeEnabled will be set to true whth enabled is false in that case
+    // State flags
     bool enabled = false;
     bool wantsToBeEnabled = false;
     mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
 
+    // Physics callbacks
     std::vector<PhysicsContactCallback> contactAddedCallbacks = {};
     std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
 
+    // Hierarchy & Components
     std::vector<ObjPtr<GameObject>> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;
     std::vector<std::unique_ptr<Component>> components;
@@ -72,251 +74,117 @@ class GameObject : public Object
     inline static const float compareEpsilon = 1e-6f;
 
 public:
+    // Constructors & Destructor
+    GameObject();
     GameObject(Scene* gameScene);
     GameObject(GameObject&& other);
     GameObject(const GameObject& other);
-    GameObject();
     ~GameObject();
 
+    // Component Management
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
     Component* AddComponent(std::string_view componentName);
-
-    GameObject* Find(std::string_view name);
-
-    void RemoveComponent(void* comp)
-    {
-        auto iter = std::find_if(components.begin(), components.end(), [comp](auto& p)
-                                 { return p.get() == comp; });
-        if (iter != components.end())
-        {
-            std::unique_ptr<Component>& comp = *iter;
-            comp->Disable();
-            components.erase(iter);
-        }
-    }
-
-    void RemoveComponentByIndex(int componentIndex)
-    {
-        if (componentIndex >= 0 && componentIndex < components.size())
-        {
-            auto& comp = components[componentIndex];
-            if (comp != nullptr)
-            {
-                comp->Disable();
-            }
-            components.erase(components.begin() + componentIndex);
-        }
-    }
-
-    void LinkPrefab(Prefab* prefab);
-
-    void SetFlags(GameObjectFlag f) { this->flags = f; }
-    GameObjectFlag GetFlags() { return flags; }
+    void RemoveComponent(void* comp);
+    void RemoveComponentByIndex(int componentIndex);
 
     template <class T>
     T* GetComponent();
-
-    ObjPtr<Component> GetComponentInHierachy(const char* className);
     ObjPtr<Component> GetComponent(const char* className);
-
+    ObjPtr<Component> GetComponentInHierachy(const char* className);
     std::vector<std::unique_ptr<Component>>& GetComponents();
+
+    template <class T>
+    std::vector<T*> GetComponentsInChildren();
+
+    // Scene & Lifecycle
     void SetScene(Scene* scene);
     Scene* GetScene();
     void Tick();
     void IdleTick();
     void PrePhysicsTick();
 
+    // Serialization
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    void OnLoaded();
 
-    const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
-
-    template <class T>
-    std::vector<T*> GetComponentsInChildren();
-
-    bool HasPrefab() const { return prefab != nullptr; }
-
-    bool IsEnabled() { return enabled; }
-    bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
-
-    void SetEnable(bool isEnabled);
-
+    // Hierarchy Management
     GameObject* GetParent() const { return parent; }
     void SetParent(GameObject* parent, bool keepWorldSpacePostion = true);
+    const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
+    void RemoveChild(GameObject* child);
+    auto GetOwningChildren() { return std::move(owningChildren); }
+    GameObject* Find(std::string_view name);
 
-    // **** Transform related ****/
-    void SetLocalRotation(const glm::quat& rotation);
-    void SetRotation(const glm::quat& rotation);
-    void SetLocalPosition(const glm::vec3& localPosition);
-    void SetPosition(const glm::vec3& position);
-    void SetLocalScale(const glm::vec3& scale);
-    void SetScale(const glm::vec3& scale);
+    // Enable/Disable State
+    bool IsEnabled() { return enabled; }
+    bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
+    void SetEnable(bool isEnabled);
+    void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
+    bool GetWantsTobeEnabledStateAndReset();
 
-    int RegisterContactEventAdded(
-        const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
-    );
-    int RegisterContactEventRemoved(
-        const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
-    );
-    void UnregisterContactEventAdded(int id)
-    {
-        if (id >= 0 && id < contactAddedCallbacks.size())
-            contactAddedCallbacks[id] = nullptr;
-    }
-    void UnregisterContactEventRemoved(int id)
-    {
-        if (id >= 0 && id < contactRemovedCallbacks.size())
-            contactRemovedCallbacks[id] = nullptr;
-    }
-
-    void OnStart()
-    {
-        for (auto& c : components)
-        {
-            c->OnStart();
-        }
-    }
-
-    void OnStop()
-    {
-        for (auto& c : components)
-        {
-            c->OnStop();
-        }
-    }
-
-    void LookAt(const glm::vec3& to)
-    {
-        if (glm::length(to) < compareEpsilon)
-            return;
-
-        glm::vec3 forward = glm::normalize(to);
-        glm::vec3 up = glm::vec3(0, 1, 0);
-
-        // Handle case where forward is parallel to up vector
-        if (glm::abs(glm::dot(forward, up)) > 0.99f)
-        {
-            up = glm::vec3(1, 0, 0);
-        }
-
-        glm::vec3 right = glm::normalize(glm::cross(forward, up));
-        up = glm::cross(right, forward);
-
-        glm::mat3 rotationMatrix = glm::mat3(right, up, -forward);
-        glm::quat newRotation = glm::quat_cast(rotationMatrix);
-
-        SetRotation(newRotation);
-    }
-
-    void Rotate(glm::quat quaternion) { SetLocalRotation(quaternion * rotation); }
-
-    void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
-    {
-        updateLocalMatrix = true;
-        if (coord == RotationCoordinate::Self)
-        {
-            rotation = glm::rotate(rotation, angle, axis);
-        }
-        else if (coord == RotationCoordinate::Parent && parent != nullptr)
-        {}
-        else if (coord == RotationCoordinate::World)
-        {
-            // rotate around world
-            glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetWorldMatrix();
-
-            SetWorldMatrix(trs);
-        }
-
-        TransformChanged();
-    }
-
-    void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle)
-    {
-        glm::mat4 trs = glm::translate(glm::mat4(1), point) * glm::rotate(glm::mat4(1), angle, axis) *
-                        glm::translate(glm::mat4(1), -point) * GetWorldMatrix();
-        SetWorldMatrix(trs);
-    }
-
-    void Translate(const glm::vec3& translate)
-    {
-        if (translate == glm::vec3{0, 0, 0})
-            return;
-
-        updateLocalMatrix = true;
-        this->position += translate;
-
-        for (GameObject* child : children)
-        {
-            child->Translate(translate);
-        }
-
-        TransformChanged();
-    }
-
-    glm::vec3 GetPosition() const { return GetWorldMatrix()[3]; }
-
+    // Transform - Position
+    glm::vec3 GetPosition() const;
     glm::vec3 GetLocalPosition() const { return position; }
+    void SetPosition(const glm::vec3& position);
+    void SetLocalPosition(const glm::vec3& localPosition);
+    void Translate(const glm::vec3& translate);
 
-    glm::vec3 GetScale() const
-    {
-        auto m = GetWorldMatrix();
-        return {glm::length(glm::vec3(m[0])), glm::length(glm::vec3(m[1])), glm::length(glm::vec3(m[2]))};
-    }
-
-    glm::vec3 GetLocalScale() const { return scale; }
-
+    // Transform - Rotation
+    glm::quat GetRotation() const;
     glm::quat GetLocalRotation() const { return rotation; }
-
-    glm::vec3 GetForward() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2])); }
-
-    glm::vec3 GetUp() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1])); }
-
-    glm::vec3 GetRight() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0])); }
-
+    void SetRotation(const glm::quat& rotation);
+    void SetLocalRotation(const glm::quat& rotation);
     glm::vec3 GetEuluerAngles() const { return eulerAngles; }
+    void SetEulerAngles(const glm::vec3& eulerAngles);
+    void Rotate(const glm::vec3& axis, float angle, RotationCoordinate coord = RotationCoordinate::Self);
+    void Rotate(glm::quat quaternion);
+    void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle);
+    void LookAt(const glm::vec3& to);
 
-    void SetEulerAngles(const glm::vec3& eulerAngles)
-    {
-        if (this->eulerAngles == eulerAngles)
-            return;
+    // Transform - Scale
+    glm::vec3 GetScale() const;
+    glm::vec3 GetLocalScale() const { return scale; }
+    void SetScale(const glm::vec3& scale);
+    void SetLocalScale(const glm::vec3& scale);
 
-        this->eulerAngles = eulerAngles;
-        auto rotation = glm::quat(eulerAngles);
+    // Transform - Direction Vectors
+    glm::vec3 GetForward() const;
+    glm::vec3 GetUp() const;
+    glm::vec3 GetRight() const;
 
-        // set local rotation
-        this->rotation = rotation;
-        updateLocalMatrix = true;
-
-        TransformChanged();
-    }
-
+    // Transform - Matrices
     glm::mat4 GetWorldMatrix() const;
     const glm::mat4& GetLocalMatrix() const;
-
-    glm::quat GetRotation() const;
-
     void SetWorldMatrix(const glm::mat4& model);
-
-    // this function should be used internally by Scene
-    // it doesn't set the child's parent
-    void RemoveChild(GameObject* child);
     void ResetTransform();
 
-    void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
-
-    bool GetWantsTobeEnabledStateAndReset()
-    {
-        bool temp = wantsToBeEnabled;
-        wantsToBeEnabled = false;
-        return temp;
-    }
-
-    auto GetOwningChildren() { return std::move(owningChildren); }
+    // Prefab
+    void LinkPrefab(Prefab* prefab);
+    bool HasPrefab() const { return prefab != nullptr; }
     auto GetPrefab() const { return prefab; }
     void ResetToPrefab();
 
-    void OnLoaded();
+    // Flags
+    void SetFlags(GameObjectFlag f) { this->flags = f; }
+    GameObjectFlag GetFlags() { return flags; }
+
+    // Physics Callbacks
+    int RegisterContactEventAdded(const PhysicsContactCallback& f);
+    int RegisterContactEventRemoved(const PhysicsContactCallback& f);
+    void UnregisterContactEventAdded(int id);
+    void UnregisterContactEventRemoved(int id);
+    void OnContactAdded(
+        PhysicsBody* body1, PhysicsBody* body2, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+    );
+    void OnContactRemoved(
+        PhysicsBody* body1, PhysicsBody* body2, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+    );
+
+    // Lifecycle Callbacks
+    void OnStart();
+    void OnStop();
 
 private:
     GameObject* FindInternal(GameObject* go, std::string_view name);
@@ -327,7 +195,6 @@ private:
     }
 
     void TransformChanged();
-
     void Copy(const GameObject& other);
 
     friend void RegisterSerializedObjects();

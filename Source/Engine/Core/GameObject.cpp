@@ -598,3 +598,201 @@ void GameObject::TransformChanged()
         child->TransformChanged();
     }
 }
+
+void GameObject::RemoveComponent(void* comp)
+{
+    auto iter = std::find_if(components.begin(), components.end(), [comp](auto& p)
+                             { return p.get() == comp; });
+    if (iter != components.end())
+    {
+        std::unique_ptr<Component>& comp = *iter;
+        comp->Disable();
+        components.erase(iter);
+    }
+}
+
+void GameObject::RemoveComponentByIndex(int componentIndex)
+{
+    if (componentIndex >= 0 && componentIndex < components.size())
+    {
+        auto& comp = components[componentIndex];
+        if (comp != nullptr)
+        {
+            comp->Disable();
+        }
+        components.erase(components.begin() + componentIndex);
+    }
+}
+
+bool GameObject::GetWantsTobeEnabledStateAndReset()
+{
+    bool temp = wantsToBeEnabled;
+    wantsToBeEnabled = false;
+    return temp;
+}
+
+void GameObject::UnregisterContactEventAdded(int id)
+{
+    if (id >= 0 && id < contactAddedCallbacks.size())
+        contactAddedCallbacks[id] = nullptr;
+}
+
+void GameObject::UnregisterContactEventRemoved(int id)
+{
+    if (id >= 0 && id < contactRemovedCallbacks.size())
+        contactRemovedCallbacks[id] = nullptr;
+}
+
+void GameObject::OnContactAdded(
+    PhysicsBody* body1, PhysicsBody* body2, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+)
+{
+    for (auto& f : contactAddedCallbacks)
+    {
+        if (f)
+            f(body1, body2, manifold, settings);
+    }
+}
+
+void GameObject::OnContactRemoved(
+    PhysicsBody* body1, PhysicsBody* body2, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+)
+{
+    for (auto& f : contactRemovedCallbacks)
+    {
+        if (f)
+            f(body1, body2, manifold, settings);
+    }
+}
+
+void GameObject::OnStart()
+{
+    for (auto& c : components)
+    {
+        c->OnStart();
+    }
+}
+
+void GameObject::OnStop()
+{
+    for (auto& c : components)
+    {
+        c->OnStop();
+    }
+}
+
+glm::vec3 GameObject::GetPosition() const
+{
+    return GetWorldMatrix()[3];
+}
+
+glm::vec3 GameObject::GetScale() const
+{
+    auto m = GetWorldMatrix();
+    return {glm::length(glm::vec3(m[0])), glm::length(glm::vec3(m[1])), glm::length(glm::vec3(m[2]))};
+}
+
+glm::vec3 GameObject::GetForward() const
+{
+    return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2]));
+}
+
+glm::vec3 GameObject::GetUp() const
+{
+    return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1]));
+}
+
+glm::vec3 GameObject::GetRight() const
+{
+    return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0]));
+}
+
+void GameObject::SetEulerAngles(const glm::vec3& eulerAngles)
+{
+    if (this->eulerAngles == eulerAngles)
+        return;
+
+    this->eulerAngles = eulerAngles;
+    auto rotation = glm::quat(eulerAngles);
+
+    // set local rotation
+    this->rotation = rotation;
+    updateLocalMatrix = true;
+
+    TransformChanged();
+}
+
+void GameObject::Rotate(const glm::vec3& axis, float angle, RotationCoordinate coord)
+{
+    if (angle == 0)
+        return;
+
+    updateLocalMatrix = true;
+    if (coord == RotationCoordinate::Self)
+    {
+        rotation = glm::rotate(rotation, angle, axis);
+    }
+    else if (coord == RotationCoordinate::Parent && parent != nullptr)
+    {
+        // TODO: implement parent rotation
+    }
+    else if (coord == RotationCoordinate::World)
+    {
+        // rotate around world
+        glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetWorldMatrix();
+        SetWorldMatrix(trs);
+    }
+
+    TransformChanged();
+}
+
+void GameObject::Rotate(glm::quat quaternion)
+{
+    SetLocalRotation(quaternion * rotation);
+}
+
+void GameObject::RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle)
+{
+    glm::mat4 trs = glm::translate(glm::mat4(1), point) * glm::rotate(glm::mat4(1), angle, axis) *
+                    glm::translate(glm::mat4(1), -point) * GetWorldMatrix();
+    SetWorldMatrix(trs);
+}
+
+void GameObject::LookAt(const glm::vec3& to)
+{
+    if (glm::length(to) < compareEpsilon)
+        return;
+
+    glm::vec3 forward = glm::normalize(to);
+    glm::vec3 up = glm::vec3(0, 1, 0);
+
+    // Handle case where forward is parallel to up vector
+    if (glm::abs(glm::dot(forward, up)) > 0.99f)
+    {
+        up = glm::vec3(1, 0, 0);
+    }
+
+    glm::vec3 right = glm::normalize(glm::cross(forward, up));
+    up = glm::cross(right, forward);
+
+    glm::mat3 rotationMatrix = glm::mat3(right, up, -forward);
+    glm::quat newRotation = glm::quat_cast(rotationMatrix);
+
+    SetRotation(newRotation);
+}
+
+void GameObject::Translate(const glm::vec3& translate)
+{
+    if (translate == glm::vec3{0, 0, 0})
+        return;
+
+    updateLocalMatrix = true;
+    this->position += translate;
+
+    for (GameObject* child : children)
+    {
+        child->Translate(translate);
+    }
+
+    TransformChanged();
+}

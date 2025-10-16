@@ -48,10 +48,10 @@ struct SerializationPack
         { for_each_argument([ser](auto&& arg) { ser->Deserialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__); \
     }
 
-#define DEFINE_SERIALIZATION(TypeName, ...)                                                                          \
+#define DEFINE_SERIALIZATION(TypeName, Parent, ...)                                                                  \
     void TypeName::Serialize(Serializer* ser) const                                                                  \
     {                                                                                                                \
-        Component::Serialize(ser);                                                                                   \
+        Parent::Serialize(ser);                                                                                      \
         [&](auto&&... fields)                                                                                        \
         { for_each_argument([ser](auto&& arg) { ser->Serialize(arg.name, *arg.val); }, fields...); }(__VA_ARGS__);   \
     }                                                                                                                \
