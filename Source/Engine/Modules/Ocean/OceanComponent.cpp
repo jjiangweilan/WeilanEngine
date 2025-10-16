@@ -22,16 +22,21 @@ void OceanComponent::OnInit()
         {{-0.3f, -0.8f}, 0.15f, 3.0f, 1.8f, 0.3f}
     };
 
+    globalTweak = {{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, 1.0f};
+
     UpdateWaveBuffer();
 }
 
 void OceanComponent::UpdateWaveBuffer()
 {
     if (waves.empty())
+    {
+        material.SetFloat("waveCount", 0.0f);
         return;
+    }
 
     // Create or recreate wave buffer
-    if (waveBuffer = nullptr)
+    if (waveBuffer == nullptr)
     {
         waveBuffer = GetGfxDriver()->CreateBuffer(
             waves.size() * sizeof(Wave),
@@ -39,11 +44,24 @@ void OceanComponent::UpdateWaveBuffer()
         );
     }
 
+    std::vector<Wave> upload = waves;
+    // Apply global tweak on CPU side so GPU buffer matches shader usage
+    for (auto& w : upload)
+    {
+        w.direction = glm::normalize(w.direction + globalTweak.direction);
+        w.amplitude *= globalTweak.amplitude;
+        w.wavelength *= globalTweak.wavelength;
+        w.speed *= globalTweak.speed;
+        w.steepness *= globalTweak.steepness;
+    }
+
     // Upload wave data
-    GetGfxDriver()->UploadBuffer(*waveBuffer, (uint8_t*)waves.data(), waves.size() * sizeof(Wave));
+    GetGfxDriver()->UploadBuffer(*waveBuffer, (uint8_t*)upload.data(), upload.size() * sizeof(Wave));
 
     // Bind to material
     material.SetBuffer("waves", waveBuffer.get());
+
+    material.SetFloat("waveCount", (float)waves.size());
 }
 
 void OceanComponent::Render(Gfx::CommandBuffer& cmd)

@@ -39,6 +39,7 @@ PushConstant ps;
 
 struct MaterialInput
 {
+    int waveCount;
     StructuredBuffer<Wave> waves;
 }
 
@@ -97,8 +98,7 @@ VertexOutput Vertex(VertexInput input)
     float3 waveOffset = float3(0, 0, 0);
     
     // Accumulate Gerstner waves
-    uint waveCount = 0;
-    mat.waves.GetDimensions(waveCount);
+    uint waveCount = uint(mat.waveCount);
     
     for (uint i = 0; i < waveCount; i++)
     {

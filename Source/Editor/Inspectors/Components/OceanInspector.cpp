@@ -1,6 +1,6 @@
 #include "../../EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Engine/Modules/Ocean/OceanComponent.hpp"
+#include "Modules/Ocean/OceanComponent.hpp"
 
 namespace Editor
 {
@@ -14,6 +14,31 @@ public:
             return;
 
         auto& waves = ocean->GetWaves();
+        auto& globalTweak = ocean->GetGlobalTweak();
+        
+        EditorGUI::SeparatorTextLabeled("Global Wave Tweak");
+        bool globalChanged = false;
+        if (EditorGUI::DragFloat2("Direction", &globalTweak.direction[0], 0.01f))
+        {
+            globalTweak.direction = glm::normalize(globalTweak.direction);
+            globalChanged = true;
+        }
+        if (EditorGUI::DragFloat("Amplitude", &globalTweak.amplitude, 0.01f, 0.0f, 10.0f))
+        {
+            globalChanged = true;
+        }
+        if (EditorGUI::DragFloat("Wavelength", &globalTweak.wavelength, 0.1f, 0.1f, 100.0f))
+        {
+            globalChanged = true;
+        }
+        if (EditorGUI::DragFloat("Speed", &globalTweak.speed, 0.01f, 0.0f, 10.0f))
+        {
+            globalChanged = true;
+        }
+        if (EditorGUI::DragFloat("Steepness", &globalTweak.steepness, 0.01f, 0.0f, 1.0f))
+        {
+            globalChanged = true;
+        }
         
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
         
@@ -71,7 +96,7 @@ public:
             waveChanged = true;
         }
         
-        if (waveChanged)
+        if (waveChanged || globalChanged)
         {
             ocean->UpdateWaveBuffer();
         }
