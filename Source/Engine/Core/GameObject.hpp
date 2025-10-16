@@ -41,6 +41,36 @@ class GameObject : public Object
 {
     DECLARE_OBJECT();
 
+    ObjPtr<Prefab> prefab = nullptr;
+    GameObjectFlag flags = GameObjectFlag::None;
+
+    // a prototype GameObject stores all it's children
+    glm::vec3 position = glm::vec3(0);
+    glm::vec3 scale = glm::vec3(1, 1, 1);
+    glm::quat rotation = glm::quat(1, 0, 0, 0);
+    // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
+    glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
+    mutable glm::mat4 localMatrix;
+    mutable glm::mat4 worldMatrix;
+
+    // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
+    // wantsToBeEnabled will be set to true whth enabled is false in that case
+    bool enabled = false;
+    bool wantsToBeEnabled = false;
+    mutable bool transformChanged = true;
+    mutable bool updateLocalMatrix = true;
+
+    std::vector<PhysicsContactCallback> contactAddedCallbacks = {};
+    std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
+
+    std::vector<ObjPtr<GameObject>> children;
+    std::vector<std::unique_ptr<GameObject>> owningChildren;
+    std::vector<std::unique_ptr<Component>> components;
+    ObjPtr<GameObject> parent = nullptr;
+    ObjPtr<Scene> gameScene = nullptr;
+
+    inline static const float compareEpsilon = 1e-6f;
+
 public:
     GameObject(Scene* gameScene);
     GameObject(GameObject&& other);
@@ -56,7 +86,8 @@ public:
 
     void RemoveComponent(void* comp)
     {
-        auto iter = std::find_if(components.begin(), components.end(), [comp](auto& p) { return p.get() == comp; });
+        auto iter = std::find_if(components.begin(), components.end(), [comp](auto& p)
+                                 { return p.get() == comp; });
         if (iter != components.end())
         {
             std::unique_ptr<Component>& comp = *iter;
@@ -288,34 +319,6 @@ public:
     void OnLoaded();
 
 private:
-    ObjPtr<Prefab> prefab = nullptr;
-    GameObjectFlag flags = GameObjectFlag::None;
-
-    // a prototype GameObject stores all it's children
-    glm::vec3 position = glm::vec3(0);
-    glm::vec3 scale = glm::vec3(1, 1, 1);
-    glm::quat rotation = glm::quat(1, 0, 0, 0);
-    // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
-    glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
-    mutable glm::mat4 localMatrix;
-    mutable glm::mat4 worldMatrix;
-
-    // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
-    // wantsToBeEnabled will be set to true whth enabled is false in that case
-    bool enabled = false;
-    bool wantsToBeEnabled = false;
-    mutable bool transformChanged = true;
-    mutable bool updateLocalMatrix = true;
-
-    std::vector<PhysicsContactCallback> contactAddedCallbacks = {};
-    std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
-
-    std::vector<ObjPtr<GameObject>> children;
-    std::vector<std::unique_ptr<GameObject>> owningChildren;
-    std::vector<std::unique_ptr<Component>> components;
-    ObjPtr<GameObject> parent = nullptr;
-    ObjPtr<Scene> gameScene = nullptr;
-
     GameObject* FindInternal(GameObject* go, std::string_view name);
 
     inline bool EqualZero(const glm::vec3& v)
@@ -324,8 +327,6 @@ private:
     }
 
     void TransformChanged();
-
-    inline static const float compareEpsilon = 1e-6f;
 
     void Copy(const GameObject& other);
 
