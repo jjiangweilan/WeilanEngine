@@ -98,7 +98,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     vkCreateCommandPool(device.handle, &cmdPoolCreateInfo, VK_NULL_HANDLE, &mainCmdPool);
 
     // create inflightData
-    inflightData.resize(driverConfig.swapchainImageCount);
+    frameContexts.resize(driverConfig.swapchainImageCount);
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -117,16 +117,16 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
     int inflightCount = driverConfig.swapchainImageCount;
-    inflightData.resize(inflightCount);
+    frameContexts.resize(inflightCount);
     for (int i = 0; i < driverConfig.swapchainImageCount; ++i)
     {
-        inflightData[i].cmd = cmds[i];
-        inflightData[i].swapchainIndex = i;
-        vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
-        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_FENCE, (uint64_t)inflightData[i].cmdFence, "VKDriver - fence");
+        frameContexts[i].cmd = cmds[i];
+        frameContexts[i].swapchainIndex = i;
+        vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &frameContexts[i].cmdFence);
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_FENCE, (uint64_t)frameContexts[i].cmdFence, "VKDriver - fence");
 
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].imageAcquireSemaphore);
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].imageAcquireSemaphore);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].presentSemaphore);
 
         if (createInfo.gpuTimestampQueryMaxCount != 0 && gpuFeatures.timestampPeriod)
         {
@@ -134,8 +134,8 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
             query_pool_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
             query_pool_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
             query_pool_info.queryCount = static_cast<uint32_t>(createInfo.gpuTimestampQueryMaxCount);
-            inflightData[i].maxtimestapQueryCount = createInfo.gpuTimestampQueryMaxCount;
-            vkCreateQueryPool(device.handle, &query_pool_info, nullptr, &inflightData[i].timestapQueryPool);
+            frameContexts[i].maxtimestapQueryCount = createInfo.gpuTimestampQueryMaxCount;
+            vkCreateQueryPool(device.handle, &query_pool_info, nullptr, &frameContexts[i].timestapQueryPool);
         }
     }
     immediateCmd = cmds[driverConfig.swapchainImageCount];
@@ -166,7 +166,7 @@ VKDriver::~VKDriver()
 
     // destroy inflight data
     vkDestroyCommandPool(device.handle, mainCmdPool, VK_NULL_HANDLE);
-    for (VKInflightCmd& inflight : inflightData)
+    for (VKFrameContext& inflight : frameContexts)
     {
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
@@ -530,8 +530,8 @@ bool VKDriver::BeginFrame()
 
 void VKDriver::FlushPendingCommands()
 {
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+    vkWaitForFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence, true, -1);
+    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
 
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
@@ -540,7 +540,7 @@ void VKDriver::FlushPendingCommands()
     );
 
     // record scheduled commands
-    auto cmd = inflightData[currentInflightIndex].cmd;
+    auto cmd = frameContexts[currentInflightIndex].cmd;
 
     vkResetCommandBuffer(cmd, 0);
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -574,7 +574,7 @@ void VKDriver::FlushPendingCommands()
     CmdBufExecutionReport report{};
     renderGraph->Execute(
         framePrepareData,
-        inflightData[currentInflightIndex],
+        frameContexts[currentInflightIndex],
         currentInflightIndex,
         mainQueue,
         featureSettings,
@@ -597,7 +597,7 @@ void VKDriver::FlushPendingCommands()
     submitInfo.pCommandBuffers = &cmd;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence));
+    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, frameContexts[currentInflightIndex].cmdFence));
 
     allocator.Reset();
     internalPendingCommands.clear();
@@ -612,7 +612,7 @@ bool VKDriver::EndFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
     WaitForCurrentInflightCmd();
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
     // acquire next swapchain
@@ -621,11 +621,11 @@ bool VKDriver::EndFrame()
         device.handle,
         swapchain.handle,
         -1,
-        inflightData[currentInflightIndex].imageAcquireSemaphore,
+        frameContexts[currentInflightIndex].imageAcquireSemaphore,
         VK_NULL_HANDLE,
-        &inflightData[currentInflightIndex].swapchainIndex
+        &frameContexts[currentInflightIndex].swapchainIndex
     );
-    swapchain.swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+    swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
     ENGINE_END_PROFILE
 
     for (auto& w : extraWindows)
@@ -649,7 +649,7 @@ bool VKDriver::EndFrame()
     firstFrame = false;
 
     // record scheduled commands
-    auto cmd = inflightData[currentInflightIndex].cmd;
+    auto cmd = frameContexts[currentInflightIndex].cmd;
 
     CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -666,7 +666,7 @@ bool VKDriver::EndFrame()
 
     // this section adds present image layout transition to the end of cmd
     VKCommandBuffer cmd2(renderGraph.get());
-    cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
     for (auto& w : extraWindows)
     {
         if (w->presentRequest.requested)
@@ -678,7 +678,7 @@ bool VKDriver::EndFrame()
 
     renderGraph->Execute(
         framePrepareData,
-        inflightData[currentInflightIndex],
+        frameContexts[currentInflightIndex],
         currentInflightIndex,
         mainQueue,
         featureSettings,
@@ -694,9 +694,9 @@ bool VKDriver::EndFrame()
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     waitFlags[1] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    waitSemaphores[0] = inflightData[currentInflightIndex].imageAcquireSemaphore;
+    waitSemaphores[0] = frameContexts[currentInflightIndex].imageAcquireSemaphore;
     waitSemaphores[1] = transferSignalSemaphore;
-    signalSemaphores[0] = inflightData[currentInflightIndex].presentSemaphore;
+    signalSemaphores[0] = frameContexts[currentInflightIndex].presentSemaphore;
     signalSemaphores[1] = dataUploaderWaitSemaphore;
     for (int i = 0; i < extraWindows.size(); ++i)
     {
@@ -714,7 +714,7 @@ bool VKDriver::EndFrame()
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
-    auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, frameContexts[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("VKDriver - Query GPU Timestamp");
@@ -728,11 +728,11 @@ bool VKDriver::EndFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - present");
     bool swapchainRecreated = Present(
-        inflightData[currentInflightIndex].presentSemaphore,
+        frameContexts[currentInflightIndex].presentSemaphore,
         swapchain.handle,
         surface,
         swapchain,
-        inflightData[currentInflightIndex].swapchainIndex
+        frameContexts[currentInflightIndex].swapchainIndex
     );
 
     for (auto& w : extraWindows)
@@ -1248,7 +1248,7 @@ void VKDriver::FrameEndClear()
     {
         w->activeIndex = (w->activeIndex + 1) % w->swapchainCount;
     }
-    currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
+    currentInflightIndex = (currentInflightIndex + 1) % frameContexts.size();
     internalPendingCommands.clear();
     descriptorPoolCache->AppendAndClearCurrentFrameFreeSets();
     ClearResources();
@@ -1318,7 +1318,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     cmdAllocateInfo.commandPool = mainCmdPool;
     cmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAllocateInfo.commandBufferCount = 1;
-    VKInflightCmd fakeInflightCmd;
+    VKFrameContext fakeInflightCmd;
     VkCommandBuffer vkcmd;
     vkAllocateCommandBuffers(device.handle, &cmdAllocateInfo, &vkcmd);
     fakeInflightCmd.cmd = vkcmd;
@@ -1373,7 +1373,7 @@ std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)
 {
-    inflightData[currentInflightIndex].onCompleteCallbacks.push_back(callback);
+    frameContexts[currentInflightIndex].onCompleteCallbacks.push_back(callback);
 }
 
 Window* VKDriver::CreateExtraWindow(SDL_Window* window)
@@ -1400,12 +1400,12 @@ void VKDriver::CaptureFrameRenderDoc()
 
 void VKDriver::WaitForCurrentInflightCmd()
 {
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
-    for (auto& f : inflightData[currentInflightIndex].onCompleteCallbacks)
+    vkWaitForFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence, true, -1);
+    for (auto& f : frameContexts[currentInflightIndex].onCompleteCallbacks)
     {
         f();
     }
-    inflightData[currentInflightIndex].onCompleteCallbacks.clear();
+    frameContexts[currentInflightIndex].onCompleteCallbacks.clear();
 }
 
 void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
@@ -1414,7 +1414,7 @@ void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
     timestamps.resize(execReport.timestampQueryLabels.size());
     auto result = vkGetQueryPoolResults(
         device.handle,
-        inflightData[currentInflightIndex].timestapQueryPool,
+        frameContexts[currentInflightIndex].timestapQueryPool,
         0,
         execReport.timestampQueryLabels.size(),
         timestamps.size() * sizeof(TimestampQuery),

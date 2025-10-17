@@ -9,18 +9,17 @@ void OceanComponent::OnInit()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
 
-    plane = Rendering::GeneratePlane(5, 5, 64, 64);
+    plane = Rendering::GeneratePlane(5, 5, 1024, 1024);
     oceanShader = ShaderLibrary::GetShader(Shaders::Ocean);
     materialSet = oceanShader->GetSet(Gfx::DescriptorSetSemantics::Material);
     material.SetShader(oceanShader);
 
     // Initialize default waves
-    waves = {
-        {{1.0f, 0.3f}, 0.4f, 8.0f, 1.0f, 0.6f},
-        {{0.2f, 1.0f}, 0.3f, 6.0f, 1.2f, 0.5f},
-        {{-0.7f, 0.5f}, 0.2f, 4.0f, 1.5f, 0.4f},
-        {{-0.3f, -0.8f}, 0.15f, 3.0f, 1.8f, 0.3f}
-    };
+    waves.resize(4);
+    waves[0] = {{{0.0f, 0.0f}, 0.4f, 8.0f, 1.0f, 0.6f}, 0.0f};
+    waves[1] = {{{0.0f, 0.0f}, 0.3f, 6.0f, 1.2f, 0.5f}, 45.0f};
+    waves[2] = {{{0.0f, 0.0f}, 0.2f, 4.0f, 1.5f, 0.4f}, 135.0f};
+    waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, 225.0f};
 
     globalTweak = {{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, 1.0f};
 
@@ -39,24 +38,38 @@ void OceanComponent::UpdateWaveBuffer()
     if (waveBuffer == nullptr)
     {
         waveBuffer = GetGfxDriver()->CreateBuffer(
-            waves.size() * sizeof(Wave),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst, false, true, "WaveBuffer"
+            waves.size() * sizeof(GPUResources::Wave),
+            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+            false,
+            true,
+            "WaveBuffer"
         );
     }
 
-    std::vector<Wave> upload = waves;
-    // Apply global tweak on CPU side so GPU buffer matches shader usage
-    for (auto& w : upload)
+    std::vector<GPUResources::Wave> upload;
+    upload.reserve(waves.size());
+    
+    // Convert CPUWave to Wave
+    for (const auto& cpuWave : waves)
     {
-        w.direction = glm::normalize(w.direction + globalTweak.direction);
-        w.amplitude *= globalTweak.amplitude;
-        w.wavelength *= globalTweak.wavelength;
-        w.speed *= globalTweak.speed;
-        w.steepness *= globalTweak.steepness;
+        GPUResources::Wave gpuWave;
+        
+        // Convert angle (in degrees) to direction vector
+        float angleRad = glm::radians(cpuWave.directionAngle);
+        gpuWave.direction = glm::vec2(glm::cos(angleRad), glm::sin(angleRad));
+        
+        // Apply global tweak
+        gpuWave.direction = glm::normalize(gpuWave.direction + globalTweak.direction);
+        gpuWave.amplitude = cpuWave.amplitude * globalTweak.amplitude;
+        gpuWave.wavelength = cpuWave.wavelength * globalTweak.wavelength;
+        gpuWave.speed = cpuWave.speed * globalTweak.speed;
+        gpuWave.steepness = cpuWave.steepness * globalTweak.steepness;
+        
+        upload.push_back(gpuWave);
     }
 
     // Upload wave data
-    GetGfxDriver()->UploadBuffer(*waveBuffer, (uint8_t*)upload.data(), upload.size() * sizeof(Wave));
+    GetGfxDriver()->UploadBuffer(*waveBuffer, (uint8_t*)upload.data(), upload.size() * sizeof(GPUResources::Wave));
 
     // Bind to material
     material.SetBuffer("waves", waveBuffer.get());

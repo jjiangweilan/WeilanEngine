@@ -49,7 +49,7 @@ public:
 
     void Execute(
         VKFramePrepareData& framePrepare,
-        VKInflightCmd& cmd,
+        VKFrameContext& cmd,
         int inflightIndex,
         Queue& executionQueue,
         const GfxFeaturesSettings& featureSettings,

@@ -1103,7 +1103,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
 
 void VKCommandBufferProcessor::Execute(
     VKFramePrepareData& framePrepare,
-    VKInflightCmd& inflightCmd,
+    VKFrameContext& inflightCmd,
     int inflightIndex,
     Queue& executionQueue,
     const GfxFeaturesSettings& featureSettings,

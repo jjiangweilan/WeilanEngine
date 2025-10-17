@@ -50,9 +50,8 @@ public:
             
             if (ImGui::CollapsingHeader(("Wave " + std::to_string(i + 1)).c_str()))
             {
-                if (EditorGUI::DragFloat2("Direction", &waves[i].direction[0], 0.01f))
+                if (EditorGUI::DragFloat("Direction Angle", &waves[i].directionAngle, 1.0f, 0.0f, 360.0f))
                 {
-                    waves[i].direction = glm::normalize(waves[i].direction);
                     waveChanged = true;
                 }
                 
@@ -84,7 +83,7 @@ public:
         
         if (EditorGUI::ButtonSimple("Add Wave"))
         {
-            waves.push_back({{1.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f});
+            waves.push_back({{{0.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f}, 0.0f});
             waveChanged = true;
         }
         

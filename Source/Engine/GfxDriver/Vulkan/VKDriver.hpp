@@ -157,7 +157,7 @@ public:
 
     std::mutex driverMutex;
 
-    std::vector<VKInflightCmd> inflightData = {};
+    std::vector<VKFrameContext> frameContexts = {};
     VKFramePrepareData framePrepareData;
     uint32_t currentInflightIndex = 0;
 

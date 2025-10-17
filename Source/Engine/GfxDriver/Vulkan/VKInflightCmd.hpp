@@ -4,7 +4,7 @@
 
 namespace Gfx
 {
-struct VKInflightCmd
+struct VKFrameContext
 {
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     VkFence cmdFence = VK_NULL_HANDLE;
