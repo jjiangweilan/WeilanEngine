@@ -169,7 +169,7 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->transparentIndex = this->size();
 }
 
-void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
+void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride) const
 {
     for (int i = from; i < to; ++i)
     {
@@ -183,7 +183,19 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
                 cmd.BindResource(draw.materialSet, draw.materialResource);
             if (draw.objectSet && draw.objectResource)
                 cmd.BindResource(draw.objectSet, draw.objectResource);
-            cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+
+            // Apply polygon mode override if specified
+            if (polygonModeOverride.has_value())
+            {
+                auto modifiedConfig = **draw.shaderConfig;
+                modifiedConfig.polygonMode = polygonModeOverride.value();
+                cmd.BindShaderProgram(shaderProgram, modifiedConfig);
+            }
+            else
+            {
+                cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+            }
+
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(shaderProgram, (void*)&ps);
             cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);

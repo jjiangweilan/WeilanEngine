@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Rendering/RenderPipeline/RenderEvents.hpp"
+#include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include <cinttypes>
 
 class RenderingObjectBase
@@ -10,7 +11,7 @@ class RenderingObjectBase
 public:
     RenderingObjectBase() {};
 
-    virtual void Render(Gfx::CommandBuffer& cmd) {};
+    virtual void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings) {};
     Rendering::RenderEvents GetRenderEvent() { return renderEvent; }
 
 protected:

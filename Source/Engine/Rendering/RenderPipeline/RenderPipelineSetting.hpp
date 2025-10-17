@@ -51,9 +51,11 @@ public:
     struct DebugDraw
     {
         bool drawMeshRendererAABB = false;
+        bool wireframe = false;
 
         INLINE_DEFINE_SERIALIZABLE(
-            SER(drawMeshRendererAABB)
+            SER(drawMeshRendererAABB),
+            SER(wireframe)
         );
 
     } debugDraw;

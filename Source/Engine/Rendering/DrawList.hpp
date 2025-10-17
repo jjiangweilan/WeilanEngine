@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Component/MeshRenderer.hpp"
+#include "GfxDriver/GfxEnums.hpp"
 #include "Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -48,7 +49,7 @@ public:
     const auto& GetSortedIndices() const { return sorted; }
     void Lock();
 
-    void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const;
+    void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt) const;
 
     std::vector<int> sorted;
 };

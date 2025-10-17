@@ -1,6 +1,8 @@
 #if CONFIG
 name: Ocean
 cull: none
+blend:
+    - srcAlpha oneMinusSrcAlpha
 #endif
 
 import WeilanEngine;
@@ -190,7 +192,7 @@ float4 Fragment(VertexOutput input) : SV_Target
         
         // Combine lighting
         float3 radiance = light.lightColor.xyz * light.intensity * attenuation;
-        finalColor += (diffuse + specular + subsurfaceColor) * radiance * NdotL;
+        finalColor += diffuse ;//(+ specular + subsurfaceColor) * radiance * NdotL;
     }
     
     // Ambient lighting with skybox-like fallback

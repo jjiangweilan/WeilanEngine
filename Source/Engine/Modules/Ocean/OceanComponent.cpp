@@ -48,23 +48,23 @@ void OceanComponent::UpdateWaveBuffer()
 
     std::vector<GPUResources::Wave> upload;
     upload.reserve(waves.size());
-    
+
     // Convert CPUWave to Wave
     for (const auto& cpuWave : waves)
     {
         GPUResources::Wave gpuWave;
-        
+
         // Convert angle (in degrees) to direction vector
         float angleRad = glm::radians(cpuWave.directionAngle);
         gpuWave.direction = glm::vec2(glm::cos(angleRad), glm::sin(angleRad));
-        
+
         // Apply global tweak
         gpuWave.direction = glm::normalize(gpuWave.direction + globalTweak.direction);
         gpuWave.amplitude = cpuWave.amplitude * globalTweak.amplitude;
         gpuWave.wavelength = cpuWave.wavelength * globalTweak.wavelength;
         gpuWave.speed = cpuWave.speed * globalTweak.speed;
         gpuWave.steepness = cpuWave.steepness * globalTweak.steepness;
-        
+
         upload.push_back(gpuWave);
     }
 
@@ -77,7 +77,21 @@ void OceanComponent::UpdateWaveBuffer()
     material.SetFloat("waveCount", (float)waves.size());
 }
 
-void OceanComponent::Render(Gfx::CommandBuffer& cmd)
+void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings)
 {
+    auto currentPolygonMode = material.GetShaderConfig()->polygonMode;
+    if (settings.debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Line)
+    {
+        auto config = *material.GetShaderConfig();
+        config.polygonMode = Gfx::PolygonMode::Line;
+        material.SetShaderConfig(config);
+    }
+    else if (!settings.debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Fill)
+    {
+        auto config = *material.GetShaderConfig();
+        config.polygonMode = Gfx::PolygonMode::Fill;
+        material.SetShaderConfig(config);
+    }
+
     Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
 }

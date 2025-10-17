@@ -123,8 +123,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginRenderPass(gbufferAttachments, clears);
 
         // draw
-        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex);
+        std::optional<Gfx::PolygonMode> polygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
+        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex, polygonMode);
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex, polygonMode);
 
         cmd->EndRenderPass();
     }
@@ -250,7 +251,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // draw objects
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPassAttachments, clears);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size(), setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt);
 
         cmd->EndLabel(); // Forward Objects
 
@@ -656,7 +657,7 @@ void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, 
 
     for (auto obj : renderingObjects)
     {
-        obj->Render(cmd);
+        obj->Render(cmd, *setting);
     }
 }
 

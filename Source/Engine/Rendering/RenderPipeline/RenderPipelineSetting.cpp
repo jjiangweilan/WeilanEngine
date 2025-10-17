@@ -3,27 +3,16 @@ namespace Rendering
 {
 DEFINE_ASSET(RenderPipelineSetting, "55542C94-5DC2-4A3C-B778-01B380872E4D", "renderPipeline")
 
-void RenderPipelineSetting::Serialize(Serializer* s) const
-{
-    Asset::Serialize(s);
-    SERIALIZE(s, shadowMap);
-    SERIALIZE(s, contactShadow);
-    SERIALIZE(s, fxaa);
-    SERIALIZE(s, postProcess);
-    SERIALIZE(s, ssao);
-    SERIALIZE(s, frustumCull);
-    SERIALIZE(s, shadowFrustumCull);
-}
-
-void RenderPipelineSetting::Deserialize(Serializer* s)
-{
-    Asset::Deserialize(s);
-    DESERIALIZE(s, shadowMap);
-    DESERIALIZE(s, contactShadow);
-    DESERIALIZE(s, fxaa);
-    DESERIALIZE(s, postProcess);
-    DESERIALIZE(s, ssao);
-    DESERIALIZE(s, frustumCull);
-    DESERIALIZE(s, shadowFrustumCull);
-}
+DEFINE_SERIALIZATION(
+    RenderPipelineSetting,
+    Asset,
+    SER(shadowMap),
+    SER(contactShadow),
+    SER(fxaa),
+    SER(postProcess),
+    SER(ssao),
+    SER(frustumCull),
+    SER(shadowFrustumCull),
+    SER(debugDraw)
+)
 } // namespace Rendering

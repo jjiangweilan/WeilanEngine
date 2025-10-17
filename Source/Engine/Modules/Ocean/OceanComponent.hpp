@@ -31,7 +31,7 @@ class OceanComponent : public RenderingComponent<OceanComponent>
 
 public:
     void OnInit() override;
-    void Render(Gfx::CommandBuffer& cmd) override;
+    void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings) override;
 
     std::vector<CPUWave>& GetWaves() { return waves; }
     GPUResources::Wave& GetGlobalTweak() { return globalTweak; }
