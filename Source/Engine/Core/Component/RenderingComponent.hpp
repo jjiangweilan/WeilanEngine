@@ -36,12 +36,19 @@ public:
     }
 };
 
-#define DECLARE_RENDERING_COMPONENT(TypeName)                                      \
-    DECLARE_OBJECT()                                                               \
-public:                                                                            \
-    TypeName() : RenderingComponent<TypeName>(nullptr) {}                          \
-    TypeName(GameObject* gameObject) : RenderingComponent<TypeName>(gameObject) {} \
-    const std::string& GetName() override;
+#define DECLARE_RENDERING_COMPONENT(TypeName) \
+    DECLARE_OBJECT()                          \
+public:                                       \
+    TypeName() : TypeName(nullptr) {}         \
+    const std::string& GetName() override;    \
+    TypeName(GameObject* gameObject) : RenderingComponent<TypeName>(gameObject) {}
+
+#define DECLARE_RENDERING_COMPONENT_CONSTRUCT(TypeName) \
+    DECLARE_OBJECT()                                    \
+public:                                                 \
+    TypeName() : TypeName(nullptr) {}                   \
+    const std::string& GetName() override;              \
+    TypeName(GameObject* gameObject);
 
 #define DEFINE_RENDERING_COMPONENT(TypeName, UUID) \
     DEFINE_OBJECT(TypeName, UUID)                  \
@@ -50,3 +57,12 @@ public:                                                                         
         static std::string name = #TypeName;       \
         return name;                               \
     }
+
+#define DEFINE_RENDERING_COMPONENT_CONSTRUCT(TypeName, UUID) \
+    DEFINE_OBJECT(TypeName, UUID)                            \
+    const std::string& TypeName::GetName()                   \
+    {                                                        \
+        static std::string name = #TypeName;                 \
+        return name;                                         \
+    }                                                        \
+    TypeName::TypeName(GameObject* gameObject) : RenderingComponent<TypeName>(gameObject)

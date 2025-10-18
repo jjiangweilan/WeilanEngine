@@ -48,42 +48,45 @@ struct MaterialInput
 [[Material]]
 ParameterBlock<MaterialInput> mat;
 
-// Gerstner Wave function
-float3 GerstnerWave(Wave wave, float3 position, float time, float waveCount, inout float3 tangent, inout float3 binormal)
+float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent, inout float3 binormal)
 {
-    float k = 2.0 * M_PI / wave.wavelength;
-    float c = sqrt(9.8 / k);
-    float2 d = normalize(wave.direction);
-    float f = k * (dot(d, position.xz) - c * time * wave.speed);
-    float a = wave.amplitude / k;
+    float2 d = wave.direction;
+    float Q = wave.steepness;
+    float A = wave.amplitude;
+    float W = 1.0 / wave.wavelength;
+    float speed = wave.speed;
+
+    float phase = 2 * M_PI * speed * W;
+    float f = (W * dot(d, position.xz) + phase * time);
+    float QA = Q * A;
     
-    // Steepness factor (Q) - controls how peaked the waves are
-    float Q = wave.steepness / (wave.amplitude * k * waveCount);
+    // Calculate the wave displacement
+    float3 result = float3(0.0, 0.0, 0.0);
+    result.x = QA * d.x * cos(f);
+    result.y = A * sin(f);
+    result.z = QA * d.y * cos(f);
+
+    tangent = float3(1,0,0);
+    binormal = float3(0,1,0);
+
+    float s0 = 1;
+    float c0 = 1;
+    float WA = 1;
+
+    // Calculate binormal vector (derivative with respect to x)
+    binormal.x = Q * d.x * d.x * WA * s0;// -d.x * d.y * steepness * sin(f);
+    binormal.y = d.x * WA * c0;
+    binormal.z = Q * d.x * d.y * WA * s0;
+    binormal = normalize(binormal); // ??? normalize here
     
-    // Displacement
-    float3 offset;
-    offset.x = Q * a * d.x * cos(f);
-    offset.y = a * sin(f);
-    offset.z = Q * a * d.y * cos(f);
+    // Calculate tangent vector (derivative with respect to z)
+    tangent.x = Q * d.x * d.y * WA * s0;
+    tangent.y = d.y * WA * c0;
+    tangent.z = Q * d.y * d.y * WA * s0;
+    tangent = normalize(tangent);
     
-    // Tangent and binormal contributions for normal calculation
-    float WA = wave.amplitude * k;
-    float S = sin(f);
-    float C = cos(f);
-    
-    tangent += float3(
-        -Q * d.x * d.x * WA * S,
-        d.x * WA * C,
-        -Q * d.x * d.y * WA * S
-    );
-    
-    binormal += float3(
-        -Q * d.x * d.y * WA * S,
-        d.y * WA * C,
-        -Q * d.y * d.y * WA * S
-    );
-    
-    return offset;
+
+    return result;
 }
 
 [shader("vertex")]
@@ -95,8 +98,8 @@ VertexOutput Vertex(VertexInput input)
     float time = perScene.scene.time;
     
     // Initialize tangent space vectors
-    float3 tangent = float3(1, 0, 0);
-    float3 binormal = float3(0, 0, 1);
+    float3 tangent = float3(0, 0, 0);
+    float3 binormal = float3(0, 0, 0);
     float3 waveOffset = float3(0, 0, 0);
     
     // Accumulate Gerstner waves
@@ -105,8 +108,15 @@ VertexOutput Vertex(VertexInput input)
     for (uint i = 0; i < waveCount; i++)
     {
         Wave wave = mat.waves[i];
-        waveOffset += GerstnerWave(wave, worldPos, time, float(waveCount), tangent, binormal);
+        float3 outTanget;
+        float3 outBinormal;
+        waveOffset += GerstnerWave(wave, worldPos, time, outTanget, outBinormal);
+        tangent += outTanget;
+        binormal += outBinormal;
     }
+
+    binormal = normalize(float3(1 - binormal.x, binormal.y, -binormal.z));
+    tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
     
     // Apply wave displacement
     worldPos += waveOffset;
@@ -151,48 +161,7 @@ float4 Fragment(VertexOutput input) : SV_Target
         float3 H = normalize(L + V);
         
         float NdotL = max(dot(N, L), 0.0);
-        float NdotV = max(dot(N, V), 0.0);
-        float NdotH = max(dot(N, H), 0.0);
-        float VdotH = max(dot(V, H), 0.0);
-        
-        // Fresnel (Schlick approximation)
-        float3 F0 = lerp(float3(0.02), baseColor, metallic); // Water F0 is about 0.02
-        float3 F = F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
-        
-        // GGX Distribution
-        float alpha = roughness * roughness;
-        float alpha2 = alpha * alpha;
-        float denom = NdotH * NdotH * (alpha2 - 1.0) + 1.0;
-        float D = alpha2 / (M_PI * denom * denom);
-        
-        // Smith Geometry
-        float k = alpha / 2.0;
-        float G1_V = NdotV / (NdotV * (1.0 - k) + k);
-        float G1_L = NdotL / (NdotL * (1.0 - k) + k);
-        float G = G1_V * G1_L;
-        
-        // Cook-Torrance BRDF
-        float3 specular = (D * F * G) / max(4.0 * NdotV * NdotL, 0.001);
-        
-        // Diffuse with subsurface approximation
-        float3 kD = (1.0 - F) * (1.0 - metallic);
-        float3 diffuse = kD * baseColor / M_PI;
-        
-        // Subsurface scattering approximation
-        float subsurface = pow(saturate(dot(V, -L)), 2.0) * subsurfaceStrength;
-        float3 subsurfaceColor = float3(0.1, 0.4, 0.5) * subsurface;
-        
-        // Light attenuation for point lights
-        float attenuation = 1.0;
-        if (lightPos.a != 0.0) // Point light
-        {
-            float distance = length(lightPos.xyz - input.positionWS);
-            attenuation = 1.0 / (1.0 + distance * distance * 0.1);
-        }
-        
-        // Combine lighting
-        float3 radiance = light.lightColor.xyz * light.intensity * attenuation;
-        finalColor += diffuse ;//(+ specular + subsurfaceColor) * radiance * NdotL;
+        finalColor = NdotL * light.lightColor.xyz;
     }
     
     // Ambient lighting with skybox-like fallback
@@ -203,11 +172,6 @@ float4 Fragment(VertexOutput input) : SV_Target
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
     float alpha = lerp(0.85, 0.95, fresnel);
     
-    // Add foam tips on steep waves
-    float foamThreshold = 0.7;
-    float foam = smoothstep(foamThreshold, 1.0, abs(N.y));
-    finalColor = lerp(finalColor, float3(1.0), foam * 0.3);
-    
-    return float4(finalColor, alpha);
+    return float4(N, alpha);
 }
 

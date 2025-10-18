@@ -12,11 +12,22 @@ namespace GPUResources
 
 class OceanComponent : public RenderingComponent<OceanComponent>
 {
-    DECLARE_RENDERING_COMPONENT(OceanComponent);
+    DECLARE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent);
+    DECLARE_SERIALIZATION();
 
     struct CPUWave : public GPUResources::Wave
     {
+        bool enabled;
         float directionAngle;
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(directionAngle),
+            SER(amplitude),
+            SER(wavelength),
+            SER(speed),
+            SER(steepness)
+        );
     };
 
     std::unique_ptr<Mesh> plane;
@@ -26,7 +37,7 @@ class OceanComponent : public RenderingComponent<OceanComponent>
     int materialSet;
 
     std::vector<CPUWave> waves;
-    GPUResources::Wave globalTweak;
+    CPUWave globalTweak;
     std::unique_ptr<Gfx::Buffer> waveBuffer;
 
 public:
@@ -34,7 +45,7 @@ public:
     void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings) override;
 
     std::vector<CPUWave>& GetWaves() { return waves; }
-    GPUResources::Wave& GetGlobalTweak() { return globalTweak; }
+    CPUWave& GetGlobalTweak() { return globalTweak; }
 
     void UpdateWaveBuffer();
 

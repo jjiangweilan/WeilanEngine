@@ -33,6 +33,7 @@ WeilanEngine::~WeilanEngine()
     event->Deinit();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
+    gameLoop = nullptr;
     DeinitAssetDatabase();
     ShaderLibrary::Singleton().DestoryShaderLibrary();
     DeinitJoltPhysics();

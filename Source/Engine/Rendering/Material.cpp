@@ -104,6 +104,7 @@ void Material::SetTextureInternal(
 
 void Material::SetBuffer(const std::string& name, Gfx::Buffer* buffer)
 {
+    bufferValues[name] = buffer;
     shaderResource->SetBuffer(name, buffer);
 }
 
@@ -117,12 +118,19 @@ void Material::RebuildAllMaterials()
             mat->shaderResource->Clear();
 
             // copy to skip reset test
-            auto copy = mat->textureValues;
+            auto texCopy = mat->textureValues;
+            auto bufCopy = mat->bufferValues;
             mat->textureValues.clear();
-            for (auto& kv : copy)
+            mat->bufferValues.clear();
+            for (auto& kv : texCopy)
             {
                 if (kv.second != nullptr)
                     mat->SetTexture(kv.first, kv.second);
+            }
+            for (auto& kv : bufCopy)
+            {
+                if (kv.second != nullptr)
+                    mat->SetBuffer(kv.first, kv.second);
             }
             mat->ubo.buffer = nullptr;
             mat->ubo.dirty = true;

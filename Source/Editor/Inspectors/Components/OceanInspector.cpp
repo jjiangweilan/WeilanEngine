@@ -15,14 +15,9 @@ public:
 
         auto& waves = ocean->GetWaves();
         auto& globalTweak = ocean->GetGlobalTweak();
-        
+
         EditorGUI::SeparatorTextLabeled("Global Wave Tweak");
         bool globalChanged = false;
-        if (EditorGUI::DragFloat2("Direction", &globalTweak.direction[0], 0.01f))
-        {
-            globalTweak.direction = glm::normalize(globalTweak.direction);
-            globalChanged = true;
-        }
         if (EditorGUI::DragFloat("Amplitude", &globalTweak.amplitude, 0.01f, 0.0f, 10.0f))
         {
             globalChanged = true;
@@ -39,62 +34,67 @@ public:
         {
             globalChanged = true;
         }
-        
+
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
-        
+
         bool waveChanged = false;
-        
+
         for (size_t i = 0; i < waves.size(); ++i)
         {
             ImGui::PushID(static_cast<int>(i));
-            
+
             if (ImGui::CollapsingHeader(("Wave " + std::to_string(i + 1)).c_str()))
             {
+                if (EditorGUI::Checkbox("enabled", &waves[i].enabled))
+                {
+                    waveChanged = true;
+                }
+
                 if (EditorGUI::DragFloat("Direction Angle", &waves[i].directionAngle, 1.0f, 0.0f, 360.0f))
                 {
                     waveChanged = true;
                 }
-                
+
                 if (EditorGUI::DragFloat("Amplitude", &waves[i].amplitude, 0.01f, 0.0f, 10.0f))
                 {
                     waveChanged = true;
                 }
-                
+
                 if (EditorGUI::DragFloat("Wavelength", &waves[i].wavelength, 0.1f, 0.1f, 100.0f))
                 {
                     waveChanged = true;
                 }
-                
+
                 if (EditorGUI::DragFloat("Speed", &waves[i].speed, 0.01f, 0.0f, 10.0f))
                 {
                     waveChanged = true;
                 }
-                
-                if (EditorGUI::DragFloat("Steepness", &waves[i].steepness, 0.01f, 0.0f, 1.0f))
+
+                if (EditorGUI::DragFloat("Steepness", &waves[i].steepness, 0.01f, 0.0f, 10.0f))
                 {
                     waveChanged = true;
                 }
             }
-            
+
             ImGui::PopID();
         }
-        
+
         ImGui::Spacing();
-        
+
         if (EditorGUI::ButtonSimple("Add Wave"))
         {
-            waves.push_back({{{0.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f}, 0.0f});
+            waves.push_back({{{0.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f}, true, 0.0f});
             waveChanged = true;
         }
-        
+
         ImGui::SameLine();
-        
+
         if (waves.size() > 0 && EditorGUI::ButtonSimple("Remove Last Wave"))
         {
             waves.pop_back();
             waveChanged = true;
         }
-        
+
         if (waveChanged || globalChanged)
         {
             ocean->UpdateWaveBuffer();

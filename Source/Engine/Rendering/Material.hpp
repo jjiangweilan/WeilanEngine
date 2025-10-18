@@ -62,7 +62,6 @@ public:
 
     void SetTexture_Lua(const std::string& param, const ObjPtr<Texture>& texture) { return SetTexture(param, texture, std::nullopt); }
 
-
     void RawSetTexture(const std::string& param, const ObjPtr<Texture>& texture);
     void SetTexture(const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt);
     void SetTexture(

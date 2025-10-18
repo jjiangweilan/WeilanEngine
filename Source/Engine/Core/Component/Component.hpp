@@ -55,21 +55,21 @@ protected:
     friend class GameObject;
 };
 
-#define DECLARE_COMPONENT(TypeName)                                                                                    \
-    DECLARE_OBJECT()                                                                                                   \
-public:                                                                                                                \
-    TypeName() : Component(nullptr) {}                                                                                 \
-    TypeName(GameObject* gameObject) : Component(gameObject) {}                                                        \
-    const std::string& GetName() override;                                                                             \
-                                                                                                                       \
+#define DECLARE_COMPONENT(TypeName)                             \
+    DECLARE_OBJECT()                                            \
+public:                                                         \
+    TypeName() : Component(nullptr) {}                          \
+    TypeName(GameObject* gameObject) : Component(gameObject) {} \
+    const std::string& GetName() override;                      \
+                                                                \
 private:
 
-#define DEFINE_COMPONENT(TypeName, UUID)                                                                               \
-    DEFINE_OBJECT(TypeName, UUID)                                                                                      \
-    const std::string& TypeName::GetName()                                                                             \
-    {                                                                                                                  \
-        static std::string name = #TypeName;                                                                           \
-        return name;                                                                                                   \
+#define DEFINE_COMPONENT(TypeName, UUID)     \
+    DEFINE_OBJECT(TypeName, UUID)            \
+    const std::string& TypeName::GetName()   \
+    {                                        \
+        static std::string name = #TypeName; \
+        return name;                         \
     }
 
 /**

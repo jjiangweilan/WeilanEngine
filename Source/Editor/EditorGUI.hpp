@@ -567,10 +567,10 @@ public:
     static bool DragFloat(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##dragfloat_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##dragfloat_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -587,10 +587,10 @@ public:
     static bool DragFloat2(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##dragfloat2_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##dragfloat2_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);

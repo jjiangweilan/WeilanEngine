@@ -3,25 +3,32 @@
 #include "Libs/CppUtility.hpp"
 #include "Rendering/CommandBufferUtils.hpp"
 #include "Rendering/GeometryUtils.hpp"
-DEFINE_RENDERING_COMPONENT(OceanComponent, "503C87A6-3892-4EA7-877C-01CAA53E73AB")
+DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01CAA53E73AB")
+{
+    // Initialize default waves
+    waves.resize(4);
+    waves[0] = {{{0.0f, 0.0f}, 0.4f, 8.0f, 1.0f, 0.6f}, true, 0.0f};
+    waves[1] = {{{0.0f, 0.0f}, 0.3f, 6.0f, 1.2f, 0.5f}, true, 45.0f};
+    waves[2] = {{{0.0f, 0.0f}, 0.2f, 4.0f, 1.5f, 0.4f}, true, 135.0f};
+    waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, true, 225.0f};
+
+    globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, 1.0f};
+}
+
+DEFINE_SERIALIZATION(
+    OceanComponent,
+    Component,
+    SER(waves),
+    SER(globalTweak)
+)
 
 void OceanComponent::OnInit()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
-
     plane = Rendering::GeneratePlane(5, 5, 1024, 1024);
     oceanShader = ShaderLibrary::GetShader(Shaders::Ocean);
     materialSet = oceanShader->GetSet(Gfx::DescriptorSetSemantics::Material);
     material.SetShader(oceanShader);
-
-    // Initialize default waves
-    waves.resize(4);
-    waves[0] = {{{0.0f, 0.0f}, 0.4f, 8.0f, 1.0f, 0.6f}, 0.0f};
-    waves[1] = {{{0.0f, 0.0f}, 0.3f, 6.0f, 1.2f, 0.5f}, 45.0f};
-    waves[2] = {{{0.0f, 0.0f}, 0.2f, 4.0f, 1.5f, 0.4f}, 135.0f};
-    waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, 225.0f};
-
-    globalTweak = {{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f, 1.0f};
 
     UpdateWaveBuffer();
 }
@@ -35,16 +42,14 @@ void OceanComponent::UpdateWaveBuffer()
     }
 
     // Create or recreate wave buffer
-    if (waveBuffer == nullptr)
-    {
-        waveBuffer = GetGfxDriver()->CreateBuffer(
-            waves.size() * sizeof(GPUResources::Wave),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-            false,
-            true,
-            "WaveBuffer"
-        );
-    }
+
+    waveBuffer = GetGfxDriver()->CreateBuffer(
+        waves.size() * sizeof(GPUResources::Wave),
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+        false,
+        true,
+        "WaveBuffer"
+    );
 
     std::vector<GPUResources::Wave> upload;
     upload.reserve(waves.size());
@@ -52,11 +57,14 @@ void OceanComponent::UpdateWaveBuffer()
     // Convert CPUWave to Wave
     for (const auto& cpuWave : waves)
     {
+        if (!cpuWave.enabled)
+            continue;
+
         GPUResources::Wave gpuWave;
 
         // Convert angle (in degrees) to direction vector
         float angleRad = glm::radians(cpuWave.directionAngle);
-        gpuWave.direction = glm::vec2(glm::cos(angleRad), glm::sin(angleRad));
+        gpuWave.direction = glm::normalize(glm::vec2(glm::cos(angleRad), glm::sin(angleRad)));
 
         // Apply global tweak
         gpuWave.direction = glm::normalize(gpuWave.direction + globalTweak.direction);
@@ -74,7 +82,7 @@ void OceanComponent::UpdateWaveBuffer()
     // Bind to material
     material.SetBuffer("waves", waveBuffer.get());
 
-    material.SetFloat("waveCount", (float)waves.size());
+    material.SetFloat("waveCount", (float)upload.size());
 }
 
 void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings)
