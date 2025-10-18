@@ -16,8 +16,6 @@ struct VertexOutput
     float4 position : SV_Position;
     float3 positionWS;
     float3 normalWS;
-    float3 tangentWS;
-    float3 bitangentWS;
     float2 uv;
 };
 
@@ -48,12 +46,16 @@ struct MaterialInput
 [[Material]]
 ParameterBlock<MaterialInput> mat;
 
+// Tanget and Binornal with cross for Normal later
+// after accumulation, tanget and binormal can be calculated as follow
+//binormal = normalize(float3(1 - binormal.x, binormal.y, -binormal.z));
+//tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
 float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent, inout float3 binormal)
 {
     float2 d = wave.direction;
     float Q = wave.steepness;
     float A = wave.amplitude;
-    float W = 1.0 / wave.wavelength;
+    float W = 1 / wave.wavelength;
     float speed = wave.speed;
 
     float phase = 2 * M_PI * speed * W;
@@ -63,28 +65,54 @@ float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent
     // Calculate the wave displacement
     float3 result = float3(0.0, 0.0, 0.0);
     result.x = QA * d.x * cos(f);
-    result.y = A * sin(f);
     result.z = QA * d.y * cos(f);
+    result.y = A * sin(f);
 
     tangent = float3(1,0,0);
     binormal = float3(0,1,0);
 
-    float s0 = 1;
-    float c0 = 1;
-    float WA = 1;
+    float WA = W * A;
+    float s0 = sin(f);
+    float c0 = cos(f);
 
     // Calculate binormal vector (derivative with respect to x)
     binormal.x = Q * d.x * d.x * WA * s0;// -d.x * d.y * steepness * sin(f);
-    binormal.y = d.x * WA * c0;
     binormal.z = Q * d.x * d.y * WA * s0;
-    binormal = normalize(binormal); // ??? normalize here
+    binormal.y = d.x * WA * c0;
     
     // Calculate tangent vector (derivative with respect to z)
     tangent.x = Q * d.x * d.y * WA * s0;
-    tangent.y = d.y * WA * c0;
     tangent.z = Q * d.y * d.y * WA * s0;
-    tangent = normalize(tangent);
+    tangent.y = d.y * WA * c0;
+
+    return result;
+}
+
+float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 normal)
+{
+    float2 d = wave.direction;
+    float Q = wave.steepness;
+    float A = wave.amplitude;
+    float W = 1 / wave.wavelength;
+    float speed = wave.speed;
+
+    float phase = 2 * M_PI * speed * W;
+    float f = (W * dot(d, position.xz) + phase * time);
+    float QA = Q * A;
     
+    // Calculate the wave displacement
+    float3 result = float3(0.0, 0.0, 0.0);
+    result.x = QA * d.x * cos(f);
+    result.z = QA * d.y * cos(f);
+    result.y = A * sin(f);
+
+    float WA = W * A;
+    float s0 = sin(f);
+    float c0 = cos(f);
+
+    normal.x = d.x * WA * c0;
+    normal.z = d.y * WA * c0;
+    normal.y = Q * WA * s0;
 
     return result;
 }
@@ -98,8 +126,7 @@ VertexOutput Vertex(VertexInput input)
     float time = perScene.scene.time;
     
     // Initialize tangent space vectors
-    float3 tangent = float3(0, 0, 0);
-    float3 binormal = float3(0, 0, 0);
+    float3 normal = float3(0,0,0);
     float3 waveOffset = float3(0, 0, 0);
     
     // Accumulate Gerstner waves
@@ -108,26 +135,21 @@ VertexOutput Vertex(VertexInput input)
     for (uint i = 0; i < waveCount; i++)
     {
         Wave wave = mat.waves[i];
-        float3 outTanget;
-        float3 outBinormal;
-        waveOffset += GerstnerWave(wave, worldPos, time, outTanget, outBinormal);
-        tangent += outTanget;
-        binormal += outBinormal;
+        float3 outNormal;
+        waveOffset += GerstnerWave(wave, worldPos, time, outNormal);
+        normal += outNormal;
     }
 
-    binormal = normalize(float3(1 - binormal.x, binormal.y, -binormal.z));
-    tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
+    normal = normalize(float3(-normal.x, 1 - normal.y, -normal.z));
     
     // Apply wave displacement
     worldPos += waveOffset;
     output.positionWS = worldPos;
     
     // Calculate normal from tangent and binormal
-    float3 normal = normalize(cross(binormal, tangent));
-    output.normalWS = normal;
-    output.tangentWS = normalize(tangent);
-    output.bitangentWS = normalize(binormal);
-    
+    // float3 normal = normalize(cross(tangent, binormal));
+    output.normalWS = mul((float3x3)ps.model, normal);
+
     output.uv = input.uv;
     output.position = mul(perScene.camera.viewProjection, float4(worldPos, 1.0));
     
@@ -172,6 +194,6 @@ float4 Fragment(VertexOutput input) : SV_Target
     float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
     float alpha = lerp(0.85, 0.95, fresnel);
     
-    return float4(N, alpha);
+    return float4(finalColor, 1);
 }
 

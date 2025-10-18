@@ -7,12 +7,12 @@ DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01
 {
     // Initialize default waves
     waves.resize(4);
-    waves[0] = {{{0.0f, 0.0f}, 0.4f, 8.0f, 1.0f, 0.6f}, true, 0.0f};
-    waves[1] = {{{0.0f, 0.0f}, 0.3f, 6.0f, 1.2f, 0.5f}, true, 45.0f};
-    waves[2] = {{{0.0f, 0.0f}, 0.2f, 4.0f, 1.5f, 0.4f}, true, 135.0f};
-    waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, true, 225.0f};
+    waves[0] = {{{0.0f, 0.0f}, 0.4f, 8.0f, 1.0f, 0.6f}, true, false, 0.0f};
+    waves[1] = {{{0.0f, 0.0f}, 0.3f, 6.0f, 1.2f, 0.5f}, true, false, 45.0f};
+    waves[2] = {{{0.0f, 0.0f}, 0.2f, 4.0f, 1.5f, 0.4f}, true, false, 135.0f};
+    waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, true, false, 225.0f};
 
-    globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, 1.0f};
+    globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, false, 1.0f};
 }
 
 DEFINE_SERIALIZATION(
@@ -72,6 +72,11 @@ void OceanComponent::UpdateWaveBuffer()
         gpuWave.wavelength = cpuWave.wavelength * globalTweak.wavelength;
         gpuWave.speed = cpuWave.speed * globalTweak.speed;
         gpuWave.steepness = cpuWave.steepness * globalTweak.steepness;
+
+        if (globalTweak.clampCrest)
+        {
+            gpuWave.steepness = glm::min(gpuWave.steepness, gpuWave.wavelength / (gpuWave.amplitude));
+        }
 
         upload.push_back(gpuWave);
     }

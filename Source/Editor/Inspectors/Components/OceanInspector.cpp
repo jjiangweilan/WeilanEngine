@@ -18,6 +18,10 @@ public:
 
         EditorGUI::SeparatorTextLabeled("Global Wave Tweak");
         bool globalChanged = false;
+        if (EditorGUI::Checkbox("Clmap Crest", &globalTweak.clampCrest))
+        {
+            globalChanged = true;
+        }
         if (EditorGUI::DragFloat("Amplitude", &globalTweak.amplitude, 0.01f, 0.0f, 10.0f))
         {
             globalChanged = true;

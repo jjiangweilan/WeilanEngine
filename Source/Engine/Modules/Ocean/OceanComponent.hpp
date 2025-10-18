@@ -18,10 +18,12 @@ class OceanComponent : public RenderingComponent<OceanComponent>
     struct CPUWave : public GPUResources::Wave
     {
         bool enabled;
+        bool clampCrest;
         float directionAngle;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
+            SER(clampCrest),
             SER(directionAngle),
             SER(amplitude),
             SER(wavelength),
