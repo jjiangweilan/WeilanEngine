@@ -11,6 +11,8 @@
 #include <concepts>
 #include <string_view>
 
+
+class Material;
 namespace Editor
 {
 
@@ -481,6 +483,8 @@ public:
     {
         ImGui::Image(&image.GetDefaultImageView(), {size.x, size.y});
     }
+
+    static void DrawMaterial(Material& material);
 
     static void Image(Gfx::Image& image, const float2& minPos, const float2 maxPos)
     {

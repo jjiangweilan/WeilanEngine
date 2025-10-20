@@ -1,5 +1,6 @@
 
 #include "EditorGUI.hpp"
+#include "Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -232,5 +233,9 @@ bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::
         }
     }
     return selected;
+}
+
+void EditorGUI::DrawMaterial(Material& material)
+{
 }
 } // namespace Editor
