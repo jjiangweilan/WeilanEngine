@@ -144,8 +144,6 @@ private:
     {
         return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/";
     }
-    std::unique_ptr<Gfx::ShaderProgram>
-    CompileShader(const char* shaderName, ShaderPermutation permutation);
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
     void CompileAllDefaultShadersImpl();
