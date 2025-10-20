@@ -32,6 +32,7 @@ ParameterBlock<PerScene> perScene;
 struct PushConstant
 {
     float4x4 model;
+    float4x4 invModel;
 };
 
 [vk_push_constant]
@@ -40,6 +41,9 @@ PushConstant ps;
 struct MaterialInput
 {
     int waveCount;
+    float4 waveColorBlend;
+    float4 waveTopColor;
+    float4 waveBottomColor;
     StructuredBuffer<Wave> waves;
 }
 
@@ -50,15 +54,16 @@ ParameterBlock<MaterialInput> mat;
 // after accumulation, tanget and binormal can be calculated as follow
 //binormal = normalize(float3(1 - binormal.x, binormal.y, -binormal.z));
 //tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
-float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent, inout float3 binormal)
+float3 GerstnerWave(Wave wave, float3 position, float time, float waveNumber, inout float3 tangent, inout float3 binormal)
 {
     float2 d = wave.direction;
-    float Q = wave.steepness;
     float A = wave.amplitude;
-    float W = 1 / wave.wavelength;
-    float speed = wave.speed;
+    float W = 2 * M_PI / wave.wavelength;
+    float WA = W * A;
+    float Q = wave.steepness / (WA * waveNumber);
+    float speed = wave.speed * sqrt(9.8 / W); // use deep water theory to calculate speed
 
-    float phase = 2 * M_PI * speed * W;
+    float phase = speed * W;
     float f = (W * dot(d, position.xz) + phase * time);
     float QA = Q * A;
     
@@ -71,7 +76,6 @@ float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent
     tangent = float3(1,0,0);
     binormal = float3(0,1,0);
 
-    float WA = W * A;
     float s0 = sin(f);
     float c0 = cos(f);
 
@@ -88,15 +92,16 @@ float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 tangent
     return result;
 }
 
-float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 normal)
+float3 GerstnerWave(Wave wave, float3 position, float time, float waveNumber, inout float3 normal)
 {
     float2 d = wave.direction;
-    float Q = wave.steepness;
     float A = wave.amplitude;
-    float W = 1 / wave.wavelength;
-    float speed = wave.speed;
+    float W = 2 * M_PI / wave.wavelength;
+    float WA = W * A;
+    float Q = wave.steepness / (WA * waveNumber);
+    float speed = wave.speed * sqrt(9.8 / W); // use deep water theory to calculate speed
 
-    float phase = 2 * M_PI * speed * W;
+    float phase = speed * W;
     float f = (W * dot(d, position.xz) + phase * time);
     float QA = Q * A;
     
@@ -106,7 +111,6 @@ float3 GerstnerWave(Wave wave, float3 position, float time, inout float3 normal)
     result.z = QA * d.y * cos(f);
     result.y = A * sin(f);
 
-    float WA = W * A;
     float s0 = sin(f);
     float c0 = cos(f);
 
@@ -122,7 +126,7 @@ VertexOutput Vertex(VertexInput input)
 {
     VertexOutput output;
     
-    float3 worldPos = mul(ps.model, float4(input.position, 1.0)).xyz;
+    float3 objectPos = input.position;
     float time = perScene.scene.time;
     
     // Initialize tangent space vectors
@@ -136,22 +140,22 @@ VertexOutput Vertex(VertexInput input)
     {
         Wave wave = mat.waves[i];
         float3 outNormal;
-        waveOffset += GerstnerWave(wave, worldPos, time, outNormal);
+        waveOffset += GerstnerWave(wave, objectPos, time, waveCount, outNormal);
         normal += outNormal;
     }
 
     normal = normalize(float3(-normal.x, 1 - normal.y, -normal.z));
     
     // Apply wave displacement
-    worldPos += waveOffset;
-    output.positionWS = worldPos;
+    objectPos += waveOffset;
+    output.positionWS = mul(ps.model, float4(objectPos + waveOffset, 1.0)).xyz;
     
     // Calculate normal from tangent and binormal
     // float3 normal = normalize(cross(tangent, binormal));
-    output.normalWS = mul((float3x3)ps.model, normal);
+    output.normalWS = mul(transpose((float3x3)ps.invModel), normal);
 
     output.uv = input.uv;
-    output.position = mul(perScene.camera.viewProjection, float4(worldPos, 1.0));
+    output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1.0));
     
     return output;
 }
