@@ -13,3 +13,8 @@ struct MaterialAttribute
 struct ObjectAttribute
 {
 };
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct ColorAttribute
+{
+};

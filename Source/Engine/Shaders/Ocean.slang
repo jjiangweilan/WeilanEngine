@@ -16,6 +16,7 @@ struct VertexOutput
     float4 position : SV_Position;
     float3 positionWS;
     float3 normalWS;
+    float3 waveOffset;
     float2 uv;
 };
 
@@ -42,7 +43,9 @@ struct MaterialInput
 {
     int waveCount;
     float4 waveColorBlend;
+    [[Color]]
     float4 waveTopColor;
+    [[Color]]
     float4 waveBottomColor;
     StructuredBuffer<Wave> waves;
 }
@@ -156,6 +159,7 @@ VertexOutput Vertex(VertexInput input)
 
     output.uv = input.uv;
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1.0));
+    output.waveOffset = waveOffset;
     
     return output;
 }
@@ -168,6 +172,7 @@ float4 Fragment(VertexOutput input) : SV_Target
     float metallic = 0.0; // Water is non-metallic
     float roughness = 0.05; // Very smooth surface
     float subsurfaceStrength = 0.3;
+    float3 waveOffset = input.waveOffset;
     
     // Normalize interpolated vectors
     float3 N = normalize(input.normalWS);
@@ -189,15 +194,11 @@ float4 Fragment(VertexOutput input) : SV_Target
         float NdotL = max(dot(N, L), 0.0);
         finalColor = NdotL * light.lightColor.xyz;
     }
+
     
-    // Ambient lighting with skybox-like fallback
-    float3 ambient = float3(0.03, 0.05, 0.1) * baseColor;
-    finalColor += ambient;
-    
-    // Fresnel-based transparency for nice water edge effects
-    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-    float alpha = lerp(0.85, 0.95, fresnel);
-    
+    float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
+    float3 color = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
+
     return float4(finalColor, 1);
 }
 

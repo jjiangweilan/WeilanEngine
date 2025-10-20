@@ -1,5 +1,6 @@
 
 #include "EditorGUI.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
@@ -235,7 +236,191 @@ bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::
     return selected;
 }
 
-void EditorGUI::DrawMaterial(Material& material)
+void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>& disabledFields)
 {
+    auto SetTexture = [&material](const std::string& param, Texture* tex)
+    {
+        material.SetTexture(param, tex);
+        if (param == "baseColorTex")
+        {
+            if (tex != nullptr)
+                material.EnableFeature("_BaseColorMap");
+            else
+                material.DisableFeature("_BaseColorMap");
+        }
+        else if (param == "normalMap")
+        {
+            if (tex != nullptr)
+                material.EnableFeature("_NormalMap");
+            else
+                material.DisableFeature("_NormalMap");
+        }
+        else if (param == "emissiveMap")
+        {
+            if (tex != nullptr)
+                material.EnableFeature("_EmissiveMap");
+            else
+                material.DisableFeature("_EmissiveMap");
+        }
+        else if (param == "metallicRoughnessMap")
+        {
+            if (tex != nullptr)
+                material.EnableFeature("_MetallicRoughnessMap");
+            else
+                material.DisableFeature("_MetallicRoughnessMap");
+        }
+    };
+
+    auto IsColorAttribute = [](const Gfx::PipelineInfo::BufferMember& member) -> bool
+    {
+        for (const auto& attr : member.attributes)
+        {
+            if (attr == "Color" || attr == "color" || attr == "COLOR")
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    auto shader = material.GetShader()->GetShaderProgram();
+    if (shader)
+    {
+        auto& pipelineInfo = shader->GetShaderInfo();
+        auto set = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
+        if (set)
+        {
+            const auto binding = set->GetBinding(0);
+            if (binding)
+            {
+                for (auto member : binding->bufferMembers)
+                {
+                    if (std::find(disabledFields.begin(), disabledFields.end(), member.name) != disabledFields.end())
+                    {
+                        continue;
+                    }
+                    if (member.IsVector())
+                    {
+                        glm::float4 val = material.GetVector("", member.name);
+
+                        if (member.rowCount == 4)
+                        {
+                            if (IsColorAttribute(member))
+                            {
+                                if (ImGui::ColorEdit4(member.name.c_str(), &val[0]))
+                                {
+                                    material.SetVector("", member.name, val);
+                                }
+                            }
+                            else if (EditorGUI::DragFloat4(member.name.c_str(), &val[0]))
+                            {
+                                material.SetVector("", member.name, val);
+                            }
+                        }
+                        if (member.rowCount == 3 && Utils::strContians(Utils::strToLower(member.name), "color"))
+                        {
+                            if (IsColorAttribute(member))
+                            {
+                                if (ImGui::ColorPicker3(member.name.c_str(), &val[0]))
+                                {
+                                    material.SetVector("", member.name, val);
+                                }
+                            }
+                            else if (EditorGUI::DragFloat3(member.name.c_str(), &val[0]))
+                            {
+                                material.SetVector("", member.name, val);
+                            }
+                        }
+                        else if (member.rowCount == 2)
+                        {
+                            if (EditorGUI::DragFloat2(member.name.c_str(), &val[0]))
+                            {
+                                material.SetVector("", member.name, val);
+                            }
+                        }
+                    }
+                    else if (member.IsElement())
+                    {
+                        float val = material.GetFloat("", member.name);
+
+                        if (member.type == Gfx::PipelineInfo::MemberDataType::Float)
+                        {
+                            if (EditorGUI::DragFloat(member.name.c_str(), &val))
+                            {
+                                material.SetFloat("", member.name, val);
+                            }
+                        }
+                        else if (member.type == Gfx::PipelineInfo::MemberDataType::Int)
+                        {
+                            int ival = val;
+                            if (EditorGUI::DragInt(member.name.c_str(), &ival))
+                            {
+                                material.SetFloat("", member.name, val);
+                            }
+                        }
+                        else if (member.type == Gfx::PipelineInfo::MemberDataType::UInt)
+                        {
+                            int ival = val;
+                            if (EditorGUI::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
+                            {
+                                material.SetFloat("", member.name, val);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < set->GetBindingCount(); ++i)
+            {
+                const auto& binding = set->GetBinding(i);
+                if (binding->descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+                    binding->descriptorType == Gfx::DescriptorType::SampledImage)
+                {
+                    if (std::find(disabledFields.begin(), disabledFields.end(), binding->name) != disabledFields.end())
+                    {
+                        continue;
+                    }
+
+                    auto texture = material.GetTexture(binding->name);
+                    if (texture != nullptr)
+                    {
+                        ImGui::Text("Texture: %s", binding->name.c_str());
+                        ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                        {
+                            EditorState::SelectObject(texture);
+                        }
+                        std::filesystem::path path;
+
+                        auto regionMin = ImGui::GetItemRectMin();
+                        auto regionMax = ImGui::GetItemRectMax();
+                        if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
+                        {
+                            auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                            if (tex)
+                                SetTexture(binding->name, tex);
+                        }
+
+                        ImGui::SameLine();
+                        if (ImGui::Button("x"))
+                        {
+                            SetTexture(binding->name, nullptr);
+                        }
+                    }
+                    else
+                    {
+                        ImGui::Button(binding->name.c_str());
+                        std::filesystem::path path;
+                        if (EditorGUI::DragDropTarget(path))
+                        {
+                            auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                            if (tex)
+                                SetTexture(binding->name, tex);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 } // namespace Editor

@@ -1,8 +1,8 @@
 #include "ShaderLibraryAsyncWorker.hpp"
 #include "Core/JobSystem.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/EnumStringMapping.hpp"
 #include "Libs/Utils.hpp"
+#include "Rendering/EnumStringMapping.hpp"
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>
@@ -327,7 +327,7 @@ public:
         auto access = typeLayout->getResourceAccess();
         ASSERT(typeLayout->getBindingRangeCount() == 1);
         {
-#define MAP_SLANG_DESCRIPTOR_TYPE_CASE(from, to)                                                                       \
+#define MAP_SLANG_DESCRIPTOR_TYPE_CASE(from, to) \
     case slang::BindingType::from: return Gfx::DescriptorType::to;
 
             auto rangeType = typeLayout->getBindingRangeType(0);
@@ -435,11 +435,13 @@ public:
         auto fieldCount = typeLayout->getFieldCount();
         for (int fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
         {
+
             auto field = typeLayout->getFieldByIndex(fieldIndex);
             auto fieldTypeLayout = field->getTypeLayout();
             auto fieldKind = fieldTypeLayout->getKind();
             auto kind = fieldTypeLayout->getKind();
             int size = fieldTypeLayout->getSize();
+            auto variable = field->getVariable();
             switch (fieldKind)
             {
                 case slang::TypeReflection::Kind::Struct:
@@ -474,6 +476,10 @@ public:
                             member.rowCount = 1;                // as element count when type is a Vector
                             member.offset = field->getOffset(); // byte offset in it's containning struct
                             member.byteSize = size;
+                            for (int i = 0; i < variable->getUserAttributeCount(); ++i)
+                            {
+                                member.attributes.push_back(variable->getUserAttributeByIndex(i)->getName());
+                            }
 
                             members.push_back(member);
                         }
@@ -501,6 +507,10 @@ public:
                         }
                         member.offset = field->getOffset(); // byte offset in it's containning struct
                         member.byteSize = size;
+                        for (int i = 0; i < variable->getUserAttributeCount(); ++i)
+                        {
+                            member.attributes.push_back(variable->getUserAttributeByIndex(i)->getName());
+                        }
 
                         members.push_back(member);
                         break;

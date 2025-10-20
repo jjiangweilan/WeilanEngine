@@ -58,6 +58,7 @@ struct PipelineInfo
         uint32_t offset = 0;   // byte offset in it's containning struct
         uint32_t count = 0;    // array
         uint32_t byteSize = 0;
+        std::vector<std::string> attributes;
         bool IsElement() const { return count == 0 && rowCount == 1 && columnCount == 1; }
         bool IsArray() const { return count > 0; }
         bool IsVector() const { return rowCount > 1 && columnCount == 1; }

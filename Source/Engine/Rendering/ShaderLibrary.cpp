@@ -397,6 +397,7 @@ public:
             auto fieldKind = fieldTypeLayout->getKind();
             auto kind = fieldTypeLayout->getKind();
             int size = fieldTypeLayout->getSize();
+            auto variable = field->getVariable();
             switch (fieldKind)
             {
                 case slang::TypeReflection::Kind::Struct:
@@ -431,6 +432,10 @@ public:
                             member.rowCount = 1;                // as element count when type is a Vector
                             member.offset = field->getOffset(); // byte offset in it's containning struct
                             member.byteSize = size;
+                            for (int i = 0; i < variable->getUserAttributeCount(); ++i)
+                            {
+                                member.attributes.push_back(variable->getUserAttributeByIndex(i)->getName());
+                            }
 
                             members.push_back(member);
                         }
@@ -458,6 +463,10 @@ public:
                         }
                         member.offset = field->getOffset(); // byte offset in it's containning struct
                         member.byteSize = size;
+                        for (int i = 0; i < variable->getUserAttributeCount(); ++i)
+                        {
+                            member.attributes.push_back(variable->getUserAttributeByIndex(i)->getName());
+                        }
 
                         members.push_back(member);
                         break;

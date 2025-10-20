@@ -11,7 +11,6 @@
 #include <concepts>
 #include <string_view>
 
-
 class Material;
 namespace Editor
 {
@@ -67,8 +66,8 @@ public:
             // For matrices, we'll display them as 4 rows of 4 floats using table layout
             if (ImGui::BeginTable("##matrix_table", 2))
             {
-                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
-                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Label");
+                ImGui::TableSetupColumn("Value");
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
@@ -131,10 +130,10 @@ public:
         else if constexpr (std::is_same_v<TReturn, float4x4>)
         {
             // For matrices, we'll display them as 4 rows of 4 floats using table layout
-            if (ImGui::BeginTable("##matrix_table", 2, ImGuiTableFlags_SizingStretchProp))
+            if (ImGui::BeginTable("##matrix_table", 2))
             {
-                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Label");
+                ImGui::TableSetupColumn("Value");
 
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
@@ -183,10 +182,10 @@ public:
 
         bool changed = false;
 
-        if (ImGui::BeginTable("##enum_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##enum_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -484,7 +483,7 @@ public:
         ImGui::Image(&image.GetDefaultImageView(), {size.x, size.y});
     }
 
-    static void DrawMaterial(Material& material);
+    static void DrawMaterial(Material& material, const std::vector<std::string>& disabledFields = {});
 
     static void Image(Gfx::Image& image, const float2& minPos, const float2 maxPos)
     {
@@ -528,10 +527,10 @@ public:
     // Wrapper functions for consistent UI layout using table API
     static void Text(const char* label, const char* value)
     {
-        if (ImGui::BeginTable("##text_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##text_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -552,10 +551,10 @@ public:
     template <typename... Args>
     static void TextFormatted(const char* label, const char* format, Args... args)
     {
-        if (ImGui::BeginTable("##text_formatted_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##text_formatted_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -611,10 +610,10 @@ public:
     static bool DragFloat3(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##dragfloat3_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##dragfloat3_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -631,10 +630,10 @@ public:
     static bool DragFloat4(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##dragfloat4_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##dragfloat4_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -651,10 +650,10 @@ public:
     static bool DragInt(const char* label, int* value, float speed = 1.0f, int min = 0, int max = 0)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##dragint_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##dragint_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -671,10 +670,10 @@ public:
     static bool Checkbox(const char* label, bool* value)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##checkbox_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##checkbox_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -691,10 +690,10 @@ public:
     static bool Button(const char* label, const char* buttonText)
     {
         bool clicked = false;
-        if (ImGui::BeginTable("##button_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##button_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -711,10 +710,10 @@ public:
     static bool InputTextLabeled(const char* label, char* buffer, size_t bufferSize, ImGuiInputTextFlags flags = 0)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##inputtext_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##inputtext_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -738,10 +737,10 @@ public:
         std::strcpy(textArea.data(), text.data());
 
         bool changed = false;
-        if (ImGui::BeginTable("##inputtext_string_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##inputtext_string_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -764,10 +763,10 @@ public:
     static bool ComboLabeled(const char* label, int* currentItem, const char* const items[], int itemsCount)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##combo_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##combo_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -784,10 +783,10 @@ public:
     static bool ComboLabeled(const char* label, int* currentItem, const char* itemsSeparatedByZeros)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##combo_separated_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##combo_separated_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -804,10 +803,10 @@ public:
     // Image display with label
     static void ImageLabeled(const char* label, Gfx::ImageView* imageView, const ImVec2& size)
     {
-        if (ImGui::BeginTable("##image_table", 2, ImGuiTableFlags_SizingStretchProp))
+        if (ImGui::BeginTable("##image_table", 2))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Label");
+            ImGui::TableSetupColumn("Value");
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);

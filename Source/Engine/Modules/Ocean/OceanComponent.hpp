@@ -48,6 +48,7 @@ public:
 
     std::vector<CPUWave>& GetWaves() { return waves; }
     CPUWave& GetGlobalTweak() { return globalTweak; }
+    Material& GetMaterial() { return material; }
 
     void UpdateWaveBuffer();
 

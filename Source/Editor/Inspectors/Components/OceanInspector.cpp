@@ -39,6 +39,9 @@ public:
             globalChanged = true;
         }
 
+        auto& material = target->GetMaterial();
+        EditorGUI::DrawMaterial(material, {"waveCount"});
+
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
 
         bool waveChanged = false;
