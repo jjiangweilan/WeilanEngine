@@ -42,94 +42,24 @@ PushConstant ps;
 struct MaterialInput
 {
     int waveCount;
+    float areaScale;
     float4 waveColorBlend;
-    [[Color]]
-    float4 waveTopColor;
-    [[Color]]
-    float4 waveBottomColor;
+    [[Color]] float4 waveTopColor;
+    [[Color]] float4 waveBottomColor;
     StructuredBuffer<Wave> waves;
 }
 
 [[Material]]
 ParameterBlock<MaterialInput> mat;
 
-// Tanget and Binornal with cross for Normal later
-// after accumulation, tanget and binormal can be calculated as follow
-//binormal = normalize(float3(1 - binormal.x, binormal.y, -binormal.z));
-//tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
-float3 GerstnerWave(Wave wave, float3 position, float time, float waveNumber, inout float3 tangent, inout float3 binormal)
-{
-    float2 d = wave.direction;
-    float A = wave.amplitude;
-    float W = 2 * M_PI / wave.wavelength;
-    float WA = W * A;
-    float Q = wave.steepness / (WA * waveNumber);
-    float speed = wave.speed * sqrt(9.8 / W); // use deep water theory to calculate speed
-
-    float phase = speed * W;
-    float f = (W * dot(d, position.xz) + phase * time);
-    float QA = Q * A;
-    
-    // Calculate the wave displacement
-    float3 result = float3(0.0, 0.0, 0.0);
-    result.x = QA * d.x * cos(f);
-    result.z = QA * d.y * cos(f);
-    result.y = A * sin(f);
-
-    tangent = float3(1,0,0);
-    binormal = float3(0,1,0);
-
-    float s0 = sin(f);
-    float c0 = cos(f);
-
-    // Calculate binormal vector (derivative with respect to x)
-    binormal.x = Q * d.x * d.x * WA * s0;// -d.x * d.y * steepness * sin(f);
-    binormal.z = Q * d.x * d.y * WA * s0;
-    binormal.y = d.x * WA * c0;
-    
-    // Calculate tangent vector (derivative with respect to z)
-    tangent.x = Q * d.x * d.y * WA * s0;
-    tangent.z = Q * d.y * d.y * WA * s0;
-    tangent.y = d.y * WA * c0;
-
-    return result;
-}
-
-float3 GerstnerWave(Wave wave, float3 position, float time, float waveNumber, inout float3 normal)
-{
-    float2 d = wave.direction;
-    float A = wave.amplitude;
-    float W = 2 * M_PI / wave.wavelength;
-    float WA = W * A;
-    float Q = wave.steepness / (WA * waveNumber);
-    float speed = wave.speed * sqrt(9.8 / W); // use deep water theory to calculate speed
-
-    float phase = speed * W;
-    float f = (W * dot(d, position.xz) + phase * time);
-    float QA = Q * A;
-    
-    // Calculate the wave displacement
-    float3 result = float3(0.0, 0.0, 0.0);
-    result.x = QA * d.x * cos(f);
-    result.z = QA * d.y * cos(f);
-    result.y = A * sin(f);
-
-    float s0 = sin(f);
-    float c0 = cos(f);
-
-    normal.x = d.x * WA * c0;
-    normal.z = d.y * WA * c0;
-    normal.y = Q * WA * s0;
-
-    return result;
-}
+#include "./GerstnerWave.hlsl"
 
 [shader("vertex")]
 VertexOutput Vertex(VertexInput input)
 {
     VertexOutput output;
     
-    float3 objectPos = input.position;
+    float3 worldPos = mul(ps.model, float4(input.position.xyz, 1.0)).xyz;
     float time = perScene.scene.time;
     
     // Initialize tangent space vectors
@@ -143,15 +73,15 @@ VertexOutput Vertex(VertexInput input)
     {
         Wave wave = mat.waves[i];
         float3 outNormal;
-        waveOffset += GerstnerWave(wave, objectPos, time, waveCount, outNormal);
+        waveOffset += GerstnerWave(wave, worldPos * mat.areaScale, time, waveCount, outNormal);
         normal += outNormal;
     }
 
     normal = normalize(float3(-normal.x, 1 - normal.y, -normal.z));
     
     // Apply wave displacement
-    objectPos += waveOffset;
-    output.positionWS = mul(ps.model, float4(objectPos + waveOffset, 1.0)).xyz;
+    worldPos += waveOffset;
+    output.positionWS = worldPos;
     
     // Calculate normal from tangent and binormal
     // float3 normal = normalize(cross(tangent, binormal));
@@ -199,6 +129,6 @@ float4 Fragment(VertexOutput input) : SV_Target
     float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
     float3 color = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
 
-    return float4(finalColor, 1);
+    return float4(color, 1);
 }
 

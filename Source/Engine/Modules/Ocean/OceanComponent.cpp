@@ -19,13 +19,14 @@ DEFINE_SERIALIZATION(
     OceanComponent,
     Component,
     SER(waves),
-    SER(globalTweak)
+    SER(globalTweak),
+    SER(material)
 )
 
 void OceanComponent::OnInit()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
-    plane = Rendering::GeneratePlane(5, 5, 1024, 1024);
+    plane = Rendering::GeneratePlane(1, 1, 256, 256);
     oceanShader = ShaderLibrary::GetShader(Shaders::Ocean);
     materialSet = oceanShader->GetSet(Gfx::DescriptorSetSemantics::Material);
     material.SetShader(oceanShader);

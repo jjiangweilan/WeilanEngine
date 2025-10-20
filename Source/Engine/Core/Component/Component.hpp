@@ -72,6 +72,24 @@ private:
         return name;                         \
     }
 
+#define DECLARE_COMPONENT_CONSTRUCT(TypeName) \
+    DECLARE_OBJECT()                          \
+public:                                       \
+    TypeName() : TypeName(nullptr){};         \
+    TypeName(GameObject* gameObject);         \
+    const std::string& GetName() override;    \
+                                              \
+private:
+
+#define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \
+    DEFINE_OBJECT(TypeName, UUID)                  \
+    const std::string& TypeName::GetName()         \
+    {                                              \
+        static std::string name = #TypeName;       \
+        return name;                               \
+    }                                              \
+    TypeName::TypeName(GameObject* gameObject) : Component(gameObject)
+
 /**
 class ExampleComponent : public Component
 {

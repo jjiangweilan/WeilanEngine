@@ -3,7 +3,8 @@ import Library.PerScene;
 #if CONFIG
 polygonMode : line
 depth :
-    testEnable : true
+    testEnable : True
+    compareOp : greaterOrEqual
 
 #endif
 

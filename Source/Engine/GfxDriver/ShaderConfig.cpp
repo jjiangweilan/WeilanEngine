@@ -16,7 +16,7 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
         config.depth.writeEnable = depthJson.value("writeEnable", true);
         config.depth.testEnable = depthJson.value("testEnable", true);
         config.depth.compOp =
-            static_cast<CompareOp>(depthJson.value("compOp", static_cast<int>(CompareOp::Less_or_Equal)));
+            static_cast<CompareOp>(depthJson.value("compOp", static_cast<int>(CompareOp::Greater_Or_Equal)));
         config.depth.boundTestEnable = depthJson.value("boundTestEnable", false);
         config.depth.minBounds = depthJson.value("minBounds", 0.0f);
         config.depth.maxBounds = depthJson.value("maxBounds", 1.0f);
@@ -50,7 +50,6 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
             config.stencil.back = parseStencilOpState(stencilJson["back"]);
         else
             config.stencil.front = parseStencilOpState(stencilJson);
-
     }
 
     // Color settings
@@ -64,19 +63,15 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
                 ColorBlendAttachmentState blend;
                 blend.blendEnable = blendJson.value("blendEnable", false);
                 blend.srcColorBlendFactor =
-                    static_cast<BlendFactor>(blendJson.value("srcColorBlendFactor", static_cast<int>(BlendFactor::One))
-                    );
+                    static_cast<BlendFactor>(blendJson.value("srcColorBlendFactor", static_cast<int>(BlendFactor::One)));
                 blend.dstColorBlendFactor =
-                    static_cast<BlendFactor>(blendJson.value("dstColorBlendFactor", static_cast<int>(BlendFactor::Zero))
-                    );
+                    static_cast<BlendFactor>(blendJson.value("dstColorBlendFactor", static_cast<int>(BlendFactor::Zero)));
                 blend.colorBlendOp =
                     static_cast<BlendOp>(blendJson.value("colorBlendOp", static_cast<int>(BlendOp::Add)));
                 blend.srcAlphaBlendFactor =
-                    static_cast<BlendFactor>(blendJson.value("srcAlphaBlendFactor", static_cast<int>(BlendFactor::One))
-                    );
+                    static_cast<BlendFactor>(blendJson.value("srcAlphaBlendFactor", static_cast<int>(BlendFactor::One)));
                 blend.dstAlphaBlendFactor =
-                    static_cast<BlendFactor>(blendJson.value("dstAlphaBlendFactor", static_cast<int>(BlendFactor::Zero))
-                    );
+                    static_cast<BlendFactor>(blendJson.value("dstAlphaBlendFactor", static_cast<int>(BlendFactor::Zero)));
                 blend.alphaBlendOp =
                     static_cast<BlendOp>(blendJson.value("alphaBlendOp", static_cast<int>(BlendOp::Add)));
                 blend.colorWriteMask = blendJson.value("colorWriteMask", 0);
@@ -152,8 +147,7 @@ nlohmann::json Gfx::PipelineConfig::ToJson() const
         j["color"]["blends"].push_back(blendJson);
     }
     j["color"]["blendConstants"] =
-        {v->color.blendConstants[0], v->color.blendConstants[1], v->color.blendConstants[2], v->color.blendConstants[3]
-        };
+        {v->color.blendConstants[0], v->color.blendConstants[1], v->color.blendConstants[2], v->color.blendConstants[3]};
 
     return j;
 }

@@ -15,6 +15,8 @@ public:
         this->screenHeight = height;
     }
 
+    int2 GetDisplaySize();
+
     float2 GetScreenSize() { return {screenWidth, screenHeight}; }
 
     static SystemInfo& Singleton();

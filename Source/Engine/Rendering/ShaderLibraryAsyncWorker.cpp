@@ -1115,7 +1115,7 @@ public:
             auto depth = root["depth"];
             depth.get_if("testEnable", &config.depth.testEnable);
             depth.get_if("writeEnable", &config.depth.writeEnable);
-            depth.get_if("compOp", &val, std::string("lessOrEqual"));
+            depth.get_if("compOp", &val, std::string("greaterOrEqual"));
             config.depth.compOp = Utils::MapCompareOp(val);
             depth.get_if("boundTestEnable", &config.depth.boundTestEnable);
             depth.get_if("minBounds", &config.depth.minBounds);

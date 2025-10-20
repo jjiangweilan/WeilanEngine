@@ -240,6 +240,7 @@ void WeilanEngine::InitSDL()
         mainWindow.size.height,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
     );
+    SDL_MaximizeWindow(mainWindow.handle);
 
     int drawableWidth, drawbaleHeight;
     SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
