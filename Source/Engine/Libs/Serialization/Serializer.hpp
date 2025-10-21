@@ -70,6 +70,9 @@ public:
 
     virtual ~Serializer() {}
 
+    const std::unordered_map<UUID, Object*>& GetContainedObjects() { return objects; }
+    const std::vector<UUID>& GetReferencedObjects() { return referencedObjects; }
+
     template <class T, class U>
     void Serialize(std::string_view, const std::unordered_map<T, U>& val);
     template <class T, class U>
@@ -159,9 +162,6 @@ public:
     virtual bool IsNull() = 0;
 
     virtual std::vector<uint8_t> GetBinary() = 0;
-    const std::unordered_map<UUID, Object*>& GetContainedObjects() { return objects; }
-
-    const std::vector<UUID>& GetReferencedObjects() { return referencedObjects; }
 
     virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
     virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;

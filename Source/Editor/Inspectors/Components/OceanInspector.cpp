@@ -40,7 +40,10 @@ public:
         }
 
         auto& material = target->GetMaterial();
-        EditorGUI::DrawMaterial(material, {"waveCount"});
+
+        float& areaScale = target->GetAreaScale();
+        globalChanged |= EditorGUI::DragFloat("areaScale", &areaScale);
+        EditorGUI::DrawMaterial(material, {"waveCount", "areaScale"});
 
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
 
@@ -90,7 +93,7 @@ public:
 
         if (EditorGUI::ButtonSimple("Add Wave"))
         {
-            waves.push_back({{{0.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f}, true, 0.0f});
+            waves.push_back({{{0.0f, 0.0f}, 0.2f, 5.0f, 1.0f, 0.5f}, true, false, 0.0f});
             waveChanged = true;
         }
 

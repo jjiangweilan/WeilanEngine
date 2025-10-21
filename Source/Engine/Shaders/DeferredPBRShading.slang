@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Shadows;
 import Library.PerScene;
+import Math;
 
 #if CONFIG
 depth:

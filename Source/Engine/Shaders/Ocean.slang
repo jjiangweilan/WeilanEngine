@@ -58,31 +58,14 @@ ParameterBlock<MaterialInput> mat;
 VertexOutput Vertex(VertexInput input)
 {
     VertexOutput output;
-    
+
     float3 worldPos = mul(ps.model, float4(input.position.xyz, 1.0)).xyz;
     float time = perScene.scene.time;
-    
-    // Initialize tangent space vectors
-    float3 normal = float3(0,0,0);
-    float3 waveOffset = float3(0, 0, 0);
-    
-    // Accumulate Gerstner waves
-    uint waveCount = uint(mat.waveCount);
-    
-    for (uint i = 0; i < waveCount; i++)
-    {
-        Wave wave = mat.waves[i];
-        float3 outNormal;
-        waveOffset += GerstnerWave(wave, worldPos * mat.areaScale, time, waveCount, outNormal);
-        normal += outNormal;
-    }
 
-    normal = normalize(float3(-normal.x, 1 - normal.y, -normal.z));
-    
-    // Apply wave displacement
-    worldPos += waveOffset;
-    output.positionWS = worldPos;
-    
+    float3 normal = float3(0,0,0);
+    float3 waveOffset = float3(0,0,0);
+    output.positionWS = GerstenerWave(worldPos, mat.waves, mat.waveCount, mat.areaScale, time, normal, waveOffset);
+
     // Calculate normal from tangent and binormal
     // float3 normal = normalize(cross(tangent, binormal));
     output.normalWS = mul(transpose((float3x3)ps.invModel), normal);
@@ -90,7 +73,7 @@ VertexOutput Vertex(VertexInput input)
     output.uv = input.uv;
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1.0));
     output.waveOffset = waveOffset;
-    
+
     return output;
 }
 

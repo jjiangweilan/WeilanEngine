@@ -1,8 +1,8 @@
 static const float NearZero = 0.00000001;
-static const float M_PI = 3.14159265359;
 
 import Library.PerScene;
 import Shadows;
+import Math;
 
 struct GI
 {

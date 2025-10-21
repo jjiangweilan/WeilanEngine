@@ -37,6 +37,7 @@ class OceanComponent : public RenderingComponent<OceanComponent>
 
     Material material;
     int materialSet;
+    float areaScale;
 
     std::vector<CPUWave> waves;
     CPUWave globalTweak;
@@ -49,6 +50,7 @@ public:
     std::vector<CPUWave>& GetWaves() { return waves; }
     CPUWave& GetGlobalTweak() { return globalTweak; }
     Material& GetMaterial() { return material; }
+    float& GetAreaScale() { return areaScale; }
 
     void UpdateWaveBuffer();
 

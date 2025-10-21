@@ -20,7 +20,8 @@ DEFINE_SERIALIZATION(
     Component,
     SER(waves),
     SER(globalTweak),
-    SER(material)
+    SER(material),
+    SER(areaScale)
 )
 
 void OceanComponent::OnInit()
@@ -85,9 +86,8 @@ void OceanComponent::UpdateWaveBuffer()
     // Upload wave data
     GetGfxDriver()->UploadBuffer(*waveBuffer, (uint8_t*)upload.data(), upload.size() * sizeof(GPUResources::Wave));
 
-    // Bind to material
     material.SetBuffer("waves", waveBuffer.get());
-
+    material.SetFloat("areaScale", areaScale);
     material.SetFloat("waveCount", (float)upload.size());
 }
 
