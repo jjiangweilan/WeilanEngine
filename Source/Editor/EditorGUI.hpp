@@ -521,8 +521,8 @@ public:
 
     static void AutoObjectInspector(const Object* target);
     static void AutoObjectInspector(Object* target, bool readOnly = false);
-    static bool JsonInspector(nlohmann::json& j);
-    static void JsonInspector(nlohmann::json& j, bool& valueChanged);
+    static bool JsonInspector(nlohmann::json& j, const std::vector<std::string>& keys = {});
+    static void JsonInspector(nlohmann::json& j, bool& valueChanged, const std::vector<std::string>& keys = {});
 
     // Wrapper functions for consistent UI layout using table API
     static void Text(const char* label, const char* value)

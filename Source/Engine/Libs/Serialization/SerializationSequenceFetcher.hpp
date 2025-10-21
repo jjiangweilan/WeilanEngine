@@ -8,55 +8,69 @@ class SerializationSequenceFetcher : public Serializer
     std::vector<std::string> keySequence;
 
 public:
-    virtual void Serialize(std::string_view name, const std::string& val) = 0;
-    virtual void Deserialize(std::string_view name, std::string& val) = 0;
+    const std::vector<std::string>& GetKeySequence() { return keySequence; }
 
-    virtual void Serialize(std::string_view name, const nlohmann::json& json) = 0;
-    virtual void Deserialize(std::string_view name, nlohmann::json& json) = 0;
+    void Serialize(std::string_view name, const std::string& val) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, std::string& val) override {}
 
-    virtual void Serialize(std::string_view name, const bool val) = 0;
-    virtual void Deserialize(std::string_view name, bool& val) = 0;
+    void Serialize(std::string_view name, const nlohmann::json& json) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, nlohmann::json& json) override {}
 
-    virtual void Serialize(std::string_view name, const UUID& uuid) = 0;
-    virtual void Deserialize(std::string_view name, UUID& uuid) = 0;
+    void Serialize(std::string_view name, const bool val) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, bool& val) override {}
 
-    virtual void Serialize(std::string_view name, const uint32_t& v) = 0;
-    virtual void Deserialize(std::string_view name, uint32_t& v) = 0;
+    void Serialize(std::string_view name, const UUID& uuid) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, UUID& uuid) override {}
 
-    virtual void Serialize(std::string_view name, const int32_t& v) = 0;
-    virtual void Deserialize(std::string_view name, int32_t& v) = 0;
+    void Serialize(std::string_view name, const uint32_t& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, uint32_t& v) override {}
 
-    virtual void Serialize(std::string_view name, const uint64_t& v) = 0;
-    virtual void Deserialize(std::string_view name, uint64_t& v) = 0;
+    void Serialize(std::string_view name, const int32_t& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, int32_t& v) override {}
 
-    virtual void Serialize(std::string_view name, const int64_t& v) = 0;
-    virtual void Deserialize(std::string_view name, int64_t& v) = 0;
+    void Serialize(std::string_view name, const uint64_t& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, uint64_t& v) override {}
 
-    virtual void Serialize(std::string_view name, const float& v) = 0;
-    virtual void Deserialize(std::string_view name, float& v) = 0;
+    void Serialize(std::string_view name, const int64_t& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, int64_t& v) override {}
 
-    virtual void Serialize(std::string_view name, const glm::mat4& v) = 0;
-    virtual void Deserialize(std::string_view name, glm::mat4& v) = 0;
+    void Serialize(std::string_view name, const float& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, float& v) override {}
 
-    virtual void Serialize(std::string_view name, const glm::quat& v) = 0;
-    virtual void Deserialize(std::string_view name, glm::quat& v) = 0;
+    void Serialize(std::string_view name, const glm::mat4& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, glm::mat4& v) override {}
 
-    virtual void Serialize(std::string_view name, const glm::vec4& v) = 0;
-    virtual void Deserialize(std::string_view name, glm::vec4& v) = 0;
+    void Serialize(std::string_view name, const glm::quat& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, glm::quat& v) override {}
 
-    virtual void Serialize(std::string_view name, const glm::vec3& v) = 0;
-    virtual void Deserialize(std::string_view name, glm::vec3& v) = 0;
+    void Serialize(std::string_view name, const glm::vec4& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, glm::vec4& v) override {}
 
-    virtual void Serialize(std::string_view name, const glm::vec2& v) = 0;
-    virtual void Deserialize(std::string_view name, glm::vec2& v) = 0;
+    void Serialize(std::string_view name, const glm::vec3& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, glm::vec3& v) override {}
 
-    virtual void Serialize(std::string_view name, nullptr_t) = 0;
-    virtual bool IsNull(std::string_view name) = 0;
-    virtual bool IsNull() = 0;
+    void Serialize(std::string_view name, const glm::vec2& v) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, glm::vec2& v) override {}
 
-    virtual std::vector<uint8_t> GetBinary() = 0;
+    void Serialize(std::string_view name, nullptr_t) override { keySequence.push_back(std::string(name)); }
+    bool IsNull(std::string_view name) override { return true; }
+    bool IsNull() override { return true; }
 
-    virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
-    virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
-    virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
+    std::vector<uint8_t> GetBinary() override { return {}; }
+
+    std::unique_ptr<Serializer> CreateSubserializer() override { return std::make_unique<SerializationSequenceFetcher>(); }
+    std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) override { return std::make_unique<SerializationSequenceFetcher>(); }
+    void AppendSubserializer(std::string_view name, Serializer* s) override { keySequence.push_back(std::string(name)); }
+
+protected:
+    void Serialize(std::string_view name, unsigned char* p, size_t size) override { keySequence.push_back(std::string(name)); }
+    void Deserialize(std::string_view name, unsigned char* p, size_t size) override {}
+
+    size_t GetArraySize(std::string_view name) override { return 0; }
+
+    const nlohmann::json& GetJsonObject(std::string_view name) override
+    {
+        static nlohmann::json j;
+        return j;
+    }
 };

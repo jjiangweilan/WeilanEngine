@@ -66,7 +66,7 @@ public:
     Serializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : resolveCallbacks(resolve) {}
 
     // used for serialization
-    Serializer() {};
+    Serializer() : resolveCallbacks(nullptr) {};
 
     virtual ~Serializer() {}
 

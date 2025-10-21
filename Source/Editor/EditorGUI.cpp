@@ -1,6 +1,7 @@
 
 #include "EditorGUI.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Libs/Serialization/SerializationSequenceFetcher.hpp"
 #include "Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
@@ -13,10 +14,15 @@ void EditorGUI::AutoObjectInspector(Object* target, bool readOnly)
     if (target == nullptr)
         return;
     JsonSerializer ser;
+    SerializationSequenceFetcher keySequenceFetcher;
     (static_cast<Serializable*>(target))->Serialize(&ser);
+    (static_cast<Serializable*>(target))->Serialize(&keySequenceFetcher);
     auto j = ser.GetJson();
+    std::vector<std::string> keys = keySequenceFetcher.GetKeySequence();
+    std::erase_if(keys, [](auto& key)
+                  { return key == "gameObject" || key == "uuid" || key == "name" || key == "enabled"; });
     bool valueChanged = false;
-    JsonInspector(j, valueChanged);
+    JsonInspector(j, valueChanged, keys);
 
     if (valueChanged && !readOnly)
     {
@@ -31,16 +37,21 @@ void EditorGUI::AutoObjectInspector(const Object* target)
     if (target == nullptr)
         return;
     JsonSerializer ser;
+    SerializationSequenceFetcher keySequenceFetcher;
     (static_cast<const Serializable*>(target))->Serialize(&ser);
+    (static_cast<const Serializable*>(target))->Serialize(&keySequenceFetcher);
     auto j = ser.GetJson();
     bool valueChanged = false;
-    JsonInspector(j, valueChanged);
+    std::vector<std::string> keys = keySequenceFetcher.GetKeySequence();
+    std::erase_if(keys, [](auto& key)
+                  { return key == "gameObject" || key == "uuid" || key == "name" || key == "enabled"; });
+    JsonInspector(j, valueChanged, keys);
 }
 
-bool EditorGUI::JsonInspector(nlohmann::json& j)
+bool EditorGUI::JsonInspector(nlohmann::json& j, const std::vector<std::string>& keys)
 {
     bool valueChanged = false;
-    JsonInspector(j, valueChanged);
+    JsonInspector(j, valueChanged, keys);
     return valueChanged;
 }
 
@@ -66,13 +77,28 @@ const char* EditorGUI::ShaderPicker(const char* shaderName)
     return nullptr;
 }
 
-void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
+void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged, const std::vector<std::string>& keys)
 {
     const float BaseInputWidth = 60;
-    for (auto& item : j.items())
+
+    const std::vector<std::string>* realKeys = &keys;
+    std::vector<std::string> copies;
+    if (keys.empty())
     {
-        auto& key = item.key();
-        auto& value = item.value();
+        for (auto& i : j.items())
+        {
+            copies.push_back(i.key());
+        }
+
+        realKeys = &copies;
+    }
+
+    for (auto& key : *realKeys)
+    {
+        if (!j.contains(key))
+            continue;
+
+        auto& value = j[key];
         if (value.is_object())
         {
             if (ImGui::TreeNode(key.c_str()))

@@ -51,6 +51,8 @@ public:
                 asset->SetName(name);
             }
         }
+
+        EditorGUI::AutoObjectInspector(target.Get());
     };
 
     Object* GetTarget() override { return target; }
