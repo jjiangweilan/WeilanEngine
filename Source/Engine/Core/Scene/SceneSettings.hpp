@@ -13,7 +13,7 @@ public:
     void UpdateSkyboxProbe();
     void DebugDrawSkyboxProbe(const float3& position);
 
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
 
 private:
     SHProbe skyboxProbe;

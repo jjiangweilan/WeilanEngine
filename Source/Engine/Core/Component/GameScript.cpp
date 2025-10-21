@@ -161,7 +161,7 @@ void GameScript::LuaOnStop()
     isScriptStarted = false;
 }
 
-const std::string& GameScript::GetName()
+const std::string& GameScript::GetName() const
 {
     static std::string name = "GameScript";
     return name;

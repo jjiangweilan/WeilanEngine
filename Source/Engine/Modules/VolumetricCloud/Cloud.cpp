@@ -35,7 +35,7 @@ std::unique_ptr<Component> Cloud::Clone(GameObject& owner)
     return clone;
 }
 
-const std::string& Cloud::GetName()
+const std::string& Cloud::GetName() const
 {
     static std::string name = "Cloud";
     return name;

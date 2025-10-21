@@ -274,7 +274,7 @@ void GlobalIlluminaion::PreprocessScene(Scene& scene, const BakeProbesInfo& info
     //
 }
 
-const std::string& GIScene::GetName()
+const std::string& GIScene::GetName() const
 {
     static std::string name = "GIScene";
     return name;

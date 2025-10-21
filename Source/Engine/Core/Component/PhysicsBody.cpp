@@ -52,7 +52,7 @@ void PhysicsBody::Deserialize(Serializer* s)
     DESERIALIZE(s, contactPersistedLuaCallbacks);
 }
 
-const std::string& PhysicsBody::GetName()
+const std::string& PhysicsBody::GetName() const
 {
     static std::string name = "PhysicsBody";
     return name;

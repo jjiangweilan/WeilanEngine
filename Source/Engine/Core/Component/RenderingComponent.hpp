@@ -40,19 +40,19 @@ public:
     DECLARE_OBJECT()                          \
 public:                                       \
     TypeName() : TypeName(nullptr) {}         \
-    const std::string& GetName() override;    \
+    const std::string& GetName() const override;    \
     TypeName(GameObject* gameObject) : RenderingComponent<TypeName>(gameObject) {}
 
 #define DECLARE_RENDERING_COMPONENT_CONSTRUCT(TypeName) \
     DECLARE_OBJECT()                                    \
 public:                                                 \
     TypeName() : TypeName(nullptr) {}                   \
-    const std::string& GetName() override;              \
+    const std::string& GetName() const override;              \
     TypeName(GameObject* gameObject);
 
 #define DEFINE_RENDERING_COMPONENT(TypeName, UUID) \
     DEFINE_OBJECT(TypeName, UUID)                  \
-    const std::string& TypeName::GetName()         \
+    const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \
         return name;                               \
@@ -60,7 +60,7 @@ public:                                                 \
 
 #define DEFINE_RENDERING_COMPONENT_CONSTRUCT(TypeName, UUID) \
     DEFINE_OBJECT(TypeName, UUID)                            \
-    const std::string& TypeName::GetName()                   \
+    const std::string& TypeName::GetName() const             \
     {                                                        \
         static std::string name = #TypeName;                 \
         return name;                                         \

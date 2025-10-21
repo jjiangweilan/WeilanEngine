@@ -23,7 +23,7 @@ public:
     ReflectionProbe();
     ReflectionProbe(GameObject* gameObject);
     ~ReflectionProbe();
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
 
     std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }
     std::span<Frustum> GetViewProjectionMatrices();

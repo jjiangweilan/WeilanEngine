@@ -8,7 +8,7 @@ LightFieldProbes::LightFieldProbes(GameObject* gameObject) : Component(gameObjec
 void LightFieldProbes::OnEnable() {}
 void LightFieldProbes::OnDisable() {}
 
-const std::string& LightFieldProbes::GetName()
+const std::string& LightFieldProbes::GetName() const
 {
     static std::string name = "LightFieldProbes";
     return name;

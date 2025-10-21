@@ -13,7 +13,7 @@ void Terrain::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
 }
-const std::string& Terrain::GetName()
+const std::string& Terrain::GetName() const
 {
     static std::string name = "Terrain";
     return name;

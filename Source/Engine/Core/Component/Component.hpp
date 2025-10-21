@@ -18,7 +18,7 @@ public:
     virtual void IdleTick() {}
     virtual void PrePhysicsTick() {};
 
-    virtual const std::string& GetName() = 0;
+    virtual const std::string& GetName() const = 0;
     virtual std::unique_ptr<Component> Clone(GameObject& owner) { return nullptr; }
     GameObject* GetGameObject();
 
@@ -60,30 +60,30 @@ protected:
 public:                                                         \
     TypeName() : Component(nullptr) {}                          \
     TypeName(GameObject* gameObject) : Component(gameObject) {} \
-    const std::string& GetName() override;                      \
+    const std::string& GetName() const override;                \
                                                                 \
 private:
 
-#define DEFINE_COMPONENT(TypeName, UUID)     \
-    DEFINE_OBJECT(TypeName, UUID)            \
-    const std::string& TypeName::GetName()   \
-    {                                        \
-        static std::string name = #TypeName; \
-        return name;                         \
+#define DEFINE_COMPONENT(TypeName, UUID)         \
+    DEFINE_OBJECT(TypeName, UUID)                \
+    const std::string& TypeName::GetName() const \
+    {                                            \
+        static std::string name = #TypeName;     \
+        return name;                             \
     }
 
-#define DECLARE_COMPONENT_CONSTRUCT(TypeName) \
-    DECLARE_OBJECT()                          \
-public:                                       \
-    TypeName() : TypeName(nullptr){};         \
-    TypeName(GameObject* gameObject);         \
-    const std::string& GetName() override;    \
-                                              \
+#define DECLARE_COMPONENT_CONSTRUCT(TypeName)       \
+    DECLARE_OBJECT()                                \
+public:                                             \
+    TypeName() : TypeName(nullptr){};               \
+    TypeName(GameObject* gameObject);               \
+    const std::string& GetName() const override;    \
+                                                    \
 private:
 
 #define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \
     DEFINE_OBJECT(TypeName, UUID)                  \
-    const std::string& TypeName::GetName()         \
+    const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \
         return name;                               \
@@ -99,7 +99,7 @@ public:
     ExampleComponent();
     ExampleComponent(GameObject* gameObject);
     ~ExampleComponent();
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     void Serialize(Serializer* s) const override;

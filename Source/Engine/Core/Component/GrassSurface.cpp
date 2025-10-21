@@ -18,7 +18,7 @@ std::unique_ptr<Component> GrassSurface::Clone(GameObject& owner)
 {
     return nullptr;
 }
-const std::string& GrassSurface::GetName()
+const std::string& GrassSurface::GetName() const
 {
     static std::string name = "GrassSurface";
     return name;

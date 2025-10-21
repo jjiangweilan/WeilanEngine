@@ -101,7 +101,7 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
     void OnDrawGizmos() override;
 
 private:

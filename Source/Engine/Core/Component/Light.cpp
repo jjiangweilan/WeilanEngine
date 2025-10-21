@@ -67,7 +67,7 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("shadowDistance", shadowDistance);
 }
 
-const std::string& Light::GetName()
+const std::string& Light::GetName() const
 {
     static std::string name = "Light";
     return name;

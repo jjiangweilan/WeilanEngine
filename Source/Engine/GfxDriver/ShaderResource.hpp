@@ -19,7 +19,7 @@ class ShaderResource
 {
 public:
     virtual void SetName(std::string_view name) = 0;
-    virtual const std::string& GetName() = 0;
+    virtual const std::string& GetName() const = 0;
 
     void SetBuffer(ShaderBindingHandle handle, Gfx::Buffer* buffer)
     {

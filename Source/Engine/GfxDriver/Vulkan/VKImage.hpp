@@ -47,7 +47,7 @@ public:
 
     virtual VkImageSubresourceRange GetDefaultSubresourceRange();
     virtual void SetName(std::string_view name) override;
-    virtual const std::string& GetName() override
+    virtual const std::string& GetName() const override
     {
         return name;
     };

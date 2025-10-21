@@ -7,7 +7,7 @@ DEFINE_OBJECT(AnimationPlayer, "F1093426-DC3A-45F6-9C3B-B7CFA098285A");
 AnimationPlayer::AnimationPlayer() : Component(nullptr) {};
 AnimationPlayer::AnimationPlayer(GameObject* gameObject) : Component(gameObject) {};
 
-const std::string& AnimationPlayer::GetName()
+const std::string& AnimationPlayer::GetName() const
 {
     static std::string name = "AnimationPlayer";
     return name;

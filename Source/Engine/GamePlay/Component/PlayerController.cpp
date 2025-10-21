@@ -27,7 +27,7 @@ PlayerController::PlayerController() : Component(nullptr) {}
 
 PlayerController::PlayerController(GameObject* gameObject) : Component(gameObject) {}
 
-const std::string& PlayerController::GetName()
+const std::string& PlayerController::GetName() const
 {
     static std::string name = "PlayerController";
     return name;

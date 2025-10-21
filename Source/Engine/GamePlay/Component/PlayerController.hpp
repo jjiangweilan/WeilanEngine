@@ -52,7 +52,7 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
     void PrePhysicsTick() override;
     void Tick() override;
 

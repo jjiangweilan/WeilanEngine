@@ -55,7 +55,7 @@ public:
 
     const PipelineConfig& GetDefaultShaderConfig() override { return defaultPipelineConfig; };
     const PipelineInfo& GetShaderInfo() override { return pipelineInfo; }
-    const std::string& GetName() override { return name; }
+    const std::string& GetName() const override { return name; }
     bool HasSet(int set) const { return set >= 0 && set < pipelineInfo.descriptorSets.size(); }
 
 private:

@@ -11,7 +11,7 @@ public:
     GrassSurface(GameObject* gameObject);
     ~GrassSurface();
     std::unique_ptr<Component> Clone(GameObject& owner) override;
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
 
     Material computeDispatchMat;
     Material drawMat;

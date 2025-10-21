@@ -56,7 +56,7 @@ public:
     float GetShadowPlane() { return 100; }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
-    const std::string& GetName() override;
+    const std::string& GetName() const override;
 
     void EnableShadowCache()
     {

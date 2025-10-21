@@ -54,7 +54,7 @@ class VKShaderResource : public ShaderResource
     // ---------------------------- New API ----------------------------------
 public:
     void SetName(std::string_view name) override;
-    const std::string& GetName() override { return name; }
+    const std::string& GetName() const override { return name; }
 
     VKShaderResource();
     VKShaderResource(const VKShaderResource& other) = delete;

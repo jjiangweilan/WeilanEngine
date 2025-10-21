@@ -234,7 +234,7 @@ void Camera::Deserialize(Serializer* s)
     );
 }
 
-const std::string& Camera::GetName()
+const std::string& Camera::GetName() const
 {
     static std::string name = "Camera";
     return name;

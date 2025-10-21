@@ -4,7 +4,7 @@
 
 DEFINE_OBJECT(SceneEnvironment, "7E237F73-396E-455F-B227-657432A66877");
 
-const std::string& SceneEnvironment::GetName()
+const std::string& SceneEnvironment::GetName() const
 {
     static std::string name = "SceneEnvironment";
     return name;

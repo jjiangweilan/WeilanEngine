@@ -113,7 +113,7 @@ std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
     return clone;
 }
 
-const std::string& MeshRenderer::GetName()
+const std::string& MeshRenderer::GetName() const
 {
     static std::string name = "MeshRenderer";
     return name;

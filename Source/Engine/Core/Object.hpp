@@ -36,8 +36,8 @@ public:
         ObjectTracker::Singleton().AddObject(this);
     }
 
-    virtual const UUID& GetObjectTypeID() = 0;
-    virtual const std::string& GetTypeName() = 0;
+    virtual const UUID& GetObjectTypeID() const = 0;
+    virtual const std::string& GetTypeName() const = 0;
     static const std::string& StaticGetTypeName()
     {
         static std::string typeName = "Object";
@@ -115,40 +115,40 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
     return std::unique_ptr<T>(ptr);
 }
 
-#define DECLARE_OBJECT()                                                                                               \
-                                                                                                                       \
-public:                                                                                                                \
-    static const ObjectTypeID& StaticGetObjectTypeID();                                                                \
-    static const std::string& StaticGetTypeName();                                                                     \
-    const std::string& GetTypeName() override;                                                                         \
-    const ObjectTypeID& GetObjectTypeID() override;                                                                    \
-                                                                                                                       \
-private:                                                                                                               \
+#define DECLARE_OBJECT()                                  \
+                                                          \
+public:                                                   \
+    static const ObjectTypeID& StaticGetObjectTypeID();   \
+    static const std::string& StaticGetTypeName();        \
+    const std::string& GetTypeName() const override;      \
+    const ObjectTypeID& GetObjectTypeID() const override; \
+                                                          \
+private:                                                  \
     static const char _objectRegister;
 
-#define DEFINE_OBJECT(Type, ObjectID)                                                                                  \
-    const char Type::_objectRegister = ObjectRegistry::RegisterObject<Type>(                                           \
-        StaticGetObjectTypeID(),                                                                                       \
-        #Type,                                                                                                         \
-        []() { return std::unique_ptr<Object>(new Type()); }                                                           \
-    );                                                                                                                 \
-    const ObjectTypeID& Type::StaticGetObjectTypeID()                                                                  \
-    {                                                                                                                  \
-        static const UUID uuid = UUID(ObjectID);                                                                       \
-        return uuid;                                                                                                   \
-    }                                                                                                                  \
-    const ObjectTypeID& Type::GetObjectTypeID()                                                                        \
-    {                                                                                                                  \
-        return Type::StaticGetObjectTypeID();                                                                          \
-    }                                                                                                                  \
-    const std::string& Type::StaticGetTypeName()                                                                       \
-    {                                                                                                                  \
-        static std::string typeName = #Type;                                                                           \
-        return typeName;                                                                                               \
-    }                                                                                                                  \
-    const std::string& Type::GetTypeName()                                                                             \
-    {                                                                                                                  \
-        return StaticGetTypeName();                                                                                    \
+#define DEFINE_OBJECT(Type, ObjectID)                                        \
+    const char Type::_objectRegister = ObjectRegistry::RegisterObject<Type>( \
+        StaticGetObjectTypeID(),                                             \
+        #Type,                                                               \
+        []() { return std::unique_ptr<Object>(new Type()); }                 \
+    );                                                                       \
+    const ObjectTypeID& Type::StaticGetObjectTypeID()                        \
+    {                                                                        \
+        static const UUID uuid = UUID(ObjectID);                             \
+        return uuid;                                                         \
+    }                                                                        \
+    const ObjectTypeID& Type::GetObjectTypeID() const                        \
+    {                                                                        \
+        return Type::StaticGetObjectTypeID();                                \
+    }                                                                        \
+    const std::string& Type::StaticGetTypeName()                             \
+    {                                                                        \
+        static std::string typeName = #Type;                                 \
+        return typeName;                                                     \
+    }                                                                        \
+    const std::string& Type::GetTypeName() const                             \
+    {                                                                        \
+        return StaticGetTypeName();                                          \
     }
 
 template <class T>

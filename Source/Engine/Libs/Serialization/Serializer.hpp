@@ -308,6 +308,11 @@ void Serializer::Serialize(std::string_view name, const T& val)
 {
     auto s = CreateSubserializer();
     val.Serialize(s.get());
+    if constexpr (std::is_base_of_v<Object, T>)
+    {
+        s->Serialize("_objectTypeID", val.GetObjectTypeID());
+    }
+
     AppendSubserializer(name, s.get());
 }
 
@@ -338,7 +343,9 @@ template <HasUUID T>
 void Serializer::Serialize(std::string_view name, T* val)
 {
     if (val)
+    {
         Serialize(name, val->GetUUID());
+    }
     else
         Serialize(name, UUID::GetEmptyUUID());
 }
