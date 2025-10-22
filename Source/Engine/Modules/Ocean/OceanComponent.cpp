@@ -53,7 +53,8 @@ void OceanComponent::UpdateWaveBuffer()
         "WaveBuffer"
     );
 
-    std::vector<GPUResources::Wave> upload;
+    std::vector<GPUResources::Wave>& upload = gpuWaveCache;
+    upload.clear();
     upload.reserve(waves.size());
 
     // Convert CPUWave to Wave

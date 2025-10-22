@@ -40,6 +40,7 @@ class OceanComponent : public RenderingComponent<OceanComponent>
     float areaScale;
 
     std::vector<CPUWave> waves;
+    std::vector<GPUResources::Wave> gpuWaveCache;
     CPUWave globalTweak;
     std::unique_ptr<Gfx::Buffer> waveBuffer;
 
@@ -51,6 +52,7 @@ public:
     CPUWave& GetGlobalTweak() { return globalTweak; }
     Material& GetMaterial() { return material; }
     float& GetAreaScale() { return areaScale; }
+    const std::vector<GPUResources::Wave>& GetGPUWaveCache() { return gpuWaveCache; };
 
     void UpdateWaveBuffer();
 

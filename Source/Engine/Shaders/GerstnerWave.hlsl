@@ -52,7 +52,7 @@ float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNu
 }
 
 #ifdef GERSTNERWAVE_CPU_SIDE
-float3 GerstenerWave(float3 pos, Wave* waves, int waveCount, float areaScale, float time, float3& normal, float3& waveOffset)
+float3 GerstenerWave(float3 pos, const GPUResources::Wave* waves, int waveCount, float areaScale, float time, float3& normal, float3& waveOffset)
 #else
 float3 GerstenerWave(float3 pos, StructuredBuffer<Wave> waves, int waveCount, float areaScale, float time, out float3 normal, out float3 waveOffset)
 #endif
@@ -63,9 +63,8 @@ float3 GerstenerWave(float3 pos, StructuredBuffer<Wave> waves, int waveCount, fl
     
     for (int i = 0; i < waveCount; i++)
     {
-        Wave wave = waves[i];
         float3 outNormal;
-        waveOffset += GerstnerWaveInternal(wave, pos * areaScale, time, waveCount, outNormal);
+        waveOffset += GerstnerWaveInternal(waves[i], pos * areaScale, time, waveCount, outNormal);
         normal += outNormal;
     }
 

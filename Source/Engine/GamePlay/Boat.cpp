@@ -3,6 +3,7 @@
 #include "Core/Time.hpp"
 #include "Libs/Math.hpp"
 #include "Modules/Ocean/OceanComponent.hpp"
+#include "Rendering/Graphics.hpp"
 
 #define GERSTNERWAVE_CPU_SIDE
 namespace GPUResources
@@ -12,12 +13,26 @@ namespace GPUResources
 
 namespace Game
 {
-DEFINE_COMPONENT_CONSTRUCT(Boat, "76B5D7F8-997D-4662-A158-728D09FA5160") {}
+DEFINE_COMPONENT_CONSTRUCT(Boat, "76B5D7F8-997D-4662-A158-728D09FA5160")
+{
+}
+
 DEFINE_SERIALIZATION(
     Boat,
     Component,
-    SER(oceanComponent)
+    SER(oceanComponent),
+    SER(initDistance)
 )
+
+void Boat::OnInit()
+{
+    SetInitDistance(initDistance);
+}
+
+void Boat::IdleTick()
+{
+    Tick();
+}
 
 void Boat::Tick()
 {
@@ -30,14 +45,29 @@ void Boat::Tick()
 void Boat::UpdateBoat(OceanComponent* ocean)
 {
     auto goPosition = gameObject->GetPosition();
-    auto& waves = ocean->GetWaves();
+    auto& waves = ocean->GetGPUWaveCache();
     auto& globalTweak = ocean->GetGlobalTweak();
     for (auto& b : buoyancySamples)
     {
         float3 normal;
         float3 waveOffset;
         GPUResources::GerstenerWave(goPosition + b.samplePosition, waves.data(), waves.size(), ocean->areaScale, Time::TimeSinceLaunch(), normal, waveOffset);
+
+        b.outWorldPosition = b.samplePosition + goPosition + float3(0, waveOffset.y, 0);
+
+        Graphics::DrawCube(b.outWorldPosition, float3(0.1f), glm::quat(1, 0, 0, 0));
     }
 }
 
+OceanComponent* Boat::GetOceanComponent()
+{
+    return oceanComponent.Get();
+}
+
+void Boat::SetOceanComponent(OceanComponent* o)
+{
+    oceanComponent = o;
+}
+
 } // namespace Game
+  //
