@@ -3,7 +3,7 @@
 #include "Core/Time.hpp"
 #include "Libs/Math.hpp"
 #include "Modules/Ocean/OceanComponent.hpp"
-#include "Rendering/Graphics.hpp"
+#include "Profiler/Profiler.hpp"
 
 #define GERSTNERWAVE_CPU_SIDE
 namespace GPUResources
@@ -44,6 +44,7 @@ void Boat::Tick()
 
 void Boat::UpdateBoat(OceanComponent* ocean)
 {
+    ENGINE_SCOPED_PROFILE("Boat UpdateBoat");
     auto goPosition = gameObject->GetPosition();
     auto& waves = ocean->GetGPUWaveCache();
     auto& globalTweak = ocean->GetGlobalTweak();
@@ -54,9 +55,8 @@ void Boat::UpdateBoat(OceanComponent* ocean)
         GPUResources::GerstenerWave(goPosition + b.samplePosition, waves.data(), waves.size(), ocean->areaScale, Time::TimeSinceLaunch(), normal, waveOffset);
 
         b.outWorldPosition = b.samplePosition + goPosition + float3(0, waveOffset.y, 0);
-
-        Graphics::DrawCube(b.outWorldPosition, float3(0.1f), glm::quat(1, 0, 0, 0));
     }
+
 }
 
 OceanComponent* Boat::GetOceanComponent()

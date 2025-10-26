@@ -32,6 +32,12 @@ void ReflectionProbe::OnInit()
     desc.isCubemap = true;
 
     cubemap = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment);
+    roughness[0] = 0.01f;
+    roughness[1] = 0.2f;
+    roughness[2] = 0.4f;
+    roughness[3] = 0.6f;
+    roughness[4] = 0.8f;
+    roughness[5] = 0.999f;
 }
 
 void ReflectionProbe::TransformChanged()

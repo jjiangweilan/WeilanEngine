@@ -20,6 +20,25 @@ public:
         Global
     };
 
+private:
+    float near = 0.1f;
+    float far = 1000.f;
+    float4x4 projectionMatrix;
+    Frustum frustums[6];
+    float4x4 viewMatrices[6];
+    ProbeType updateType = ProbeType::Local;
+    SourceType sourceType = SourceType::Static;
+    /**
+     * @brief extent of local reflection probe cube
+     */
+    float3 extent = {1, 1, 1};
+    std::unique_ptr<Gfx::Image> cubemap;
+    float roughness[6];
+    uint32_t resolution = 512;
+    ObjPtr<Texture> staticReflectionProbe;
+    InteractiveBox gizmoState{};
+
+public:
     ReflectionProbe();
     ReflectionProbe(GameObject* gameObject);
     ~ReflectionProbe();
@@ -72,22 +91,6 @@ public:
     void OnDrawGizmos(GizmoManager& gizmoContext) override;
 
 private:
-    float near = 0.1f;
-    float far = 1000.f;
-    float4x4 projectionMatrix;
-    Frustum frustums[6];
-    float4x4 viewMatrices[6];
-    ProbeType updateType = ProbeType::Local;
-    SourceType sourceType = SourceType::Static;
-    /**
-     * @brief extent of local reflection probe cube
-     */
-    float3 extent = {1, 1, 1};
-    std::unique_ptr<Gfx::Image> cubemap;
-    uint32_t resolution = 512;
-    ObjPtr<Texture> staticReflectionProbe;
-    InteractiveBox gizmoState{};
-
     void TransformChanged() override;
     void UpdateFrustums(float3 position);
 };
