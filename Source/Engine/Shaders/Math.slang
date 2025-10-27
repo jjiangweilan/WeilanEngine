@@ -14,3 +14,23 @@ float2 Hammersley(uint i, uint N)
 {
     return float2(float(i) / float(N), RadicalInverse(i));
 }
+
+float3 GetCubemapDirection(float2 uv, int faceIndex)
+{
+    uv = float2(2.0) * uv - float2(1.0); // Normalize UV to range [-1, 1]
+
+    if (faceIndex == 0)
+        return float3(1.0, -uv.y, -uv.x); // +X
+    if (faceIndex == 1)
+        return float3(-1.0, -uv.y, uv.x); // -X
+    if (faceIndex == 2)
+        return float3(uv.x, 1.0, uv.y); // +Y
+    if (faceIndex == 3)
+        return float3(uv.x, -1.0, -uv.y); // -Y
+    if (faceIndex == 4)
+        return float3(uv.x, -uv.y, 1.0); // +Z
+    if (faceIndex == 5)
+        return float3(-uv.x, -uv.y, -1.0); // -Z
+
+    return float3(0.0);
+}

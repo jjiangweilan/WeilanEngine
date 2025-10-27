@@ -28,7 +28,8 @@
                          Do(BilateralUpScale, "BilateralUpScale"),                                           \
                          Do(DepthDownSampler, "DepthDownSampler"),                                           \
                          Do(ContactShadow, "ContactShadow/ContactShadow"),                                   \
-                         Do(Ocean, "Ocean"),
+                         Do(Ocean, "Ocean"),                                                                 \
+                         Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y
@@ -42,7 +43,8 @@ class ShaderLibrary
 {
     struct CompiledShader
     {
-        CompiledShader() : shader(nullptr), permutation() {}
+        CompiledShader()
+            : shader(nullptr), permutation() {}
         CompiledShader(std::unique_ptr<Gfx::ShaderProgram>&& shader, ShaderPermutation permutation)
             : shader(std::move(shader)), shaderHandle(this->shader.get()),
               permutation(permutation) {}
