@@ -23,7 +23,6 @@ void ReflectionProbe::OnEnable()
 
 void ReflectionProbe::EnsureIBLProbe()
 {
-
 }
 
 void ReflectionProbe::OnDisable()
@@ -33,10 +32,21 @@ void ReflectionProbe::OnDisable()
 
 void ReflectionProbe::OnInit()
 {
-    Gfx::ImageDescription desc(256, 256, 1, Gfx::GfxFormat::R8G8B8A8_SRGB);
-    desc.isCubemap = true;
-
+    Gfx::ImageDescription desc(256, 256, 1, Gfx::GfxFormat::B10G11R11_UFloat_Pack32, Gfx::MultiSampling::Sample_Count_1, 6, true);
     cubemap = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment);
+
+    totalPixelCount = 0;
+    for (int mip = 0; mip < desc.mipLevels; mip++)
+    {
+        int mipWidth = desc.width * glm::pow(0.5, mip);
+        int mipHeight = desc.height * glm::pow(0.5, mip);
+
+        int facePixelCount = mipWidth * mipHeight;
+        int mipPixelCount = facePixelCount * 6;
+
+        totalPixelCount += mipPixelCount;
+    }
+
     roughness[0] = 0.01f;
     roughness[1] = 0.2f;
     roughness[2] = 0.4f;
@@ -150,6 +160,11 @@ void ReflectionProbe::BakeStaticReflectionProbe()
 void ReflectionProbe::OnDrawGizmos()
 {
     Gizmos::DrawInteractiveBox(gizmoState, GetGameObject()->GetPosition(), extent);
+}
+
+int ReflectionProbe::GetTotalPixelCount()
+{
+    return totalPixelCount;
 }
 
 void ReflectionProbe::OnDrawGizmos(GizmoManager& gizmoContext) {}

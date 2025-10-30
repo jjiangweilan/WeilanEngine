@@ -1,18 +1,12 @@
 import WeilanEngine;
 import Math;
 import Lighting;
-#include "ReflectionProbeIBLGenerator.hlsl"
+import Library.PerScene;
+#include "ReflectionProbeIBLGeneratorInput.hlsl"
 
-struct ShaderInput
-{
-    float envMapSize;
-    float envMapSizeSqr;
-    float roughness[6];
 
-    TextureCube srcCubemap; // mipped source cubemap
-    SamplerState linearClampSampler;
-    RWTexture2D dstFaces[30]; // 6 mips * 5 faces, {mips{faces...}, ...}
-};
+[Global]
+ParameterBlock<PerScene> perScene;
 
 [Material]
 ParameterBlock<ShaderInput> shaderInput;
@@ -43,14 +37,14 @@ struct PixelInfo
     __init(float threadIdx)
     {
         float a0 = threadIdx / 6;
-        float mipLevelTexelOffset = 0;
-        const float envMapSizeSqr = shaderInput.envMapSizeSqr;
-        const float envMapSize = shaderInput.envMapSize;
+        const float envMapSizeSqr = shaderInput.input[0].envMapSizeSqr;
+        const float envMapSize = shaderInput.input[0].envMapSize;
 
         // Calculate pixel level
-        int currentMip = -1;
+        int currentMip = 0;
+        float mipLevelTexelOffset = 0;
         float currLevelTexelCount = envMapSizeSqr;
-        while(a0 > 0)
+        while(a0 >= envMapSizeSqr)
         {
             mipLevelTexelOffset += currLevelTexelCount;
             a0 -= currLevelTexelCount;
@@ -86,12 +80,12 @@ struct PixelInfo
 [numthreads(64,1,1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    float fTotalWeight = 0.0f;
+    float fTotalWeight = 0.001f;
     const uint iNumSamples = 32;
-    float envMapSize = shaderInput.envMapSize;
+    float envMapSize = shaderInput.input[0].envMapSize;
 
     PixelInfo pixelInfo = PixelInfo(dispatchThreadID.x);
-    float roughness = shaderInput.roughness[pixelInfo.mipLevel];
+    float roughness = shaderInput.input[0].roughness[pixelInfo.mipLevel];
 
     float3 vNormal = pixelInfo.dir;
     float3 vView = vNormal;

@@ -37,6 +37,7 @@ private:
     uint32_t resolution = 512;
     ObjPtr<Texture> staticReflectionProbe;
     InteractiveBox gizmoState{};
+    int totalPixelCount;
 
 public:
     ReflectionProbe();
@@ -48,6 +49,7 @@ public:
     std::span<Frustum> GetViewProjectionMatrices();
     const float4x4& GetViewMatrix(int faceIdx);
     const float4x4& GetProjectionMatrix();
+    int GetTotalPixelCount();
 
     float GetNear();
     float GetFar();

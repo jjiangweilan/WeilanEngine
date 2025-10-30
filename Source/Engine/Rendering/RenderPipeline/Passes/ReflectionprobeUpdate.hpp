@@ -1,7 +1,15 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
-#include "Rendering/RenderingData.hpp"
+#include "GfxDriver/Image.hpp"
+#include "GfxDriver/ShaderResource.hpp"
+#include "Rendering/GPUBuffer.hpp"
 #include "Rendering/Material.hpp"
+#include "Rendering/RenderingData.hpp"
+
+namespace GPUResources::ReflectionProbe
+{
+#include "Shaders/ReflectionProbeIBLGeneratorInput.hlsl"
+};
 
 class ReflectionProbe;
 
@@ -9,12 +17,18 @@ namespace Rendering::Passes
 {
 class ReflectionProbeUpdate
 {
-
+    GPUBuffer<GPUResources::ReflectionProbe::ParameterInput> shaderInput;
     ObjPtr<Shader> iblGenerator;
-    Material mat;
+    std::unordered_map<UUID, std::unique_ptr<Gfx::ShaderResource>> probeShaderResources;
+    std::unique_ptr<Gfx::Image> cubemap; // final cubemap
+    std::vector<std::unique_ptr<Gfx::ImageView>> cubemapImageViews;
+    Gfx::DescriptorSetSemantics shaderInputSet;
 
 public:
     ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe);
+
+private:
+    Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);
 };
 } // namespace Rendering::Passes
