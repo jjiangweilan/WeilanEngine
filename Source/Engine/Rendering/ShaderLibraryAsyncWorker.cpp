@@ -469,7 +469,7 @@ public:
                                 }
                                 else
                                 {
-                                    member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());
+                                    member.type = MapSlangScalarType(fieldTypeLayout->getElementTypeLayout()->getScalarType());
                                 }
                             }
                             member.columnCount = 1;

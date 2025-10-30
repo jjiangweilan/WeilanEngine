@@ -21,6 +21,11 @@ void ReflectionProbe::OnEnable()
     UpdateFrustums(GetGameObject()->GetPosition());
 }
 
+void ReflectionProbe::EnsureIBLProbe()
+{
+
+}
+
 void ReflectionProbe::OnDisable()
 {
     RenderingComponent::OnDisable();

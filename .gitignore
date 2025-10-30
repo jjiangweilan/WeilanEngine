@@ -7,6 +7,7 @@ Doxygen
 compile_commands.json
 .DS_Store
 /ThirdParty
+**/Project
 *.meta
 neovim.json
 .luarc.json

@@ -64,6 +64,7 @@ public:
     void OnEnable() override;
     void OnDisable() override;
 
+    void EnsureIBLProbe();
     void BakeStaticReflectionProbe();
     void SetUpdateType(ProbeType type) { updateType = type; }
     auto GetUpdateType() { return updateType; }
