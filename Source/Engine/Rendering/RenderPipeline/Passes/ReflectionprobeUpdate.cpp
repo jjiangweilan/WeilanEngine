@@ -1,4 +1,4 @@
-#include "ReflectionProbeupdate.hpp"
+#include "ReflectionProbeUpdate.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/RenderingUtils.hpp"
@@ -48,6 +48,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
 
     cmd.BeginLabel("Reflection Probe IBL Generation", {0.4f, 0.1f, 0.7f, 1.0f});
     cmd.BindResource((int)Gfx::DescriptorSetSemantics::Material, shaderResource);
+
     cmd.BindShaderProgram(iblGenerator->GetShaderProgram(), iblGenerator->GetShaderProgram()->GetDefaultShaderConfig());
     cmd.EndLabel();
 

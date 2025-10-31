@@ -459,8 +459,8 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 }
 
 void Material::WriteParameterDataToBuffer(
-    const Gfx::PipelineInfo& pipelineInfo,
-    const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
+    const Gfx::ShaderPipelineInfo& pipelineInfo,
+    const Gfx::ShaderPipelineInfo::BufferMember& bufferDataDescription,
     uint8_t* buf,
     size_t bufSize
 )
@@ -470,7 +470,7 @@ void Material::WriteParameterDataToBuffer(
 
     if (bufferDataDescription.IsVector())
     {
-        ASSERT(bufferDataDescription.type == Gfx::PipelineInfo::MemberDataType::Float);
+        ASSERT(bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Float);
         {
             auto iter = ubo.vectors.find(bufferDataDescription.name);
             if (iter != ubo.vectors.end())
@@ -504,7 +504,7 @@ void Material::WriteParameterDataToBuffer(
     {
         switch (bufferDataDescription.type)
         {
-            case Gfx::PipelineInfo::MemberDataType::Float:
+            case Gfx::ShaderPipelineInfo::MemberDataType::Float:
                 {
                     auto iter = ubo.floats.find(bufferDataDescription.name);
                     if (iter != ubo.floats.end())
@@ -514,7 +514,7 @@ void Material::WriteParameterDataToBuffer(
                     }
                     break;
                 }
-            case Gfx::PipelineInfo::MemberDataType::UInt:
+            case Gfx::ShaderPipelineInfo::MemberDataType::UInt:
                 {
                     auto iter = ubo.floats.find(bufferDataDescription.name);
                     if (iter != ubo.floats.end())
@@ -524,7 +524,7 @@ void Material::WriteParameterDataToBuffer(
                     }
                     break;
                 }
-            case Gfx::PipelineInfo::MemberDataType::Int:
+            case Gfx::ShaderPipelineInfo::MemberDataType::Int:
                 {
                     auto iter = ubo.floats.find(bufferDataDescription.name);
                     if (iter != ubo.floats.end())
@@ -534,7 +534,7 @@ void Material::WriteParameterDataToBuffer(
                     }
                     break;
                 }
-            case Gfx::PipelineInfo::MemberDataType::Structure:
+            case Gfx::ShaderPipelineInfo::MemberDataType::Structure:
                 {
                     ASSERT(false && "Nested Structure not supported in material");
                     break;

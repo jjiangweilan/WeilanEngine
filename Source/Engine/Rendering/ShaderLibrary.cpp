@@ -18,7 +18,7 @@ ShaderLibrary::ShaderLibrary()
 void ShaderLibrary::CheckPushconstant(
     slang::VariableLayoutReflection* param,
     Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
-    std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstants,
+    std::vector<Gfx::ShaderPipelineInfo::PushConstant>& outPushConstants,
     int entryPointIndex,
     Gfx::ShaderStage stage
 )
@@ -30,7 +30,7 @@ void ShaderLibrary::CheckPushconstant(
         outPushConstants.resize(bindingIndex + 1);
     }
 
-    Gfx::PipelineInfo::PushConstant& pushConstant = outPushConstants[bindingIndex];
+    Gfx::ShaderPipelineInfo::PushConstant& pushConstant = outPushConstants[bindingIndex];
     bool used = false;
     entryPointMetaData[entryPointIndex]->isParameterLocationUsed(
         static_cast<SlangParameterCategory>(param->getCategory()),

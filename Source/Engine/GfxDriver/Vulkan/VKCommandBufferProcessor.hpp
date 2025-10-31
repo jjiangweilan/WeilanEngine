@@ -93,10 +93,10 @@ private:
         } setResources[4] = {};
 
         VkPipeline lastBindedPipeline = VK_NULL_HANDLE;
-        VKShaderProgram* lastBindedShader; // shader that is set to be binded
+        VKShaderProgram* pendingBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;     // shader that is actually binded
         PipelineConfig shaderConfig;
-        PipelineConfig lastShaderConfig;
+        PipelineConfig pendingShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         VKBuffer* vertexBufferBindings[8];
         int vertexBufferBindingCount = 0;

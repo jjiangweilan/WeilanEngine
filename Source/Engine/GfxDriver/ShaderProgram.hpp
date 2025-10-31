@@ -21,7 +21,7 @@ public:
     virtual ~ShaderProgram() {};
     virtual const PipelineConfig& GetDefaultShaderConfig() = 0;
     virtual const std::string& GetName() const = 0;
-    virtual const PipelineInfo& GetShaderInfo() = 0;
+    virtual const ShaderPipelineInfo& GetShaderInfo() = 0;
     bool IsCompute() { return isCompute; }
     const UUID& GetUUID() const { return uuid; }
 

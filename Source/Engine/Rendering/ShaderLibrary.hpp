@@ -152,7 +152,7 @@ private:
     void CheckPushconstant(
         slang::VariableLayoutReflection* param,
         Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
-        std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstants,
+        std::vector<Gfx::ShaderPipelineInfo::PushConstant>& outPushConstants,
         int entryPointIndex,
         Gfx::ShaderStage stage
     );

@@ -25,7 +25,7 @@ class SamplerCachePool
 public:
     static VkSampler RequestSampler(VkSamplerCreateInfo& createInfo);
     static void DestroyPool();
-    static VkSamplerCreateInfo GenerateSamplerCreateInfo(const Gfx::PipelineInfo::SamplerConfig& samplerConfig);
+    static VkSamplerCreateInfo GenerateSamplerCreateInfo(const Gfx::ShaderPipelineInfo::SamplerConfig& samplerConfig);
 
 private:
     static std::unordered_map<vk::SamplerCreateInfo, VkSampler> samplers;
@@ -54,7 +54,7 @@ public:
     // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
     const PipelineConfig& GetDefaultShaderConfig() override { return defaultPipelineConfig; };
-    const PipelineInfo& GetShaderInfo() override { return pipelineInfo; }
+    const ShaderPipelineInfo& GetShaderInfo() override { return pipelineInfo; }
     const std::string& GetName() const override { return name; }
     bool HasSet(int set) const { return set >= 0 && set < pipelineInfo.descriptorSets.size(); }
 
@@ -77,7 +77,7 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
     std::vector<VKDescriptorPool*> descriptorPools = {};
-    PipelineInfo pipelineInfo;
+    ShaderPipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
 
     // descriptor pool take a pointer to these value so these can't be temp values

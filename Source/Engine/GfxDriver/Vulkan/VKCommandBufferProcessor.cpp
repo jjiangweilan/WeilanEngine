@@ -1393,7 +1393,7 @@ void VKCommandBufferProcessor::Execute(
             case VKCmdType::BindShaderProgram:
                 {
                     auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
-                    exeState.lastBindedShader = args.program;
+                    exeState.pendingBindedShader = args.program;
                     exeState.shaderConfig = *args.config;
                     break;
                 }
@@ -1737,18 +1737,25 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, V
 
 void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
 {
-    if ((exeState.bindedShader != exeState.lastBindedShader || exeState.shaderConfig != exeState.lastShaderConfig) &&
-        exeState.lastBindedShader != nullptr)
+    if ((exeState.bindedShader != exeState.pendingBindedShader || exeState.shaderConfig != exeState.pendingShaderConfig) &&
+        exeState.pendingBindedShader != nullptr)
     {
 
-        if (exeState.lastBindedShader->IsCompute())
+        if (exeState.pendingBindedShader->IsCompute())
         {
-            auto pipeline = exeState.lastBindedShader->RequestComputePipeline();
+            auto pipeline = exeState.pendingBindedShader->RequestComputePipeline();
 
             if (pipeline != exeState.lastBindedPipeline)
             {
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
                 exeState.lastBindedPipeline = pipeline;
+                exeState.bindedShader = exeState.pendingBindedShader;
+                exeState.shaderConfig = exeState.pendingShaderConfig;
+
+                exeState.setResources[0].needUpdate = true;
+                exeState.setResources[1].needUpdate = true;
+                exeState.setResources[2].needUpdate = true;
+                exeState.setResources[3].needUpdate = true;
             }
         }
         else
@@ -1758,7 +1765,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
 
             if (exeState.renderPass != nullptr)
             {
-                auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
+                auto pipeline = exeState.pendingBindedShader->RequestGraphicsPipeline(
                     exeState.shaderConfig,
                     std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
                     exeState.renderPass,
@@ -1769,19 +1776,20 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                 {
                     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
                     exeState.lastBindedPipeline = pipeline;
+                    exeState.bindedShader = exeState.pendingBindedShader;
+                    exeState.shaderConfig = exeState.pendingShaderConfig;
+
+                    exeState.setResources[0].needUpdate = true;
+                    exeState.setResources[1].needUpdate = true;
+                    exeState.setResources[2].needUpdate = true;
+                    exeState.setResources[3].needUpdate = true;
                 }
             }
             else
                 spdlog::error("draw call outside of renderpass");
         }
 
-        exeState.bindedShader = exeState.lastBindedShader;
-        exeState.shaderConfig = exeState.lastShaderConfig;
 
-        exeState.setResources[0].needUpdate = true;
-        exeState.setResources[1].needUpdate = true;
-        exeState.setResources[2].needUpdate = true;
-        exeState.setResources[3].needUpdate = true;
     }
 }
 
@@ -1792,13 +1800,13 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
         auto sourceSet =
-            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader, this);
+            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.pendingBindedShader, this);
         if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
         {
             vkCmdBindDescriptorSets(
                 cmd,
                 bindPoint,
-                exeState.lastBindedShader->GetVKPipelineLayout(),
+                exeState.pendingBindedShader->GetVKPipelineLayout(),
                 index,
                 1,
                 &sourceSet,

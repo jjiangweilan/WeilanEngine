@@ -133,8 +133,8 @@ private:
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void WriteParameterDataToBuffer(
-        const Gfx::PipelineInfo& pipeline,
-        const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
+        const Gfx::ShaderPipelineInfo& pipeline,
+        const Gfx::ShaderPipelineInfo::BufferMember& bufferDataDescription,
         uint8_t* buf,
         size_t bufSize
     );

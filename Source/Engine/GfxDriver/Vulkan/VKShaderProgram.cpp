@@ -139,7 +139,7 @@ void SamplerCachePool::DestroyPool()
 std::unordered_map<vk::SamplerCreateInfo, VkSampler> SamplerCachePool::samplers =
     std::unordered_map<vk::SamplerCreateInfo, VkSampler>();
 
-VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::PipelineInfo::SamplerConfig& samplerConfig)
+VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::ShaderPipelineInfo::SamplerConfig& samplerConfig)
 {
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;

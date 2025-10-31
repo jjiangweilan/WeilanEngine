@@ -79,14 +79,14 @@ public:
                         {
                             float val = target->GetFloat("", member.name);
 
-                            if (member.type == Gfx::PipelineInfo::MemberDataType::Float)
+                            if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
                             {
                                 if (ImGui::DragFloat(member.name.c_str(), &val))
                                 {
                                     target->SetFloat("", member.name, val);
                                 }
                             }
-                            else if (member.type == Gfx::PipelineInfo::MemberDataType::Int)
+                            else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Int)
                             {
                                 int ival = val;
                                 if (ImGui::DragInt(member.name.c_str(), &ival))
@@ -94,7 +94,7 @@ public:
                                     target->SetFloat("", member.name, val);
                                 }
                             }
-                            else if (member.type == Gfx::PipelineInfo::MemberDataType::UInt)
+                            else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::UInt)
                             {
                                 int ival = val;
                                 if (ImGui::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))

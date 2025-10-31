@@ -10,6 +10,7 @@
 #include "Modules/Ocean/OceanComponent.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
+#include "Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Rendering/Renderers/ParticleRenderer.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"

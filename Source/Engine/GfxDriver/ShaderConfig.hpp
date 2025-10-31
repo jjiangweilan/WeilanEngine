@@ -75,7 +75,7 @@ struct PipelineConfig
         bool operator==(const PipelineConfig_t& other) const noexcept = default;
     };
 
-    PipelineConfig() = default;
+    PipelineConfig() { Rehash(); };
     PipelineConfig(const PipelineConfig_t& other)
     {
         v = std::make_shared<PipelineConfig_t>(other);

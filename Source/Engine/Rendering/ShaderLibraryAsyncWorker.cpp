@@ -166,7 +166,7 @@ public:
     Result CompileAndReflectProgram(
         slang::ISession* session,
         const char* shaderName,
-        Gfx::PipelineInfo& outPipelineInfo,
+        Gfx::ShaderPipelineInfo& outPipelineInfo,
         Gfx::PipelineConfig& outPipelineConfig,
         const std::vector<std::string>& enabledFeatures
     )
@@ -373,9 +373,9 @@ public:
         return type;
     }
 
-    int AddSamplerConfig(Gfx::PipelineInfo::DescriptorSet& set, slang::VariableLayoutReflection* variableLayout)
+    int AddSamplerConfig(Gfx::ShaderPipelineInfo::DescriptorSet& set, slang::VariableLayoutReflection* variableLayout)
     {
-        Gfx::PipelineInfo::SamplerConfig config{};
+        Gfx::ShaderPipelineInfo::SamplerConfig config{};
         std::string name = variableLayout->getName();
         bool pointFilter = Utils::strContians(Utils::strToLower(name), "point");
 
@@ -410,26 +410,26 @@ public:
         return set.AddSamplerConfig(config);
     }
 
-    Gfx::PipelineInfo::MemberDataType MapSlangScalarType(slang::TypeReflection::ScalarType type)
+    Gfx::ShaderPipelineInfo::MemberDataType MapSlangScalarType(slang::TypeReflection::ScalarType type)
     {
         switch (type)
         {
             case slang::TypeReflection::ScalarType::Float32:
-            case slang::TypeReflection::ScalarType::Float16: return Gfx::PipelineInfo::MemberDataType::Float;
+            case slang::TypeReflection::ScalarType::Float16: return Gfx::ShaderPipelineInfo::MemberDataType::Float;
             case slang::TypeReflection::ScalarType::Int32:
             case slang::TypeReflection::ScalarType::Int16:
-            case slang::TypeReflection::ScalarType::Int8: return Gfx::PipelineInfo::MemberDataType::Int;
+            case slang::TypeReflection::ScalarType::Int8: return Gfx::ShaderPipelineInfo::MemberDataType::Int;
             case slang::TypeReflection::ScalarType::UInt32:
-            case slang::TypeReflection::ScalarType::UInt64: return Gfx::PipelineInfo::MemberDataType::UInt;
+            case slang::TypeReflection::ScalarType::UInt64: return Gfx::ShaderPipelineInfo::MemberDataType::UInt;
             default: ASSERT(0 && "Not Handled");
         }
 
-        return Gfx::PipelineInfo::MemberDataType::Float;
+        return Gfx::ShaderPipelineInfo::MemberDataType::Float;
     }
 
-    std::vector<Gfx::PipelineInfo::BufferMember> CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
+    std::vector<Gfx::ShaderPipelineInfo::BufferMember> CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
     {
-        std::vector<Gfx::PipelineInfo::BufferMember> members{};
+        std::vector<Gfx::ShaderPipelineInfo::BufferMember> members{};
         auto typeLayout = variableLayout->getTypeLayout();
 
         auto fieldCount = typeLayout->getFieldCount();
@@ -449,18 +449,18 @@ public:
                     {
                         if (size != 0)
                         {
-                            Gfx::PipelineInfo::BufferMember member{};
+                            Gfx::ShaderPipelineInfo::BufferMember member{};
                             member.name = field->getName();
                             member.count = 0;
                             if (kind == slang::TypeReflection::Kind::Struct)
-                                member.type = Gfx::PipelineInfo::MemberDataType::Structure;
+                                member.type = Gfx::ShaderPipelineInfo::MemberDataType::Structure;
                             else // Array
                             {
                                 member.count = fieldTypeLayout->getElementCount();
                                 auto elementKind = fieldTypeLayout->getElementTypeLayout()->getKind();
                                 if (elementKind == slang::TypeReflection::Kind::Struct)
                                 {
-                                    member.type = Gfx::PipelineInfo::MemberDataType::Structure;
+                                    member.type = Gfx::ShaderPipelineInfo::MemberDataType::Structure;
                                 }
                                 else if (elementKind == slang::TypeReflection::Kind::Matrix)
                                 {
@@ -490,7 +490,7 @@ public:
                 case slang::TypeReflection::Kind::Vector:
                 case slang::TypeReflection::Kind::Scalar:
                     {
-                        Gfx::PipelineInfo::BufferMember member;
+                        Gfx::ShaderPipelineInfo::BufferMember member;
                         member.name = field->getName();
                         member.count = 0;
                         member.columnCount = 1;
@@ -525,9 +525,9 @@ public:
     void CollectBindings(
         slang::VariableLayoutReflection* variableLayout,
         slang::VariableLayoutReflection* container,
-        Gfx::PipelineInfo::DescriptorSet& set,
+        Gfx::ShaderPipelineInfo::DescriptorSet& set,
         int parentBinding,
-        std::vector<Gfx::PipelineInfo::Binding>& outBindings
+        std::vector<Gfx::ShaderPipelineInfo::Binding>& outBindings
     )
     {
         auto typeLayout = variableLayout->getTypeLayout();
@@ -539,7 +539,7 @@ public:
         {
             case slang::TypeReflection::Kind::SamplerState:
                 {
-                    Gfx::PipelineInfo::Binding binding{};
+                    Gfx::ShaderPipelineInfo::Binding binding{};
                     binding.name = variableLayout->getName();
                     binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
                     binding.bindingNum = currentBinding;
@@ -571,7 +571,7 @@ public:
                 }
             case slang::TypeReflection::Kind::Resource:
                 {
-                    Gfx::PipelineInfo::Binding binding{};
+                    Gfx::ShaderPipelineInfo::Binding binding{};
                     binding.name = variableLayout->getName();
                     binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
                     binding.bindingNum = currentBinding;
@@ -629,7 +629,7 @@ public:
                     int size = elementVarLayout->getTypeLayout()->getStride();
                     if (size != 0)
                     {
-                        Gfx::PipelineInfo::Binding binding{};
+                        Gfx::ShaderPipelineInfo::Binding binding{};
                         binding.name = variableLayout->getName();
                         binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
                         binding.bindingNum = currentBinding;
@@ -675,9 +675,9 @@ public:
         }
     }
 
-    void AccessSet(slang::VariableLayoutReflection* setLayoutReflection, Gfx::PipelineInfo& pipelineInfo)
+    void AccessSet(slang::VariableLayoutReflection* setLayoutReflection, Gfx::ShaderPipelineInfo& pipelineInfo)
     {
-        Gfx::PipelineInfo::DescriptorSet set{};
+        Gfx::ShaderPipelineInfo::DescriptorSet set{};
         set.setNum = setLayoutReflection->getOffset(slang::SubElementRegisterSpace);
         for (auto i = 0; i < setLayoutReflection->getVariable()->getUserAttributeCount(); ++i)
         {
@@ -716,7 +716,7 @@ public:
     void CollectVertexVaryingInput(
         slang::VariableLayoutReflection* variableLayout,
         int locationOffset,
-        std::vector<Gfx::PipelineInfo::VertexAttribute>& outVertexAttributes
+        std::vector<Gfx::ShaderPipelineInfo::VertexAttribute>& outVertexAttributes
     )
     {
         auto category = variableLayout->getCategory();
@@ -740,7 +740,7 @@ public:
             }
             else if (kind == slang::TypeReflection::Kind::Vector)
             {
-                Gfx::PipelineInfo::VertexAttribute vertexAttribute;
+                Gfx::ShaderPipelineInfo::VertexAttribute vertexAttribute;
 
                 vertexAttribute.name = variableLayout->getName();
                 vertexAttribute.location =
@@ -812,7 +812,7 @@ public:
     void CollectFragmentOutput(
         slang::VariableLayoutReflection* variableLayout,
         int locationOffset,
-        std::vector<Gfx::PipelineInfo::FragmentOutput>& outFragmentOutputs
+        std::vector<Gfx::ShaderPipelineInfo::FragmentOutput>& outFragmentOutputs
     )
     {
         auto category = variableLayout->getCategory();
@@ -836,7 +836,7 @@ public:
             }
             else if (kind == slang::TypeReflection::Kind::Vector)
             {
-                Gfx::PipelineInfo::FragmentOutput fragmentAttribute{};
+                Gfx::ShaderPipelineInfo::FragmentOutput fragmentAttribute{};
 
                 fragmentAttribute.location =
                     locationOffset + variableLayout->getOffset(SLANG_PARAMETER_CATEGORY_VARYING_OUTPUT);
@@ -875,16 +875,16 @@ public:
         }
     }
 
-    void CollectFragmentOutput(Gfx::PipelineInfo& outPipelineInfo)
+    void CollectFragmentOutput(Gfx::ShaderPipelineInfo& outPipelineInfo)
     {
         auto fragmentEntryPointReflection = linkedProgram->getLayout()->getEntryPointByIndex(fragmentEntryPointIndex);
         auto resultVarLayout = fragmentEntryPointReflection->getResultVarLayout();
         CollectFragmentOutput(resultVarLayout, 0, outPipelineInfo.fragmentOutputs);
     }
 
-    void CollectVertexInput(Gfx::PipelineInfo& outPipelineInfo)
+    void CollectVertexInput(Gfx::ShaderPipelineInfo& outPipelineInfo)
     {
-        std::vector<Gfx::PipelineInfo::VertexAttribute> vertexAttributes{};
+        std::vector<Gfx::ShaderPipelineInfo::VertexAttribute> vertexAttributes{};
         auto vertexEntryPointReflection = linkedProgram->getLayout()->getEntryPointByIndex(vertexEntryPointIndex);
 
         for (int parameterIndex = 0; parameterIndex < vertexEntryPointReflection->getParameterCount(); ++parameterIndex)
@@ -894,7 +894,7 @@ public:
         }
     }
 
-    void CollectSets(slang::VariableLayoutReflection* scopeVarLayout, Gfx::PipelineInfo& outPipelineInfo)
+    void CollectSets(slang::VariableLayoutReflection* scopeVarLayout, Gfx::ShaderPipelineInfo& outPipelineInfo)
     {
         auto scopeTypeLayout = scopeVarLayout->getTypeLayout();
         const auto& kind = scopeTypeLayout->getKind();
@@ -902,7 +902,7 @@ public:
         {
             if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
             {
-                Gfx::PipelineInfo::PushConstant pushConstant;
+                Gfx::ShaderPipelineInfo::PushConstant pushConstant;
                 pushConstant.stages = Gfx::ShaderStage::Vertex | Gfx::ShaderStage::Fragment |
                                       Gfx::ShaderStage::Compute; // https://github.com/shader-slang/slang/issues/5685
                 // push constant not supported to query yet
@@ -944,7 +944,7 @@ public:
         }
     }
 
-    Gfx::PipelineConfig MapShaderConfig(ryml::Tree& tree, Gfx::PipelineInfo& info)
+    Gfx::PipelineConfig MapShaderConfig(ryml::Tree& tree, Gfx::ShaderPipelineInfo& info)
     {
         Gfx::PipelineConfig::PipelineConfig_t config;
         config.color.blendConstants[0] = 1.0;
@@ -1446,7 +1446,7 @@ private:
     )
     {
         ShaderCompiler compiler;
-        Gfx::PipelineInfo pipelineInfo{};
+        Gfx::ShaderPipelineInfo pipelineInfo{};
         Gfx::PipelineConfig pipelineConfig{};
         auto& features = RetriveShaderFeatures(shaderName, permutation);
         outFeature = features;

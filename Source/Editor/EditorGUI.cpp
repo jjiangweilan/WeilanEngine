@@ -297,7 +297,7 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
         }
     };
 
-    auto IsColorAttribute = [](const Gfx::PipelineInfo::BufferMember& member) -> bool
+    auto IsColorAttribute = [](const Gfx::ShaderPipelineInfo::BufferMember& member) -> bool
     {
         for (const auto& attr : member.attributes)
         {
@@ -369,14 +369,14 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
                     {
                         float val = material.GetFloat("", member.name);
 
-                        if (member.type == Gfx::PipelineInfo::MemberDataType::Float)
+                        if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
                         {
                             if (EditorGUI::DragFloat(member.name.c_str(), &val))
                             {
                                 material.SetFloat("", member.name, val);
                             }
                         }
-                        else if (member.type == Gfx::PipelineInfo::MemberDataType::Int)
+                        else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Int)
                         {
                             int ival = val;
                             if (EditorGUI::DragInt(member.name.c_str(), &ival))
@@ -384,7 +384,7 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
                                 material.SetFloat("", member.name, val);
                             }
                         }
-                        else if (member.type == Gfx::PipelineInfo::MemberDataType::UInt)
+                        else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::UInt)
                         {
                             int ival = val;
                             if (EditorGUI::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
