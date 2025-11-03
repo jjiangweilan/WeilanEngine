@@ -53,6 +53,7 @@ public:
 
     // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
+    int GetBindingNum(Gfx::DescriptorSetSemantics descriptorSet, std::string_view name) override;
     const PipelineConfig& GetDefaultShaderConfig() override { return defaultPipelineConfig; };
     const ShaderPipelineInfo& GetShaderInfo() override { return pipelineInfo; }
     const std::string& GetName() const override { return name; }

@@ -57,9 +57,13 @@ struct RenderAttachment
 
 struct DescriptorBinding
 {
-    uint32_t dstBinding;
-    uint32_t dstArrayElement;
-    uint32_t descriptorCount;
+    DescriptorBinding() = default;
+    DescriptorBinding(int dstBinding, Image* image);
+    DescriptorBinding(int dstBinding, ImageView* imageView);
+    DescriptorBinding(int dstBinding, Buffer* buffer);
+    int dstBinding;
+    int dstArrayElement;
+    int descriptorCount;
     ImageView* imageView;
     Buffer* buffer;
 };

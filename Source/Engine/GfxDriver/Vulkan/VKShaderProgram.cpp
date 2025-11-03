@@ -593,10 +593,25 @@ void VKShaderProgram::CleanUpInvalidCaches()
         }
     }
 
-    for(auto hash : eraseList)
+    for (auto hash : eraseList)
     {
         caches.erase(hash);
     }
+}
+
+int VKShaderProgram::GetBindingNum(Gfx::DescriptorSetSemantics descriptorSet, std::string_view name)
+{
+    auto& descriptorSets = pipelineInfo.descriptorSets;
+    if ((int)descriptorSet < descriptorSets.size() && (int)descriptorSet >= 0)
+    {
+        auto binding = pipelineInfo.descriptorSets[(int)descriptorSet].GetBinding(name);
+        if (binding)
+        {
+            return binding->bindingNum;
+        }
+    }
+
+    return -1;
 }
 
 } // namespace Gfx

@@ -2,6 +2,12 @@
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/RenderingUtils.hpp"
+#include <span>
+
+#define FFX_CPU 1
+#include "Shaders/fidelityfx/ffx_common_types.h"
+#include "Shaders/fidelityfx/ffx_core_cpu.h"
+#include "Shaders/fidelityfx/spd/ffx_spd.h"
 
 namespace Rendering::Passes
 {
@@ -43,7 +49,6 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
 {
-
     auto shaderResource = EnsureProbeShaderResource(probe);
 
     cmd.BeginLabel("Reflection Probe IBL Generation", {0.4f, 0.1f, 0.7f, 1.0f});
@@ -81,10 +86,20 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
 
     for (int i = 0; i < 30; ++i)
     {
-        shaderResource->SetImage(Gfx::ShaderBindingHandle("dstFaces"), i, cubemapImageViews.back().get());
+        shaderResource->SetImage(Gfx::ShaderBindingHandle("dstFaces"), i, cubemapImageViews[i].get());
     }
 
     probeShaderResources[probe.GetUUID()] = std::move(shaderResource);
     return probeShaderResources[probe.GetUUID()].get();
+}
+
+void MipmapGeneration(uint32_t width, uint32_t height, uint32_t dispatchThreadGroupCountXY[])
+{
+    uint32_t workGroupOffset[2];
+    uint32_t numWorkGroupsAndMips[2];
+    uint32_t rectInfo[4] = {0, 0, width, height};
+    ffxSpdSetup(dispatchThreadGroupCountXY, workGroupOffset, numWorkGroupsAndMips, rectInfo);
+
+
 }
 } // namespace Rendering::Passes

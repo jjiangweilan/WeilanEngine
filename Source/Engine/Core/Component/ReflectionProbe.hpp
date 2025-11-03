@@ -17,7 +17,8 @@ public:
     enum class ProbeType
     {
         Local,
-        Global
+        Global,
+        SkyboxOnly
     };
 
 private:
@@ -96,4 +97,5 @@ public:
 private:
     void TransformChanged() override;
     void UpdateFrustums(float3 position);
+    void InitializeForSkyboxOnly();
 };

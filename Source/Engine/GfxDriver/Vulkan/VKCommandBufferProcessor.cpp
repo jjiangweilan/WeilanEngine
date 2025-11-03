@@ -1556,9 +1556,9 @@ void VKCommandBufferProcessor::Execute(
                             writeSets[i] = {
                                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                 .pNext = VK_NULL_HANDLE,
-                                .dstBinding = b.dstBinding,
-                                .dstArrayElement = b.dstArrayElement,
-                                .descriptorCount = b.descriptorCount,
+                                .dstBinding = (uint32_t)b.dstBinding,
+                                .dstArrayElement = (uint32_t)b.dstArrayElement,
+                                .descriptorCount = (uint32_t)b.descriptorCount,
                                 .descriptorType =
                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // I think should be queried from shader,
                                                                                // but shader currently don't support an
@@ -1788,8 +1788,6 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
             else
                 spdlog::error("draw call outside of renderpass");
         }
-
-
     }
 }
 
@@ -1800,13 +1798,13 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
         auto sourceSet =
-            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.pendingBindedShader, this);
+            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.bindedShader, this);
         if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
         {
             vkCmdBindDescriptorSets(
                 cmd,
                 bindPoint,
-                exeState.pendingBindedShader->GetVKPipelineLayout(),
+                exeState.bindedShader->GetVKPipelineLayout(),
                 index,
                 1,
                 &sourceSet,
