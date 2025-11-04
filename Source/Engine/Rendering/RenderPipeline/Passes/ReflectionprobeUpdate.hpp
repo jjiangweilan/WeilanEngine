@@ -23,7 +23,9 @@ class ReflectionProbeUpdate
     std::unique_ptr<Gfx::Image> cubemap; // final cubemap
     std::vector<std::unique_ptr<Gfx::ImageView>> cubemapImageViews;
     Gfx::DescriptorSetSemantics shaderInputSet;
+
     Material ffxSpd;
+    std::unique_ptr<Gfx::Buffer> spdGlobalAtomic;
 
 public:
     ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);

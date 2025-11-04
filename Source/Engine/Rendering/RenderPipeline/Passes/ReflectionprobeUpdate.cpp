@@ -27,8 +27,6 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
     );
     cubemap = GetGfxDriver()->CreateImage(cubemapDesc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
 
-    ffxSpd.SetShader(Shaders::FidelityFX_SPD);
-
     for (int i = 0; i < 30; i++)
     {
         uint32_t mip = i / 5;
@@ -47,6 +45,9 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
 
         cubemapImageViews.push_back(GetGfxDriver()->CreateImageView(createInfo));
     }
+
+    // Setup spd
+    ffxSpd.SetShader(Shaders::FidelityFX_SPD);
 }
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
@@ -98,7 +99,7 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
     return probeShaderResources[probe.GetUUID()].get();
 }
 
-void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height)
+void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height, Gfx::Image& src)
 {
     uint32_t dispatchThreadGroupCountXY[2];
     uint32_t workGroupOffset[2];
@@ -109,6 +110,8 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     ffxSpd.SetFloat("mips", numWorkGroupsAndMips[1]);
     ffxSpd.SetFloat("numWorkGroups", numWorkGroupsAndMips[0]);
     ffxSpd.SetVector("workGroupOffset", float4(workGroupOffset[0], workGroupOffset[1], 0, 0));
+    ffxSpd.SetVector("invInputSize", float4(1.0f / width, 1.0f / height, 0, 0));
+    ffxSpd.SetTexture("r_input_downsample_src", &src);
 
     const int cubeFaces = 6;
     cmd.BindResource(1, ffxSpd.GetShaderResource());
