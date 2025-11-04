@@ -1,7 +1,9 @@
 import WeilanEngine;
 
-#define FFX_GPU
-#define FFX_HLSL
+#define FFX_GPU 1
+#define FFX_HLSL 1
+#define FFX_HALF 0
+#define FFX_HLSL_SM         (62)
 
 #include "fidelityfx/ffx_core.h"
 #include "fidelityfx/spd/ffx_spd.h"
