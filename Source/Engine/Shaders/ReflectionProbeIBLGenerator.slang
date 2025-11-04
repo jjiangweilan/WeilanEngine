@@ -64,7 +64,7 @@ struct PixelInfo
         texelCoord.y = (uint)iy;
         texelCoord.x = (uint)(mipFaceTexelIdx - iy * mipWidth);
         uv.y = (iy + 0.5) / mipWidth;
-        uv.x = (texelCoord.y + 0.5) / mipWidth;
+        uv.x = (texelCoord.x + 0.5) / mipWidth;
 
         dir = GetCubemapDirection(uv, face);
     }
