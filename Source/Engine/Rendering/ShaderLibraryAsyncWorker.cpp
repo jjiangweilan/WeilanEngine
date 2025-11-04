@@ -197,6 +197,11 @@ public:
             SLANG_RETURN_ON_FAIL(result);
 
             auto attribute = entryPoint->getFunctionReflection()->findAttributeByName(globalSession, "shader");
+            if (attribute == nullptr)
+            {
+                spdlog::error("slang shader doesn't entry tagged by 'shader' attribute.");
+                abort();
+            }
             size_t size;
             const char* f = attribute->getArgumentValueString(0, &size);
             std::string name = std::string(f, size);
