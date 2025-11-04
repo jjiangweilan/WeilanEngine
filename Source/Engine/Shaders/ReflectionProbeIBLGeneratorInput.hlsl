@@ -9,7 +9,9 @@ struct ParameterInput
 
 struct ShaderInput
 {
+    float4 placeHolder;
 #if GPU_RESOURCE
+    [vk::binding(31, 1)]
     StructuredBuffer<ParameterInput> input;
     TextureCube srcCubemap; // mipped source cubemap
     SamplerState linearClampSampler;

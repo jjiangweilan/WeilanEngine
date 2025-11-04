@@ -386,7 +386,8 @@ struct VKCmd
 class VKCommandBuffer : public CommandBuffer
 {
 public:
-    VKCommandBuffer(VKCommandBufferProcessor* graph) : graph(graph) {}
+    VKCommandBuffer(VKCommandBufferProcessor* graph)
+        : graph(graph) {}
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
     ~VKCommandBuffer() {};
 

@@ -23,6 +23,7 @@ class ReflectionProbeUpdate
     std::unique_ptr<Gfx::Image> cubemap; // final cubemap
     std::vector<std::unique_ptr<Gfx::ImageView>> cubemapImageViews;
     Gfx::DescriptorSetSemantics shaderInputSet;
+    Material ffxSpd;
 
 public:
     ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
@@ -30,5 +31,6 @@ public:
 
 private:
     Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);
+    void MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height);
 };
 } // namespace Rendering::Passes

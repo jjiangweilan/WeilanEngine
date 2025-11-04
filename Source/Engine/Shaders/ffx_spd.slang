@@ -1,16 +1,16 @@
 import WeilanEngine;
 
-#define FFX_GPU 1
+#define FFX_GPU
+#define FFX_HLSL
 
 #include "fidelityfx/ffx_core.h"
-#include "fidelityfx/ffx_core_gpu_common.h"
 #include "fidelityfx/spd/ffx_spd.h"
 
 struct ffx_spd_input
 {
-    uint mips;
-    uint numWorkGroups;
-    uint slice;
+    float mips;
+    float numWorkGroups;
+    float2 workGroupOffset;
 };
 
 [Global]
@@ -20,9 +20,9 @@ ParameterBlock<ffx_spd_input> input;
 [numthreads(256, 1, 1)]
 void main(uint3 workGroupID : SV_GroupID, uint threadGroupIndex : SV_GroupIndex)
 {
-    int mips = 1;
-    int numWorkGroups = 1;
-    int slice = 1;
-    SpdDownsample(workGroupID.xy, threadGroupIndex, mips, numWorkGroups, slice);
+    int mips = (int)input.mips;
+    int numWorkGroups = (int)input.numWorkGroups;
+    float2 workGroupOffset = (float2)input.workGroupOffset;
+    SpdDownsample(workGroupID.xy, threadGroupIndex, mips, numWorkGroups, workGroupID.z, workGroupOffset);
 }
 
