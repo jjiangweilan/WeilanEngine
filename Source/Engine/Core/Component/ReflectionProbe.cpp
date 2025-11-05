@@ -53,6 +53,9 @@ void ReflectionProbe::OnInit()
     roughness[3] = 0.6f;
     roughness[4] = 0.8f;
     roughness[5] = 0.999f;
+
+    desc.mipLevels = (int)glm::log2((float)desc.width);
+    cubemapBase = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);
 }
 
 void ReflectionProbe::TransformChanged()
@@ -168,3 +171,8 @@ int ReflectionProbe::GetTotalPixelCount()
 }
 
 void ReflectionProbe::OnDrawGizmos(GizmoManager& gizmoContext) {}
+
+Gfx::Image* ReflectionProbe::GetCubemapBase()
+{
+    return cubemapBase.get();
+}

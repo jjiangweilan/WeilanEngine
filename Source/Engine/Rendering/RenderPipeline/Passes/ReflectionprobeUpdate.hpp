@@ -35,5 +35,6 @@ public:
 private:
     Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);
     void MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height, Gfx::Image& src);
+    void DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Image& probe);
 };
 } // namespace Rendering::Passes

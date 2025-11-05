@@ -54,7 +54,6 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
     Gfx::ImageDescription rw_input_downsample_src_mid_mipDesc(cubemapDesc.width, cubemapDesc.height, cubemapDesc.format);
     rw_input_downsample_src_mid_mipDesc.layers = (uint32_t)glm::log2((float)cubemapDesc.width);
     rw_input_downsample_src_mid_mip = GetGfxDriver()->CreateImage(rw_input_downsample_src_mid_mipDesc, Gfx::ImageUsage::Storage);
-
 }
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
@@ -63,7 +62,8 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
 
     cmd.BeginLabel("Reflection Probe IBL Generation", {0.4f, 0.1f, 0.7f, 1.0f});
 
-    // MipmapGeneration(cmd, 1, 1);
+    auto srcProbeBase = probe.GetCubemapBase();
+    MipmapGeneration(cmd, srcProbeBase->GetDescription().width, srcProbeBase->GetDescription().height, *srcProbeBase);
 
     cmd.BindResource((int)Gfx::DescriptorSetSemantics::Material, shaderResource);
 
@@ -119,15 +119,25 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     ffxSpd.SetVector("workGroupOffset", float4(workGroupOffset[0], workGroupOffset[1], 0, 0));
     ffxSpd.SetVector("invInputSize", float4(1.0f / width, 1.0f / height, 0, 0));
     ffxSpd.SetTexture("r_input_downsample_src", &src);
-    ffxSpd.SetTexture("rw_input_downsample_src_mid_mip", rw_input_downsample_src_mid_mip.get());
     ffxSpd.SetBuffer("rw_internal_global_atomic", spdGlobalAtomic.get());
+    ffxSpd.SetTexture("rw_input_downsample_src_mid_mip", rw_input_downsample_src_mid_mip.get());
 
-    Gfx::ImageViewOption mipView{0, 1, 0, 6, Gfx::ImageAspect::Color};
-    // src.GetImageView();
-    // ffxSpd.GetShaderResource()->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), 0, );
+    auto layerCount = src.GetDescription().GetLayer();
+    auto ffxSpdShaderResource = ffxSpd.GetShaderResource();
+    for (int mip = 0; mip < src.GetDescription().mipLevels; mip++)
+    {
+        Gfx::ImageViewOption imageViewOpt{mip, 1, 0, (int)layerCount, Gfx::ImageAspect::Color};
+        auto& imageView = src.GetImageView(imageViewOpt);
+
+        ffxSpdShaderResource->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), mip, &imageView);
+    }
 
     const int cubeFaces = 6;
     cmd.BindResource(1, ffxSpd.GetShaderResource());
     cmd.Dispatch(dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1], cubeFaces);
+}
+
+void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Image& probe)
+{
 }
 } // namespace Rendering::Passes

@@ -34,6 +34,7 @@ private:
      */
     float3 extent = {1, 1, 1};
     std::unique_ptr<Gfx::Image> cubemap;
+    std::unique_ptr<Gfx::Image> cubemapBase;
     float roughness[6];
     uint32_t resolution = 512;
     ObjPtr<Texture> staticReflectionProbe;
@@ -91,6 +92,7 @@ public:
     }
 
     Gfx::Image* GetCubemap();
+    Gfx::Image* GetCubemapBase();
     void OnDrawGizmos() override;
     void OnDrawGizmos(GizmoManager& gizmoContext) override;
 
