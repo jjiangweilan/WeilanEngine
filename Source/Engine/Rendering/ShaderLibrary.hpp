@@ -29,9 +29,9 @@
                          Do(DepthDownSampler, "DepthDownSampler"),                                           \
                          Do(ContactShadow, "ContactShadow/ContactShadow"),                                   \
                          Do(Ocean, "Ocean"),                                                                 \
-                         Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),\
-                         Do(FidelityFX_SPD, "ffx_spd"),
-
+                         Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),                     \
+                         Do(FidelityFX_SPD, "ffx_spd"),                                                      \
+                         Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

@@ -40,6 +40,7 @@ private:
     ObjPtr<Texture> staticReflectionProbe;
     InteractiveBox gizmoState{};
     int totalPixelCount;
+    Material cubemapBaseMat;
 
 public:
     ReflectionProbe();
@@ -93,6 +94,7 @@ public:
 
     Gfx::Image* GetCubemap();
     Gfx::Image* GetCubemapBase();
+    Material& GetCubemapBaseMaterial();
     void OnDrawGizmos() override;
     void OnDrawGizmos(GizmoManager& gizmoContext) override;
 

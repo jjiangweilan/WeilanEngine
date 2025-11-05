@@ -56,6 +56,10 @@ void ReflectionProbe::OnInit()
 
     desc.mipLevels = (int)glm::log2((float)desc.width);
     cubemapBase = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);
+    cubemapBaseMat.SetShader(Shaders::ReflectionProbeSkybox);
+    float width = cubemapBase->GetDescription().width;
+    cubemapBaseMat.SetVector("resolution", float4(width, width, 1.0f / width, 1.0f / width));
+    cubemapBaseMat.GetShaderResource()->SetImage("outputCubemap", &cubemapBase->GetDefaultImageView());
 }
 
 void ReflectionProbe::TransformChanged()
@@ -175,4 +179,9 @@ void ReflectionProbe::OnDrawGizmos(GizmoManager& gizmoContext) {}
 Gfx::Image* ReflectionProbe::GetCubemapBase()
 {
     return cubemapBase.get();
+}
+
+Material& ReflectionProbe::GetCubemapBaseMaterial()
+{
+    return cubemapBaseMat;
 }

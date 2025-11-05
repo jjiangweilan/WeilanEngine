@@ -51,6 +51,7 @@ struct RenderingData
     float2 screenSize;
     float screenAspect;
     InterleavedGradientNoise interleavedGradientNoise;
+    Gfx::ShaderResource* globalResource;
 
     Light* GetMainLight()
     {

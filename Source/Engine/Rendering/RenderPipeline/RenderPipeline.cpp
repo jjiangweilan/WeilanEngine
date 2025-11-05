@@ -43,6 +43,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     Gfx::CommandBuffer* cmd = GetCommandBuffer();
     renderingData.screenSize = screenSize;
     renderingData.screenAspect = screenSize.x / screenSize.y;
+    renderingData.globalResource = perScene.globalResource.get();
     cmd->BeginLabel("Render Scene", {0.623, 0.323, 0.4123, 1.0f});
     if (!FrameSetup(cmd, scene, camera, screenSize))
     {

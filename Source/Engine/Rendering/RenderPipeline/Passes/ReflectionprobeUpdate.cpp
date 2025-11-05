@@ -62,6 +62,8 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
 
     cmd.BeginLabel("Reflection Probe IBL Generation", {0.4f, 0.1f, 0.7f, 1.0f});
 
+    DrawSkyboxOnProbe(cmd, *probe.GetCubemapBase(), probe.GetCubemapBaseMaterial(), *renderingData.globalResource);
+
     auto srcProbeBase = probe.GetCubemapBase();
     MipmapGeneration(cmd, srcProbeBase->GetDescription().width, srcProbeBase->GetDescription().height, *srcProbeBase);
 
@@ -137,7 +139,12 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     cmd.Dispatch(dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1], cubeFaces);
 }
 
-void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Image& probe)
+void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Image& probe, Material& baseMat, Gfx::ShaderResource& globalSet)
 {
+    cmd.BindResource(0, &globalSet);
+    cmd.BindResource(1, baseMat.GetShaderResource());
+
+    cmd.BindShaderProgram(baseMat.GetShaderProgram(), baseMat.GetShaderConfig());
+    cmd.Dispatch(probe.GetDescription().width / 8, probe.GetDescription().height / 8, 6);
 }
 } // namespace Rendering::Passes
