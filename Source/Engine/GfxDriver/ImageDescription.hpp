@@ -36,12 +36,13 @@ struct ImageDescription
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t depth = 1;
+    uint32_t layers = 1;
     Gfx::GfxFormat format = GfxFormat::R8G8B8A8_SRGB;
     Gfx::MultiSampling multiSampling = MultiSampling::Sample_Count_1;
     uint32_t mipLevels = 1;
     bool isCubemap = false;
 
-    uint32_t GetLayer() const { return isCubemap ? 6 : 1; }
+    uint32_t GetLayer() const { return isCubemap ? 6 : layers; }
 
     size_t GetByteSize() const { return CalcByteSize(); }
 

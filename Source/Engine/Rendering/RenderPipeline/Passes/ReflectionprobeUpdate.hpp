@@ -26,6 +26,7 @@ class ReflectionProbeUpdate
 
     Material ffxSpd;
     std::unique_ptr<Gfx::Buffer> spdGlobalAtomic;
+    std::unique_ptr<Gfx::Image> rw_input_downsample_src_mid_mip;
 
 public:
     ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
@@ -33,6 +34,6 @@ public:
 
 private:
     Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);
-    void MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height);
+    void MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height, Gfx::Image& src);
 };
 } // namespace Rendering::Passes

@@ -48,6 +48,10 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
 
     // Setup spd
     ffxSpd.SetShader(Shaders::FidelityFX_SPD);
+    spdGlobalAtomic = GetGfxDriver()->CreateBuffer(sizeof(uint32_t) * 6, Gfx::BufferUsage::Storage, false, true, "SPD Global Atomic");
+    Gfx::ImageDescription rw_input_downsample_src_mid_mipDesc(cubemapDesc.width, cubemapDesc.height, cubemapDesc.format);
+    rw_input_downsample_src_mid_mipDesc.layers = glm::log2(cubemapDesc.width);
+    rw_input_downsample_src_mid_mip = GetGfxDriver()->CreateImage(rw_input_downsample_src_mid_mipDesc, Gfx::ImageUsage::Storage);
 }
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
@@ -112,6 +116,12 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     ffxSpd.SetVector("workGroupOffset", float4(workGroupOffset[0], workGroupOffset[1], 0, 0));
     ffxSpd.SetVector("invInputSize", float4(1.0f / width, 1.0f / height, 0, 0));
     ffxSpd.SetTexture("r_input_downsample_src", &src);
+    ffxSpd.SetTexture("rw_input_downsample_src_mid_mip", rw_input_downsample_src_mid_mip.get());
+    ffxSpd.SetBuffer("rw_internal_global_atomic", spdGlobalAtomic.get());
+
+    Gfx::ImageViewOption mipView{0, 1, 0, 6, Gfx::ImageAspect::Color};
+    src.GetImageView();
+    ffxSpd.GetShaderResource()->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), 0, );
 
     const int cubeFaces = 6;
     cmd.BindResource(1, ffxSpd.GetShaderResource());

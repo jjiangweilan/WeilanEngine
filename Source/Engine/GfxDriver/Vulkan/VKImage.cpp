@@ -27,10 +27,7 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
 {
     format_vk = MapFormat(imageDescription.format);
 
-    if (imageDescription.isCubemap)
-    {
-        arrayLayers = 6;
-    }
+    arrayLayers = imageDescription.GetLayer();
 
     if (imageDescription.width <= 0 || imageDescription.height <= 0)
     {
@@ -51,10 +48,7 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
 {
     format_vk = MapFormat(imageDescription.format);
 
-    if (imageDescription.isCubemap)
-    {
-        arrayLayers = 6;
-    }
+    arrayLayers = imageDescription.GetLayer();
     CreateImageView();
 
     SetName("Unnamed");
@@ -66,8 +60,8 @@ VKImage::VKImage(VKImage&& other)
       usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
       allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), stageMask(other.stageMask),
       accessMask(other.accessMask), imageDescription(other.imageDescription),
-      imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), layoutTrack(std::exchange(other.layoutTrack, {})),
-      imageViewForShaderResource(std::exchange(other.imageViewForShaderResource, VK_NULL_HANDLE))
+      imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), imageViewForShaderResource(std::exchange(other.imageViewForShaderResource, VK_NULL_HANDLE)),
+      layoutTrack(std::exchange(other.layoutTrack, {}))
 
 {}
 
@@ -272,15 +266,7 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     else
     {
         auto imageView = std::unique_ptr<VKImageView>(new VKImageView(imageViewCreateInfo));
-        imageView->SetName(fmt::format(
-            "{}-mip {}-levelCount {}-baseArrayLayer {}-layerCount {}-aspectMask {}",
-            GetName(),
-            range.baseMipLevel,
-            range.levelCount,
-            range.baseArrayLayer,
-            range.layerCount,
-            (int)range.aspectMask
-        ));
+        imageView->SetName(fmt::format("{}-mip {}-levelCount {}-baseArrayLayer {}-layerCount {}-aspectMask {}", GetName(), range.baseMipLevel, range.levelCount, range.baseArrayLayer, range.layerCount, (int)range.aspectMask));
         auto temp = imageView.get();
         imageViews[vkImageViewCreateInfo] = std::move(imageView);
         return *temp;
