@@ -136,6 +136,7 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
 
     const int cubeFaces = 6;
     cmd.BindResource(1, ffxSpd.GetShaderResource());
+    cmd.BindShaderProgram(ffxSpd.GetShaderProgram(), ffxSpd.GetShaderConfig());
     cmd.Dispatch(dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1], cubeFaces);
 }
 
