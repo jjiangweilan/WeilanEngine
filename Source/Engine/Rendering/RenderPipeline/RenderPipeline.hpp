@@ -7,7 +7,7 @@
 #include "Passes/SSAO.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
-#include "Rendering/RenderPipeline/Passes/ReflectionprobeUpdate.hpp"
+#include "Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
