@@ -4,19 +4,6 @@
 #pragma warning(disable: 15205)
 #pragma warning(disable: 41000)
 
-// struct ffx_spd_input
-// {
-//     float mips;
-//     float numWorkGroups;
-//     float2 workGroupOffset;
-// #if GPU_RESOURCE
-//     // add missing Texture input here
-// #endif
-// };
-// 
-// [Global]
-// ParameterBlock<ffx_spd_input> input;
-
 
 // SPD pass
 // SRV  0 : SPD_InputDownsampleSrc          : r_input_downsample_src
@@ -25,7 +12,9 @@
 // UAV  2 : SPD_InputDownsampleSrcMips      : rw_input_downsample_src_mips
 // CB   0 : cbSPD
 
-#define FFX_SPD_BIND_SRV_INPUT_DOWNSAMPLE_SRC               0
+#define FFX_SPD_OPTION_WAVE_INTEROP_LDS 1 // <- set 1 to enable debug in renderdoc
+
+// #define FFX_SPD_BIND_SRV_INPUT_DOWNSAMPLE_SRC               0 <- only needed when use linear sampling
 
 #define FFX_SPD_BIND_UAV_INTERNAL_GLOBAL_ATOMIC             0
 #define FFX_SPD_BIND_UAV_INPUT_DOWNSAMPLE_SRC_MID_MIPMAP    1

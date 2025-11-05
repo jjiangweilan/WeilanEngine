@@ -47,7 +47,8 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
     }
 
     // Setup spd //
-    ffxSpd.SetShader(Shaders::FidelityFX_SPD);
+    spdShader = ShaderLibrary::GetShader(Shaders::FidelityFX_SPD);
+    spdInput = GetGfxDriver()->CreateShaderResource();
 
     spdGlobalAtomic = GetGfxDriver()->CreateBuffer(sizeof(uint32_t) * 6, Gfx::BufferUsage::Storage, false, true, "SPD Global Atomic");
 
@@ -70,10 +71,11 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
     cmd.BindResource((int)Gfx::DescriptorSetSemantics::Material, shaderResource);
 
     cmd.BindShaderProgram(iblGenerator->GetShaderProgram(), iblGenerator->GetShaderProgram()->GetDefaultShaderConfig());
-    cmd.EndLabel();
 
     int dispatchX = (probe.GetTotalPixelCount() + 63) / 64.0f;
     cmd.Dispatch(dispatchX, 1, 1);
+
+    cmd.EndLabel();
 }
 
 Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(ReflectionProbe& probe)
@@ -116,27 +118,36 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     uint32_t rectInfo[4] = {0, 0, width, height};
     ffxSpdSetup(dispatchThreadGroupCountXY, workGroupOffset, numWorkGroupsAndMips, rectInfo);
 
-    ffxSpd.SetFloat("mips", numWorkGroupsAndMips[1]);
-    ffxSpd.SetFloat("numWorkGroups", numWorkGroupsAndMips[0]);
-    ffxSpd.SetVector("workGroupOffset", float4(workGroupOffset[0], workGroupOffset[1], 0, 0));
-    ffxSpd.SetVector("invInputSize", float4(1.0f / width, 1.0f / height, 0, 0));
-    ffxSpd.SetTexture("r_input_downsample_src", &src);
-    ffxSpd.SetBuffer("rw_internal_global_atomic", spdGlobalAtomic.get());
-    ffxSpd.SetTexture("rw_input_downsample_src_mid_mip", rw_input_downsample_src_mid_mip.get());
+    auto spdBufferVal = *spdBuffer.GetPtr();
+    spdBufferVal.mips = numWorkGroupsAndMips[1];
+    spdBufferVal.numWorkGroups = numWorkGroupsAndMips[0];
+    spdBufferVal.workGroupOffset = uint2(workGroupOffset[0], workGroupOffset[0]);
+    spdBufferVal.invInputSize = float2(1.0f / width, 1.0f / height);
+    if (memcmp(&spdBufferVal, spdBuffer.GetPtr(), sizeof(ffx_spd_resources)) != 0)
+    {
+        GetGfxDriver()->UploadBuffer(**spdBuffer, (uint8_t*)&spdBufferVal, sizeof(ffx_spd_resources));
+    }
+
+    spdInput->SetImage("r_input_downsample_src", &src);
+    spdInput->SetBuffer("rw_internal_global_atomic", spdGlobalAtomic.get());
+    spdInput->SetBuffer("spdInput", *spdBuffer);
 
     auto layerCount = src.GetDescription().GetLayer();
-    auto ffxSpdShaderResource = ffxSpd.GetShaderResource();
     for (int mip = 0; mip < src.GetDescription().mipLevels; mip++)
     {
         Gfx::ImageViewOption imageViewOpt{mip, 1, 0, (int)layerCount, Gfx::ImageAspect::Color};
         auto& imageView = src.GetImageView(imageViewOpt);
 
-        ffxSpdShaderResource->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), mip, &imageView);
+        if (mip == 6)
+            spdInput->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mid_mip"), mip, &imageView);
+        else
+            spdInput->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), mip, &imageView);
     }
 
     const int cubeFaces = 6;
-    cmd.BindResource(1, ffxSpd.GetShaderResource());
-    cmd.BindShaderProgram(ffxSpd.GetShaderProgram(), ffxSpd.GetShaderConfig());
+    auto program = spdShader->GetShaderProgram();
+    cmd.BindResource(0, spdInput.get());
+    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
     cmd.Dispatch(dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1], cubeFaces);
 }
 

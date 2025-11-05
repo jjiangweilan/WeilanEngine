@@ -630,19 +630,15 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
             }
 
             std::swap(remainingRange, remainingRangeSwap);
-            remainingRangeSwap.clear();
 
             // cover the situation when there is no overlapping range
             // in this cast the imagelayout should be UNDEFINED
             for (int i = 0; i < remainingRange.size(); ++i)
             {
                 auto& range = remainingRange[i];
-                VkImageLayout currentImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
                 VkImageSubresourceRange vkRange = Gfx::MapVkImageSubresourceRange(range);
-                if (image->QueryLayout(vkRange, currentImageLayout))
+                if (image->IsLayout(vkRange, VK_IMAGE_LAYOUT_UNDEFINED))
                 {
-                    ASSERT(currentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED);
-
                     Barrier barrier;
                     barrier.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
                     barrier.dstStageMask = currentUsage.stages;
@@ -668,6 +664,7 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
                 }
             }
 
+            remainingRangeSwap.clear();
             // break
             if (remainingRange.empty())
                 break;

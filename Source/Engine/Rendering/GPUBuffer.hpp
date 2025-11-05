@@ -18,8 +18,13 @@ public:
             usages |= Gfx::BufferUsage::Storage;
             gpuWrite = true;
         }
+        else
+        {
+            usages |= Gfx::BufferUsage::Uniform;
+        }
+        usages |= Gfx::BufferUsage::Transfer_Dst;
 
-        buffer = GetGfxDriver()->CreateBuffer(sizeof(T), Gfx::BufferUsage::Storage, false, gpuWrite, name);
+        buffer = GetGfxDriver()->CreateBuffer(sizeof(T), usages, false, gpuWrite, name);
     }
 
     size_t GetSize()

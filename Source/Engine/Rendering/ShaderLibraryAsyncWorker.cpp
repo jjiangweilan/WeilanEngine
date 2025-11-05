@@ -73,6 +73,8 @@ struct ShaderCompiler
 private:
     slang::IGlobalSession* globalSession;
 
+    Gfx::ShaderPipelineInfo::Binding AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, Gfx::ShaderPipelineInfo::DescriptorSet& set, uint32_t currentBinding);
+
 public:
     static void DiagnoseIfNeeded(slang::IBlob* diagnostics)
     {
@@ -323,12 +325,11 @@ public:
     }
 
     Gfx::DescriptorType MapSlangDescriptorType(
-        slang::VariableLayoutReflection* variableLayout, SlangResourceShape shape
+        slang::TypeLayoutReflection* typeLayout, SlangResourceShape shape
     )
     {
         Gfx::DescriptorType type = Gfx::DescriptorType::Invalid;
 
-        auto typeLayout = variableLayout->getTypeLayout();
         auto access = typeLayout->getResourceAccess();
         ASSERT(typeLayout->getBindingRangeCount() == 1);
         {
@@ -378,16 +379,15 @@ public:
         return type;
     }
 
-    int AddSamplerConfig(Gfx::ShaderPipelineInfo::DescriptorSet& set, slang::VariableLayoutReflection* variableLayout)
+    int AddSamplerConfig(Gfx::ShaderPipelineInfo::DescriptorSet& set, slang::TypeReflection* typeLayout, const std::string name)
     {
         Gfx::ShaderPipelineInfo::SamplerConfig config{};
-        std::string name = variableLayout->getName();
         bool pointFilter = Utils::strContians(Utils::strToLower(name), "point");
 
         bool clampSampleToBorder = Utils::strContians(Utils::strToLower(name), "border");
         bool clampSample = Utils::strContians(Utils::strToLower(name), "clamp");
 
-        std::string samplerTypeName = variableLayout->getType()->getName();
+        std::string samplerTypeName = typeLayout->getName();
         if (samplerTypeName == "SamplerComparisonState")
             config.enbaleCompare = true;
         else
@@ -550,11 +550,11 @@ public:
                     binding.bindingNum = currentBinding;
                     binding.descriptorCount = 1; // TODO array binding
                     binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
+                    binding.descriptorType = MapSlangDescriptorType(variableLayout->getTypeLayout(), typeLayout->getResourceShape());
                     binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
                     binding.bufferMembers = {};
                     binding.byteSize = 0;
-                    binding.samplerIndex = AddSamplerConfig(set, variableLayout);
+                    binding.samplerIndex = AddSamplerConfig(set, variableLayout->getType(), binding.name);
 
                     // TODO: currently slang can't report stage usage correctly
                     // https://github.com/shader-slang/slang/issues/5940
@@ -576,38 +576,7 @@ public:
                 }
             case slang::TypeReflection::Kind::Resource:
                 {
-                    Gfx::ShaderPipelineInfo::Binding binding{};
-                    binding.name = variableLayout->getName();
-                    binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
-                    binding.bindingNum = currentBinding;
-                    binding.descriptorCount = 1; // TODO array binding
-                    binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
-                    if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
-                        binding.descriptorType == Gfx::DescriptorType::SampledImage ||
-                        binding.descriptorType == Gfx::DescriptorType::StorageImage)
-                        binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
-                    else
-                        binding.textureType = Gfx::TextureType::Invalid;
-                    binding.bufferMembers = {};
-                    binding.byteSize = 0;
-                    binding.samplerIndex = AddSamplerConfig(set, variableLayout);
-
-                    // TODO: currently slang can't report stage usage correctly
-                    // https://github.com/shader-slang/slang/issues/5940
-                    // if (binding.stages == Gfx::ShaderStage::None)
-                    {
-                        if (HasComputeEntryPoint())
-                        {
-                            binding.stages = Gfx::ShaderStage::Compute;
-                        }
-                        else
-                        {
-                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
-                        }
-                    }
-
-                    outBindings.push_back(binding);
+                    outBindings.push_back(AddBindingAsResource(variableLayout->getName(), variableLayout->getTypeLayout(), set, currentBinding));
 
                     break;
                 }
@@ -645,7 +614,7 @@ public:
                             currentBinding
                         );
                         binding.descriptorType =
-                            MapSlangDescriptorType(variableLayout, variableLayout->getType()->getResourceShape());
+                            MapSlangDescriptorType(variableLayout->getTypeLayout(), variableLayout->getType()->getResourceShape());
                         binding.textureType = Gfx::TextureType::Invalid;
                         binding.bufferMembers = CollectBufferMembers(elementVarLayout);
                         binding.byteSize = size;
@@ -670,12 +639,22 @@ public:
                     CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
                     break;
                 }
-                // case slang::TypeReflection::Kind::Array:
-                //     ASSERT(false && "Not Implemented");
-
+            case slang::TypeReflection::Kind::Array:
+                {
+                    if (variableLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
+                    {
+                        // std::string name = elementTypeLayout->getName();
+                        // maybe test for the element kind here?
+                        auto elementTypeLayout = variableLayout->getTypeLayout()->getElementTypeLayout();
+                        auto binding = AddBindingAsResource(variableLayout->getName(), elementTypeLayout, set, currentBinding);
+                        binding.descriptorCount = variableLayout->getTypeLayout()->getElementCount();
+                        outBindings.push_back(binding);
+                    }
+                    break;
+                }
             default:
                 {
-                    break;
+                    // do nothing to skip fields inside struct, only textures, buffers are considered as bindings
                 }
         }
     }
@@ -1571,4 +1550,40 @@ std::optional<AsyncCompiledData> ShaderLibraryAsyncWorker::PollCompiled()
 void ShaderLibraryAsyncWorker::CleanUp()
 {
     compileWorker = nullptr;
+}
+
+Gfx::ShaderPipelineInfo::Binding ShaderCompiler::AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, Gfx::ShaderPipelineInfo::DescriptorSet& set, uint32_t currentBinding)
+{
+    Gfx::ShaderPipelineInfo::Binding binding{};
+    binding.name = name;
+    binding.shaderBindingHandle = Gfx::ShaderBindingHandle(name);
+    binding.bindingNum = currentBinding;
+    binding.descriptorCount = 1; // TODO array binding
+    binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
+    binding.descriptorType = MapSlangDescriptorType(typeLayout, typeLayout->getResourceShape());
+    if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+        binding.descriptorType == Gfx::DescriptorType::SampledImage ||
+        binding.descriptorType == Gfx::DescriptorType::StorageImage)
+        binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
+    else
+        binding.textureType = Gfx::TextureType::Invalid;
+    binding.bufferMembers = {};
+    binding.byteSize = 0;
+    binding.samplerIndex = AddSamplerConfig(set, typeLayout->getType(), binding.name);
+
+    // TODO: currently slang can't report stage usage correctly
+    // https://github.com/shader-slang/slang/issues/5940
+    // if (binding.stages == Gfx::ShaderStage::None)
+    {
+        if (HasComputeEntryPoint())
+        {
+            binding.stages = Gfx::ShaderStage::Compute;
+        }
+        else
+        {
+            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+        }
+    }
+
+    return binding;
 }

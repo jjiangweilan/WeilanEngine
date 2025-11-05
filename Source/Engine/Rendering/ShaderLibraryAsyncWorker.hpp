@@ -1,11 +1,11 @@
 #pragma once
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Shader.hpp"
+#include <bitset>
 #include <memory>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <spdlog/spdlog.h>
-#include <bitset>
 
 #define MAX_SHADER_FEATURE_COUNT 64
 using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
@@ -76,7 +76,8 @@ struct AsyncCompiledData
 
     AsyncCompiledData& operator=(AsyncCompiledData&& other) noexcept
     {
-        if (this != &other) {
+        if (this != &other)
+        {
             name = std::move(other.name);
             permutation = std::move(other.permutation);
             shaderFeature = std::move(other.shaderFeature);

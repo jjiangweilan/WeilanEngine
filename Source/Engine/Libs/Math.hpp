@@ -63,6 +63,10 @@ typedef int int1;                //!< \brief integer vector with 1 component. (F
 typedef vec<2, int, highp> int2; //!< \brief integer vector with 2 components. (From GLM_GTX_compatibility extension)
 typedef vec<3, int, highp> int3; //!< \brief integer vector with 3 components. (From GLM_GTX_compatibility extension)
 typedef vec<4, int, highp> int4; //!< \brief integer vector with 4 components. (From GLM_GTX_compatibility extension)
+                                 //
+typedef vec<2, uint, highp> uint2; //!< \brief integer vector with 2 components. (From GLM_GTX_compatibility extension)
+typedef vec<3, uint, highp> uint3; //!< \brief integer vector with 3 components. (From GLM_GTX_compatibility extension)
+typedef vec<4, uint, highp> uint4; //!< \brief integer vector with 4 components. (From GLM_GTX_compatibility extension)
 
 typedef int int1x1; //!< \brief integer matrix with 1 component. (From GLM_GTX_compatibility extension)
 typedef mat<2, 2, int, highp>
@@ -159,6 +163,9 @@ using glm::float4x4;
 using glm::int2;
 using glm::int3;
 using glm::int4;
+using glm::uint2;
+using glm::uint3;
+using glm::uint4;
 
 namespace Math
 {

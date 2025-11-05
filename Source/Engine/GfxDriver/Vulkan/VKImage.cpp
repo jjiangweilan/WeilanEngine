@@ -187,15 +187,24 @@ ImageViewType VKImage::GenerateDefaultImageViewViewType()
         return ImageViewType::Cubemap;
     }
 
+    ImageViewType ret = ImageViewType::Image_2D;
     switch (imageType_vk)
     {
-        case VK_IMAGE_TYPE_1D: return ImageViewType::Image_1D;
-        case VK_IMAGE_TYPE_2D: return ImageViewType::Image_2D;
-        case VK_IMAGE_TYPE_3D: return ImageViewType::Image_3D;
+        case VK_IMAGE_TYPE_1D: ret = ImageViewType::Image_1D; break;
+        case VK_IMAGE_TYPE_2D: ret = ImageViewType::Image_2D; break;
+        case VK_IMAGE_TYPE_3D: ret = ImageViewType::Image_3D; break;
         default: break;
     }
 
-    return ImageViewType::Image_2D;
+    if (imageDescription.GetLayer() > 1)
+    {
+        if (ret == ImageViewType::Image_2D)
+            ret = ImageViewType::Image_2D_Array;
+        else if (ret == ImageViewType::Image_1D)
+            ret = ImageViewType::Image_1D_Array;
+    }
+
+    return ret;
 }
 
 ImageView& VKImage::GetDefaultImageView()
@@ -251,9 +260,19 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.baseArrayLayer = option.baseArrayLayer;
     range.layerCount = option.layerCount;
 
+    auto imageViewType = GenerateDefaultImageViewViewType();
+
+    if (range.layerCount > 1)
+    {
+        if (imageViewType == ImageViewType::Image_2D)
+            imageViewType = ImageViewType::Image_2D_Array;
+        else if (imageViewType == ImageViewType::Image_1D)
+            imageViewType = ImageViewType::Image_1D_Array;
+    }
+
     ImageView::CreateInfo imageViewCreateInfo{
         .image = *this,
-        .imageViewType = GenerateDefaultImageViewViewType(),
+        .imageViewType = imageViewType,
         .subresourceRange = range,
     };
 

@@ -59,36 +59,42 @@ public:
 
     void SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
     {
-        for (int mip = subresourceRange.baseMipLevel;
-             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount) && mip < imageDescription.mipLevels;
-             mip++)
+        for (int level = subresourceRange.baseArrayLayer;
+            level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount) && level < arrayLayers;
+            ++level)
         {
-            for (int level = subresourceRange.baseArrayLayer;
-                 level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount) && level < arrayLayers;
-                 ++level)
+            for (int mip = subresourceRange.baseMipLevel;
+                 mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount) && mip < imageDescription.mipLevels;
+                 mip++)
             {
                 layoutTrack[level * imageDescription.mipLevels + mip] = layout;
             }
         }
     }
 
-    bool QueryLayout(VkImageSubresourceRange subresourceRange, VkImageLayout& layout)
+    bool IsLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
     {
-        layout =
-            layoutTrack[subresourceRange.baseArrayLayer * imageDescription.mipLevels + subresourceRange.baseMipLevel];
-        for (int mip = subresourceRange.baseMipLevel;
-             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount);
-             mip++)
+        for (int level = subresourceRange.baseArrayLayer;
+            level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount);
+            ++level)
         {
-            for (int level = subresourceRange.baseArrayLayer;
-                 level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount);
-                 ++level)
+            for (int mip = subresourceRange.baseMipLevel;
+                mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount);
+                mip++)
             {
                 if (layoutTrack[level * imageDescription.mipLevels + mip] != layout)
                     return false;
             }
         }
         return true;
+    }
+
+    bool QueryLayout(VkImageSubresourceRange subresourceRange, VkImageLayout& layout)
+    {
+        layout =
+            layoutTrack[subresourceRange.baseArrayLayer * imageDescription.mipLevels + subresourceRange.baseMipLevel];
+
+        return IsLayout(subresourceRange, layout);
     }
 
 protected:
