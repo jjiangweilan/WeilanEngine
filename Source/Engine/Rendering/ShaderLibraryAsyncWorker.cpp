@@ -361,6 +361,11 @@ public:
         return type;
     }
 
+    bool IsTextureArray(SlangResourceShape shape)
+    {
+        return (shape & SlangResourceShape::SLANG_TEXTURE_ARRAY_FLAG) != 0;
+    }
+
     Gfx::TextureType MapSlangTextureType(SlangResourceShape shape)
     {
         Gfx::TextureType type = Gfx::TextureType::Invalid;
@@ -552,6 +557,7 @@ public:
                     binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
                     binding.descriptorType = MapSlangDescriptorType(variableLayout->getTypeLayout(), typeLayout->getResourceShape());
                     binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
+                    binding.isTextureArray = IsTextureArray(typeLayout->getResourceShape());
                     binding.bufferMembers = {};
                     binding.byteSize = 0;
                     binding.samplerIndex = AddSamplerConfig(set, variableLayout->getType(), binding.name);
@@ -1564,7 +1570,10 @@ Gfx::ShaderPipelineInfo::Binding ShaderCompiler::AddBindingAsResource(const std:
     if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
         binding.descriptorType == Gfx::DescriptorType::SampledImage ||
         binding.descriptorType == Gfx::DescriptorType::StorageImage)
+    {
         binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
+        binding.isTextureArray = IsTextureArray(typeLayout->getResourceShape());
+    }
     else
         binding.textureType = Gfx::TextureType::Invalid;
     binding.bufferMembers = {};

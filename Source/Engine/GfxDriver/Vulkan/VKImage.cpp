@@ -255,14 +255,25 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
 {
     ImageSubresourceRange range = GenerateDefaultSubresourceRange();
     range.aspectMask = option.aspect;
-    range.baseMipLevel = option.baseMipLevel;
-    range.levelCount = option.levelCount;
-    range.baseArrayLayer = option.baseArrayLayer;
-    range.layerCount = option.layerCount;
+    range.baseMipLevel = glm::clamp(option.baseMipLevel, 0, (int)imageDescription.mipLevels - 1);
+    range.levelCount = glm::min(
+        Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels : option.levelCount,
+        imageDescription.mipLevels - option.baseMipLevel);
+    range.baseArrayLayer = glm::clamp(option.baseArrayLayer, 0, (int)imageDescription.layers - 1);
+    range.layerCount = glm::min(
+        option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers : option.layerCount, 
+        imageDescription.layers - option.baseArrayLayer);
 
-    auto imageViewType = GenerateDefaultImageViewViewType();
+    ImageViewType imageViewType = ImageViewType::Image_2D;
+    switch (imageType_vk)
+    {
+        case VK_IMAGE_TYPE_1D: imageViewType = ImageViewType::Image_1D; break;
+        case VK_IMAGE_TYPE_2D: imageViewType = ImageViewType::Image_2D; break;
+        case VK_IMAGE_TYPE_3D: imageViewType = ImageViewType::Image_3D; break;
+        default: break;
+    }
 
-    if (range.layerCount > 1)
+    if (range.layerCount > 1 || option.asArray)
     {
         if (imageViewType == ImageViewType::Image_2D)
             imageViewType = ImageViewType::Image_2D_Array;

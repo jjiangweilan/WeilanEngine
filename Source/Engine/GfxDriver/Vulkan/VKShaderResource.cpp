@@ -2,8 +2,8 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Libs/Assert.hpp"
-#include "VKCommandBufferProcessor.hpp"
 #include "VKBuffer.hpp"
+#include "VKCommandBufferProcessor.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKDriver.hpp"
@@ -294,11 +294,22 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 // it's possible a storage image isn't used if it's an array
                                 if (resRef.GetRef() == nullptr)
                                 {
-                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
-                                    imageInfo.sampler = VK_NULL_HANDLE;
-                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-                                    imageInfo.imageView =
-                                        sharedResource->GetDefaultStoargeImage2D()->GetDefaultVkImageView();
+                                    if (b.isTextureArray)
+                                    {
+                                        auto& imageView = sharedResource->GetDefaultStoargeImage2D()->GetImageView(Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Color, true});
+                                        VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                        imageInfo.sampler = VK_NULL_HANDLE;
+                                        imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                        imageInfo.imageView = static_cast<VKImageView&>(imageView).GetHandle();
+                                    }
+                                    else
+                                    {
+                                        VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                        imageInfo.sampler = VK_NULL_HANDLE;
+                                        imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultStoargeImage2D()->GetDefaultVkImageView();
+                                    }
                                 }
                                 else
                                 {
@@ -357,7 +368,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                     {
                                         imageView =
                                             static_cast<VKImageView*>(&graph->GetImage(resRef.GetID().GetAsUUID())
-                                                ->GetDefaultImageViewForShaderResource());
+                                                                           ->GetDefaultImageViewForShaderResource());
                                     }
                                 }
 

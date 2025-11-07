@@ -59,7 +59,10 @@ void ReflectionProbe::OnInit()
     cubemapBaseMat.SetShader(Shaders::ReflectionProbeSkybox);
     float width = cubemapBase->GetDescription().width;
     cubemapBaseMat.SetVector("resolution", float4(width, width, 1.0f / width, 1.0f / width));
-    cubemapBaseMat.GetShaderResource()->SetImage("outputCubemap", &cubemapBase->GetDefaultImageView());
+
+    auto& imageView = cubemapBase->GetImageView(Gfx::ImageViewOption(0, 1, 0, Gfx::Remaining_Mip_Levels, Gfx::ImageAspect::Color));
+
+    cubemapBaseMat.GetShaderResource()->SetImage("outputCubemap", &imageView);
 }
 
 void ReflectionProbe::TransformChanged()

@@ -139,7 +139,7 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
         auto& imageView = src.GetImageView(imageViewOpt);
 
         if (mip == 6)
-            spdInput->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mid_mip"), mip, &imageView);
+            spdInput->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mid_mip"), &imageView);
         else
             spdInput->SetImage(Gfx::ShaderBindingHandle("rw_input_downsample_src_mips"), mip, &imageView);
     }

@@ -19,7 +19,12 @@ struct ImageDescription
     )
         : width(width), height(height), depth(depth), format(format), multiSampling(multiSampling),
           mipLevels(mipLevels), isCubemap(isCubemap)
-    {}
+    {
+        if (isCubemap)
+        {
+            layers = 6;
+        }
+    }
 
     ImageDescription(uint32_t width, uint32_t height, Gfx::GfxFormat format)
         : width(width), height(height), depth(1.0f), format(format), multiSampling(MultiSampling::Sample_Count_1),

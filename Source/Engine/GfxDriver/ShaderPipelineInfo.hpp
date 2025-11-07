@@ -53,6 +53,7 @@ struct ShaderPipelineInfo
 
         DescriptorType descriptorType = DescriptorType::Invalid;
         TextureType textureType = TextureType::Invalid;
+        bool isTextureArray = false;
 
         std::vector<BufferMember> bufferMembers = {};
         uint32_t byteSize = 0;

@@ -1,10 +1,11 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
 
+#include "Core/Object.hpp"
 #include "Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "Libs/UUID.hpp"
-#include "Core/Object.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <Libs/Assert.hpp>
 #include <cinttypes>
@@ -12,7 +13,6 @@
 #include <span>
 #include <stdexcept>
 #include <string>
-#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -40,26 +40,14 @@ struct ImageSubresourceRange
         if (other.baseArrayLayer > baseArrayLayer && other.baseMipLevel >= baseMipLevel &&
             other.baseMipLevel < baseMipLevel + levelCount)
         {
-            rtn.push_back(ImageSubresourceRange{
-                aspectMask,
-                baseMipLevel,
-                levelCount,
-                baseArrayLayer,
-                other.baseArrayLayer - baseArrayLayer
-            });
+            rtn.push_back(ImageSubresourceRange{aspectMask, baseMipLevel, levelCount, baseArrayLayer, other.baseArrayLayer - baseArrayLayer});
         }
 
         // top area
         if (other.baseArrayLayer + other.layerCount < baseArrayLayer + layerCount &&
             other.baseMipLevel >= baseMipLevel && other.baseMipLevel < baseMipLevel + levelCount)
         {
-            rtn.push_back(ImageSubresourceRange{
-                aspectMask,
-                baseMipLevel,
-                levelCount,
-                other.baseArrayLayer + other.layerCount,
-                baseArrayLayer + layerCount - (other.baseArrayLayer + other.layerCount)
-            });
+            rtn.push_back(ImageSubresourceRange{aspectMask, baseMipLevel, levelCount, other.baseArrayLayer + other.layerCount, baseArrayLayer + layerCount - (other.baseArrayLayer + other.layerCount)});
         }
 
         uint32_t top = glm::min(other.baseArrayLayer + other.layerCount, baseArrayLayer + layerCount);
@@ -142,14 +130,15 @@ struct ImageViewOption
 {
     ImageViewOption() {}
     ImageViewOption(ImageAspectFlags aspect) : aspect(aspect) {}
-    ImageViewOption(int baseMipLevel, int levelCount, int baseArrayLayer, int layerCount, ImageAspectFlags aspect)
+    ImageViewOption(int baseMipLevel, int levelCount, int baseArrayLayer, int layerCount, ImageAspectFlags aspect, bool asArray = false)
         : baseMipLevel(baseMipLevel), levelCount(levelCount), baseArrayLayer(baseArrayLayer), layerCount(layerCount),
-          aspect(aspect)
+          aspect(aspect), asArray(asArray)
     {}
     int baseMipLevel = 0;
     int levelCount = 1;
     int baseArrayLayer = 0;
     int layerCount = 1;
+    bool asArray = false;
     ImageAspectFlags aspect = ImageAspect::Color;
     bool operator==(const ImageViewOption& other) const = default;
 };
