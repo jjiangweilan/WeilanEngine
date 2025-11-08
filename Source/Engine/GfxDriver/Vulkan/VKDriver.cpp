@@ -1,5 +1,5 @@
 #include "VKDriver.hpp"
-
+#include "Core/JobSystem.hpp"
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
@@ -128,6 +128,18 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].imageAcquireSemaphore);
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].presentSemaphore);
 
+        VKDebugUtils::SetDebugName(
+            VK_OBJECT_TYPE_SEMAPHORE,
+            (uint64_t)frameContexts[i].imageAcquireSemaphore,
+            ("VKDriver imageAcquireSemaphore " + std::to_string(i)).c_str()
+        );
+
+        VKDebugUtils::SetDebugName(
+            VK_OBJECT_TYPE_SEMAPHORE,
+            (uint64_t)frameContexts[i].presentSemaphore,
+            ("VKDriver presentSemaphore" + std::to_string(i)).c_str()
+        );
+
         if (createInfo.gpuTimestampQueryMaxCount != 0 && gpuFeatures.timestampPeriod)
         {
             VkQueryPoolCreateInfo query_pool_info{};
@@ -142,6 +154,18 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
     vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSignalSemaphore);
     vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &dataUploaderWaitSemaphore);
+
+    VKDebugUtils::SetDebugName(
+        VK_OBJECT_TYPE_SEMAPHORE,
+        (uint64_t)transferSignalSemaphore,
+        "VKDriver transferSignalSemaphore"
+    );
+
+    VKDebugUtils::SetDebugName(
+        VK_OBJECT_TYPE_SEMAPHORE,
+        (uint64_t)dataUploaderWaitSemaphore,
+        "VKDriver dataUploaderWaitSemaphore"
+    );
 
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
@@ -1341,6 +1365,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     submitInfo.pWaitDstStageMask = &stageMask;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
+    ASSERT(JobSystem::Instance().GetMainThreadID() == std::this_thread::get_id());
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);
 
     vkWaitForFences(device.handle, 1, &fence, VK_TRUE, -1);
@@ -1386,7 +1411,8 @@ Window* VKDriver::CreateExtraWindow(SDL_Window* window)
 
 void VKDriver::DestroyExtraWindow(Window* window)
 {
-    auto iter = std::find_if(extraWindows.begin(), extraWindows.end(), [window](auto& w) { return w.get() == window; });
+    auto iter = std::find_if(extraWindows.begin(), extraWindows.end(), [window](auto& w)
+                             { return w.get() == window; });
     if (iter != extraWindows.end())
     {
         extraWindows.erase(iter);

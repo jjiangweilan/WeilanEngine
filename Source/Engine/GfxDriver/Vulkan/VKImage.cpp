@@ -333,6 +333,145 @@ ImageView& VKImage::GetDefaultImageViewForShaderResource()
     return GetDefaultImageView();
 }
 
+VkImage VKImage::GetImage()
+{
+    return image_vk;
+}
+
+const ImageDescription& VKImage::GetDescription()
+{
+    return imageDescription;
+}
+
+const std::string& VKImage::GetName() const
+{
+    return name;
+}
+
+bool VKImage::IsSwapchainProxy()
+{
+    return isSwapchainProxy;
+}
+
+void VKImage::SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
+{
+    for (int level = subresourceRange.baseArrayLayer;
+         level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount) && level < arrayLayers;
+         ++level)
+    {
+        for (int mip = subresourceRange.baseMipLevel;
+             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount) && mip < imageDescription.mipLevels;
+             mip++)
+        {
+            layoutTrack[level * imageDescription.mipLevels + mip] = layout;
+        }
+    }
+}
+
+bool VKImage::IsLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
+{
+    for (int level = subresourceRange.baseArrayLayer;
+         level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount);
+         ++level)
+    {
+        for (int mip = subresourceRange.baseMipLevel;
+             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount);
+             mip++)
+        {
+            if (layoutTrack[level * imageDescription.mipLevels + mip] != layout)
+                return false;
+        }
+    }
+    return true;
+}
+
+bool VKImage::QueryLayout(VkImageSubresourceRange subresourceRange, VkImageLayout& layout)
+{
+    layout =
+        layoutTrack[subresourceRange.baseArrayLayer * imageDescription.mipLevels + subresourceRange.baseMipLevel];
+
+    return IsLayout(subresourceRange, layout);
+}
+
+void VKImage::SafeMipRange(uint32_t& baseMipLevel, uint32_t& levelCount)
+{
+}
+
+std::vector<VkImageMemoryBarrier2> VKImage::MakeBarrierIfNeeded(VkPipelineStageFlags2 stageFlags, VkAccessFlags2 accessFlags, VkImageLayout expectedImageLayout, VkImageSubresourceRange subresourceRange)
+{
+
+    std::vector<VkImageMemoryBarrier2> ret{};
+
+    if (IsFullRange(subresourceRange))
+    {
+        // TODO: do full range track until separate track is needed
+        return {};
+    }
+
+    for (int layerIdx = subresourceRange.baseArrayLayer; layerIdx < subresourceRange.baseArrayLayer + subresourceRange.layerCount; ++layerIdx)
+    {
+        for (int mipIdx = subresourceRange.baseMipLevel; mipIdx < subresourceRange.baseMipLevel + subresourceRange.levelCount; ++mipIdx)
+        {
+            bool makeBarrier = false;
+            BarrierTrack& subresourceBarrier = GetBarrierTrack(layerIdx, mipIdx);
+            VkPipelineStageFlags2 finalSrcStageFlags = VK_PIPELINE_STAGE_2_NONE;
+            VkAccessFlags2 finalSrcAccessFlags = VK_ACCESS_NONE;
+
+            if (HasWriteAccessMask(accessFlags) || HasWriteAccessMask(subresourceBarrier.dstAccessMask) || subresourceBarrier.newLayout != expectedImageLayout)
+            {
+                finalSrcStageFlags = subresourceBarrier.dstStageMask;
+                finalSrcAccessFlags = subresourceBarrier.dstAccessMask;
+                makeBarrier = true;
+            }
+            else if (HasWriteAccessMask(accessFlags) || HasWriteAccessMask(subresourceBarrier.srcAccessMask))
+            {
+                finalSrcStageFlags = subresourceBarrier.srcStageMask;
+                finalSrcAccessFlags = subresourceBarrier.srcAccessMask;
+                makeBarrier = true;
+            }
+
+            if (makeBarrier)
+            {
+                VkImageMemoryBarrier2 barrier{
+                    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                    .pNext = nullptr,
+                    .srcStageMask = finalSrcStageFlags,
+                    .srcAccessMask = finalSrcAccessFlags,
+                    .dstStageMask = stageFlags,
+                    .dstAccessMask = accessFlags,
+                    .oldLayout = subresourceBarrier.newLayout,
+                    .newLayout = expectedImageLayout,
+                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                    .image = image_vk,
+                    .subresourceRange = VkImageSubresourceRange{subresourceRange.aspectMask, (uint32_t)mipIdx, 1, (uint32_t)layerIdx, 1}
+                };
+
+                subresourceBarrier.srcStageMask = barrier.srcStageMask;
+                subresourceBarrier.srcAccessMask = barrier.srcAccessMask;
+                subresourceBarrier.dstStageMask = barrier.dstStageMask;
+                subresourceBarrier.dstAccessMask = barrier.dstAccessMask;
+                subresourceBarrier.oldLayout = barrier.oldLayout;
+                subresourceBarrier.newLayout = barrier.newLayout;
+
+                ret.push_back(barrier);
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool VKImage::IsFullRange(VkImageSubresourceRange subresourceRange)
+{
+    return false; // TODO
+}
+
+VKImage::BarrierTrack& VKImage::GetBarrierTrack(int layer, int mip)
+{
+    return subresourceBarrierTrack[layer * imageDescription.mipLevels + mip];
+}
+
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}
 //
 // VKSwapChainImageProxy::VKSwapChainImageProxy(){};

@@ -2,6 +2,7 @@
 #include "Profiler/Profiler.hpp"
 #include "VKBuffer.hpp"
 #include "VKDriver.hpp"
+#include "Core/JobSystem.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx

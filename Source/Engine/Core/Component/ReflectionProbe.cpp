@@ -34,6 +34,7 @@ void ReflectionProbe::OnInit()
 {
     Gfx::ImageDescription desc(256, 256, 1, Gfx::GfxFormat::B10G11R11_UFloat_Pack32, Gfx::MultiSampling::Sample_Count_1, 6, true);
     cubemap = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);
+    cubemap->SetName("Reflection Probe Cubemap");
 
     totalPixelCount = 0;
     for (int mip = 0; mip < desc.mipLevels; mip++)
@@ -56,6 +57,7 @@ void ReflectionProbe::OnInit()
 
     desc.mipLevels = (int)glm::log2((float)desc.width);
     cubemapBase = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);
+    cubemapBase->SetName("Reflection Probe Base Cubemap");
     cubemapBaseMat.SetShader(Shaders::ReflectionProbeSkybox);
     float width = cubemapBase->GetDescription().width;
     cubemapBaseMat.SetVector("resolution", float4(width, width, 1.0f / width, 1.0f / width));

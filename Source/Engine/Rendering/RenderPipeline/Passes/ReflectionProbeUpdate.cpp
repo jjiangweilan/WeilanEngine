@@ -26,6 +26,7 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
         true
     );
     cubemap = GetGfxDriver()->CreateImage(cubemapDesc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
+    cubemap->SetName("Reflection Probe IBL Cubemap");
 
     for (int i = 0; i < 30; i++)
     {
