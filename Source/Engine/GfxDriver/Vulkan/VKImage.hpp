@@ -170,8 +170,8 @@ public:
                     VkImageMemoryBarrier2 barrier{
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                         .pNext = nullptr,
-                        .srcStageMask = subresourceBarrier.dstStageMask,
-                        .srcAccessMask = subresourceBarrier.dstAccessMask,
+                        .srcStageMask = finalSrcStageFlags,
+                        .srcAccessMask = finalSrcAccessFlags,
                         .dstStageMask = stageFlags,
                         .dstAccessMask = accessFlags,
                         .oldLayout = subresourceBarrier.newLayout,
