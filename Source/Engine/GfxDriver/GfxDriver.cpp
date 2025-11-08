@@ -69,7 +69,9 @@ std::unique_ptr<Buffer> GfxDriver::CreateBuffer(
 void GfxDriver::InitializeRenderDoc()
 {
 #if __WIN32__
-    // At init, on windows
+
+    if (renderDocAPI != nullptr)
+        return;
 
     renderdocModule->mod = LoadLibrary("C:\\Program Files\\RenderDoc\\renderdoc.dll");
     if (renderdocModule->mod)

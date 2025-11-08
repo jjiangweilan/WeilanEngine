@@ -128,17 +128,28 @@ struct ImageSubresourceLayers
 
 struct ImageViewOption
 {
+    enum class Type
+    {
+        Tex,
+        Array,
+        Cubemap
+    };
     ImageViewOption() {}
     ImageViewOption(ImageAspectFlags aspect) : aspect(aspect) {}
+    ImageViewOption(int baseMipLevel, int levelCount, int baseArrayLayer, int layerCount, ImageAspectFlags aspect, Type type)
+        : baseMipLevel(baseMipLevel), levelCount(levelCount), baseArrayLayer(baseArrayLayer), layerCount(layerCount),
+          aspect(aspect), type(type)
+    {
+    }
     ImageViewOption(int baseMipLevel, int levelCount, int baseArrayLayer, int layerCount, ImageAspectFlags aspect, bool asArray = false)
         : baseMipLevel(baseMipLevel), levelCount(levelCount), baseArrayLayer(baseArrayLayer), layerCount(layerCount),
-          aspect(aspect), asArray(asArray)
+          aspect(aspect), type(asArray ? Type::Array : Type::Tex)
     {}
     int baseMipLevel = 0;
     int levelCount = 1;
     int baseArrayLayer = 0;
     int layerCount = 1;
-    bool asArray = false;
+    Type type = Type::Tex;
     ImageAspectFlags aspect = ImageAspect::Color;
     bool operator==(const ImageViewOption& other) const = default;
 };

@@ -152,6 +152,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 
     GI gi;
     gi.ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
+    gi.specularCubemap = perMaterial.specularCube;
+    gi.specularBRDFIntegrationMap = perMaterial.specularBRDFIntegrationMap;
 
     // Add direct lightings
     float3 color = float3(0, 0, 0);

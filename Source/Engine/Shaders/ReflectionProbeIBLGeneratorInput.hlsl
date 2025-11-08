@@ -4,6 +4,7 @@ struct ParameterInput
 {
     float envMapSize;
     float envMapSizeSqr;
+    float totalPixelCount;
     float roughness[6];
 };
 
@@ -11,10 +12,9 @@ struct ShaderInput
 {
     float4 placeHolder;
 #if GPU_RESOURCE
-    [vk::binding(31, 1)]
     StructuredBuffer<ParameterInput> input;
     TextureCube srcCubemap; // mipped source cubemap
     SamplerState linearClampSampler;
-    RWTexture2D dstFaces[30]; // 6 mips * 5 faces, {mips{faces...}, ...}
+    RWTexture2D dstFaces[36]; // 6 mips * 6 faces, {faces{mips...}, ...}
 #endif
 };

@@ -7,7 +7,9 @@ import Math;
 struct GI
 {
     float ao;
-}
+    SamplerCube specularCubemap;
+    Sampler2D specularBRDFIntegrationMap;
+};
 
 struct ShadingObject
 {
@@ -224,6 +226,9 @@ float3 StandardLightShading(
 
         float shadowAttenuation = min(contactShadow, mainLightShadowAttenuation);
 
-        float3 color = lighting * shadowAttenuation;
+        // IBL
+        float3 indirectSpecular = CalcIndirectSpecularFromCubemap(object.viewDir, object.normalWS, object.metallic, gi.specularCubemap, gi.specularBRDFIntegrationMap, object.roughness, object.baseColor);
+
+        float3 color = lighting * shadowAttenuation + indirectSpecular;
         return color;
 }

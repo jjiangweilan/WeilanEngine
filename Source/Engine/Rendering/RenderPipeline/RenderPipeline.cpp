@@ -183,8 +183,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {1, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
-        auto diffuseCube = camera.GetDiffuseEnv();
-        auto specularCube = camera.GetDiffuseEnv();
+        auto diffuseCube = &reflectionProbeUpdate->GetIBLCubemap()->GetImageView(Gfx::ImageViewOption{6, 1, 0, 6, Gfx::ImageAspect::Color, Gfx::ImageViewOption::Type::Cubemap});
+        auto specularCube = reflectionProbeUpdate->GetIBLCubemap();
 
         auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
         auto& depthImageView = depthImage->GetImageView({Gfx::ImageAspect::Depth});
@@ -199,9 +199,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowRenderer->GetShadowMap());
         shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ssaoPass.GetSSAOTex());
         if (diffuseCube)
-            shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
+            shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube);
         if (specularCube)
-            shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube->GetGfxImage());
+            shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube);
 
         Gfx::RenderAttachment lightingPassAttachments[] = {
             {mainColor, Gfx::AttachmentLoadOperation::Load},

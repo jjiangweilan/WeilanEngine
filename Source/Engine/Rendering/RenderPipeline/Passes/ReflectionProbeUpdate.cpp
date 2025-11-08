@@ -28,10 +28,10 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
     cubemap = GetGfxDriver()->CreateImage(cubemapDesc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
     cubemap->SetName("Reflection Probe IBL Cubemap");
 
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 36; i++)
     {
-        uint32_t mip = i / 5;
-        uint32_t face = i % 5;
+        uint32_t mip = i % 6;
+        uint32_t face = i / 6;
         Gfx::ImageView::CreateInfo createInfo{
             *cubemap,
             Gfx::ImageViewType::Image_2D,
@@ -54,7 +54,7 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
     spdGlobalAtomic = GetGfxDriver()->CreateBuffer(sizeof(uint32_t) * 6, Gfx::BufferUsage::Storage, false, true, "SPD Global Atomic");
 
     Gfx::ImageDescription rw_input_downsample_src_mid_mipDesc(cubemapDesc.width, cubemapDesc.height, cubemapDesc.format);
-    rw_input_downsample_src_mid_mipDesc.layers = (uint32_t)glm::log2((float)cubemapDesc.width);
+    rw_input_downsample_src_mid_mipDesc.layers = (uint32_t)glm::log2((float)cubemapDesc.width) + 1;
     rw_input_downsample_src_mid_mip = GetGfxDriver()->CreateImage(rw_input_downsample_src_mid_mipDesc, Gfx::ImageUsage::Storage);
 }
 
@@ -89,10 +89,11 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
 
     auto shaderResource = GetGfxDriver()->CreateShaderResource();
     shaderResource->SetBuffer("input", *shaderInput);
-    shaderResource->SetImage("srcCubemap", probe.GetCubemap());
+    shaderResource->SetImage("srcCubemap", probe.GetCubemapBase());
 
     shaderInput->envMapSize = probe.GetCubemap()->GetDescription().width;
     shaderInput->envMapSizeSqr = shaderInput->envMapSize * shaderInput->envMapSize;
+    shaderInput->totalPixelCount = probe.GetTotalPixelCount();
     shaderInput->roughness[0] = 0.0001;
     shaderInput->roughness[1] = 0.2;
     shaderInput->roughness[2] = 0.4;
@@ -102,7 +103,7 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
 
     GetGfxDriver()->UploadBuffer(**shaderInput, (uint8_t*)shaderInput.GetPtr(), shaderInput.GetSize());
 
-    for (int i = 0; i < 30; ++i)
+    for (int i = 0; i < 36; ++i)
     {
         shaderResource->SetImage(Gfx::ShaderBindingHandle("dstFaces"), i, cubemapImageViews[i].get());
     }

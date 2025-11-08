@@ -55,7 +55,7 @@ void ReflectionProbe::OnInit()
     roughness[4] = 0.8f;
     roughness[5] = 0.999f;
 
-    desc.mipLevels = (int)glm::log2((float)desc.width);
+    desc.mipLevels = (int)glm::log2((float)desc.width) + 1;
     cubemapBase = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);
     cubemapBase->SetName("Reflection Probe Base Cubemap");
     cubemapBaseMat.SetShader(Shaders::ReflectionProbeSkybox);

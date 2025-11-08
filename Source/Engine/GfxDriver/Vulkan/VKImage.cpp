@@ -295,12 +295,16 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
         default: break;
     }
 
-    if (range.layerCount > 1 || option.asArray)
+    if (range.layerCount > 1 || option.type == Gfx::ImageViewOption::Type::Array)
     {
         if (imageViewType == ImageViewType::Image_2D)
             imageViewType = ImageViewType::Image_2D_Array;
         else if (imageViewType == ImageViewType::Image_1D)
             imageViewType = ImageViewType::Image_1D_Array;
+    }
+    else if (option.type == Gfx::ImageViewOption::Type::Cubemap)
+    {
+        imageViewType = ImageViewType::Cubemap;
     }
 
     ImageView::CreateInfo imageViewCreateInfo{
@@ -408,9 +412,11 @@ std::vector<VkImageMemoryBarrier2> VKImage::MakeBarrierIfNeeded(VkPipelineStageF
         return {};
     }
 
-    for (int layerIdx = subresourceRange.baseArrayLayer; layerIdx < subresourceRange.baseArrayLayer + subresourceRange.layerCount; ++layerIdx)
+    const int exclusiveLastMipIdx = subresourceRange.baseMipLevel + subresourceRange.levelCount;
+    const int exclusiveLastLayerIdx = subresourceRange.baseArrayLayer + subresourceRange.layerCount;
+    for (int layerIdx = subresourceRange.baseArrayLayer; layerIdx < exclusiveLastLayerIdx; ++layerIdx)
     {
-        for (int mipIdx = subresourceRange.baseMipLevel; mipIdx < subresourceRange.baseMipLevel + subresourceRange.levelCount; ++mipIdx)
+        for (int mipIdx = subresourceRange.baseMipLevel; mipIdx < exclusiveLastMipIdx; ++mipIdx)
         {
             bool makeBarrier = false;
             BarrierTrack& subresourceBarrier = GetBarrierTrack(layerIdx, mipIdx);
@@ -447,14 +453,60 @@ std::vector<VkImageMemoryBarrier2> VKImage::MakeBarrierIfNeeded(VkPipelineStageF
                     .subresourceRange = VkImageSubresourceRange{subresourceRange.aspectMask, (uint32_t)mipIdx, 1, (uint32_t)layerIdx, 1}
                 };
 
+                bool mergedWithPreviousBarrier = false;
+                if (!ret.empty())
+                {
+                    auto& previousBarrier = ret.back();
+
+                    // try merge with previous mip barrier
+                    if (previousBarrier.oldLayout == barrier.oldLayout &&
+                        previousBarrier.newLayout == barrier.newLayout &&
+                        previousBarrier.subresourceRange.baseMipLevel + previousBarrier.subresourceRange.levelCount == barrier.subresourceRange.baseMipLevel &&
+                        previousBarrier.subresourceRange.baseArrayLayer + previousBarrier.subresourceRange.layerCount - 1 == barrier.subresourceRange.baseArrayLayer)
+                    {
+                        previousBarrier.srcStageMask |= finalSrcStageFlags;
+                        previousBarrier.srcAccessMask |= finalSrcAccessFlags;
+                        previousBarrier.subresourceRange.levelCount += 1;
+                        mergedWithPreviousBarrier = true;
+                    }
+                }
+
+                if (!mergedWithPreviousBarrier)
+                {
+                    ret.push_back(barrier);
+                }
+
                 subresourceBarrier.srcStageMask = barrier.srcStageMask;
                 subresourceBarrier.srcAccessMask = barrier.srcAccessMask;
                 subresourceBarrier.dstStageMask = barrier.dstStageMask;
                 subresourceBarrier.dstAccessMask = barrier.dstAccessMask;
                 subresourceBarrier.oldLayout = barrier.oldLayout;
                 subresourceBarrier.newLayout = barrier.newLayout;
+            }
+        }
 
-                ret.push_back(barrier);
+        // try merge layer barrier
+        if (ret.size() > 1)
+        {
+            const auto& rFirstBarrier = ret.at(ret.size() - 1);
+            const auto& rSecondBarrier = ret.at(ret.size() - 2);
+
+            if (
+                rFirstBarrier.srcStageMask == rSecondBarrier.srcStageMask &&
+                rFirstBarrier.srcAccessMask == rSecondBarrier.srcAccessMask &&
+                rFirstBarrier.dstStageMask == rSecondBarrier.dstStageMask &&
+                rFirstBarrier.dstAccessMask == rSecondBarrier.dstAccessMask &&
+                rFirstBarrier.oldLayout == rSecondBarrier.oldLayout &&
+                rFirstBarrier.newLayout == rSecondBarrier.newLayout &&
+                rFirstBarrier.subresourceRange.baseMipLevel == rSecondBarrier.subresourceRange.baseMipLevel &&
+                rFirstBarrier.subresourceRange.levelCount == rSecondBarrier.subresourceRange.levelCount &&
+                rFirstBarrier.subresourceRange.baseArrayLayer ==
+                    rSecondBarrier.subresourceRange.baseArrayLayer + rSecondBarrier.subresourceRange.layerCount &&
+                rFirstBarrier.subresourceRange.layerCount == 1
+            )
+            {
+                ret.pop_back();
+                ret.back().subresourceRange.layerCount += 1;
             }
         }
     }

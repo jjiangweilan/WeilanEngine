@@ -32,6 +32,7 @@ class ReflectionProbeUpdate
 public:
     ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe);
+    Gfx::Image* GetIBLCubemap() { return cubemap.get(); }
 
 private:
     Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);

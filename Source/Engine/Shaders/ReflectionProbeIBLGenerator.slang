@@ -36,23 +36,26 @@ struct PixelInfo
 {
     __init(float threadIdx)
     {
-        float a0 = threadIdx / 6;
         const float envMapSizeSqr = shaderInput.input[0].envMapSizeSqr;
         const float envMapSize = shaderInput.input[0].envMapSize;
+
+        float a0 = threadIdx / 6;
 
         // Calculate pixel level
         int currentMip = 0;
         float mipLevelTexelOffset = 0;
         float currLevelTexelCount = envMapSizeSqr;
-        while(a0 >= envMapSizeSqr)
+        float mipWidth = envMapSize;
+
+        while(a0 >= mipLevelTexelOffset + currLevelTexelCount)
         {
             mipLevelTexelOffset += currLevelTexelCount;
-            a0 -= currLevelTexelCount;
+            currLevelTexelCount /= 4;
             currentMip += 1;
+            mipWidth /= 2;
         }
         mipLevel = currentMip;
-        mipLevelTexelOffset *=6; // 6 faces
-        float mipWidth = envMapSize / pow(2, mipLevel);
+        mipLevelTexelOffset *= 6; // 6 faces
         float mipWidthSqr = mipWidth * mipWidth;
 
         // Calculate face and uv
@@ -80,6 +83,10 @@ struct PixelInfo
 [numthreads(64,1,1)]
 void main(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
+    if(dispatchThreadID.x >= shaderInput.input[0].totalPixelCount)
+    {
+        return;
+    }
     float fTotalWeight = 0.001f;
     const uint iNumSamples = 32;
     float envMapSize = shaderInput.input[0].envMapSize;
@@ -122,6 +129,6 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
     vPrefilteredColor /= fTotalWeight;
 
-    shaderInput.dstFaces[(pixelInfo.mipLevel - 1) * 6 + pixelInfo.face][pixelInfo.texelCoord] = float4(vPrefilteredColor, 1.0f);
+    shaderInput.dstFaces[pixelInfo.face * 6 + pixelInfo.mipLevel][pixelInfo.texelCoord] = float4(vPrefilteredColor, 1.0f);
 }
 

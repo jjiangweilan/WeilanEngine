@@ -175,9 +175,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         SetNameInternal(name, shaderProgram, finalReturn, set);
 
         // create resources and write it to descriptor set
-        VkWriteDescriptorSet writes[32];
-        VkDescriptorBufferInfo bufferInfos[32];
-        VkDescriptorImageInfo imageInfos[32];
+        VkWriteDescriptorSet writes[64];
+        VkDescriptorBufferInfo bufferInfos[64];
+        VkDescriptorImageInfo imageInfos[64];
         uint32_t bufferWriteIndex = 0;
         uint32_t imageWriteIndex = 0;
         uint32_t writeCount = 0;
