@@ -1,8 +1,8 @@
 #include "VKDataUploader.hpp"
+#include "Core/JobSystem.hpp"
 #include "Profiler/Profiler.hpp"
 #include "VKBuffer.hpp"
 #include "VKDriver.hpp"
-#include "Core/JobSystem.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx
@@ -48,6 +48,7 @@ VKDataUploader::~VKDataUploader()
 
 void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset)
 {
+    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
     if (size > stagingBufferSize)
     {
         SPDLOG_ERROR("failed to upload buffer: buffer size is larger than 48 MB");
@@ -71,6 +72,8 @@ void VKDataUploader::UploadImage(
     VkImageLayout finalLayout
 )
 {
+    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
+
     auto vkDst = static_cast<VKImage*>(dst);
 
     size_t byteSize = MapGfxFormatToByteSize(vkDst->GetDescription().format);
@@ -130,6 +133,13 @@ void VKDataUploader::UploadAllPending(
 )
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
+
+    for (auto& cachedImageUpload : cachedImageUploads)
+    {
+        UploadImage(dynamic_cast<VKImage*>(cachedImageUpload.dst), cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
+    }
+
+    cachedImageUploads.clear();
 
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = driver->mainCmdPool;

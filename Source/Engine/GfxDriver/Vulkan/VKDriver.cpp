@@ -1312,7 +1312,14 @@ void VKDriver::UploadImage(
 {
     std::scoped_lock lock(driverMutex);
     auto& vkDst = static_cast<VKImage&>(dst);
-    dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
+
+    if (std::this_thread::get_id() != JobSystem::Instance().GetMainThreadID())
+    {
+        dataUploader->CacheUploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
+    }
+    {
+        dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
+    }
 }
 
 void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)

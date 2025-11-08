@@ -11,6 +11,19 @@ class VKBuffer;
 class VKImage;
 class VKDataUploader
 {
+    struct CachedImageUpload
+    {
+        VKImage* dst;
+        std::vector<uint8_t> data;
+        size_t size;
+        uint32_t mipLevel;
+        uint32_t arrayLayer;
+        VkImageAspectFlags aspect;
+        VkImageLayout finalLayout;
+    };
+
+    std::vector<CachedImageUpload> cachedImageUploads;
+
 public:
     VKDataUploader(VKDriver* driver);
     ~VKDataUploader();
@@ -25,6 +38,24 @@ public:
         VkImageAspectFlags aspect,
         VkImageLayout finalLayout
     );
+
+    void CacheUploadImage(
+        VKImage* dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel,
+        uint32_t arayLayer,
+        VkImageAspectFlags aspect,
+        VkImageLayout finalLayout
+    )
+    {
+        std::vector<uint8_t> cachedData = std::vector<uint8_t>(size);
+        memcpy(cachedData.data(), data, size);
+        cachedImageUploads.push_back(
+            CachedImageUpload{dst, cachedData, size, mipLevel, arayLayer, aspect, finalLayout}
+        );
+    }
+
     void UploadAllPending(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages);
     void WaitForUploadFinish();
 
