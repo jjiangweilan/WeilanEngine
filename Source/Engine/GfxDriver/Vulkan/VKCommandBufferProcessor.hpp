@@ -70,7 +70,9 @@ private:
         bool IsNull()
         {
             bool isNull = false;
-            std::visit([&isNull](auto&& arg) { isNull = arg.Get() == nullptr; }, res);
+            std::visit([&isNull](auto&& arg)
+                       { isNull = arg.Get() == nullptr; },
+                       res);
             return isNull;
         }
     };
@@ -94,7 +96,7 @@ private:
 
         VkPipeline lastBindedPipeline = VK_NULL_HANDLE;
         VKShaderProgram* pendingBindedShader; // shader that is set to be binded
-        VKShaderProgram* bindedShader;     // shader that is actually binded
+        VKShaderProgram* bindedShader;        // shader that is actually binded
         PipelineConfig shaderConfig;
         PipelineConfig pendingShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
@@ -148,6 +150,7 @@ private:
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res, const UUID& resUUID);
+    int MakeBarrierForLastUsage(VKImage* image);
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
@@ -163,6 +166,45 @@ private:
         int barrierOffset,
         int barrierCount
     );
+
+    int MakeBarrierForLastUsage2(VKImage* image)
+    {
+        auto iter = resourceUsageTracks.find(image->GetUUID());
+        ASSERT(iter != resourceUsageTracks.end());
+
+        int barrierCount = 0;
+        auto& currentFrameUsages = iter->second.currentFrameUsages;
+        auto& currentUsage = currentFrameUsages.back();
+
+        auto barrier2s = image->MakeBarrierIfNeeded(currentUsage.stages, currentUsage.access, currentUsage.layout, MapVkImageSubresourceRange(currentUsage.range));
+
+        for (auto& neededBarrier2 : barrier2s)
+        {
+            Barrier barrier;
+            barrier.srcStageMask = neededBarrier2.srcStageMask;
+            barrier.dstStageMask = neededBarrier2.dstStageMask;
+
+            VkImageMemoryBarrier imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            imageBarrier.srcAccessMask = neededBarrier2.srcAccessMask;
+            imageBarrier.dstAccessMask = neededBarrier2.dstAccessMask;
+            imageBarrier.oldLayout = neededBarrier2.oldLayout;
+            imageBarrier.newLayout = neededBarrier2.newLayout;
+            imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.subresourceRange = neededBarrier2.subresourceRange;
+            imageBarrier.image = image->GetImage();
+
+            barrier.barrierCount = 1;
+            barrier.imageMemorybarrierIndex = imageMemoryBarriers.size();
+            barrier.targetImage = image;
+            barriers.push_back(barrier);
+
+            barrierCount += 1;
+            imageMemoryBarriers.push_back(imageBarrier);
+        }
+
+        return barrierCount;
+    }
 };
 
 VKImage* ImageIdentifier_GetImage(const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);

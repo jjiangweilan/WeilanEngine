@@ -436,7 +436,7 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
                     flags
                 ))
             {
-                barrierCount += MakeBarrierForLastUsage(image, image->GetUUID());
+                barrierCount += MakeBarrierForLastUsage2(image);
             }
 
             shaderImageSampleIgnoreList.push_back(image);
@@ -461,7 +461,7 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
                     flags
                 ))
             {
-                barrierCount += MakeBarrierForLastUsage(image, image->GetUUID());
+                barrierCount += MakeBarrierForLastUsage2(image);
             }
             shaderImageSampleIgnoreList.push_back(image);
         }
@@ -809,7 +809,7 @@ size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, b
                         ) &&
                         addBarrier)
                     {
-                        barrierCount += MakeBarrierForLastUsage(image, image->GetUUID());
+                        barrierCount += MakeBarrierForLastUsage2(image);
                     }
                 }
             }
@@ -940,7 +940,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_ACCESS_TRANSFER_READ_BIT
                 ))
-                barrierCount += MakeBarrierForLastUsage(args.from, args.from->GetUUID());
+                barrierCount += MakeBarrierForLastUsage2(args.from);
 
             Gfx::ImageSubresourceRange dstRange{
                 .aspectMask = Gfx::MapVKImageAspect(args.to->GetDefaultSubresourceRange().aspectMask),
@@ -957,7 +957,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_ACCESS_TRANSFER_WRITE_BIT
                 ))
-                barrierCount += MakeBarrierForLastUsage(args.to, args.to->GetUUID());
+                barrierCount += MakeBarrierForLastUsage2(args.to);
 
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
@@ -989,7 +989,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_READ_BIT
                     ))
-                    barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
+                    barrierCount += MakeBarrierForLastUsage2(args.src);
             }
 
             args.barrierOffset = barrierOffset;
@@ -1022,7 +1022,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_WRITE_BIT
                     ))
-                    barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+                    barrierCount += MakeBarrierForLastUsage2(args.dst);
             }
 
             args.barrierOffset = barrierOffset;
@@ -1054,7 +1054,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
                     VK_ACCESS_NONE
                 ))
             {
-                barrierCount += MakeBarrierForLastUsage(args.image, args.image->GetUUID());
+                barrierCount += MakeBarrierForLastUsage2(args.image);
             }
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
@@ -1935,7 +1935,7 @@ void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
                             w.access
                         ))
                     {
-                        barrierCountAdded += MakeBarrierForLastUsage(data, data->GetUUID());
+                        barrierCountAdded += MakeBarrierForLastUsage2(data);
                     }
                 }
                 else

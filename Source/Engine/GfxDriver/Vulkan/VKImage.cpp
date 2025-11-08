@@ -20,7 +20,10 @@ static bool IsGPUWrite(ImageUsageFlags usageFlags)
            ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
-VKImage::VKImage() : Image(false), imageView(nullptr) {};
+VKImage::VKImage() : Image(false), imageView(nullptr)
+{
+    InitBarrierTrack();
+};
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription),
       imageView(nullptr)
@@ -37,6 +40,7 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
 
     MakeVkObjects();
     CreateImageView();
+    InitBarrierTrack();
 
     SetName("Unnamed");
     layoutTrack.resize(arrayLayers * imageDescription.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
@@ -50,6 +54,7 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
 
     arrayLayers = imageDescription.GetLayer();
     CreateImageView();
+    InitBarrierTrack();
 
     SetName("Unnamed");
     layoutTrack.resize(arrayLayers * imageDescription.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
@@ -62,8 +67,9 @@ VKImage::VKImage(VKImage&& other)
       accessMask(other.accessMask), imageDescription(other.imageDescription),
       imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), imageViewForShaderResource(std::exchange(other.imageViewForShaderResource, VK_NULL_HANDLE)),
       layoutTrack(std::exchange(other.layoutTrack, {}))
-
-{}
+{
+    InitBarrierTrack();
+}
 
 VKImage::~VKImage()
 {
@@ -71,6 +77,20 @@ VKImage::~VKImage()
     imageViewForShaderResource = nullptr;
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
+}
+
+void VKImage::InitBarrierTrack()
+{
+    BarrierTrack defaultVal =
+        {
+            .srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+            .srcAccessMask = VK_ACCESS_2_NONE,
+            .dstStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+            .dstAccessMask = VK_ACCESS_2_NONE,
+            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .newLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+    subresourceBarrierTrack.resize(arrayLayers * imageDescription.mipLevels, defaultVal);
 }
 
 void VKImage::MakeVkObjects()
@@ -258,11 +278,13 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.baseMipLevel = glm::clamp(option.baseMipLevel, 0, (int)imageDescription.mipLevels - 1);
     range.levelCount = glm::min(
         Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels : option.levelCount,
-        imageDescription.mipLevels - option.baseMipLevel);
+        imageDescription.mipLevels - option.baseMipLevel
+    );
     range.baseArrayLayer = glm::clamp(option.baseArrayLayer, 0, (int)imageDescription.layers - 1);
     range.layerCount = glm::min(
-        option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers : option.layerCount, 
-        imageDescription.layers - option.baseArrayLayer);
+        option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers : option.layerCount,
+        imageDescription.layers - option.baseArrayLayer
+    );
 
     ImageViewType imageViewType = ImageViewType::Image_2D;
     switch (imageType_vk)

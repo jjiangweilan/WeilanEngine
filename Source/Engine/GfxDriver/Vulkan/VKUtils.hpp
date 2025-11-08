@@ -5,8 +5,8 @@ namespace Gfx
 {
 inline bool HasWriteAccessMask(VkAccessFlags flags)
 {
-    if ((flags & VK_ACCESS_SHADER_WRITE_BIT)|| (flags & VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)||
-        (flags & VK_ACCESS_TRANSFER_WRITE_BIT)|| (flags & VK_ACCESS_HOST_WRITE_BIT) ||
+    if ((flags & VK_ACCESS_SHADER_WRITE_BIT) || (flags & VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT) ||
+        (flags & VK_ACCESS_TRANSFER_WRITE_BIT) || (flags & VK_ACCESS_HOST_WRITE_BIT) ||
         (flags & VK_ACCESS_MEMORY_WRITE_BIT) || (flags & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT))
         return true;
 
@@ -19,9 +19,31 @@ inline bool HasReadAccessMask(VkAccessFlags flags)
         (flags & VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT) || (flags & VK_ACCESS_UNIFORM_READ_BIT) ||
         (flags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) || (flags & VK_ACCESS_SHADER_READ_BIT) ||
         (flags & VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) ||
-        (flags & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT)|| (flags & VK_ACCESS_TRANSFER_READ_BIT) ||
-        (flags & VK_ACCESS_HOST_READ_BIT) || (flags & VK_ACCESS_MEMORY_READ_BIT)|| (flags & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT))
+        (flags & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT) || (flags & VK_ACCESS_TRANSFER_READ_BIT) ||
+        (flags & VK_ACCESS_HOST_READ_BIT) || (flags & VK_ACCESS_MEMORY_READ_BIT) || (flags & VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT))
         return true;
     return false;
 }
-} // namespace Gfx::VK
+
+inline bool HasWriteAccessMask(VkAccessFlags2 flags)
+{
+    if ((flags & VK_ACCESS_2_SHADER_WRITE_BIT) || (flags & VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT) ||
+        (flags & VK_ACCESS_2_TRANSFER_WRITE_BIT) || (flags & VK_ACCESS_2_HOST_WRITE_BIT) ||
+        (flags & VK_ACCESS_2_MEMORY_WRITE_BIT) || (flags & VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT))
+        return true;
+
+    return false;
+}
+
+inline bool HasReadAccessMask(VkAccessFlags2 flags)
+{
+    if ((flags & VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT) || (flags & VK_ACCESS_2_INDEX_READ_BIT) ||
+        (flags & VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT) || (flags & VK_ACCESS_2_UNIFORM_READ_BIT) ||
+        (flags & VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT) || (flags & VK_ACCESS_2_SHADER_READ_BIT) ||
+        (flags & VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT) ||
+        (flags & VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT) || (flags & VK_ACCESS_2_TRANSFER_READ_BIT) ||
+        (flags & VK_ACCESS_2_HOST_READ_BIT) || (flags & VK_ACCESS_2_MEMORY_READ_BIT) || (flags & VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT))
+        return true;
+    return false;
+}
+} // namespace Gfx
