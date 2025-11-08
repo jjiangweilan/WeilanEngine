@@ -21,8 +21,16 @@ class VKDataUploader
         VkImageAspectFlags aspect;
         VkImageLayout finalLayout;
     };
+    struct CachedBufferUpload
+    {
+        VKBuffer* dst;
+        std::vector<uint8_t> data;
+        size_t size;
+        size_t dstOffset;
+    };
 
     std::vector<CachedImageUpload> cachedImageUploads;
+    std::vector<CachedBufferUpload> cachedBufferUploads;
 
 public:
     VKDataUploader(VKDriver* driver);
@@ -52,8 +60,20 @@ public:
         std::vector<uint8_t> cachedData = std::vector<uint8_t>(size);
         memcpy(cachedData.data(), data, size);
         cachedImageUploads.push_back(
-            CachedImageUpload{dst, cachedData, size, mipLevel, arayLayer, aspect, finalLayout}
+            CachedImageUpload{dst, std::move(cachedData), size, mipLevel, arayLayer, aspect, finalLayout}
         );
+    }
+
+    void CacheUploadBuffer(
+        VKBuffer* dst,
+        uint8_t* data,
+        size_t size,
+        size_t dstOffset
+    )
+    {
+        std::vector<uint8_t> cachedData(size);
+        memcpy(cachedData.data(), data, size);
+        cachedBufferUploads.push_back(CachedBufferUpload{dst, std::move(cachedData), size, dstOffset});
     }
 
     void UploadAllPending(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages);
@@ -126,5 +146,9 @@ private:
     VKRawBuffer stagingBuffer = {};
 
     bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);
+    void UploadAllPendingInternal(
+        VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages
+    );
+    void FlushCachedUpload();
 };
 } // namespace Gfx

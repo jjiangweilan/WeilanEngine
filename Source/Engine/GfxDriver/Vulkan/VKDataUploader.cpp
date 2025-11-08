@@ -128,19 +128,35 @@ void VKDataUploader::WaitForUploadFinish()
     }
 }
 
+void VKDataUploader::FlushCachedUpload()
+{
+    for (auto& cachedImageUpload : cachedImageUploads)
+    {
+        UploadImage(dynamic_cast<VKImage*>(cachedImageUpload.dst), cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
+    }
+    for (auto& cachedBufferUpload : cachedBufferUploads)
+    {
+        UploadBuffer(dynamic_cast<VKBuffer*>(cachedBufferUpload.dst), cachedBufferUpload.data.data(), cachedBufferUpload.size, cachedBufferUpload.dstOffset);
+    }
+
+    cachedImageUploads.clear();
+    cachedBufferUploads.clear();
+}
+
 void VKDataUploader::UploadAllPending(
     VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages
 )
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
 
-    for (auto& cachedImageUpload : cachedImageUploads)
-    {
-        UploadImage(dynamic_cast<VKImage*>(cachedImageUpload.dst), cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
-    }
+    FlushCachedUpload();
+    UploadAllPendingInternal(signalSemaphore, waitSemaphore, waitStages);
+}
 
-    cachedImageUploads.clear();
-
+void VKDataUploader::UploadAllPendingInternal(
+    VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages
+)
+{
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = driver->mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -307,7 +323,7 @@ bool VKDataUploader::EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t
 
     // we can't continue because there isn't enought room for next upload
     // first we upload what we have scheduled so far
-    UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+    UploadAllPendingInternal(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
     // check if we have enough room from beginning to head
     if (head < cmd.endOffset && head > size)

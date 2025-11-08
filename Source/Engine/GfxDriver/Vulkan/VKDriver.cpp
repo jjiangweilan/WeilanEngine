@@ -1290,7 +1290,14 @@ void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t
         return;
     }
 
-    dataUploader->UploadBuffer(&vkDst, data, size, dstOffset);
+    if (std::this_thread::get_id() != JobSystem::Instance().GetMainThreadID())
+    {
+        dataUploader->CacheUploadBuffer(&vkDst, data, size, dstOffset);
+    }
+    else
+    {
+        dataUploader->UploadBuffer(&vkDst, data, size, dstOffset);
+    }
 };
 void VKDriver::UploadImage(
     Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
@@ -1317,6 +1324,7 @@ void VKDriver::UploadImage(
     {
         dataUploader->CacheUploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
     }
+    else
     {
         dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
     }
