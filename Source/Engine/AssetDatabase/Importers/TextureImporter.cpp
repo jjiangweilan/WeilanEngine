@@ -29,7 +29,7 @@ bool TextureImporter::ImportNeeded()
     // meta file validation
     if (meta.contains("importedKtxFile"))
     {
-        reimport = reimport || !std::filesystem::exists(meta["importedKtxFile"]);
+        reimport = reimport || !importDatabase->ExistImportFile(meta["importedKtxFile"]);
     }
     else
         reimport = true;
@@ -219,7 +219,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             // note: this "converToCube ? 1 : layers" prevents creating array of cubeMaps, but ktx separate the
             // concept of face and layer, that's why I need to manually convert layer to face
             Exporters::KtxExporter::Export(
-                importedAssetPath.string().c_str(),
+                (importDatabase->GetImportDatabaseRootPath() / std::filesystem::path(importedAssetPath.string())).string().c_str(),
                 loaded,
                 width,
                 height,
