@@ -118,6 +118,8 @@ public:
     virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
     virtual void SetViewport(const Viewport& viewport) = 0;
     virtual void SetLineWidth(float lineWidth) = 0;
+    virtual void SetDepthBias(float constantFactor, float clamp, float slopeFactor) = 0;
+    virtual void SetDepthBiasEnable(bool enable) = 0;
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
     virtual void DispatchIndirect(Buffer* buffer, size_t bufferOffset) = 0;
     virtual void CopyBuffer(

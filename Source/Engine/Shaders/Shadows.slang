@@ -6,7 +6,7 @@ float PcfShadow(float2 shadowCoord, float2 shadowMapSize, float objShadowDepth, 
 
     float x,y;
 
-    const float halfFilterSize = 5; // 2 * halfFilterSize + 1
+    const float halfFilterSize = 2; // 2 * halfFilterSize + 1
     for (y = -halfFilterSize; y <= halfFilterSize; y += 1)
         for (x = -halfFilterSize; x <= halfFilterSize; x += 1)
         {

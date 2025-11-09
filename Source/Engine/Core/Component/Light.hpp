@@ -12,6 +12,30 @@ class Light : public Component
 {
     DECLARE_OBJECT();
 
+    float directionalLightFrustum_W[6] = {-10, 10, -10, 10, -300, 700};
+    LightType lightType = LightType::Directional;
+    glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
+    float ambientScale = 1.0f;
+    float range = 10.0f; // valid when it's a point light
+    float intensity = 1.0f;
+    float pointLightTerm1 = 0.7f;
+    float pointLightTerm2 = 1.8f;
+    float shadowDistance = 100.0;
+
+    struct
+    {
+        bool isEnabled = false;
+        int frames = 0;
+        int targetFrames = 0;
+        glm::vec3 cachedLightDirection;
+        glm::mat4 cachedWorldToShadow = glm::mat4(1.0f);
+
+    } shadowCache;
+
+public:
+    float depthBias = -1.0f;
+    float depthSlopeBias = -3.0f;
+
 public:
     Light();
     Light(GameObject* gameObject);
@@ -91,25 +115,4 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     void OnDrawGizmos() override;
-
-private:
-    float directionalLightFrustum_W[6] = {-10, 10, -10, 10, -300, 700};
-    LightType lightType = LightType::Directional;
-    glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
-    float ambientScale = 1.0f;
-    float range = 10.0f; // valid when it's a point light
-    float intensity = 1.0f;
-    float pointLightTerm1 = 0.7f;
-    float pointLightTerm2 = 1.8f;
-    float shadowDistance = 100.0;
-
-    struct
-    {
-        bool isEnabled = false;
-        int frames = 0;
-        int targetFrames = 0;
-        glm::vec3 cachedLightDirection;
-        glm::mat4 cachedWorldToShadow = glm::mat4(1.0f);
-
-    } shadowCache;
 };

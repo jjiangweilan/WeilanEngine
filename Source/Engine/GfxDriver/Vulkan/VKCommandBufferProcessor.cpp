@@ -1136,8 +1136,21 @@ void VKCommandBufferProcessor::Execute(
                     vkCmdSetLineWidth(vkcmd, args.lineWidth);
                     break;
                 }
+            case VKCmdType::SetDepthBias:
+                {
+                    auto& args = std::get<VKSetDepthBiasCmd>(cmd.args);
+                    vkCmdSetDepthBias(vkcmd, args.constantFactor, args.clamp, args.slopeFactor);
+                    break;
+                }
+            case VKCmdType::SetDepthBiasEnable:
+                {
+                    auto& args = std::get<VKSetDepthBiasEnableCmd>(cmd.args);
+                    vkCmdSetDepthBiasEnable(vkcmd, args.enable ? VK_TRUE : VK_FALSE);
+                    break;
+                }
             case VKCmdType::DrawIndexed:
                 {
+
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     auto& args = std::get<VKDrawIndexedCmd>(cmd.args);

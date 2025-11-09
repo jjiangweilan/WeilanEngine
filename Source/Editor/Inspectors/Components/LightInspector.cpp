@@ -35,6 +35,10 @@ public:
         {
             light->SetAmbientScale(ambientScale);
         }
+
+        EditorGUI::DragFloat("Depth Bias", &target->depthBias);
+        EditorGUI::DragFloat("Depth Slope Bias", &target->depthSlopeBias);
+
         if (ImGui::BeginTable("##lightcolor_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
             ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);

@@ -51,6 +51,8 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("pointLightTerm2", pointLightTerm2);
     s->Serialize("lightType", static_cast<int>(lightType));
     s->Serialize("shadowDistance", shadowDistance);
+    s->Serialize("depthBias", depthBias);
+    s->Serialize("depthSlopeBias", depthSlopeBias);
 }
 void Light::Deserialize(Serializer* s)
 {
@@ -65,6 +67,8 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("lightType", lightType);
     this->lightType = static_cast<LightType>(lightType);
     s->Deserialize("shadowDistance", shadowDistance);
+    s->Deserialize("depthBias", depthBias);
+    s->Deserialize("depthSlopeBias", depthSlopeBias);
 }
 
 const std::string& Light::GetName() const

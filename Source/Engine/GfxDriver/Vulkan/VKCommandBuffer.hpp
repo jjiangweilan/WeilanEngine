@@ -77,6 +77,18 @@ struct VKSetLineWidthCmd
     float lineWidth;
 };
 
+struct VKSetDepthBiasCmd
+{
+    float constantFactor;
+    float clamp;
+    float slopeFactor;
+};
+
+struct VKSetDepthBiasEnableCmd
+{
+    bool enable;
+};
+
 struct VKRGBeginRenderPassCmd
 {
     RenderPass renderPass;
@@ -333,6 +345,8 @@ enum class VKCmdType
     AllocateAttachment,
     Present,
     SetLineWidth,
+    SetDepthBias,
+    SetDepthBiasEnable,
     BeginLabel,
     EndLabel,
     InsertLabel,
@@ -374,6 +388,8 @@ struct VKCmd
         VKAllocateAttachmentCmd,
         VKPresentCmd,
         VKSetLineWidthCmd,
+        VKSetDepthBiasCmd,
+        VKSetDepthBiasEnableCmd,
         VKBeginLabelCmd,
         VKEndLabelCmd,
         VKInsertLabelCmd,
@@ -453,6 +469,8 @@ public:
     void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) override;
     void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void SetLineWidth(float lineWidth) override;
+    void SetDepthBias(float constantFactor, float clamp, float slopeFactor) override;
+    void SetDepthBiasEnable(bool enable) override;
 
     void PresentImage(VKImage* image);
 

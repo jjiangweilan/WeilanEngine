@@ -124,6 +124,8 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
         if (updateMainLightShadow)
         {
             Gfx::ClearValue shadowMapClears[] = {{0.0f, 0}};
+            cmd.SetDepthBiasEnable(true);
+            cmd.SetDepthBias(mainLight->depthBias, 0, mainLight->depthSlopeBias);
             cmd.BeginRenderPass(pass, shadowMapClears);
             auto program = shadowMapShader->GetShaderProgram();
             auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
@@ -152,6 +154,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
             }
 
             cmd.EndRenderPass();
+            cmd.SetDepthBiasEnable(false);
         }
     }
     cmd.EndLabel();

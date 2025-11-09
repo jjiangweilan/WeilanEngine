@@ -208,9 +208,8 @@ void VKShaderProgram::GeneratePipelineLayout()
     using DescriptorSetLayoutBindingVector =
         std::vector<VkDescriptorSetLayoutBinding>;
     std::vector<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
-    std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()
-    ); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
-       // memory address as hashing input
+    std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
+                                                                                                                         // memory address as hashing input
     const int MaxImmutableSamplerBindings = 512;
     VkSampler immutableSamplers[MaxImmutableSamplerBindings] = {};
     int immutableSamplerIndex = 0;
@@ -549,10 +548,10 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.blendConstants[3] = config->color.blendConstants[3];
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
-    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE };
 
     // TODO: these dynamic states need to be handled, some of them are currently compared in ShaderConfig, we need to
-    // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_BLEND_CONSTANTS,
+    // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_BLEND_CONSTANTS,
     // VK_DYNAMIC_STATE_DEPTH_BOUNDS,
     // VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,
     // VK_DYNAMIC_STATE_STENCIL_WRITE_MASK,

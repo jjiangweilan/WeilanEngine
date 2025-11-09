@@ -489,6 +489,26 @@ void VKCommandBuffer::SetLineWidth(float lineWidth)
     cmds.push_back(VKCmd{VKCmdType::SetLineWidth, cmd});
 }
 
+void VKCommandBuffer::SetDepthBias(float constantFactor, float clamp, float slopeFactor)
+{
+    VKSetDepthBiasCmd cmd{};
+
+    cmd.constantFactor = constantFactor;
+    cmd.clamp = clamp;
+    cmd.slopeFactor = slopeFactor;
+
+    cmds.push_back(VKCmd{VKCmdType::SetDepthBias, cmd});
+}
+
+void VKCommandBuffer::SetDepthBiasEnable(bool enable)
+{
+    VKSetDepthBiasEnableCmd cmd{};
+
+    cmd.enable = enable;
+
+    cmds.push_back(VKCmd{VKCmdType::SetDepthBiasEnable, cmd});
+}
+
 std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset)
 {
     VKAsyncReadbackCmd cmd{};
