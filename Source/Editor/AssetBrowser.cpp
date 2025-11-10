@@ -106,8 +106,6 @@ void AssetBrowser::ShowInternalAssets()
 
 void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 {
-    bool changeFileName = false;
-    static std::filesystem::path changeFileNameTarget;
 
     // Need access to GameEditor's endEvents and endPopup
     auto& endEvents = gameEditor->endEvents;
@@ -253,7 +251,8 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                 path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
                 EditorGUI::DragDropSource(
                     path,
-                    [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); }
+                    [path](Object*& obj)
+                    { obj = AssetDatabase::Singleton()->LoadAsset(path); }
                 );
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
@@ -276,6 +275,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
     if (changeFileName)
     {
         ImGui::OpenPopup("Change File Name");
+        changeFileName = false;
         auto filename = changeFileNameTarget.filename();
         strcpy(fn, filename.string().c_str());
     }
@@ -396,6 +396,46 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         if (ImGui::MenuItem("Create Folder"))
         {
             AssetDatabase::Singleton()->CreateFolderAtPath(path);
+        }
+
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Material"))
+            {
+                auto mat = std::make_unique<Material>();
+                engine->assetDatabase->SaveAsset(std::move(mat), path / "New Material");
+            }
+            if (ImGui::MenuItem("Render Pipeline Setting"))
+            {
+                auto renderPipelineSetting = std::make_unique<Rendering::RenderPipelineSetting>();
+                engine->assetDatabase->SaveAsset(std::move(renderPipelineSetting), path / "New RenderPipelineSetting");
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenu();
+    }
+
+    static char fn[1024];
+    if (changeFileName)
+    {
+        ImGui::OpenPopup("Change File Name");
+        changeFileName = false;
+        auto filename = changeFileNameTarget.filename();
+        strcpy(fn, filename.string().c_str());
+    }
+    if (ImGui::BeginPopupModal("Change File Name"))
+    {
+        ImGui::InputText("File Name: ", fn, 1024);
+
+        if (ImGui::Selectable("Confirm"))
+        {
+            auto dir = changeFileNameTarget.parent_path();
+            auto finalPath = dir / fn;
+            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
+        }
+        if (ImGui::Selectable("Chancel"))
+        {
+            ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
     }
@@ -550,7 +590,8 @@ void AssetBrowser::ShowAssetIconItem(
         filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
         EditorGUI::DragDropSource(
             filePath,
-            [filePath](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(filePath); },
+            [filePath](Object*& obj)
+            { obj = AssetDatabase::Singleton()->LoadAsset(filePath); },
             ImGuiDragDropFlags_SourceAllowNullID
         );
     }
@@ -600,7 +641,9 @@ void AssetBrowser::ShowAssetIconItem(
 
             if (ImGui::MenuItem("Rename"))
             {
-                // TODO: Implement rename functionality
+                changeFileName = true;
+                changeFileNameTarget =
+                    std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
             }
         }
         else
@@ -619,7 +662,9 @@ void AssetBrowser::ShowAssetIconItem(
 
             if (ImGui::MenuItem("Rename"))
             {
-                // TODO: Implement rename functionality
+                changeFileName = true;
+                changeFileNameTarget =
+                    std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
             }
         }
 

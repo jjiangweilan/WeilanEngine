@@ -42,6 +42,7 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
     this->assetDirectory = projectRoot / "Assets";
     this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
 
+    assetFileSystem.Init(projectRoot);
     importDatabase.Init(projectRoot / "ImportDatabase");
     asyncLoadProcessor.Init(&importDatabase, &assetFileSystem, assetDirectory, projectRoot);
 
@@ -141,12 +142,14 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    if (path.is_absolute())
-        return nullptr;
-
     if (HasFlag(a->GetFlags(), AssetState::DontSave))
     {
         return a.get();
+    }
+
+    if (path.is_absolute())
+    {
+        path = std::filesystem::relative(path, assetDirectory);
     }
 
     path.replace_extension(a->GetExtension());
@@ -478,7 +481,7 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
             );
         }
 
-        assetFileSystem.Remove(path);
+        assetFileSystem.Remove(absolutePath);
     }
 }
 

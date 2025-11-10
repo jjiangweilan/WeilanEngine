@@ -413,7 +413,7 @@ private:
             if (alphaModel == "MASK")
             {
                 mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
-                mat->EnableFeature("_AlphaTest");
+                mat->EnableFeature("_AlphaClip");
                 auto& blend = shaderConfig.color.blends[0];
                 blend.blendEnable = false;
             }

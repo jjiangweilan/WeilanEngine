@@ -447,6 +447,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
             auto bufSize = binding->byteSize;
 
             auto [tempBuf, tempUploadDataHandle] = GetSharedStackAllocator().ScopedAllocate<unsigned char>(bufSize);
+            memset(tempBuf, 0, bufSize);
 
             ASSERT(binding->descriptorType == Gfx::DescriptorType::UniformBuffer && "UBO should be a structure");
             for (auto& member : binding->bufferMembers)

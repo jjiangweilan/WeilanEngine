@@ -27,6 +27,30 @@ public:
             target->SetShader(picked);
         }
 
+        {
+            bool alphaClip = target->IsFeatureEnabled("_AlphaClip");
+            if (ImGui::Checkbox("Alpha Clip", &alphaClip))
+            {
+                if (alphaClip)
+                    target->EnableFeature("_AlphaClip");
+                else
+                    target->DisableFeature("_AlphaClip");
+            }
+        }
+
+
+        {
+            auto cfgPtr = target->GetShaderConfig();
+            int cullMode = (int)cfgPtr->cullMode;
+            static const char* CullModeNames[] = {"None", "Front", "Back", "Both"};
+            if (ImGui::Combo("Cull Mode", &cullMode, CullModeNames, (int)Gfx::CullMode::MAX_COUNT - 1))
+            {
+                Gfx::PipelineConfig::PipelineConfig_t newCfg = *target->GetShaderConfig();
+                newCfg.cullMode = (Gfx::CullMode)cullMode;
+                target->SetShaderConfig(newCfg);
+            }
+        }
+
         Draw(shader);
 
         if (ImGui::TreeNode("Auto Inspector"))

@@ -43,6 +43,10 @@ private:
     int currentDragDropAssetFileDepth = 0;
     std::filesystem::path lastSelectedPath = "";
 
+    // Change File Name //
+    bool changeFileName = false;
+    std::filesystem::path changeFileNameTarget;
+
     // Icon size control
     float iconSizeSlider = 64.0f; // Default icon size
     static constexpr float MIN_ICON_SIZE = 0.0f;

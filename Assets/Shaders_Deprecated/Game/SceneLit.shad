@@ -9,7 +9,7 @@ ShaderPass GBuffer
 name: Game/SceneLit
 debug: true
 fragFeatures:
-    - [_, _AlphaTest]
+    - [_, _AlphaClip]
     - [_, _BaseColorMap]
     - [_, _NormalMap]
     - [_, _EmissiveMap]
@@ -148,7 +148,7 @@ void main()
     vec4 baseColor = matParams.baseColorFactor;
 #endif
 
-#ifdef _AlphaTest
+#ifdef _AlphaClip
     if (baseColor.a < matParams.alphaCutoff)
         discard;
 #endif
@@ -259,7 +259,7 @@ void main()
     vec4 baseColor = matParams.baseColorFactor;
 #endif
 
-#ifdef _AlphaTest
+#ifdef _AlphaClip
     if (baseColor.a < matParams.alphaCutoff)
         discard;
 #endif

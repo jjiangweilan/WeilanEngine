@@ -146,7 +146,7 @@ void DrawList::Sort(const glm::vec3& cameraPos)
         transparentIter,
         [this](int val)
         {
-            static std::string alphaTest = "_AlphaTest";
+            static std::string alphaTest = "_AlphaClip";
 
             auto features = this->at(val).material->GetCachedShaderProgramFeatureUsed();
             return std::find(features.begin(), features.end(), alphaTest) == features.end();

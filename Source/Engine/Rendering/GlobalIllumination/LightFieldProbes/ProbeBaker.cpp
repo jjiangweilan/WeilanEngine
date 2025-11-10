@@ -116,9 +116,9 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
             // draw opaque objects
             DispatchBake(cmd, drawList, 0, drawList->alphaTestIndex);
             // draw alpha tested objects
-            // Obsolete::Shader::EnableFeature("_AlphaTest");
+            // Obsolete::Shader::EnableFeature("_AlphaClip");
             DispatchBake(cmd, drawList, drawList->alphaTestIndex, drawList->transparentIndex);
-            // Obsolete::Shader::DisableFeature("_AlphaTest");
+            // Obsolete::Shader::DisableFeature("_AlphaClip");
         }
         cmd.EndRenderPass();
     }

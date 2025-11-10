@@ -2,7 +2,7 @@ import WeilanEngine;
 import Library.PerScene;
 import Lighting;
 
-static extern const bool _AlphaTest = false;
+static extern const bool _AlphaClip = false;
 static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
@@ -117,7 +117,7 @@ FragmentOutput SceneLitFragment(VertexOutput input)
         baseColor *= perMaterial.baseColorTex.Sample(input.uv);
     }
 
-    if (_AlphaTest)
+    if (_AlphaClip)
     {
         if (baseColor.a < perMaterial.alphaCutoff)
             discard;
@@ -129,8 +129,11 @@ FragmentOutput SceneLitFragment(VertexOutput input)
     {
         float2 metallicRoughness = float2(roughness, metallic) * perMaterial.metallicRoughnessMap.Sample(input.uv).gb;
         metallic = metallicRoughness.y;
-        roughness = max(metallicRoughness.x, 0.01);
+        roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
     }
+    else
+        roughness = clamp(roughness, 0.01, 0.99f);
+
 
     float3 normal = float3(0,0,1);
     if (_NormalMap)

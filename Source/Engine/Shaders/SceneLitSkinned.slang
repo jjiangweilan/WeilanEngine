@@ -3,7 +3,7 @@ import Library.PerScene;
 import Skeleton;
 import Lighting;
 
-static extern const bool _AlphaTest = false;
+static extern const bool _AlphaClip = false;
 static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
@@ -143,7 +143,7 @@ FragmentOutput SceneLitFragment(VertexOutput input)
         baseColor *= perMaterial.baseColorTex.Sample(input.uv);
     }
 
-    if (_AlphaTest)
+    if (_AlphaClip)
     {
         if (baseColor.a < perMaterial.alphaCutoff)
             discard;

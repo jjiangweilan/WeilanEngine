@@ -5,7 +5,7 @@
 #if CONFIG
 name: Game/GBufferPass
 features:
-    - [_, _AlphaTest]
+    - [_, _AlphaClip]
     - [_, _BaseColorMap]
     - [_, _NormalMap]
     - [_, _EmissiveMap]
@@ -80,7 +80,7 @@ void main()
 {
     vec4 baseColor = texture(BaseColorTex, i_UV) * matParams.baseColorFactor;
 
-#ifdef _AlphaTest
+#ifdef _AlphaClip
     if (baseColor.a < matParams.alphaCutoff)
         discard;
 #endif
