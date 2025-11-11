@@ -104,7 +104,8 @@ private:
 template <class T>
 struct LazyLoadedAsset
 {
-    LazyLoadedAsset(const char* path) : path(path) {}
+    LazyLoadedAsset(const char* path)
+        : path(path) {}
 
     T* operator->() { return Get(); }
 

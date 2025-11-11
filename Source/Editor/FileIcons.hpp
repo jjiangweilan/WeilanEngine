@@ -12,7 +12,7 @@ public:
     // enter utf code picked from here: https://www.nerdfonts.com/cheat-sheet
     static std::string Utf16ToUtf8(char16_t utf16_codepoint);
     static std::string GetIcon(const std::filesystem::path& ext);
-    Gfx::Image* GetIconImage(const std::filesystem::path& ext);
+    Gfx::Image* GetIconImage(const std::filesystem::path& path);
     Gfx::Image* GetDirectoryIconImage() { return fileIcon->GetGfxImage(); }
 
 private:

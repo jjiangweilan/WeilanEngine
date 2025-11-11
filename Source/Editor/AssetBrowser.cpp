@@ -179,9 +179,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 
                 if (ImGui::MenuItem("Change File Name"))
                 {
-                    changeFileName = true;
-                    changeFileNameTarget =
-                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                    ActivateFileNameField(entry.path());
                 }
                 ImGui::EndPopup();
             }
@@ -226,9 +224,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             {
                 if (ImGui::MenuItem("Change File Name"))
                 {
-                    changeFileName = true;
-                    changeFileNameTarget =
-                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                    ActivateFileNameField(entry.path());
                 }
 
                 if (ImGui::MenuItem("Delete"))
@@ -271,30 +267,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         }
     }
 
-    static char fn[1024];
-    if (changeFileName)
-    {
-        ImGui::OpenPopup("Change File Name");
-        changeFileName = false;
-        auto filename = changeFileNameTarget.filename();
-        strcpy(fn, filename.string().c_str());
-    }
-    if (ImGui::BeginPopupModal("Change File Name"))
-    {
-        ImGui::InputText("File Name: ", fn, 1024);
-
-        if (ImGui::Selectable("Confirm"))
-        {
-            auto dir = changeFileNameTarget.parent_path();
-            auto finalPath = dir / fn;
-            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
-        }
-        if (ImGui::Selectable("Chancel"))
-        {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-    }
+    ShowChangeFileNameField();
 }
 
 void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth)
@@ -415,30 +388,7 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         ImGui::EndMenu();
     }
 
-    static char fn[1024];
-    if (changeFileName)
-    {
-        ImGui::OpenPopup("Change File Name");
-        changeFileName = false;
-        auto filename = changeFileNameTarget.filename();
-        strcpy(fn, filename.string().c_str());
-    }
-    if (ImGui::BeginPopupModal("Change File Name"))
-    {
-        ImGui::InputText("File Name: ", fn, 1024);
-
-        if (ImGui::Selectable("Confirm"))
-        {
-            auto dir = changeFileNameTarget.parent_path();
-            auto finalPath = dir / fn;
-            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
-        }
-        if (ImGui::Selectable("Chancel"))
-        {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-    }
+    ShowChangeFileNameField();
 }
 
 void AssetBrowser::ShowAssetIconItem(
@@ -641,9 +591,7 @@ void AssetBrowser::ShowAssetIconItem(
 
             if (ImGui::MenuItem("Rename"))
             {
-                changeFileName = true;
-                changeFileNameTarget =
-                    std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                ActivateFileNameField(entry.path());
             }
         }
         else
@@ -662,9 +610,7 @@ void AssetBrowser::ShowAssetIconItem(
 
             if (ImGui::MenuItem("Rename"))
             {
-                changeFileName = true;
-                changeFileNameTarget =
-                    std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                ActivateFileNameField(entry.path());
             }
         }
 
@@ -758,6 +704,43 @@ Gfx::Image* AssetIcon::GetImage()
 {
     // Return nullptr for now, let the calling code handle it
     return nullptr;
+}
+
+void AssetBrowser::ShowChangeFileNameField()
+{
+    if (changeFileName)
+    {
+        ImGui::OpenPopup("Change File Name");
+        changeFileName = false;
+        auto filename = changeFileNameTarget.filename().stem();
+        auto ext = changeFileNameTarget.filename().extension();
+        strcpy(fileNameCache, filename.string().c_str());
+        fileNameExtCache = ext;
+    }
+    if (ImGui::BeginPopupModal("Change File Name"))
+    {
+        ImGui::InputText("File Name: ", fileNameCache, 1024);
+
+        if (ImGui::Selectable("Confirm") || ImGui::IsKeyPressed(ImGuiKey_Enter))
+        {
+            auto dir = changeFileNameTarget.parent_path();
+            auto finalPath = dir / fileNameCache;
+            finalPath.replace_extension(fileNameExtCache);
+            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
+        }
+        if (ImGui::Selectable("Chancel") || ImGui::IsKeyPressed(ImGuiKey_Backspace))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void AssetBrowser::ActivateFileNameField(const std::filesystem::path& path)
+{
+    changeFileName = true;
+    changeFileNameTarget =
+        std::filesystem::relative(path, AssetDatabase::Singleton()->GetAssetDirectory());
 }
 
 } // namespace Editor

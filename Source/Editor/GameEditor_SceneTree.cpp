@@ -100,7 +100,8 @@ void GameEditor::ShowSceneTree(Scene& scene)
         {
             std::unique_ptr<Prefab> prefab = std::make_unique<Prefab>(sceneTreeContextObject);
 
-            AssetDatabase::Singleton()->SaveAsset(std::move(prefab), "New Prefab");
+            auto prefabName = prefab->GetGameObject()->GetName();
+            AssetDatabase::Singleton()->SaveAsset(std::move(prefab), prefabName);
         }
 
         if (ImGui::Button("Create GameOject"))

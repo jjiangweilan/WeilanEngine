@@ -46,6 +46,10 @@ private:
     // Change File Name //
     bool changeFileName = false;
     std::filesystem::path changeFileNameTarget;
+    char fileNameCache[256];
+    std::string fileNameExtCache;
+    void ShowChangeFileNameField();
+    void ActivateFileNameField(const std::filesystem::path& path);
 
     // Icon size control
     float iconSizeSlider = 64.0f; // Default icon size
