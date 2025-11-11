@@ -223,6 +223,8 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
 {
     switch (format)
     {
+        case GfxFormat::B10G11R11_UFloat_Pack32: return 4;
+        case GfxFormat::A2B10G10R10_UNorm : return 4;
         case GfxFormat::BC7_UNorm_Block: return 16;
         case GfxFormat::BC7_SRGB_UNorm_Block: return 16;
         case GfxFormat::BC3_Unorm_Block: return 16;

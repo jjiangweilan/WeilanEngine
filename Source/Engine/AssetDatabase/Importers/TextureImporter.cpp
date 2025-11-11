@@ -237,7 +237,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         else
         {
             std::ofstream outf;
-            outf.open(importedAssetPath, std::ios::trunc | std::ios::out | std::ios::binary);
+            outf.open(importDatabase->GetImportDatabaseRootPath() / importedAssetPath, std::ios::trunc | std::ios::out | std::ios::binary);
             if (outf.good() && f.is_open())
             {
                 outf << f.rdbuf();

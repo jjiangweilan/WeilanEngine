@@ -271,6 +271,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel(); // Forward
 
+    // Fog
+
     // start post procesing
     finalColor = mainColor;
 
