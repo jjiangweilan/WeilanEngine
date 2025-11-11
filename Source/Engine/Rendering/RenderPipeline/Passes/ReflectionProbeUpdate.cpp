@@ -33,7 +33,7 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
         uint32_t mip = i % 6;
         uint32_t face = i / 6;
         Gfx::ImageView::CreateInfo createInfo{
-            *cubemap,
+            cubemap.get(),
             Gfx::ImageViewType::Image_2D,
             Gfx::ImageSubresourceRange{
                 Gfx::ImageAspect::Color,

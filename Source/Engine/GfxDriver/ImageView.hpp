@@ -11,9 +11,9 @@ public:
     ImageView() : Object() {};
     struct CreateInfo
     {
-        Image& image;
-        ImageViewType imageViewType;
-        ImageSubresourceRange subresourceRange;
+        Image* image = nullptr;
+        ImageViewType imageViewType = Gfx::ImageViewType::Image_2D;
+        ImageSubresourceRange subresourceRange = {};
     };
 
     virtual ~ImageView() {};

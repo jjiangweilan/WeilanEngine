@@ -29,7 +29,7 @@ bool TextureImporter::ImportNeeded()
     // meta file validation
     if (meta.contains("importedKtxFile"))
     {
-        reimport = reimport || !importDatabase->ExistImportFile(meta["importedKtxFile"]);
+        reimport = reimport || !importDatabase->ExistImportFile(std::string(meta["importedKtxFile"]));
     }
     else
         reimport = true;

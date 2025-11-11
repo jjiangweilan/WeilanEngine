@@ -94,7 +94,7 @@ void SHProbe::UpdateProbe(Scene& scene, const SHProbeUpdateSettings& settings)
         for (int face = 0; face < 6; ++face)
         {
             Gfx::ImageView::CreateInfo createInfo{
-                .image = *cubeMapImage.get(),
+                .image = cubeMapImage.get(),
                 .imageViewType = Gfx::ImageViewType::Image_2D,
                 .subresourceRange =
                     Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, static_cast<uint32_t>(face), 1}

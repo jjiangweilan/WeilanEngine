@@ -183,7 +183,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {1, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
-        auto diffuseCube = &reflectionProbeUpdate->GetIBLCubemap()->GetImageView(Gfx::ImageViewOption{6, 1, 0, 6, Gfx::ImageAspect::Color, Gfx::ImageViewOption::Type::Cubemap});
+        auto diffuseCube = &reflectionProbeUpdate->GetIBLCubemap()->GetImageView(Gfx::ImageViewOption{5, 1, 0, 6, Gfx::ImageAspect::Color, Gfx::ImageViewOption::Type::Cubemap});
         auto specularCube = reflectionProbeUpdate->GetIBLCubemap();
 
         auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);

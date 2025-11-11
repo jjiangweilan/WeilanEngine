@@ -23,19 +23,19 @@ struct ProbeFace
     {
         gbufferPass = GetGfxDriver()->CreateRenderPass();
         albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *albedoCubemap,
+            albedoCubemap,
             Gfx::ImageViewType::Image_2D,
             Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
         });
 
         normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *normalCubemap,
+            normalCubemap,
             Gfx::ImageViewType::Image_2D,
             Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
         });
 
         depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
-            *depthCubeMap,
+            depthCubeMap,
             Gfx::ImageViewType::Image_2D,
             Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}
         });

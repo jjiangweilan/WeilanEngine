@@ -25,7 +25,7 @@ public:
                 DelayDestroy::Singleton()->Destory(std::move(imageView));
             }
             imageView = GetGfxDriver()->CreateImageView(
-                {.image = *gfxImage,
+                {.image = gfxImage,
                  .imageViewType = Gfx::ImageViewType::Image_2D,
                  .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, layer, 1}}
             );
@@ -99,7 +99,7 @@ private:
                     DelayDestroy::Singleton()->Destory(std::move(imageView));
                 }
                 imageView = GetGfxDriver()->CreateImageView(
-                    {.image = *gfxImage,
+                    {.image = gfxImage,
                      .imageViewType = Gfx::ImageViewType::Image_2D,
                      .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, layer, 1}}
                 );

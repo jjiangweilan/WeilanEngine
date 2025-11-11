@@ -125,7 +125,7 @@ void VKImage::CreateImageView()
 {
     auto defaultSubresourceRange = GenerateDefaultSubresourceRange();
     imageView = std::unique_ptr<VKImageView>(new VKImageView({
-        .image = *this,
+        .image = this,
         .imageViewType = GenerateDefaultImageViewViewType(),
         .subresourceRange = defaultSubresourceRange,
     }));
@@ -137,7 +137,7 @@ void VKImage::CreateImageView()
     {
         defaultSubresourceRange.aspectMask = ImageAspect::Depth;
         imageViewForShaderResource = std::unique_ptr<VKImageView>(new VKImageView({
-            .image = *this,
+            .image = this,
             .imageViewType = GenerateDefaultImageViewViewType(),
             .subresourceRange = defaultSubresourceRange,
         }));
@@ -278,12 +278,12 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.baseMipLevel = glm::clamp(option.baseMipLevel, 0, (int)imageDescription.mipLevels - 1);
     range.levelCount = glm::min(
         Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels : option.levelCount,
-        imageDescription.mipLevels - option.baseMipLevel
+        imageDescription.mipLevels - range.baseMipLevel
     );
     range.baseArrayLayer = glm::clamp(option.baseArrayLayer, 0, (int)imageDescription.layers - 1);
     range.layerCount = glm::min(
         option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers : option.layerCount,
-        imageDescription.layers - option.baseArrayLayer
+        imageDescription.layers - range.baseArrayLayer
     );
 
     ImageViewType imageViewType = ImageViewType::Image_2D;
@@ -308,7 +308,7 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     }
 
     ImageView::CreateInfo imageViewCreateInfo{
-        .image = *this,
+        .image = this,
         .imageViewType = imageViewType,
         .subresourceRange = range,
     };

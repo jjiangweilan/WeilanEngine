@@ -22,7 +22,7 @@ VkImageViewType MapImageViewType(ImageViewType type)
 
     return VK_IMAGE_VIEW_TYPE_2D;
 }
-VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateInfo createInfo)
+VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, const ImageView::CreateInfo& createInfo)
 {
     VkImageViewCreateInfo imageViewCreateInfo;
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -52,7 +52,7 @@ VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateIn
 }
 
 VKImageView::VKImageView(const CreateInfo& createInfo)
-    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange),
+    : image(static_cast<VKImage*>(createInfo.image)), subresourceRange(createInfo.subresourceRange),
       imageViewType(createInfo.imageViewType)
 {
 

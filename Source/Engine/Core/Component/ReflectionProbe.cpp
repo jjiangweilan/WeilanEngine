@@ -62,7 +62,7 @@ void ReflectionProbe::OnInit()
     float width = cubemapBase->GetDescription().width;
     cubemapBaseMat.SetVector("resolution", float4(width, width, 1.0f / width, 1.0f / width));
 
-    auto& imageView = cubemapBase->GetImageView(Gfx::ImageViewOption(0, 1, 0, Gfx::Remaining_Mip_Levels, Gfx::ImageAspect::Color));
+    auto& imageView = cubemapBase->GetImageView(Gfx::ImageViewOption(0, 1, 0, Gfx::Remaining_Array_Layers, Gfx::ImageAspect::Color));
 
     cubemapBaseMat.GetShaderResource()->SetImage("outputCubemap", &imageView);
 }

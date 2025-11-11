@@ -31,11 +31,11 @@ struct ProbeFace
     void Init(Gfx::Image* albedoCubemap, Gfx::Image* normalCubemap, Gfx::Image* depthCubeMap, uint32_t face)
     {
         gbufferPass = GetGfxDriver()->CreateRenderPass();
-        albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*albedoCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
+        albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{albedoCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
 
-        normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*normalCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
+        normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{normalCubemap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
 
-        depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{*depthCubeMap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}});
+        depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{depthCubeMap, Gfx::ImageViewType::Image_2D, Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}});
 
         Gfx::Attachment albedoAttachment{
             albedoView.get(),
