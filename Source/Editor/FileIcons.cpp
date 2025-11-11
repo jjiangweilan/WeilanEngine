@@ -13,8 +13,31 @@ std::string FileIcons::Utf16ToUtf8(char16_t utf16_codepoint)
     return convert_utf16_to_utf8.to_bytes(utf16_str);
 }
 
-Gfx::Image* FileIcons::GetIconImage(const std::filesystem::path& ext)
+Gfx::Image* FileIcons::LoadPreviewImage(const AssetPath& path)
 {
+    auto iter = previewImages.caches.find(path);
+    if (iter != previewImages.caches.end() && iter->second != nullptr)
+    {
+        return iter->second->GetGfxImage();
+    }
+
+    auto texture = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+    if (texture)
+    {
+        previewImages.caches[path] = texture;
+        return texture->GetGfxImage();
+    }
+
+    return nullptr;
+}
+
+Gfx::Image* FileIcons::GetIconImage(const std::filesystem::path& path)
+{
+    Gfx::Image* previewImage = LoadPreviewImage(path);
+    if (previewImage)
+        return previewImage;
+
+    auto ext = path.extension();
     auto iter = toIconImage.find(ext.string());
     if (iter != toIconImage.end())
     {

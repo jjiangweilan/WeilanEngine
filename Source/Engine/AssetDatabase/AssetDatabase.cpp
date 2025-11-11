@@ -114,7 +114,8 @@ Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
                 auto iter = std::find_if(
                     internalAssets.begin(),
                     internalAssets.end(),
-                    [&uuid](Asset* a) { return a->GetUUID() == uuid; }
+                    [&uuid](Asset* a)
+                    { return a->GetUUID() == uuid; }
                 );
                 if (iter != internalAssets.end())
                     return *iter;
@@ -351,6 +352,13 @@ ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path p
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
 {
+    asyncLoadProcessor.SyncLoad(); // this is used to avoid loading an asset in main thread while it's also loading in async load processor
+
+    if (path.is_absolute())
+    {
+        path = AbsolutePathToAssetPath(path);
+    }
+
     ImportAssetIfNeeded(path, false);
     // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
@@ -371,6 +379,10 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
 
     // find the asset if it's already imported
     auto assetData = assetFileSystem.GetAssetData(path);
+
+    if (assetData == nullptr)
+        return nullptr;
+
     auto absoluteAssetPath = assetData->GetAssetAbsolutePath();
 
     if (!std::filesystem::exists(absoluteAssetPath))
@@ -463,7 +475,7 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
     auto absolutePath = assetDirectory / path;
     if (std::filesystem::is_directory(absolutePath))
     {
-        for(auto iter : std::filesystem::directory_iterator(absolutePath))
+        for (auto iter : std::filesystem::directory_iterator(absolutePath))
         {
             Remove(iter.path());
         }
@@ -477,7 +489,8 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
         if (assetData)
         {
             assetDatas.erase(
-                std::remove_if(assetDatas.begin(), assetDatas.end(), [&](auto& d) { return d.get() == assetData; })
+                std::remove_if(assetDatas.begin(), assetDatas.end(), [&](auto& d)
+                               { return d.get() == assetData; })
             );
         }
 
@@ -495,7 +508,8 @@ void AssetDatabase::RemoveAssetData(AssetData* assetData)
         auto iter = std::find_if(
             assetDatas.begin(),
             assetDatas.end(),
-            [assetData](const std::unique_ptr<AssetData>& dd) { return dd.get() == assetData; }
+            [assetData](const std::unique_ptr<AssetData>& dd)
+            { return dd.get() == assetData; }
         );
 
         if (iter != assetDatas.end())

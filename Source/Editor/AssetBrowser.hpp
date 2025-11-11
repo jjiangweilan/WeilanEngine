@@ -47,7 +47,7 @@ private:
     bool changeFileName = false;
     std::filesystem::path changeFileNameTarget;
     char fileNameCache[256];
-    std::string fileNameExtCache;
+    std::filesystem::path fileNameExtCache;
     void ShowChangeFileNameField();
     void ActivateFileNameField(const std::filesystem::path& path);
 

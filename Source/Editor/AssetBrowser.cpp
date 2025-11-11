@@ -424,7 +424,7 @@ void AssetBrowser::ShowAssetIconItem(
     }
     else
     {
-        iconImage = FileIcons::Instance().GetIconImage(entry.path().extension());
+        iconImage = FileIcons::Instance().GetIconImage(entry.path());
     }
 
     // Draw icon background
@@ -459,6 +459,10 @@ void AssetBrowser::ShowAssetIconItem(
     // Draw text icon for now (until we can properly access texture system)
     if (iconImage)
     {
+        iconMin.x += 4;
+        iconMin.y += 4;
+        iconMax.x -= 4;
+        iconMax.y -= 4;
         EditorGUI::Image(*iconImage, iconMin, iconMax);
     }
 

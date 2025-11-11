@@ -7,6 +7,9 @@
 #include "Private/AssetData.hpp"
 #include <filesystem>
 
+using AssetPath = std::filesystem::path;
+using AbsolutePath = std::filesystem::path;
+
 class Scene;
 class AssetDatabase
 {

@@ -6,9 +6,14 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path&
     ScopedJobCounter _c(jobCounter);
 
     AssetData* assetData = assetFileSystem->GetAssetData(path);
+
+    if (assetData == nullptr)
+        return nullptr;
+
     UUID ret = UUID::GetEmptyUUID();
 
-    if (!loadingAssets.try_emplace_or_visit(path, assetData->GetAssetUUID(), [&ret](auto& val) { ret = val.second; }))
+    if (!loadingAssets.try_emplace_or_visit(path, assetData->GetAssetUUID(), [&ret](auto& val)
+                                            { ret = val.second; }))
     {
         return ObjPtr<Asset>(ret);
     }
