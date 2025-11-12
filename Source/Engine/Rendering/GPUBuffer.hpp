@@ -27,6 +27,12 @@ public:
         buffer = GetGfxDriver()->CreateBuffer(sizeof(T), usages, false, gpuWrite, name);
     }
 
+    void SetAndUpload(T& newVal)
+    {
+        cpuVal = newVal;
+        GetGfxDriver()->UploadBuffer(*buffer, (uint8_t*)&cpuVal, GetSize());
+    }
+
     size_t GetSize()
     {
         return sizeof(T);

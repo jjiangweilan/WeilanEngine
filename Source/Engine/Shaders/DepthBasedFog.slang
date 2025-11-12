@@ -5,6 +5,9 @@ import Library.PerScene;
 #if CONFIG
 blend:
     - srcAlpha oneMinusSrcAlpha
+depth:
+    testEnable: False
+    writeEnable: False
 #endif
 
 struct DepthBasedFogParams
@@ -21,7 +24,6 @@ ParameterBlock<PerScene> perScene;
 
 [Material]
 ParameterBlock<DepthBasedFogParams> shaderInput;
-
 
 [shader("fragment")]
 float4 FragmentShader(VertexOutput input) : SV_Target

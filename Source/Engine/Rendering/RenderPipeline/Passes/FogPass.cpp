@@ -7,6 +7,7 @@ FogPass::FogPass()
 {
     shaderInput = GetGfxDriver()->CreateShaderResource();
     shaderInput->SetBuffer("shaderInput", &*fogInputBuffer);
+    shader = ShaderLibrary::GetShader(Shaders::DepthBasedFog);
 }
 
 void FogPass::Execute(Gfx::CommandBuffer& cmd, Gfx::ImageIdentifier& outputColor, Gfx::ImageIdentifier& depthCopy, const FogPassParameters& parameters)
@@ -17,7 +18,7 @@ void FogPass::Execute(Gfx::CommandBuffer& cmd, Gfx::ImageIdentifier& outputColor
         fogParams.fogColor = parameters.fogColor;
         fogParams.fogDensity = parameters.fogDensity;
 
-        GetGfxDriver()->UploadBuffer(*fogInputBuffer, (uint8_t*)&fogParams, sizeof(DepthBasedFogParams));
+        fogInputBuffer.SetAndUpload(fogParams);
 
         shaderInput->SetImage("depthTexture"_shaderBinding, depthCopy);
 

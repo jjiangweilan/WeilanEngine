@@ -12,7 +12,7 @@ namespace Rendering::Passes
 {
     class FogPass
     {
-        ObjPtr<Shader> shader{ShaderLibrary::GetShader(Shaders::DepthBasedFog)};
+        ObjPtr<Shader> shader;
         std::unique_ptr<Gfx::ShaderResource> shaderInput;
         GPUBuffer<DepthBasedFogParams> fogInputBuffer;
 
