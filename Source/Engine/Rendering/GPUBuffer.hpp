@@ -42,8 +42,8 @@ public:
         return &cpuVal;
     }
 
-    Gfx::Buffer* operator*()
+    Gfx::Buffer& operator*()
     {
-        return buffer.get();
+        return *buffer;
     }
 };

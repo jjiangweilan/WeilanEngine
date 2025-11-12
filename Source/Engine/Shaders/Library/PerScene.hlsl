@@ -70,5 +70,16 @@ struct PerScene
     {
         return mul(camera.viewProjection, float4(position, 1.0));
     }
+
+    float3 NDCToWorld(float3 ndcPosition)
+    {
+        float4 worldPos =  mul(camera.invNDCToWorld, float4(ndcPosition, 1.0));
+        return worldPos.xyz / worldPos.w;
+    }
+
+    float DistanceToCamera(float3 worldPosition)
+    {
+        return length(worldPosition - camera.position.xyz);
+    }
 #endif
 };

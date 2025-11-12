@@ -31,7 +31,8 @@
                          Do(Ocean, "Ocean"),                                                                 \
                          Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),                     \
                          Do(FidelityFX_SPD, "ffx_spd"),                                                      \
-                         Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),
+                         Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                 \
+                         Do(DepthBasedFog, "DepthBasedFog"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

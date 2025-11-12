@@ -46,7 +46,7 @@ VKDataUploader::~VKDataUploader()
         vkDestroyFence(driver->device.handle, f, VK_NULL_HANDLE);
 }
 
-void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset)
+void VKDataUploader::UploadBuffer(const VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset)
 {
     ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
     if (size > stagingBufferSize)
@@ -136,7 +136,7 @@ void VKDataUploader::FlushCachedUpload()
     }
     for (auto& cachedBufferUpload : cachedBufferUploads)
     {
-        UploadBuffer(dynamic_cast<VKBuffer*>(cachedBufferUpload.dst), cachedBufferUpload.data.data(), cachedBufferUpload.size, cachedBufferUpload.dstOffset);
+        UploadBuffer(dynamic_cast<const VKBuffer*>(cachedBufferUpload.dst), cachedBufferUpload.data.data(), cachedBufferUpload.size, cachedBufferUpload.dstOffset);
     }
 
     cachedImageUploads.clear();

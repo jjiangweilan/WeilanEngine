@@ -1,6 +1,7 @@
 #pragma once
 #include "Component.hpp"
 #include "Rendering/SHProbe.hpp"
+#include "Rendering/SceneEnvironmentData.hpp"
 
 class Texture;
 class SceneEnvironment : public Component
@@ -37,6 +38,8 @@ public:
     void OnDisable() override;
 
     void DebugDrawSkyboxProbe(const float3& position);
+
+    SceneEnvironmentData data{};
 
 private:
     SHProbe skyboxProbe;

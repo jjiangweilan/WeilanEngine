@@ -22,6 +22,7 @@ RenderPipeline::RenderPipeline()
 {
     particleRenderer = std::make_unique<ParticleRenderer>();
     shadowRenderer = std::make_unique<ShadowRenderer>();
+    fogPass = std::make_unique<Passes::FogPass>();
     shadowRenderer->Init();
     reflectionProbeUpdate =
         std::make_unique<ReflectionProbeUpdate>(perScene.scene.get(), perScene.mainLightShadow.get());
@@ -272,6 +273,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->EndLabel(); // Forward
 
     // Fog
+    fogPass->Execute(*cmd, mainColor, depthCopy, renderingScene.GetSceneEnvironmentData().fogPassParameters);
 
     // start post procesing
     finalColor = mainColor;

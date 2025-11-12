@@ -21,10 +21,10 @@ public:
     );
     void* GetCPUVisibleAddress() override;
     void SetDebugName(const char* name) override;
-    size_t GetSize() override { return size; }
+    size_t GetSize() const override { return size; }
 
     void* CreateBuffer(const CreateInfo& createInfo) override;
-    inline VkBuffer GetHandle() { return buffer; }
+    inline VkBuffer GetHandle() const { return buffer; }
 
 private:
     std::string name;

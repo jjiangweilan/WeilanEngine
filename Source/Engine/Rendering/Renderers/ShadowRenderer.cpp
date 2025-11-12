@@ -154,7 +154,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
             }
 
             cmd.EndRenderPass();
-            cmd.SetDepthBiasEnable(false);
+            cmd.SetDepthBias(0, 0, 0);
         }
     }
     cmd.EndLabel();

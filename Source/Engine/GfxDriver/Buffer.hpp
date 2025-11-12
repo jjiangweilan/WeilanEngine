@@ -33,7 +33,7 @@ public:
     virtual ~Buffer() {};
     virtual void* GetCPUVisibleAddress() = 0;
     virtual void SetDebugName(const char* name) = 0;
-    virtual size_t GetSize() = 0;
+    virtual size_t GetSize() const = 0;
     virtual void* CreateBuffer(const CreateInfo& createInfo) = 0;
 
     const UUID& GetUUID() { return uuid; }
@@ -58,8 +58,7 @@ public:
 
 protected:
     BufferUsageFlags bufferUsages = BufferUsage::None;
-    std::unordered_map<int, VertexAttributes> attributes = {
-    }; // describing vertex attributes when buffer is used as vertex buffer
+    std::unordered_map<int, VertexAttributes> attributes = {}; // describing vertex attributes when buffer is used as vertex buffer
     bool gpuWrite;
     UUID uuid;
 };

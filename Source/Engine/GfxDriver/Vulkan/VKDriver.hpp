@@ -88,7 +88,7 @@ public:
 
     // Append a request to upload data to GPU before this frame's rendering happens, data is directly copied to a
     // staging buffer internally, client don't need to manage the data memory after calling this function
-    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
+    void UploadBuffer(const Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
     void UploadImage(
         Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
     ) override;

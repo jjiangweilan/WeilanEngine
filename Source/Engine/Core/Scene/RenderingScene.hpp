@@ -4,6 +4,7 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/RenderingData.hpp"
+#include "Rendering/SceneEnvironmentData.hpp"
 #include "Rendering/Structs.hpp"
 #include "RenderingObjectList.hpp"
 
@@ -164,7 +165,7 @@ public:
 
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
 
-    SceneEnvironment* GetSceneEnvironment() { return sceneEnvironment; }
+    SceneEnvironmentData& GetSceneEnvironmentData();
 
     void Tick();
 

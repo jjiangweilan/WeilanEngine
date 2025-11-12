@@ -24,7 +24,7 @@ public:
 
         if (ImGui::CollapsingHeader("Fog"))
         {
-            auto& fog = sceneEnvironment->fogPassParameters;
+            auto& fog = sceneEnvironment->data.fogPassParameters;
             EditorGUI::Checkbox("Enabled", &fog.enabled);
             EditorGUI::DragFloat4("Fog Color", &fog.fogColor[0]);
             EditorGUI::DragFloat("Fog Density", &fog.fogDensity, 0.01f, 0.0f);

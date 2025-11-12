@@ -16,6 +16,15 @@ enum class DescriptorSetSemantics
     Object,
 };
 
+enum class ShaderDynamicState : uint32_t
+{
+    None = 0,
+    DepthBiasEnable = 1 << 1,
+    DepthBias = 1 << 2,
+};
+ENUM_FLAGS(ShaderDynamicState, uint32_t);
+ShaderDynamicState StringToShaderDynamicState(const std::string& str);
+
 struct ShaderPipelineInfo
 {
     enum class MemberDataType
@@ -155,6 +164,8 @@ struct ShaderPipelineInfo
     std::vector<FragmentOutput> fragmentOutputs = {};
     std::vector<DescriptorSet> descriptorSets = {};
     std::vector<PushConstant> pushConstants = {};
+
+    ShaderDynamicStateFlags shaderDynamicStateFlags = ShaderDynamicState::None;
 
     const DescriptorSet* GetDescriptorSet(DescriptorSetSemantics semantics) const
     {

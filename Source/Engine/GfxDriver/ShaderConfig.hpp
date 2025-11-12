@@ -1,10 +1,10 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "Libs/Hash.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
-#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -106,13 +106,11 @@ struct PipelineConfig
     uint64_t GetHash() const { return hash; }
     static PipelineConfig FromJson(const nlohmann::json& j);
     nlohmann::json ToJson() const;
-    
 
 private:
     uint64_t hash = 0;
     std::shared_ptr<PipelineConfig_t> v = std::make_shared<PipelineConfig_t>();
     void Rehash();
-    
 };
 
 class ShaderFeatures

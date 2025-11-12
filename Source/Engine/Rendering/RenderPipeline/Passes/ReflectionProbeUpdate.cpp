@@ -88,7 +88,7 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
     }
 
     auto shaderResource = GetGfxDriver()->CreateShaderResource();
-    shaderResource->SetBuffer("input", *shaderInput);
+    shaderResource->SetBuffer("input",& *shaderInput);
     shaderResource->SetImage("srcCubemap", probe.GetCubemapBase());
 
     shaderInput->envMapSize = probe.GetCubemap()->GetDescription().width;
@@ -101,7 +101,7 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
     shaderInput->roughness[4] = 0.8;
     shaderInput->roughness[5] = 0.9999;
 
-    GetGfxDriver()->UploadBuffer(**shaderInput, (uint8_t*)shaderInput.GetPtr(), shaderInput.GetSize());
+    GetGfxDriver()->UploadBuffer(*shaderInput, (uint8_t*)shaderInput.GetPtr(), shaderInput.GetSize());
 
     for (int i = 0; i < 36; ++i)
     {
@@ -127,12 +127,12 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     spdBufferVal.invInputSize = float2(1.0f / width, 1.0f / height);
     if (memcmp(&spdBufferVal, spdBuffer.GetPtr(), sizeof(ffx_spd_resources)) != 0)
     {
-        GetGfxDriver()->UploadBuffer(**spdBuffer, (uint8_t*)&spdBufferVal, sizeof(ffx_spd_resources));
+        GetGfxDriver()->UploadBuffer(*spdBuffer, (uint8_t*)&spdBufferVal, sizeof(ffx_spd_resources));
     }
 
     spdInput->SetImage("r_input_downsample_src", &src);
     spdInput->SetBuffer("rw_internal_global_atomic", spdGlobalAtomic.get());
-    spdInput->SetBuffer("spdInput", *spdBuffer);
+    spdInput->SetBuffer("spdInput", &*spdBuffer);
 
     auto layerCount = src.GetDescription().GetLayer();
     for (int mip = 0; mip < src.GetDescription().mipLevels; mip++)

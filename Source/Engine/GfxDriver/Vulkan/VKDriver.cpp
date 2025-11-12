@@ -1279,11 +1279,11 @@ void VKDriver::FrameEndClear()
     framePrepareData.Clear();
 }
 
-void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
+void VKDriver::UploadBuffer(const Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
 {
     std::scoped_lock lock(driverMutex);
 
-    auto& vkDst = static_cast<VKBuffer&>(dst);
+    auto& vkDst = static_cast<const VKBuffer&>(dst);
     if (dstOffset + size > dst.GetSize())
     {
         SPDLOG_ERROR("Driver: Upload Buffer failed: dstOffset + size > dst.size");

@@ -3,6 +3,9 @@ import Skeleton;
 
 #if CONFIG
 cull: back
+dynamicState:
+    - depthBiasEnable
+    - depthBias
 #endif
 
 struct Transform

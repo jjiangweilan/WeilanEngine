@@ -7,6 +7,7 @@
 #include "Passes/SSAO.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
+#include "Rendering/RenderPipeline/Passes/FogPass.hpp"
 #include "Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
@@ -43,6 +44,7 @@ class RenderPipeline
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
     std::unique_ptr<Passes::ReflectionProbeUpdate> reflectionProbeUpdate;
+    std::unique_ptr<Passes::FogPass> fogPass;
 
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 

@@ -1,12 +1,23 @@
 #include "RenderingScene.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Component/SceneEnvironment.hpp"
+#include "Core/EngineDebugVars.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Core/EngineDebugVars.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/Graphics.hpp"
 
 #include "ThirdParty/imgui/imgui.h"
+
+SceneEnvironmentData& RenderingScene::GetSceneEnvironmentData()
+{
+    static SceneEnvironmentData defaultData;
+    if (sceneEnvironment)
+    {
+        return sceneEnvironment->data;
+    }
+    return defaultData;
+}
 
 void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
 {

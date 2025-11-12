@@ -23,7 +23,7 @@ class VKDataUploader
     };
     struct CachedBufferUpload
     {
-        VKBuffer* dst;
+        const VKBuffer* dst;
         std::vector<uint8_t> data;
         size_t size;
         size_t dstOffset;
@@ -36,7 +36,7 @@ public:
     VKDataUploader(VKDriver* driver);
     ~VKDataUploader();
 
-    void UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset);
+    void UploadBuffer(const VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset);
     void UploadImage(
         VKImage* dst,
         uint8_t* data,
@@ -65,7 +65,7 @@ public:
     }
 
     void CacheUploadBuffer(
-        VKBuffer* dst,
+        const VKBuffer* dst,
         uint8_t* data,
         size_t size,
         size_t dstOffset

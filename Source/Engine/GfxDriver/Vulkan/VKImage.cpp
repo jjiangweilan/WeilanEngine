@@ -277,14 +277,19 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.aspectMask = option.aspect;
     range.baseMipLevel = glm::clamp(option.baseMipLevel, 0, (int)imageDescription.mipLevels - 1);
     range.levelCount = glm::min(
-        Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels : option.levelCount,
+        Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels - range.baseMipLevel : option.levelCount,
         imageDescription.mipLevels - range.baseMipLevel
     );
     range.baseArrayLayer = glm::clamp(option.baseArrayLayer, 0, (int)imageDescription.layers - 1);
     range.layerCount = glm::min(
-        option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers : option.layerCount,
+        option.layerCount == Gfx::Remaining_Array_Layers ? imageDescription.layers - range.baseArrayLayer : option.layerCount,
         imageDescription.layers - range.baseArrayLayer
     );
+
+    if (range.baseMipLevel >= imageDescription.mipLevels)
+    {
+        int i = 0;
+    }
 
     ImageViewType imageViewType = ImageViewType::Image_2D;
     switch (imageType_vk)

@@ -949,6 +949,23 @@ public:
         root.get_if("interleaved", &info.isVertexInterleaved);
         config.depth.boundTestEnable = false;
 
+        if (root.has_child("dynamicState"))
+        {
+            const auto& dynamicStateArray = root["dynamicState"];
+            Gfx::ShaderDynamicState finalVal = Gfx::ShaderDynamicState::None;
+            if (dynamicStateArray.is_seq())
+            {
+                for (const ryml::ConstNodeRef& val : dynamicStateArray)
+                {
+                    std::string str;
+                    val >> str;
+                    Gfx::ShaderDynamicState state = Gfx::StringToShaderDynamicState(str);
+                    finalVal |= state;
+                }
+            }
+            info.shaderDynamicStateFlags = finalVal;
+        }
+
         if (root.has_child("input"))
         {
             if (root["input"].is_map())

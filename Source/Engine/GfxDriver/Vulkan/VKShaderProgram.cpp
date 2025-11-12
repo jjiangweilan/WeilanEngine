@@ -548,7 +548,11 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.blendConstants[3] = config->color.blendConstants[3];
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
-    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE };
+    std::vector<VkDynamicState> dynamicState = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    if (HasFlag(pipelineInfo.shaderDynamicStateFlags, ShaderDynamicState::DepthBias))
+        dynamicState.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+    if (HasFlag(pipelineInfo.shaderDynamicStateFlags, ShaderDynamicState::DepthBiasEnable))
+        dynamicState.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE);
 
     // TODO: these dynamic states need to be handled, some of them are currently compared in ShaderConfig, we need to
     // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_BLEND_CONSTANTS,
@@ -560,8 +564,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicStateCreateInfo.pNext = VK_NULL_HANDLE;
     dynamicStateCreateInfo.flags = 0;
-    dynamicStateCreateInfo.dynamicStateCount = sizeof(dynamicState) / sizeof(VkDynamicState);
-    dynamicStateCreateInfo.pDynamicStates = dynamicState;
+    dynamicStateCreateInfo.dynamicStateCount = dynamicState.size();
+    dynamicStateCreateInfo.pDynamicStates = dynamicState.data();
     createInfo.pDynamicState = &dynamicStateCreateInfo;
 
     createInfo.layout = pipelineLayout;
