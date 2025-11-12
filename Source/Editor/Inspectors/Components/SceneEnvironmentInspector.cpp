@@ -2,6 +2,7 @@
 #include "../Inspector.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/Texture.hpp"
+#include "EditorGUI.hpp"
 
 namespace Editor
 {
@@ -20,11 +21,18 @@ public:
                 sceneEnvironment->UpdateSkyboxProbe();
             }
         }
+
+        if (ImGui::CollapsingHeader("Fog"))
+        {
+            auto& fog = sceneEnvironment->fogPassParameters;
+            EditorGUI::Checkbox("Enabled", &fog.enabled);
+            EditorGUI::DragFloat4("Fog Color", &fog.fogColor[0]);
+            EditorGUI::DragFloat("Fog Density", &fog.fogDensity, 0.01f, 0.0f);
+        }
     }
 
 private:
     bool debugSkyboxProbe = false;
-
 
     static const char _register;
 };
