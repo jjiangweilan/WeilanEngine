@@ -8,8 +8,6 @@ struct VKFrameContext
 {
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     VkFence cmdFence = VK_NULL_HANDLE;
-    VkSemaphore imageAcquireSemaphore = VK_NULL_HANDLE;
-    VkSemaphore presentSemaphore = VK_NULL_HANDLE;
     uint32_t swapchainIndex = 0;
 
     VkQueryPool timestapQueryPool = VK_NULL_HANDLE;

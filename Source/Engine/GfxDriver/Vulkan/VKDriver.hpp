@@ -158,6 +158,9 @@ public:
     std::mutex driverMutex;
 
     std::vector<VKFrameContext> frameContexts = {};
+    std::vector<VkSemaphore> imageAcquireSemaphores = {};
+    std::vector<VkSemaphore> presentSemaphores = {};
+
     VKFramePrepareData framePrepareData;
     uint32_t currentInflightIndex = 0;
 

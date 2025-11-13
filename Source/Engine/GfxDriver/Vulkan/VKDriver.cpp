@@ -118,6 +118,8 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
     int inflightCount = driverConfig.swapchainImageCount;
     frameContexts.resize(inflightCount);
+    imageAcquireSemaphores.resize(inflightCount);
+    presentSemaphores.resize(inflightCount);
     for (int i = 0; i < driverConfig.swapchainImageCount; ++i)
     {
         frameContexts[i].cmd = cmds[i];
@@ -125,18 +127,18 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &frameContexts[i].cmdFence);
         VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_FENCE, (uint64_t)frameContexts[i].cmdFence, "VKDriver - fence");
 
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].imageAcquireSemaphore);
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &frameContexts[i].presentSemaphore);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &imageAcquireSemaphores[i]);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &presentSemaphores[i]);
 
         VKDebugUtils::SetDebugName(
             VK_OBJECT_TYPE_SEMAPHORE,
-            (uint64_t)frameContexts[i].imageAcquireSemaphore,
+            (uint64_t)imageAcquireSemaphores[i],
             ("VKDriver imageAcquireSemaphore " + std::to_string(i)).c_str()
         );
 
         VKDebugUtils::SetDebugName(
             VK_OBJECT_TYPE_SEMAPHORE,
-            (uint64_t)frameContexts[i].presentSemaphore,
+            (uint64_t)presentSemaphores[i],
             ("VKDriver presentSemaphore" + std::to_string(i)).c_str()
         );
 
@@ -193,10 +195,19 @@ VKDriver::~VKDriver()
     for (VKFrameContext& inflight : frameContexts)
     {
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
-        vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
-        vkDestroySemaphore(device.handle, inflight.presentSemaphore, VK_NULL_HANDLE);
         vkDestroyQueryPool(device.handle, inflight.timestapQueryPool, VK_NULL_HANDLE);
     }
+
+    for (VkSemaphore semaphore : imageAcquireSemaphores)
+    {
+        vkDestroySemaphore(device.handle, semaphore, VK_NULL_HANDLE);
+    }
+
+    for (VkSemaphore semaphore : presentSemaphores)
+    {
+        vkDestroySemaphore(device.handle, semaphore, VK_NULL_HANDLE);
+    }
+
     vkDestroySemaphore(device.handle, transferSignalSemaphore, VK_NULL_HANDLE);
     vkDestroySemaphore(device.handle, dataUploaderWaitSemaphore, VK_NULL_HANDLE);
     vkDestroyFence(device.handle, immediateCmdFence, VK_NULL_HANDLE);
@@ -645,7 +656,7 @@ bool VKDriver::EndFrame()
         device.handle,
         swapchain.handle,
         -1,
-        frameContexts[currentInflightIndex].imageAcquireSemaphore,
+        imageAcquireSemaphores[currentInflightIndex],
         VK_NULL_HANDLE,
         &frameContexts[currentInflightIndex].swapchainIndex
     );
@@ -690,6 +701,7 @@ bool VKDriver::EndFrame()
 
     // this section adds present image layout transition to the end of cmd
     VKCommandBuffer cmd2(renderGraph.get());
+    int idx = frameContexts[currentInflightIndex].swapchainIndex;
     cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
     for (auto& w : extraWindows)
     {
@@ -718,9 +730,9 @@ bool VKDriver::EndFrame()
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     waitFlags[1] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    waitSemaphores[0] = frameContexts[currentInflightIndex].imageAcquireSemaphore;
+    waitSemaphores[0] = imageAcquireSemaphores[currentInflightIndex];
     waitSemaphores[1] = transferSignalSemaphore;
-    signalSemaphores[0] = frameContexts[currentInflightIndex].presentSemaphore;
+    signalSemaphores[0] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
     signalSemaphores[1] = dataUploaderWaitSemaphore;
     for (int i = 0; i < extraWindows.size(); ++i)
     {
@@ -752,7 +764,7 @@ bool VKDriver::EndFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - present");
     bool swapchainRecreated = Present(
-        frameContexts[currentInflightIndex].presentSemaphore,
+        presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex],
         swapchain.handle,
         surface,
         swapchain,
