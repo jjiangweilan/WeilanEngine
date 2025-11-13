@@ -1191,10 +1191,12 @@ void VKCommandBufferProcessor::Execute(
 
                     int barrierOffset = args.barrierOffset;
                     int barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
+
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
                     vkCmdClearColorImage(vkcmd, vkimage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
                     break;
                 }
@@ -1282,10 +1284,11 @@ void VKCommandBufferProcessor::Execute(
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     if (!exeState.overrideViewport)
                     {
@@ -1350,10 +1353,11 @@ void VKCommandBufferProcessor::Execute(
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     vkCmdBlitImage(
                         vkcmd,
@@ -1450,10 +1454,11 @@ void VKCommandBufferProcessor::Execute(
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     vkCmdCopyImageToBuffer(
                         vkcmd,
@@ -1495,10 +1500,11 @@ void VKCommandBufferProcessor::Execute(
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     vkCmdDispatch(vkcmd, args.groupCountX, args.groupCountY, args.groupCountZ);
                     break;
@@ -1511,10 +1517,11 @@ void VKCommandBufferProcessor::Execute(
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
                     vkCmdDispatchIndirect(vkcmd, args.buffer->GetHandle(), args.bufferOffset);
                     break;
                 }
@@ -1578,10 +1585,11 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKCopyBufferCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     vkCmdCopyBuffer(
                         vkcmd,
@@ -1597,11 +1605,11 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
                     vkCmdCopyBufferToImage(
                         vkcmd,
                         args.src->GetHandle(),
@@ -1617,11 +1625,11 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKPresentCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-
-                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    {
-                        PutBarrier(vkcmd, b);
-                    }
+                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    // {
+                    //     PutBarrier(vkcmd, b);
+                    // }
+                    PutBarriers(vkcmd, barrierOffset, barrierCount);
                     break;
                 }
 
@@ -1818,8 +1826,81 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
     }
 }
 
+void VKCommandBufferProcessor::PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount)
+{
+    std::vector<VkImageMemoryBarrier2> imageBarriers{};
+    std::vector<VkBufferMemoryBarrier2> bufferBarriers{};
+    std::vector<VkMemoryBarrier2> memoryBarrier2s{};
+
+    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+    {
+        Barrier& barrier = barriers[b];
+        if (barrier.bufferMemoryBarrierIndex != -1)
+        {
+            bufferBarriers.push_back(
+                VkBufferMemoryBarrier2{
+                    VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+                    VK_NULL_HANDLE,
+                    barrier.srcStageMask,
+                    bufferMemoryBarriers[barrier.bufferMemoryBarrierIndex].srcAccessMask,
+                    barrier.dstStageMask,
+                    bufferMemoryBarriers[barrier.bufferMemoryBarrierIndex].dstAccessMask,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    bufferMemoryBarriers[barrier.bufferMemoryBarrierIndex].buffer,
+                    bufferMemoryBarriers[barrier.bufferMemoryBarrierIndex].offset,
+                    bufferMemoryBarriers[barrier.bufferMemoryBarrierIndex].size
+                }
+            );
+        }
+        else if (barrier.imageMemorybarrierIndex != -1)
+        {
+            imageBarriers.push_back(
+                VkImageMemoryBarrier2{
+                    VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                    VK_NULL_HANDLE,
+                    barrier.srcStageMask,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].srcAccessMask,
+                    barrier.dstStageMask,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].dstAccessMask,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].oldLayout,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].newLayout,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    VK_QUEUE_FAMILY_IGNORED,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].image,
+                    imageMemoryBarriers[barrier.imageMemorybarrierIndex].subresourceRange
+                }
+            );
+        }
+        else if (barrier.memoryBarrierIndex != -1)
+        {
+            memoryBarrier2s.push_back(
+                VkMemoryBarrier2{
+                    VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                    VK_NULL_HANDLE,
+                    barrier.srcStageMask,
+                    memoryBarriers[barrier.memoryBarrierIndex].srcAccessMask,
+                    barrier.dstStageMask,
+                    memoryBarriers[barrier.memoryBarrierIndex].dstAccessMask
+                }
+            );
+        }
+    }
+
+    VkDependencyInfo dependencyInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+    dependencyInfo.bufferMemoryBarrierCount = bufferBarriers.size();
+    dependencyInfo.pBufferMemoryBarriers = bufferBarriers.data();
+    dependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
+    dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+    dependencyInfo.memoryBarrierCount = memoryBarriers.size();
+    dependencyInfo.pMemoryBarriers = memoryBarrier2s.data();
+
+    vkCmdPipelineBarrier2(vkcmd, &dependencyInfo);
+}
+
 void VKCommandBufferProcessor::PutBarrier(VkCommandBuffer vkcmd, int index)
 {
+
     Barrier& barrier = barriers[index];
     if (barrier.bufferMemoryBarrierIndex != -1)
     {
@@ -2019,10 +2100,11 @@ void VKCommandBufferProcessor::BeginRenderPass(
     renderPassBeginInfo.clearValueCount = clearValueCount;
     renderPassBeginInfo.pClearValues = clearValues;
 
-    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-    {
-        PutBarrier(vkcmd, b);
-    }
+    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+    // {
+    //     PutBarrier(vkcmd, b);
+    // }
+    PutBarriers(vkcmd, barrierOffset, barrierCount);
 
     if (!exeState.overrideViewport)
     {

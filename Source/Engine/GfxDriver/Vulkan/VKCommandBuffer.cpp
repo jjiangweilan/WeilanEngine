@@ -280,8 +280,17 @@ void VKCommandBuffer::CopyBufferToImage(
         region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
         region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
 
-        cmd.regions[i] = region;
-        i += 1;
+        bool invalid = region.imageSubresource.mipLevel >= dst->GetDescription().mipLevels;
+        if (invalid)
+        {
+            spdlog::error("invalid CopyBufferToImage");
+            __debugbreak();
+        }
+        else
+        {
+            cmd.regions[i] = region;
+            i += 1;
+        }
     }
     cmd.regionCount = regions.size();
 

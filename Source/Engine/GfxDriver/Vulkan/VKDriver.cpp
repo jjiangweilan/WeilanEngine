@@ -1188,9 +1188,15 @@ void VKDriver::CreateDevice()
     //     }
     // #endif
 
+    VkPhysicalDeviceSynchronization2Features synchronization2Features = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+        .pNext = VK_NULL_HANDLE,
+        .synchronization2 = true
+    };
+
     VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
-        .pNext = VK_NULL_HANDLE,
+        .pNext = &synchronization2Features,
         .shaderDrawParameters = true
     };
 

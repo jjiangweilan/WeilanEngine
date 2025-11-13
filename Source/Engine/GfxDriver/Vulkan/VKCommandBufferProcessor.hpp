@@ -157,6 +157,7 @@ private:
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
+    void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
     void PreExecute(VKFramePrepareData& framePrepare);
     void BeginRenderPass(
         VkCommandBuffer vkcmd,
