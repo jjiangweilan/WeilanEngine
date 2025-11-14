@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 cmake_policy(SET CMP0114 NEW)
+cmake_policy(SET CMP0135 NEW)
+cmake_policy(SET CMP0077 NEW) # honors GLM_BUILD_INSTALL
 
 project(WeilanEngine)
 
@@ -9,10 +11,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
 # Enable folder organization in Visual Studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-    cmake_policy(SET CMP0135 NEW)
-endif()
 
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
