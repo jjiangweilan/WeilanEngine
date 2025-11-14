@@ -77,7 +77,7 @@ void VKDataUploader::UploadImage(
     auto vkDst = static_cast<VKImage*>(dst);
 
     size_t byteSize = MapGfxFormatToByteSize(vkDst->GetDescription().format);
-    size_t align = byteSize - (takingOffCmd.endOffset % byteSize);
+    size_t align = (byteSize - (takingOffCmd.endOffset % byteSize)) % byteSize;
 
     if (size + align > stagingBufferSize)
     {
@@ -88,7 +88,7 @@ void VKDataUploader::UploadImage(
     if (!EnsureEnoughSizeForUpload(takingOffCmd, size + align))
     {
         // offset may change, recalculate alignment
-        align = byteSize - (takingOffCmd.endOffset % byteSize);
+        align = (byteSize - (takingOffCmd.endOffset % byteSize)) % byteSize;
         if (size + align > stagingBufferSize)
         {
             SPDLOG_ERROR("failed to upload buffer: buffer size is larger than 48 MB");
@@ -132,11 +132,11 @@ void VKDataUploader::FlushCachedUpload()
 {
     for (auto& cachedImageUpload : cachedImageUploads)
     {
-        UploadImage(dynamic_cast<VKImage*>(cachedImageUpload.dst), cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
+        UploadImage(cachedImageUpload.dst, cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
     }
     for (auto& cachedBufferUpload : cachedBufferUploads)
     {
-        UploadBuffer(dynamic_cast<const VKBuffer*>(cachedBufferUpload.dst), cachedBufferUpload.data.data(), cachedBufferUpload.size, cachedBufferUpload.dstOffset);
+        UploadBuffer(cachedBufferUpload.dst, cachedBufferUpload.data.data(), cachedBufferUpload.size, cachedBufferUpload.dstOffset);
     }
 
     cachedImageUploads.clear();
