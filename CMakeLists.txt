@@ -15,6 +15,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
+add_compile_options("/Zc:__cplusplus")
 endif()
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
@@ -126,13 +127,13 @@ set(SLANG_ENABLE_OPTIX OFF)
 set(SLANG_ENABLE_NVAPI OFF)
 set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
-set(SLANG_ENABLE_SLANG_GLSLANG OFF)
+set(SLANG_ENABLE_SLANG_GLSLANG ON)
 set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
 FetchContent_MakeAvailable(Slang)
 
-# add_dependencies(slang
-# slang-glslang
-# )
+add_dependencies(slang
+slang-glslang
+)
 
 FetchContent_Declare(SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git

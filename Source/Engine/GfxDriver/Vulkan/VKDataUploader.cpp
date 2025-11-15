@@ -132,7 +132,10 @@ void VKDataUploader::FlushCachedUpload()
 {
     for (auto& cachedImageUpload : cachedImageUploads)
     {
-        UploadImage(cachedImageUpload.dst, cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
+        if (cachedImageUpload.dst != nullptr)
+        {
+            UploadImage(cachedImageUpload.dst, cachedImageUpload.data.data(), cachedImageUpload.size, cachedImageUpload.mipLevel, cachedImageUpload.arrayLayer, cachedImageUpload.aspect, cachedImageUpload.finalLayout);
+        }
     }
     for (auto& cachedBufferUpload : cachedBufferUploads)
     {

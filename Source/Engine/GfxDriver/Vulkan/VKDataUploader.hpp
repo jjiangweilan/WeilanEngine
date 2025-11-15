@@ -3,7 +3,7 @@
 #include "VKRawBuffer.hpp"
 #include <queue>
 #include <vulkan/vulkan.h>
-
+#include "Core/Ptr.hpp"
 namespace Gfx
 {
 class VKDriver;
@@ -13,7 +13,7 @@ class VKDataUploader
 {
     struct CachedImageUpload
     {
-        VKImage* dst;
+        ObjPtr<VKImage> dst;
         std::vector<uint8_t> data;
         size_t size;
         uint32_t mipLevel;
@@ -60,7 +60,7 @@ public:
         std::vector<uint8_t> cachedData = std::vector<uint8_t>(size);
         memcpy(cachedData.data(), data, size);
         cachedImageUploads.push_back(
-            CachedImageUpload{dst, std::move(cachedData), size, mipLevel, arayLayer, aspect, finalLayout}
+            CachedImageUpload(ObjPtr<VKImage>((Object*)dst), std::move(cachedData), size, mipLevel, arayLayer, aspect, finalLayout)
         );
     }
 
