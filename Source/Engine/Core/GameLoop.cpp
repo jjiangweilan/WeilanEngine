@@ -7,7 +7,10 @@
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
 
-GameLoop::GameLoop() {}
+GameLoop::GameLoop()
+{
+    renderPipeline = std::make_unique<Rendering::RenderPipeline>();
+}
 
 GameLoop::~GameLoop() {}
 
@@ -85,12 +88,12 @@ const void GameLoop::Tick(
         if (!offscreen)
         {
             ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
-            renderPipeline.Render(*scene, *scene->GetMainCamera(), screenSize);
+            renderPipeline->Render(*scene, *scene->GetMainCamera(), screenSize);
             ENGINE_END_PROFILE
         }
 
-        outGraphOutputImage = &renderPipeline.GetOutputColor();
-        outGraphOutputDepthImage = &renderPipeline.GetOutputDepth();
+        outGraphOutputImage = &renderPipeline->GetOutputColor();
+        outGraphOutputDepthImage = &renderPipeline->GetOutputDepth();
     }
     else
     {
@@ -115,6 +118,9 @@ void GameLoop::Play()
     {
         go->OnStart();
     }
+
+    // recreate render pipeline when playing
+    renderPipeline = std::make_unique<Rendering::RenderPipeline>();
 }
 
 void GameLoop::Stop()
@@ -125,6 +131,9 @@ void GameLoop::Stop()
     {
         go->OnStop();
     }
+
+    // recreate render pipeline after playing for editor
+    renderPipeline = std::make_unique<Rendering::RenderPipeline>();
 }
 
 void GameLoop::RenderScene() {}

@@ -29,7 +29,7 @@ public:
         bool offscreen
     );
 
-    const Rendering::RenderPipeline& GetRenderPipeline() const { return renderPipeline; }
+    const Rendering::RenderPipeline& GetRenderPipeline() const { return *renderPipeline; }
 
 private:
     bool isPlaying = false;
@@ -37,5 +37,5 @@ private:
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     ObjPtr<Scene> scene = nullptr;
-    Rendering::RenderPipeline renderPipeline;
+    std::unique_ptr<Rendering::RenderPipeline> renderPipeline;
 };
