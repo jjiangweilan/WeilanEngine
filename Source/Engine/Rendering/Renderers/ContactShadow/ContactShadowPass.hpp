@@ -14,7 +14,7 @@ class ContactShadowPass
 public:
     ContactShadowPass();
 
-    const Gfx::ImageIdentifier& GetOutputId() const;
+    Gfx::ImageIdentifier& GetOutputId();
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, Light* mainLight, Gfx::Image* depthTex);
 

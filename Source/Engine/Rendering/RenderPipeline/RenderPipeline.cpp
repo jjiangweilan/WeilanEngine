@@ -174,52 +174,39 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         cmd->BindResource(0, perScene.globalResource.get());
         // Upload GPU Parameter
-        {
-            shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{
-                .shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize(),
-                .shadowConstantBias = setting->shadowMap.constantBias / 1000.0f,
-                .shadowNormalBias = setting->shadowMap.normalBias
-            };
-
-            GetGfxDriver()->UploadBuffer(
-                *shadingPass.perMaterialBuffer,
-                (uint8_t*)&shadingPass.cpuParameter,
-                sizeof(GPUParameter::DeferredPBRShadingInput)
-            );
-        }
+        shadingPass.UploadGPUParameter(
+            shadowRenderer->GetShadowMapTexelSize(),
+            setting->shadowMap.constantBias / 1000.0f,
+            setting->shadowMap.normalBias
+        );
 
         cmd->Blit(mainDepth, depthCopy);
 
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {1, 0}};
-        auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
         auto diffuseCube = &reflectionProbeUpdate->GetIBLCubemap()->GetImageView(Gfx::ImageViewOption{5, 1, 0, 6, Gfx::ImageAspect::Color, Gfx::ImageViewOption::Type::Cubemap});
-        auto specularCube = reflectionProbeUpdate->GetIBLCubemap();
+        auto specularCube = &reflectionProbeUpdate->GetIBLCubemap()->GetDefaultImageView();
 
         auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
         auto& depthImageView = depthImage->GetImageView({Gfx::ImageAspect::Depth});
-
-        auto contactShadowMap = contactShadowPass.GetOutputId();
-
-        shadingPass.gpuResource->SetImage("contactShadowMap"_shaderBinding, contactShadowMap);
-        shadingPass.gpuResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
-        shadingPass.gpuResource->SetImage("normalTex"_shaderBinding, normalGBuffer);
-        shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
-        shadingPass.gpuResource->SetImage("depthTex"_shaderBinding, &depthImageView);
-        shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowRenderer->GetShadowMap());
-        shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ssaoPass.GetSSAOTex());
-        if (diffuseCube)
-            shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube);
-        if (specularCube)
-            shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube);
 
         Gfx::RenderAttachment lightingPassAttachments[] = {
             {mainColor, Gfx::AttachmentLoadOperation::Load},
             {mainDepth, Gfx::AttachmentLoadOperation::Load}
         };
         cmd->BeginRenderPass(lightingPassAttachments, lightingPassClearValues);
-        cmd->BindResource(1, shadingPass.gpuResource.get());
-        cmd->BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
-        cmd->Draw(6, 1, 0, 0);
+        shadingPass.Execute(
+            *cmd,
+            albedoGBuffer,
+            normalGBuffer,
+            maskGBuffer,
+            &depthImageView,
+            &shadowRenderer->GetShadowMap()->GetDefaultImageView(),
+            &ssaoPass.GetSSAOTex(),
+            &contactShadowPass.GetOutputId(),
+            diffuseCube,
+            specularCube,
+            renderingData
+        );
 
         cmd->EndRenderPass();
     }
@@ -288,20 +275,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     if (setting->postProcess.colorGrading)
     {
-        auto shader = colorGradingPass.colorGradingShader->GetShaderProgram();
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        // TODO
-        Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
-        cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
-        colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
-        colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-        cmd->BeginRenderPass(colorGradingPass.pass, clears);
-        cmd->BindShaderProgram(shader, shader->GetDefaultShaderConfig());
-        cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
-        cmd->Draw(6, 1, 0, 0);
-        cmd->EndRenderPass();
-        finalColor = colorGradingPass.colorGradingId;
+        colorGradingPass.Execute(*cmd, renderingData.mainColor, mainRTSize);
+        finalColor = colorGradingPass.GetOutputId();
         cmd->EndLabel(); // Color Grading
     }
 
@@ -311,9 +287,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
         {
             Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
-            cmd->AllocateAttachment(fxaaPass.fxaaId, resultDesc);
-            fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.fxaaId);
-            finalColor = fxaaPass.fxaaId;
+            cmd->AllocateAttachment(fxaaPass.GetOutputId(), resultDesc);
+            fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.GetOutputId());
+            finalColor = fxaaPass.GetOutputId();
         }
         cmd->EndLabel(); // FXAA
     }
@@ -344,65 +320,6 @@ PerScene::PerScene()
     globalResource->SetBuffer("scene", scene.get());
     globalResource->SetBuffer("camera", camera.get());
     globalResource->SetBuffer("mainLightShadow", mainLightShadow.get());
-}
-
-RenderPipeline::ShadingPass::ShadingPass()
-{
-    gpuResource = GetGfxDriver()->CreateShaderResource();
-    perMaterialBuffer = GetGfxDriver()->CreateBuffer(
-        sizeof(GPUParameter::DeferredPBRShadingInput),
-        Gfx::BufferUsage::Uniform,
-        false,
-        false,
-        "Deferred PBR Shading Input"
-    );
-    gpuResource->SetBuffer("perMaterial", perMaterialBuffer.get());
-    brdfPreIntegeral = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/BRDFPreintegral.ktx");
-    gpuResource->SetImage("specularBRDFIntegrationMap", brdfPreIntegeral->GetGfxImage());
-    shadingShader = ShaderLibrary::GetShader(Shaders::DeferredPBRShading);
-}
-
-RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow()
-{
-    shader = ShaderLibrary::GetShader(Shaders::ScreenSpaceShadow);
-}
-
-RenderPipeline::FXAAPass::FXAAPass()
-{
-    shader = ShaderLibrary::GetShader(Shaders::FXAA);
-    resource = GetGfxDriver()->CreateShaderResource();
-
-    Gfx::SubpassAttachment attachmentDesc{0, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store};
-    Gfx::SubpassAttachment attachments[] = {attachmentDesc};
-    pass.SetSubpass(0, attachments);
-}
-
-void RenderPipeline::FXAAPass::Execute(
-    Gfx::CommandBuffer& cmd,
-    const glm::float4& sourceSize,
-    const Gfx::ImageIdentifier& src,
-    const Gfx::ImageIdentifier& dst
-)
-{
-    pass.SetAttachment(0, dst);
-    resource->SetImage("source", GetGfxDriver()->GetImageFromRenderGraph(src));
-    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-    Gfx::RenderAttachment attachments[] = {
-        {dst, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
-    };
-    cmd.BeginRenderPass(attachments, clears);
-    // cmd.BeginRenderPass(pass, clears);
-    cmd.SetPushConstant(shader->GetShaderProgram(), (void*)&sourceSize[0]);
-    cmd.BindResource(0, resource.get());
-    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
-    cmd.Draw(6, 1, 0, 0);
-    cmd.EndRenderPass();
-}
-
-RenderPipeline::ColorGradingPass::ColorGradingPass()
-{
-    colorGradingShader = ShaderLibrary::GetShader(Shaders::ColorGrading);
-    mat.SetShader(colorGradingShader);
 }
 
 void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
@@ -640,29 +557,6 @@ Gfx::ImageIdentifier RenderPipeline::GetFinalColor()
         Gfx::ImageIdentifier finalColorId = finalColor;
 
     return finalColorId;
-}
-
-RenderPipeline::CloudPass::CloudPass()
-{
-    volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
-}
-
-void RenderPipeline::CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, RenderingData& renderingData)
-{
-    volumetricCloud->CopyProperties(*cloud.volumetricCloud);
-    volumetricCloud->SetTexture("cloudDensity", cloud.cloudNoise.baseShapeNoise.get());
-    volumetricCloud->SetTexture("highFrequencyCloudDensity", cloud.cloudNoise.highFrequencyNoise.get());
-
-    volumetricCloud->SetTexture("mainColor", renderingData.mainColor);
-    volumetricCloud
-        ->SetTexture("depthMap", renderingData.depthCopy, Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth});
-    volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
-    cmd.BindShaderProgram(volumetricCloud->GetShader()->GetShaderProgram(), volumetricCloud->GetShaderConfig());
-    cmd.BindResource(
-        volumetricCloud->GetSet(Gfx::DescriptorSetSemantics::Material),
-        volumetricCloud->GetShaderResource()
-    );
-    cmd.Dispatch((renderingData.gpuCamera->screenSize.x + 7) / 8, (renderingData.gpuCamera->screenSize.y + 7) / 8, 1);
 }
 
 void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, RenderEvents event)

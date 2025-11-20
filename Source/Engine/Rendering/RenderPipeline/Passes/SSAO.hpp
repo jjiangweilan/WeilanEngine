@@ -21,7 +21,7 @@ public:
         RenderPipelineSetting* setting
     );
 
-    const Gfx::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
+    Gfx::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:

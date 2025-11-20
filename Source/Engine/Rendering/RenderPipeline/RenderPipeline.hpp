@@ -3,7 +3,12 @@
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
 #include "Modules/VolumetricCloud/Cloud.hpp"
+#include "Passes/CloudPass.hpp"
+#include "Passes/ColorGradingPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
+#include "Passes/FXAAPass.hpp"
+#include "Passes/ScreenSpaceShadowPass.hpp"
+#include "Passes/ShadingPass.hpp"
 #include "Passes/SSAO.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
@@ -75,68 +80,15 @@ class RenderPipeline
 
     PerScene perScene;
 
-    struct ShadingPass
-    {
-        ShadingPass();
-
-        GPUParameter::DeferredPBRShadingInput cpuParameter{};
-        std::unique_ptr<Gfx::ShaderResource> gpuResource;
-        std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
-        ObjPtr<Shader> shadingShader;
-
-        Texture* brdfPreIntegeral;
-
-        void UploadGPUParameter(Gfx::CommandBuffer& cmd);
-    } shadingPass{};
-
-    struct CloudPass
-    {
-        CloudPass();
-
-        std::unique_ptr<Material> volumetricCloud = std::make_unique<Material>();
-        inline static const char* volumetricCloudShader =
-            "Source/Engine/Modules/VolumetricCloud/Shaders/VolumetricCloud";
-
-        void Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, RenderingData& renderingData);
-    } cloudPass;
-
-    struct ColorGradingPass
-    {
-        ColorGradingPass();
-        Gfx::ImageIdentifier colorGradingId = Gfx::ImageIdentifier("Color Grading");
-        Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("Color Grading");
-        ObjPtr<Shader> colorGradingShader;
-        Material mat;
-    } colorGradingPass;
+    Passes::ShadingPass shadingPass{};
+    Passes::CloudPass cloudPass{};
+    Passes::ColorGradingPass colorGradingPass{};
+    Passes::FXAAPass fxaaPass{};
+    Passes::ScreenSpaceShadowPass screenSpaceShadowPass{};
 
     SkyboxPass skyboxPass{};
 
     Passes::SSAO ssaoPass;
-
-    struct FXAAPass
-    {
-        FXAAPass();
-
-        Gfx::RenderPass pass = Gfx::RenderPass(1, 1);
-        Gfx::ImageIdentifier fxaaId = "FXAA";
-        void Execute(
-            Gfx::CommandBuffer& cmd,
-            const glm::float4& sourceSize,
-            const Gfx::ImageIdentifier& src,
-            const Gfx::ImageIdentifier& dst
-        );
-
-        ObjPtr<Shader> shader;
-        std::unique_ptr<Gfx::ShaderResource> resource;
-    } fxaaPass{};
-
-    struct ScreenSpaceShadow
-    {
-        ScreenSpaceShadow();
-
-        ObjPtr<Shader> shader{};
-
-    } screenSpaceShadowPass{};
 
     Passes::DepthDownSampler depthDownSamplerPass;
 

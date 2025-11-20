@@ -11,7 +11,7 @@ ContactShadowPass::ContactShadowPass()
     mat.SetShader(shader);
 }
 
-const Gfx::ImageIdentifier& ContactShadowPass::GetOutputId() const
+Gfx::ImageIdentifier& ContactShadowPass::GetOutputId()
 {
     return outputID;
 }
