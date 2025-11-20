@@ -4,6 +4,7 @@
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/GPUBuffer.hpp"
 #include "Rendering/Material.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Rendering/RenderingData.hpp"
 
 namespace GPUResources::ReflectionProbe
@@ -15,7 +16,7 @@ class ReflectionProbe;
 
 namespace Rendering::Passes
 {
-class ReflectionProbeUpdate
+class ReflectionProbeUpdate : public RenderPipelinePass
 {
     GPUBuffer<GPUResources::ReflectionProbe::ParameterInput> shaderInput = GPUBuffer<GPUResources::ReflectionProbe::ParameterInput>(true);
     ObjPtr<Shader> iblGenerator;
@@ -30,9 +31,10 @@ class ReflectionProbeUpdate
     ObjPtr<Shader> spdShader;
 
 public:
-    ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe);
     Gfx::Image* GetIBLCubemap() { return cubemap.get(); }
+
+    void OnInit(RenderingData* renderingData) override;
 
 private:
     Gfx::ShaderResource* EnsureProbeShaderResource(ReflectionProbe& probe);

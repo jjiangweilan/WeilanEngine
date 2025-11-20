@@ -10,6 +10,7 @@ class Light;
 class Scene;
 namespace Rendering
 {
+struct PerScene;
 class RenderPipelineDebugger;
 struct LightInfo
 {
@@ -51,6 +52,7 @@ struct RenderingData
     float2 screenSize;
     float screenAspect;
     InterleavedGradientNoise interleavedGradientNoise;
+    PerScene* perScene;
     Gfx::ShaderResource* globalResource;
 
     Light* GetMainLight()

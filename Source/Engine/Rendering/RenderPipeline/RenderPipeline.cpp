@@ -24,8 +24,8 @@ RenderPipeline::RenderPipeline()
     shadowRenderer = std::make_unique<ShadowRenderer>();
     fogPass = std::make_unique<Passes::FogPass>();
     shadowRenderer->Init();
-    reflectionProbeUpdate =
-        std::make_unique<ReflectionProbeUpdate>(perScene.scene.get(), perScene.mainLightShadow.get());
+
+    reflectionProbeUpdate = AddRenderPipelinePass<ReflectionProbeUpdate>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
@@ -33,6 +33,13 @@ RenderPipeline::RenderPipeline()
         {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
     };
     skyboxOnlyPass.SetSubpass(0, skyboxOnlyPassAttachment);
+
+    renderingData.perScene = &perScene;
+
+    for (auto& p : renderPipelinePasses)
+    {
+        p->OnInit(&renderingData);
+    }
 }
 
 RenderPipeline::~RenderPipeline() {}
@@ -45,6 +52,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     renderingData.screenSize = screenSize;
     renderingData.screenAspect = screenSize.x / screenSize.y;
     renderingData.globalResource = perScene.globalResource.get();
+    renderingData.perScene = &perScene;
     cmd->BeginLabel("Render Scene", {0.623, 0.323, 0.4123, 1.0f});
     if (!FrameSetup(cmd, scene, camera, screenSize))
     {
@@ -319,7 +327,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
 }
 
-RenderPipeline::PerScene::PerScene()
+PerScene::PerScene()
 {
     globalResource = GetGfxDriver()->CreateShaderResource();
 

@@ -93,8 +93,6 @@ private:
 
     void OnStart() override;
     void OnDestroy() override;
-    void OnEnable() override;
-    void OnDisable() override;
     void OnDrawGizmos() override;
     void UpdatePhysicalCharacterVelocity();
 

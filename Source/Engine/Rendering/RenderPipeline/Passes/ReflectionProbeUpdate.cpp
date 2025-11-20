@@ -1,6 +1,7 @@
 #include "ReflectionProbeUpdate.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Rendering/RenderPipeline/PerScene.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include <span>
 
@@ -11,52 +12,6 @@
 
 namespace Rendering::Passes
 {
-
-ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer)
-{
-    iblGenerator = ShaderLibrary::GetShader(Shaders::ReflectionProbeIBLGenerator);
-
-    Gfx::ImageDescription cubemapDesc(
-        256,
-        256,
-        1,
-        Gfx::GfxFormat::B10G11R11_UFloat_Pack32,
-        Gfx::MultiSampling::Sample_Count_1,
-        6,
-        true
-    );
-    cubemap = GetGfxDriver()->CreateImage(cubemapDesc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
-    cubemap->SetName("Reflection Probe IBL Cubemap");
-
-    for (int i = 0; i < 36; i++)
-    {
-        uint32_t mip = i % 6;
-        uint32_t face = i / 6;
-        Gfx::ImageView::CreateInfo createInfo{
-            cubemap.get(),
-            Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{
-                Gfx::ImageAspect::Color,
-                mip,
-                1,
-                face,
-                1
-            }
-        };
-
-        cubemapImageViews.push_back(GetGfxDriver()->CreateImageView(createInfo));
-    }
-
-    // Setup spd //
-    spdShader = ShaderLibrary::GetShader(Shaders::FidelityFX_SPD);
-    spdInput = GetGfxDriver()->CreateShaderResource();
-
-    spdGlobalAtomic = GetGfxDriver()->CreateBuffer(sizeof(uint32_t) * 6, Gfx::BufferUsage::Storage, false, true, "SPD Global Atomic");
-
-    Gfx::ImageDescription rw_input_downsample_src_mid_mipDesc(cubemapDesc.width, cubemapDesc.height, cubemapDesc.format);
-    rw_input_downsample_src_mid_mipDesc.layers = (uint32_t)glm::log2((float)cubemapDesc.width) + 1;
-    rw_input_downsample_src_mid_mip = GetGfxDriver()->CreateImage(rw_input_downsample_src_mid_mipDesc, Gfx::ImageUsage::Storage);
-}
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
 {
@@ -88,7 +43,7 @@ Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(Reflection
     }
 
     auto shaderResource = GetGfxDriver()->CreateShaderResource();
-    shaderResource->SetBuffer("input",& *shaderInput);
+    shaderResource->SetBuffer("input", &*shaderInput);
     shaderResource->SetImage("srcCubemap", probe.GetCubemapBase());
 
     shaderInput->envMapSize = probe.GetCubemap()->GetDescription().width;
@@ -160,5 +115,54 @@ void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Imag
 
     cmd.BindShaderProgram(baseMat.GetShaderProgram(), baseMat.GetShaderConfig());
     cmd.Dispatch(probe.GetDescription().width / 8, probe.GetDescription().height / 8, 6);
+}
+
+void ReflectionProbeUpdate::OnInit(RenderingData* renderingData)
+{
+    Gfx::Buffer* sceneBuffer = renderingData->perScene->scene.get();
+    Gfx::Buffer* mainLightShadowBuffer = renderingData->perScene->mainLightShadow.get();
+
+    iblGenerator = ShaderLibrary::GetShader(Shaders::ReflectionProbeIBLGenerator);
+
+    Gfx::ImageDescription cubemapDesc(
+        256,
+        256,
+        1,
+        Gfx::GfxFormat::B10G11R11_UFloat_Pack32,
+        Gfx::MultiSampling::Sample_Count_1,
+        6,
+        true
+    );
+    cubemap = GetGfxDriver()->CreateImage(cubemapDesc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
+    cubemap->SetName("Reflection Probe IBL Cubemap");
+
+    for (int i = 0; i < 36; i++)
+    {
+        uint32_t mip = i % 6;
+        uint32_t face = i / 6;
+        Gfx::ImageView::CreateInfo createInfo{
+            cubemap.get(),
+            Gfx::ImageViewType::Image_2D,
+            Gfx::ImageSubresourceRange{
+                Gfx::ImageAspect::Color,
+                mip,
+                1,
+                face,
+                1
+            }
+        };
+
+        cubemapImageViews.push_back(GetGfxDriver()->CreateImageView(createInfo));
+    }
+
+    // Setup spd //
+    spdShader = ShaderLibrary::GetShader(Shaders::FidelityFX_SPD);
+    spdInput = GetGfxDriver()->CreateShaderResource();
+
+    spdGlobalAtomic = GetGfxDriver()->CreateBuffer(sizeof(uint32_t) * 6, Gfx::BufferUsage::Storage, false, true, "SPD Global Atomic");
+
+    Gfx::ImageDescription rw_input_downsample_src_mid_mipDesc(cubemapDesc.width, cubemapDesc.height, cubemapDesc.format);
+    rw_input_downsample_src_mid_mipDesc.layers = (uint32_t)glm::log2((float)cubemapDesc.width) + 1;
+    rw_input_downsample_src_mid_mip = GetGfxDriver()->CreateImage(rw_input_downsample_src_mid_mipDesc, Gfx::ImageUsage::Storage);
 }
 } // namespace Rendering::Passes

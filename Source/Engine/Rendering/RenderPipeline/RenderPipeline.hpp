@@ -5,13 +5,14 @@
 #include "Modules/VolumetricCloud/Cloud.hpp"
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/SSAO.hpp"
+#include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderPipeline/Passes/FogPass.hpp"
 #include "Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
-#include "Rendering/RenderingData.hpp"
 #include "SkyboxPass.hpp"
 
 class Scene;
@@ -43,7 +44,6 @@ class RenderPipeline
 {
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
-    std::unique_ptr<Passes::ReflectionProbeUpdate> reflectionProbeUpdate;
     std::unique_ptr<Passes::FogPass> fogPass;
 
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
@@ -64,25 +64,16 @@ class RenderPipeline
     Gfx::RenderImageDescriptor maskGBufferDescription;
 
     RenderConfig renderConfig;
+    std::vector<std::unique_ptr<RenderPipelinePass>> renderPipelinePasses;
+
+    Passes::ReflectionProbeUpdate* reflectionProbeUpdate;
 
     struct ExecutionState
     {
         bool renderMainLightShadow = false;
     } state{};
 
-    struct PerScene
-    {
-        PerScene();
-        GPUParameter::Camera cameraParameter{};
-        GPUParameter::Scene sceneParameter{};
-        GPUParameter::MainLightShadow mainLightShadowParameter{};
-
-        std::unique_ptr<Gfx::ShaderResource> globalResource{};
-
-        std::unique_ptr<Gfx::Buffer> scene{};
-        std::unique_ptr<Gfx::Buffer> camera{};
-        std::unique_ptr<Gfx::Buffer> mainLightShadow{};
-    } perScene{};
+    PerScene perScene;
 
     struct ShadingPass
     {
@@ -175,6 +166,12 @@ public:
     void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
 private:
+    template <class T>
+    T* AddRenderPipelinePass()
+    {
+        renderPipelinePasses.push_back(std::make_unique<T>());
+        return static_cast<T*>(renderPipelinePasses.back().get());
+    }
     bool FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
     void BlitToFinalColor(Gfx::CommandBuffer* cmd);
