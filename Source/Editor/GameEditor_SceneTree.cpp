@@ -259,6 +259,15 @@ void GameEditor::SceneTree(
         ((GameObject*)dropGO)->SetParent(go);
     }
 
+    if (EditorGUI::DragDropTarget(dropGO))
+    {
+        Component* asComponent = dynamic_cast<Component*>(dropGO);
+        if (asComponent)
+        {
+            go->MoveInComponent(asComponent);
+        }
+    }
+
     if (treeOpen)
     {
         for (auto child : go->GetChildren())

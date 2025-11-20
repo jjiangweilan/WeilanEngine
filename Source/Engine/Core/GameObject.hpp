@@ -86,6 +86,7 @@ public:
     T* AddComponent(Args&&... args);
     Component* AddComponent(std::string_view componentName);
     void RemoveComponent(void* comp);
+    void MoveInComponent(Component* source);
     void RemoveComponentByIndex(int componentIndex);
 
     template <class T>

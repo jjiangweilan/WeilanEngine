@@ -796,3 +796,29 @@ void GameObject::Translate(const glm::vec3& translate)
 
     TransformChanged();
 }
+
+void GameObject::MoveInComponent(Component* otherPtr)
+{
+    auto otherGO = otherPtr->GetGameObject();
+
+    if (otherGO == nullptr)
+        return;
+
+    auto iter = std::find_if(otherGO->components.begin(), otherGO->components.end(), [otherPtr](auto& p)
+                             { return p.get() == otherPtr; });
+
+    if (iter != otherGO->components.end())
+    {
+        bool isInEnableState = !otherPtr->IsEnabled();
+        if (isInEnableState)
+            otherPtr->Disable();
+
+        std::unique_ptr<Component> owned = std::move(*iter);
+        otherGO->components.erase(iter);
+
+        components.push_back(std::move(owned));
+
+        if (isInEnableState)
+            otherPtr->Enable();
+    }
+}
