@@ -1,10 +1,10 @@
 #pragma once
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Shader.hpp"
-
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 namespace Rendering::Passes
 {
-class DepthDownSampler
+class DepthDownSampler : public RenderPipelinePass
 {
 public:
     DepthDownSampler();

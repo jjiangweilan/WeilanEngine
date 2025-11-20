@@ -5,19 +5,25 @@
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/GPUBuffer.hpp"
 #include "Rendering/ShaderLibrary.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 
 #include "Shaders/DepthBasedFogInput.hlsl"
 
 namespace Rendering::Passes
 {
-    class FogPass
-    {
-        ObjPtr<Shader> shader;
-        std::unique_ptr<Gfx::ShaderResource> shaderInput;
-        GPUBuffer<DepthBasedFogParams> fogInputBuffer;
+class FogPass : public RenderPipelinePass // Now derives from RenderPipelinePass
+{
+    ObjPtr<Shader> shader;
+    std::unique_ptr<Gfx::ShaderResource> shaderInput;
+    GPUBuffer<DepthBasedFogParams> fogInputBuffer;
 
-    public:
-        FogPass();
-        void Execute(Gfx::CommandBuffer& cmd, Gfx::ImageIdentifier& outputColor, Gfx::ImageIdentifier& depthCopy, const FogPassParameters& parameters);
-    };
-}
+public:
+    FogPass();
+    void Execute(
+        Gfx::CommandBuffer& cmd,
+        Gfx::ImageIdentifier& outputColor,
+        Gfx::ImageIdentifier& depthCopy,
+        const FogPassParameters& parameters
+    );
+};
+} // namespace Rendering::Passes

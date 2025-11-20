@@ -3,9 +3,11 @@
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "Rendering/Shader.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
+
 namespace Rendering::RenderPasses
 {
-struct SkyboxPass
+struct SkyboxPass : public RenderPipelinePass
 {
     Submesh* cube;
     ObjPtr<Shader> skyboxShader;

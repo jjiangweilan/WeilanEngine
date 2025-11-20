@@ -72,6 +72,15 @@ class RenderPipeline
     std::vector<std::unique_ptr<RenderPipelinePass>> renderPipelinePasses;
 
     Passes::ReflectionProbeUpdate* reflectionProbeUpdate;
+    Passes::ShadingPass* shadingPass;
+    Passes::CloudPass* cloudPass;
+    Passes::ColorGradingPass* colorGradingPass;
+    Passes::FXAAPass* fxaaPass;
+    Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
+    Passes::SSAO* ssaoPass;
+    Passes::DepthDownSampler* depthDownSamplerPass;
+    SkyboxPass* skyboxPass;
+    ContactShadowPass* contactShadowPass;
 
     struct ExecutionState
     {
@@ -79,18 +88,6 @@ class RenderPipeline
     } state{};
 
     PerScene perScene;
-
-    Passes::ShadingPass shadingPass{};
-    Passes::CloudPass cloudPass{};
-    Passes::ColorGradingPass colorGradingPass{};
-    Passes::FXAAPass fxaaPass{};
-    Passes::ScreenSpaceShadowPass screenSpaceShadowPass{};
-
-    SkyboxPass skyboxPass{};
-
-    Passes::SSAO ssaoPass;
-
-    Passes::DepthDownSampler depthDownSamplerPass;
 
     struct
     {
@@ -101,7 +98,6 @@ class RenderPipeline
     ObjPtr<RenderPipelineSetting> setting;
     RenderingData renderingData;
     Gfx::RenderPass skyboxOnlyPass = Gfx::RenderPass(1, 1);
-    ContactShadowPass contactShadowPass; // new contact shadow pass (deferred insertion point)
 
 public:
     RenderPipeline();

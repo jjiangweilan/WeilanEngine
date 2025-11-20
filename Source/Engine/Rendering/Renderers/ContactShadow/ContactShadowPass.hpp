@@ -6,10 +6,11 @@
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 #include "bend_sss_cpu.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 
 namespace Rendering
 {
-class ContactShadowPass
+class ContactShadowPass : public RenderPipelinePass
 {
 public:
     ContactShadowPass();

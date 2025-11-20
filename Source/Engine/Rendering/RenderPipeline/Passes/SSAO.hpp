@@ -4,10 +4,11 @@
 #include "Rendering/Material.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "Rendering/Shader.hpp"
+#include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 
 namespace Rendering::Passes
 {
-class SSAO : public RenderingModule
+class SSAO : public RenderPipelinePass
 {
 public:
     SSAO();

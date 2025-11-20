@@ -26,6 +26,15 @@ RenderPipeline::RenderPipeline()
     shadowRenderer->Init();
 
     reflectionProbeUpdate = AddRenderPipelinePass<ReflectionProbeUpdate>();
+    shadingPass = AddRenderPipelinePass<Passes::ShadingPass>();
+    cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
+    colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
+    fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
+    screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
+    ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
+    depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
+    skyboxPass = AddRenderPipelinePass<SkyboxPass>();
+    contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
@@ -148,13 +157,13 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     downSampledDepthCopyDesc.SetHeight(mainRTSize.y / 2);
     downSampledDepthCopyDesc.SetRandomWrite(true);
     cmd->AllocateAttachment(downSampledDepthCopy, downSampledDepthCopyDesc);
-    depthDownSamplerPass.Setup(mainDepth, downSampledDepthCopy, downSampledDepthCopyDesc);
-    depthDownSamplerPass.Execute(*cmd);
+    depthDownSamplerPass->Setup(mainDepth, downSampledDepthCopy, downSampledDepthCopyDesc);
+    depthDownSamplerPass->Execute(*cmd);
 
     cmd->BindResource(0, perScene.globalResource.get());
 
     // ssao pass
-    ssaoPass.Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting);
+    ssaoPass->Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting);
 
     // Contact Shadow (directional main light only) - BEFORE shading so future shaders can consume
     {
@@ -165,7 +174,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         {
             // Ensure we have an up-to-date depthCopy for compute sampling
             contactShadowPass
-                .Execute(*cmd, renderingData, mainLight, GetGfxDriver()->GetImageFromRenderGraph(mainDepth));
+                ->Execute(*cmd, renderingData, mainLight, GetGfxDriver()->GetImageFromRenderGraph(mainDepth));
         }
     }
 
@@ -174,7 +183,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         cmd->BindResource(0, perScene.globalResource.get());
         // Upload GPU Parameter
-        shadingPass.UploadGPUParameter(
+        shadingPass->UploadGPUParameter(
             shadowRenderer->GetShadowMapTexelSize(),
             setting->shadowMap.constantBias / 1000.0f,
             setting->shadowMap.normalBias
@@ -194,15 +203,15 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             {mainDepth, Gfx::AttachmentLoadOperation::Load}
         };
         cmd->BeginRenderPass(lightingPassAttachments, lightingPassClearValues);
-        shadingPass.Execute(
+        shadingPass->Execute(
             *cmd,
             albedoGBuffer,
             normalGBuffer,
             maskGBuffer,
             &depthImageView,
             &shadowRenderer->GetShadowMap()->GetDefaultImageView(),
-            &ssaoPass.GetSSAOTex(),
-            &contactShadowPass.GetOutputId(),
+            &ssaoPass->GetSSAOTex(),
+            &contactShadowPass->GetOutputId(),
             diffuseCube,
             specularCube,
             renderingData
@@ -235,7 +244,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             cmd->EndLabel(); // Draw Graphics
         }
 
-        skyboxPass.Execute(cmd);
+        skyboxPass->Execute(cmd);
 
         cmd->EndRenderPass();
 
@@ -243,7 +252,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         auto clouds = renderingScene.GetClouds();
         if (!clouds.empty())
         {
-            cloudPass.Execute(*clouds[0], *cmd, renderingData);
+            cloudPass->Execute(*clouds[0], *cmd, renderingData);
         }
 
         // draw objects
@@ -276,8 +285,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     if (setting->postProcess.colorGrading)
     {
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        colorGradingPass.Execute(*cmd, renderingData.mainColor, mainRTSize);
-        finalColor = colorGradingPass.GetOutputId();
+        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize);
+        finalColor = colorGradingPass->GetOutputId();
         cmd->EndLabel(); // Color Grading
     }
 
@@ -287,9 +296,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
         {
             Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
-            cmd->AllocateAttachment(fxaaPass.GetOutputId(), resultDesc);
-            fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.GetOutputId());
-            finalColor = fxaaPass.GetOutputId();
+            cmd->AllocateAttachment(fxaaPass->GetOutputId(), resultDesc);
+            fxaaPass->Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass->GetOutputId());
+            finalColor = fxaaPass->GetOutputId();
         }
         cmd->EndLabel(); // FXAA
     }
@@ -349,7 +358,7 @@ void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 
     auto finalColor = GetFinalColor();
     skyboxOnlyPass.SetAttachment(0, finalColor);
     cmd->BeginRenderPass(skyboxOnlyPass, clears);
-    skyboxPass.Execute(cmd);
+    skyboxPass->Execute(cmd);
     cmd->EndRenderPass();
 
     if (!IsCommandBufferOverriden())
@@ -532,7 +541,7 @@ const Gfx::ImageIdentifier& RenderPipeline::GetOutputColor()
 {
     Gfx::ImageIdentifier debugImage;
     Gfx::ImageIdentifier finalColorId;
-    if (ssaoPass.DebugBlit(debugImage))
+    if (ssaoPass->DebugBlit(debugImage))
     {
         finalColor = debugImage;
     }
@@ -549,7 +558,7 @@ Gfx::ImageIdentifier RenderPipeline::GetFinalColor()
 
     Gfx::ImageIdentifier debugImage;
     Gfx::ImageIdentifier finalColorId;
-    if (ssaoPass.DebugBlit(debugImage))
+    if (ssaoPass->DebugBlit(debugImage))
     {
         finalColorId = debugImage;
     }
