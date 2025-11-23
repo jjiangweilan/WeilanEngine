@@ -3,6 +3,8 @@
 #include <string>
 namespace Utils
 {
+std::string strRemoveLastWord(const std::string& str);
+std::string strRemoveBlanks(const std::string& str);
 std::string strToLower(const std::string& s);
 std::vector<std::string> SplitString(const std::string& s, char delimiter);
 bool strContians(const std::string& s, const std::string& element);

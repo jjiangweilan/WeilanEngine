@@ -3,6 +3,7 @@
 #include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Editor/EditorContext.hpp"
+#include "EngineCommandGUI.hpp"
 #include "GameView.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
@@ -40,39 +41,6 @@ public:
     EditorContext* GetEditorContext() { return editorContext.get(); }
 
 private:
-    std::unique_ptr<EditorContext> editorContext = std::make_unique<EditorContext>();
-    std::unique_ptr<GizmoManager> gizmoManager;
-
-    std::string imguiInitPath;
-    std::unique_ptr<WeilanEngine> engine;
-    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    GameLoop* loop;
-
-    std::unique_ptr<GameView> gameView;
-    std::unique_ptr<SceneEditor> sceneEditor;
-    std::unique_ptr<AssetBrowser> assetBrowser;
-
-    GameObject* sceneTreeContextObject = nullptr;
-    bool beginSceneTreeContextPopup = false;
-    bool sceneTree = true;
-    bool sceneInfo = false;
-
-    bool engineDebug = true;
-    bool assetWindow = true;
-    bool inspectorWindow = true;
-    bool openSceneWindow = false;
-    bool createSceneWindow = false;
-    bool surfelGIBaker = false;
-    bool assetDatabaseWindow = false;
-    bool pbrBaker = false;
-    bool debugEngineResources = false;
-
-    InspectorBase* primaryInspector = nullptr;
-    InspectorBase* secondaryInspector = nullptr;
-
-    std::unique_ptr<Gfx::CommandBuffer> cmd;
-    std::list<std::unique_ptr<Window>> activeWindows;
-
     void EnableMultiViewport();
 
     void ShowSceneWindow();
@@ -101,6 +69,40 @@ private:
     void ShowEngineResourceDebug();
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
+
+    std::unique_ptr<EditorContext> editorContext = std::make_unique<EditorContext>();
+    std::unique_ptr<GizmoManager> gizmoManager;
+
+    std::string imguiInitPath;
+    std::unique_ptr<WeilanEngine> engine;
+    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
+    GameLoop* loop;
+
+    std::unique_ptr<GameView> gameView;
+    std::unique_ptr<SceneEditor> sceneEditor;
+    std::unique_ptr<AssetBrowser> assetBrowser;
+    std::unique_ptr<EngineCommandGUI> engineCommandGUI;
+
+    GameObject* sceneTreeContextObject = nullptr;
+    bool beginSceneTreeContextPopup = false;
+    bool sceneTree = true;
+    bool sceneInfo = false;
+
+    bool engineDebug = true;
+    bool assetWindow = true;
+    bool inspectorWindow = true;
+    bool openSceneWindow = false;
+    bool createSceneWindow = false;
+    bool surfelGIBaker = false;
+    bool assetDatabaseWindow = false;
+    bool pbrBaker = false;
+    bool debugEngineResources = false;
+
+    InspectorBase* primaryInspector = nullptr;
+    InspectorBase* secondaryInspector = nullptr;
+
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::list<std::unique_ptr<Window>> activeWindows;
 
 public:
     // event handling

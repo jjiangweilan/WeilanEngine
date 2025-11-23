@@ -35,7 +35,7 @@ class EditorGUI
 {
 public:
     static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex);
-    static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem);
+    static bool SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem, bool searchWithoutBlankSpace = false);
 
     template <class T>
     static bool Property(const char* name, T& val)
@@ -498,11 +498,12 @@ public:
         }
 
         std::strcpy(textArea.data(), text.data());
+        std::memset(textArea.data() + text.size(), 0, textArea.size() - text.size());
         if (hind != nullptr)
         {
             if (ImGui::InputTextWithHint(label, hind, textArea.data(), textArea.size()))
             {
-                text = textArea.data();
+                text.assign(textArea.data());
                 return true;
             }
         }
@@ -511,7 +512,7 @@ public:
         {
             if (ImGui::InputText(label, textArea.data(), textArea.size()))
             {
-                text = textArea.data();
+                text.assign(textArea.data());
                 return true;
             }
         }

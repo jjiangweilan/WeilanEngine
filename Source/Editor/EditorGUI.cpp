@@ -237,7 +237,7 @@ bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::
     return SearchableMenuItems(items, search, outSelectedIndex, firstItemIdx);
 }
 
-bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem)
+bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::string& search, int& outSelectedIndex, int& firstItem, bool searchWithoutBlankSpace)
 {
     firstItem = -1;
     bool selected = false;
@@ -246,7 +246,7 @@ bool EditorGUI::SearchableMenuItems(const std::vector<std::string>& items, std::
     InputText("##search", search, "Search Bar");
     for (int idx = 0; idx < items.size(); idx++)
     {
-        if (Utils::strContians(Utils::strToLower(items[idx]), Utils::strToLower(search)))
+        if (Utils::strContians(Utils::strToLower(searchWithoutBlankSpace ? Utils::strRemoveBlanks(items[idx]) : items[idx]), Utils::strToLower(search)))
         {
             if (firstItem == -1)
                 firstItem = idx;

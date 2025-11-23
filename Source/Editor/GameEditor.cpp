@@ -116,6 +116,7 @@ GameEditor::GameEditor(const char* path)
     sceneEditor = std::make_unique<SceneEditor>();
     assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
     gizmoManager = std::make_unique<GizmoManager>();
+    engineCommandGUI = std::make_unique<EngineCommandGUI>();
 
     gameView->Init();
     editorContext->SetGizmoManager(gizmoManager.get());
@@ -518,7 +519,8 @@ void GameEditor::Start()
                         SaveProject();
                         keepLooping = false;
                     },
-                    []() { keepLooping = false; }
+                    []()
+                    { keepLooping = false; }
                 );
             }
 
@@ -614,6 +616,7 @@ void GameEditor::GUIPass()
     ShowGameProfiler(Profiler::GetSingleton());
     ShowConsoleOutputWindow();
     ShowAssetDatabaseViewer();
+    engineCommandGUI->EditorDraw();
 
     if (pbrBaker)
     {
@@ -1047,7 +1050,8 @@ void GameEditor::ShowEngineResourceDebug()
         allObjects.push_back({o.first, o.second, &ObjectRegistry::GetTypeName(o.second->GetObjectTypeID())});
     }
 
-    std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r) { return *std::get<2>(l) < *std::get<2>(r); });
+    std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r)
+              { return *std::get<2>(l) < *std::get<2>(r); });
     if (ImGui::TreeNode("engine objects"))
     {
         if (ImGui::BeginTable("EngineObject Table", 4))
@@ -1102,7 +1106,8 @@ void GameEditor::ShowEngineResourceDebug()
         std::sort(
             assetDatas.begin(),
             assetDatas.end(),
-            [](AssetDataInfo& l, AssetDataInfo& r) { return std::get<3>(l) < std::get<3>(r); }
+            [](AssetDataInfo& l, AssetDataInfo& r)
+            { return std::get<3>(l) < std::get<3>(r); }
         );
 
         if (ImGui::BeginTable("AssetData Table", 4))

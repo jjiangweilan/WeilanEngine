@@ -256,7 +256,11 @@ void GameEditor::SceneTree(
     Object* dropGO;
     if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
     {
-        ((GameObject*)dropGO)->SetParent(go);
+        endEvents.Register([go, dropGO]()
+        {
+            GameObject* casted = static_cast<GameObject*>(dropGO);
+            casted->SetParent(go);
+        });
     }
 
     if (EditorGUI::DragDropTarget(dropGO))

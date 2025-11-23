@@ -190,3 +190,34 @@ Material& ReflectionProbe::GetCubemapBaseMaterial()
 {
     return cubemapBaseMat;
 }
+
+Gfx::ShaderResource* ReflectionProbe::EnsureAndGetShaderResource(std::vector<std::unique_ptr<Gfx::ImageView>>& cubemapImageViews)
+{
+    if (probeUpdateShaderResource != nullptr)
+    {
+        return probeUpdateShaderResource.get();
+    }
+
+    probeUpdateShaderResource = GetGfxDriver()->CreateShaderResource();
+    probeUpdateShaderResource->SetBuffer("input", &*shaderInput);
+    probeUpdateShaderResource->SetImage("srcCubemap", GetCubemapBase());
+
+    shaderInput->envMapSize = GetCubemap()->GetDescription().width;
+    shaderInput->envMapSizeSqr = shaderInput->envMapSize * shaderInput->envMapSize;
+    shaderInput->totalPixelCount = GetTotalPixelCount();
+    shaderInput->roughness[0] = 0.0001;
+    shaderInput->roughness[1] = 0.2;
+    shaderInput->roughness[2] = 0.4;
+    shaderInput->roughness[3] = 0.6;
+    shaderInput->roughness[4] = 0.8;
+    shaderInput->roughness[5] = 0.9999;
+
+    GetGfxDriver()->UploadBuffer(*shaderInput, (uint8_t*)shaderInput.GetPtr(), shaderInput.GetSize());
+
+    for (int i = 0; i < 36; ++i)
+    {
+        probeUpdateShaderResource->SetImage(Gfx::ShaderBindingHandle("dstFaces"), i, cubemapImageViews[i].get());
+    }
+
+    return probeUpdateShaderResource.get();
+}

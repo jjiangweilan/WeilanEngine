@@ -82,6 +82,8 @@ VKImageView::~VKImageView()
 {
     if (handle != VK_NULL_HANDLE)
         VKContext::Instance()->objManager->DestroyImageView(handle);
+
+    SPDLOG_TRACE("VkImageView Destroyed: {}", name);
 }
 
 } // namespace Gfx

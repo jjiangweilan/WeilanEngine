@@ -111,6 +111,8 @@ void GameLoop::Play()
     if (scene == nullptr)
         return;
 
+    GetGfxDriver()->WaitForIdle(); // wait for gpu to idle, this ensures everying dispatched for editor is finished on GPU
+
     isPlaying = true;
 
     auto gos = scene->GetAllGameObjects();

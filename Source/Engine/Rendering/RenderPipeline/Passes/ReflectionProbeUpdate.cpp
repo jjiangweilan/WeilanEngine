@@ -15,7 +15,7 @@ namespace Rendering::Passes
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
 {
-    auto shaderResource = EnsureProbeShaderResource(probe);
+    auto shaderResource = probe.EnsureAndGetShaderResource(cubemapImageViews);
 
     cmd.BeginLabel("Reflection Probe IBL Generation", {0.4f, 0.1f, 0.7f, 1.0f});
 
@@ -32,39 +32,6 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
     cmd.Dispatch(dispatchX, 1, 1);
 
     cmd.EndLabel();
-}
-
-Gfx::ShaderResource* ReflectionProbeUpdate::EnsureProbeShaderResource(ReflectionProbe& probe)
-{
-    auto it = probeShaderResources.find(probe.GetUUID());
-    if (it != probeShaderResources.end())
-    {
-        return it->second.get();
-    }
-
-    auto shaderResource = GetGfxDriver()->CreateShaderResource();
-    shaderResource->SetBuffer("input", &*shaderInput);
-    shaderResource->SetImage("srcCubemap", probe.GetCubemapBase());
-
-    shaderInput->envMapSize = probe.GetCubemap()->GetDescription().width;
-    shaderInput->envMapSizeSqr = shaderInput->envMapSize * shaderInput->envMapSize;
-    shaderInput->totalPixelCount = probe.GetTotalPixelCount();
-    shaderInput->roughness[0] = 0.0001;
-    shaderInput->roughness[1] = 0.2;
-    shaderInput->roughness[2] = 0.4;
-    shaderInput->roughness[3] = 0.6;
-    shaderInput->roughness[4] = 0.8;
-    shaderInput->roughness[5] = 0.9999;
-
-    GetGfxDriver()->UploadBuffer(*shaderInput, (uint8_t*)shaderInput.GetPtr(), shaderInput.GetSize());
-
-    for (int i = 0; i < 36; ++i)
-    {
-        shaderResource->SetImage(Gfx::ShaderBindingHandle("dstFaces"), i, cubemapImageViews[i].get());
-    }
-
-    probeShaderResources[probe.GetUUID()] = std::move(shaderResource);
-    return probeShaderResources[probe.GetUUID()].get();
 }
 
 void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t width, uint32_t height, Gfx::Image& src)

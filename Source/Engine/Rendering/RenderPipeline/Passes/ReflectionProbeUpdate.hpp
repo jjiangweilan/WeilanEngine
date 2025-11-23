@@ -7,18 +7,12 @@
 #include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Rendering/RenderingData.hpp"
 
-namespace GPUResources::ReflectionProbe
-{
-#include "Shaders/ReflectionProbeIBLGeneratorInput.hlsl"
-};
-
 class ReflectionProbe;
 
 namespace Rendering::Passes
 {
 class ReflectionProbeUpdate : public RenderPipelinePass
 {
-    GPUBuffer<GPUResources::ReflectionProbe::ParameterInput> shaderInput = GPUBuffer<GPUResources::ReflectionProbe::ParameterInput>(true);
     ObjPtr<Shader> iblGenerator;
     std::unordered_map<UUID, std::unique_ptr<Gfx::ShaderResource>> probeShaderResources;
     std::unique_ptr<Gfx::Image> cubemap; // final cubemap

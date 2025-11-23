@@ -2,6 +2,11 @@
 #include "Core/Component/RenderingComponent.hpp"
 #include "Core/Math/Geometry.hpp"
 #include "Core/Scene/RenderingObject.hpp"
+#include "Rendering/GPUBuffer.hpp"
+namespace GPUResources::ReflectionProbe
+{
+#include "Shaders/ReflectionProbeIBLGeneratorInput.hlsl"
+};
 
 class ReflectionProbe : public RenderingComponent<ReflectionProbe>
 {
@@ -41,6 +46,8 @@ private:
     InteractiveBox gizmoState{};
     int totalPixelCount;
     Material cubemapBaseMat;
+    std::unique_ptr<Gfx::ShaderResource> probeUpdateShaderResource;
+    GPUBuffer<GPUResources::ReflectionProbe::ParameterInput> shaderInput = GPUBuffer<GPUResources::ReflectionProbe::ParameterInput>(true);
 
 public:
     ReflectionProbe();
@@ -73,6 +80,8 @@ public:
     void BakeStaticReflectionProbe();
     void SetUpdateType(ProbeType type) { updateType = type; }
     auto GetUpdateType() { return updateType; }
+    Gfx::ShaderResource* EnsureAndGetShaderResource(std::vector<std::unique_ptr<Gfx::ImageView>>& cubemapImageViews);
+    
 
     void SetSourceType(SourceType type) { sourceType = type; }
     auto GetSourceType() { return sourceType; }
