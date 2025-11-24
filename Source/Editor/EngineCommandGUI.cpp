@@ -60,16 +60,10 @@ void EngineCommandGUI::DrawCommandInput()
 
         int selected = -1;
         int firstItem = -1;
-        if (EditorGUI::SearchableMenuItems(commandListCache, inputBuffer, selected, firstItem))
-        {
-            auto& componentName = commandListCache[selected];
 
-            showCommandInput = false;
-        }
-
-        if (ImGui::IsKeyPressed(ImGuiKey_Enter) && firstItem != -1)
+        if (EditorGUI::InputText("##engine command input", inputBuffer, "Engine Command Input", ImGuiInputTextFlags_EnterReturnsTrue))
         {
-            auto& componentName = commandListCache[firstItem];
+            EngineCommand::Singleton().Execute(inputBuffer);
 
             showCommandInput = false;
         }

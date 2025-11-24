@@ -490,7 +490,7 @@ public:
         ImGui::GetWindowDrawList()->AddImage(&image.GetDefaultImageView(), minPos, maxPos);
     }
 
-    static bool InputText(const char* label, std::string& text, const char* hind = nullptr)
+    static bool InputText(const char* label, std::string& text, const char* hind = nullptr, ImGuiInputTextFlags flags = 0)
     {
         if (textArea.size() < text.size() + 1)
         {
@@ -501,7 +501,7 @@ public:
         std::memset(textArea.data() + text.size(), 0, textArea.size() - text.size());
         if (hind != nullptr)
         {
-            if (ImGui::InputTextWithHint(label, hind, textArea.data(), textArea.size()))
+            if (ImGui::InputTextWithHint(label, hind, textArea.data(), textArea.size(), flags))
             {
                 text.assign(textArea.data());
                 return true;
@@ -510,7 +510,7 @@ public:
 
         else
         {
-            if (ImGui::InputText(label, textArea.data(), textArea.size()))
+            if (ImGui::InputText(label, textArea.data(), textArea.size(), flags))
             {
                 text.assign(textArea.data());
                 return true;

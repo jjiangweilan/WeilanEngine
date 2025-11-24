@@ -221,7 +221,7 @@ set(KTX_FEATURE_TESTS OFF)
 set(KTX_FEATURE_TOOLS OFF)
 FetchContent_MakeAvailable(ktx_software)
 
-set(BOOST_INCLUDE_LIBRARIES unordered;lockfree)
+set(BOOST_INCLUDE_LIBRARIES unordered;lockfree;program_options)
 set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
   Boost
@@ -348,6 +348,7 @@ target_link_libraries( WeilanEngine
     Jolt
     Boost::unordered
     Boost::lockfree
+    Boost::program_options
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp

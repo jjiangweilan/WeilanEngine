@@ -12,7 +12,7 @@ public:
     using CommandList = std::vector<std::string>;
 
     EngineCommand();
-    void Execute(const char* cmd);
+    void Execute(const std::string& cmd);
 
     const CommandList& GetCommandKeys() { return commandKeys; }
 
@@ -25,6 +25,8 @@ public:
         commandKeys.push_back(cmd);
         commands[cmd] = std::make_unique<CommandType>();
     }
+
+    std::vector<std::string> ParseCmd(const std::string& cmd);
 
     static EngineCommand& Singleton();
 
