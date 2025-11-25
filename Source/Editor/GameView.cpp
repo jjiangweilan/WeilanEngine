@@ -7,7 +7,7 @@
 #include "Core/SystemInfo.hpp"
 #include "Core/Time.hpp"
 #include "Editor/HudDebug.hpp"
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "GameEditor.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Math.hpp"
@@ -44,9 +44,9 @@ struct GameView::PlayTheGame
 
             gameView->gameCamera = sceneCopy->GetMainCamera();
             SceneManager::SetActiveScene(sceneCopy);
-            EditorState::gameLoop->SetScene(*sceneCopy);
+            EditorState::GetGameLoop()->SetScene(*sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
-            EditorState::gameLoop->Play();
+            EditorState::GetGameLoop()->Play();
             Input::SetGameplayInput(true);
         }
     }
@@ -57,7 +57,7 @@ struct GameView::PlayTheGame
         {
             played = false;
             // stop execution of the loop
-            EditorState::gameLoop->Stop();
+            EditorState::GetGameLoop()->Stop();
 
             // resume editor state
             EngineState::GetSingleton().isPlaying = false;
@@ -68,7 +68,7 @@ struct GameView::PlayTheGame
             if (ori)
             {
                 SceneManager::SetActiveScene(ori);
-                EditorState::gameLoop->SetScene(*ori);
+                EditorState::GetGameLoop()->SetScene(*ori);
             }
             // destroy sceneCopy
             sceneCopy = nullptr;
@@ -213,7 +213,7 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Pause") == 0)
     {
-        EditorState::gameLoop->Stop();
+        EditorState::GetGameLoop()->Stop();
     }
     else if (strcmp(menuSelected, "Stop") == 0)
     {

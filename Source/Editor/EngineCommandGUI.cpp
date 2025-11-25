@@ -33,7 +33,7 @@ void EngineCommandGUI::DrawCommandInput()
 
     // Set window size and position (centered)
     float windowWidth = 600.0f;
-    float windowHeight = 80.0f;
+    float windowHeight = 150.0f;
     ImVec2 windowPos = ImVec2(
         viewport->Pos.x + (viewportSize.x - windowWidth) * 0.5f,
         viewport->Pos.y + (viewportSize.y - windowHeight) * 0.5f
@@ -58,14 +58,20 @@ void EngineCommandGUI::DrawCommandInput()
             ImGui::SetKeyboardFocusHere();
         }
 
-        int selected = -1;
-        int firstItem = -1;
-
         if (EditorGUI::InputText("##engine command input", inputBuffer, "Engine Command Input", ImGuiInputTextFlags_EnterReturnsTrue))
         {
             EngineCommand::Singleton().Execute(inputBuffer);
 
             showCommandInput = false;
+        }
+
+        std::string cmdDesc = EngineCommand::Singleton().GetCommandDesc(inputBuffer);
+
+        // Display command description
+        if (!cmdDesc.empty())
+        {
+            ImGui::Separator();
+            ImGui::TextWrapped("%s", cmdDesc.c_str());
         }
 
         // Close on Escape

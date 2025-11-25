@@ -1,18 +1,29 @@
 #include "EngineCommand.hpp"
 #include <boost/program_options/positional_options.hpp>
 #include <spdlog/spdlog.h>
-
-class FindCommand : public IEngineCommand
-{
-public:
-    void Execute(const std::vector<std::string>& args) override
-    {
-    }
-};
+#include <sstream>
 
 EngineCommand::EngineCommand()
+{}
+
+std::string EngineCommand::GetCommandDesc(const std::string& cmd)
 {
-    RegisterCommand<FindCommand>("find");
+    auto tokens = EngineCommand::Singleton().ParseCmd(cmd);
+
+    if (tokens.empty())
+        return "";
+
+    auto iter = commands.find(tokens[0]);
+    if (iter != commands.end())
+    {
+        auto& options = iter->second->GetOptions();
+
+        std::stringstream ss;
+        options.print(ss);
+        return ss.str();
+    }
+
+    return "";
 }
 
 void EngineCommand::Execute(const std::string& cmd)
@@ -25,7 +36,12 @@ void EngineCommand::Execute(const std::string& cmd)
     auto iter = commands.find(tokens[0]);
     if (iter != commands.end())
     {
-        iter->second->Execute(tokens);
+        std::vector<const char*> charTokens{};
+        for (auto& t : tokens)
+        {
+            charTokens.push_back(t.c_str());
+        }
+        iter->second->Execute(charTokens);
     }
 }
 
@@ -57,7 +73,7 @@ std::vector<std::string> EngineCommand::ParseCmd(const std::string& cmd)
         }
         else
         {
-            while (curr[currentOffset] != ' ')
+            while (curr[currentOffset] != ' ' && curr[currentOffset] != '\0')
                 currentOffset++;
         }
 

@@ -5,7 +5,7 @@
 #include "Core/EngineDebugVars.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "EditorGUI.hpp"
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "FileIcons.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
@@ -63,7 +63,7 @@ GameEditor::GameEditor(const char* path)
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
     loop = engine->GetGameLoop();
-    EditorState::gameLoop = loop;
+    EditorState::GetGameLoop() = loop;
 
     // engine is in another dynamic library which has different static logger instance, we need to register it for
     // editor too

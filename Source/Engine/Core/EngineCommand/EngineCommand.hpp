@@ -1,5 +1,5 @@
 #pragma once
-#include "IEngineCommand.hpp"
+#include "EngineCommandBase.hpp"
 #include "Libs/Assert.hpp"
 #include <functional>
 #include <memory>
@@ -17,20 +17,26 @@ public:
     const CommandList& GetCommandKeys() { return commandKeys; }
 
     template <class CommandType>
-        requires std::derived_from<CommandType, IEngineCommand>
-    void RegisterCommand(const std::string& cmd)
+        requires std::derived_from<CommandType, EngineCommandBase>
+    bool RegisterCommand(const std::string& cmd)
     {
         ASSERT(commands.find(cmd) == commands.end() && "Command already registered");
 
         commandKeys.push_back(cmd);
         commands[cmd] = std::make_unique<CommandType>();
+
+        return true;
     }
 
     std::vector<std::string> ParseCmd(const std::string& cmd);
+    std::string GetCommandDesc(const std::string& cmd);
 
     static EngineCommand& Singleton();
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<IEngineCommand>> commands;
+    std::unordered_map<std::string, std::unique_ptr<EngineCommandBase>> commands;
     std::vector<std::string> commandKeys;
 };
+
+#define REGISTER_ENGINE_COMMAND(CommandType, commandStr) \
+    static bool _RegisterEngineCommand = EngineCommand::Singleton().RegisterCommand<CommandType>(commandStr)

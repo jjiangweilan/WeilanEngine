@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/GameScript.hpp"

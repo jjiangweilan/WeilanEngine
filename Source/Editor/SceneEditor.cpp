@@ -7,7 +7,7 @@
 #include "Core/SystemInfo.hpp"
 #include "Core/Time.hpp"
 #include "Editor/HudDebug.hpp"
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "GameEditor.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Math.hpp"
@@ -451,7 +451,7 @@ bool SceneEditor::Tick()
             }
         }
     }
-    else if (ImGui::IsKeyPressed(ImGuiKey_F))
+    else if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_F))
     {
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
         {

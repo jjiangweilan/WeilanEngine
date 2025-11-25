@@ -3,7 +3,7 @@
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
 #include "EditorGUI.hpp"
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "FileIcons.hpp"
 #include "GameEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"

@@ -1,8 +1,8 @@
 #pragma once
+#include "Editor/EditorState.hpp"
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
-#include "EditorState.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Math.hpp"
 #include "Libs/Serialization/JsonSerializer.hpp"
@@ -496,28 +496,24 @@ public:
         {
             textArea.resize((text.size() + 1) * 2);
         }
-
+        
+        bool output = false;
         std::strcpy(textArea.data(), text.data());
         std::memset(textArea.data() + text.size(), 0, textArea.size() - text.size());
         if (hind != nullptr)
         {
             if (ImGui::InputTextWithHint(label, hind, textArea.data(), textArea.size(), flags))
-            {
-                text.assign(textArea.data());
-                return true;
-            }
+                output = true;
         }
 
         else
         {
             if (ImGui::InputText(label, textArea.data(), textArea.size(), flags))
-            {
-                text.assign(textArea.data());
-                return true;
-            }
+                output = true;
         }
 
-        return false;
+        text.assign(textArea.data());
+        return output;
     }
 
     static void AutoObjectInspector(const Object* target);
