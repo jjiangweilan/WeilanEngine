@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Inspector.hpp"
 #include "Libs/Serialization/JsonSerializer.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"

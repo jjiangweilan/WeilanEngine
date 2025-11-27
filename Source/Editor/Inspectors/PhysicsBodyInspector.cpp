@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Scene/PhysicsScene.hpp"

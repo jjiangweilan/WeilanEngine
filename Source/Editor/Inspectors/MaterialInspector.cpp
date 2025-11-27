@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "EditorGUI.hpp"
 #include "GfxDriver/GfxEnums.hpp"

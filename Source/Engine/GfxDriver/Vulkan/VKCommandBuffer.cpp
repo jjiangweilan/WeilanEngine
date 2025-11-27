@@ -284,7 +284,6 @@ void VKCommandBuffer::CopyBufferToImage(
         if (invalid)
         {
             spdlog::error("invalid CopyBufferToImage");
-            __debugbreak();
         }
         else
         {

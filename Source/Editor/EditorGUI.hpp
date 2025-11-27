@@ -707,19 +707,19 @@ public:
     static bool InputTextLabeled(const char* label, char* buffer, size_t bufferSize, ImGuiInputTextFlags flags = 0)
     {
         bool changed = false;
-        if (ImGui::BeginTable("##inputtext_table", 2))
+        // if (ImGui::BeginTable("##inputtext_table", 2, ImGuiTableFlags_Resizable))
         {
-            ImGui::TableSetupColumn("Label");
-            ImGui::TableSetupColumn("Value");
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
+            // ImGui::TableSetupColumn("Label");
+            // ImGui::TableSetupColumn("Value");
+            //
+            // ImGui::TableNextRow();
+            // ImGui::TableSetColumnIndex(0);
             ImGui::Text("%s:", label);
-
-            ImGui::TableSetColumnIndex(1);
+            ImGui::SameLine();
+            // ImGui::TableSetColumnIndex(1);
             changed = ImGui::InputText("##value", buffer, bufferSize, flags);
 
-            ImGui::EndTable();
+            // ImGui::EndTable();
         }
         return changed;
     }

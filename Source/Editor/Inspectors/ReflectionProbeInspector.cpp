@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "EditorGUI.hpp"

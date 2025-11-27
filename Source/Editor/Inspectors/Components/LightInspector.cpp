@@ -1,4 +1,4 @@
-#include "../../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"

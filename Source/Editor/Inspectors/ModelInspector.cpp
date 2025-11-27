@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Core/Model.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"

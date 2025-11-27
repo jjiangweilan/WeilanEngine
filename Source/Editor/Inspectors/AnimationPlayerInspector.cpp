@@ -1,4 +1,4 @@
-#include "../EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "Core/Component/AnimationPlayer.hpp"
 #include "EditorGUI.hpp"
 #include "Inspector.hpp"
