@@ -286,3 +286,18 @@ bool RayVsPlane(const Ray& ray, const Plane& plane, float& distance)
     }
     return false;
 }
+
+bool CircleVsQuad2D(const Circle& circle, const Quad2D& quad)
+{
+    // Find the closest point on the quad (AABB) to the circle center
+    float2 closestPoint;
+    closestPoint.x = glm::clamp(circle.center.x, quad.min.x, quad.max.x);
+    closestPoint.y = glm::clamp(circle.center.y, quad.min.y, quad.max.y);
+
+    // Calculate the distance between the circle center and the closest point
+    float2 distance = circle.center - closestPoint;
+    float distanceSquared = glm::dot(distance, distance);
+
+    // Circle intersects if the distance is less than or equal to the radius
+    return distanceSquared <= (circle.radius * circle.radius);
+}

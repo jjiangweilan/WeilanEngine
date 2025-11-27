@@ -131,6 +131,18 @@ struct Plane
     float w;
 };
 
+struct Circle
+{
+    float2 center;
+    float radius;
+};
+
+struct Quad2D
+{
+    float2 min;
+    float2 max;
+};
+
 bool RayVsPlane(const Ray& ray, const Plane& plane, float& distance);
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);
 bool RayVsBox(const Ray& ray, const Box& quad, float& distance);
@@ -164,3 +176,4 @@ bool RayVsMesh(
 );
 
 bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
+bool CircleVsQuad2D(const Circle& circle, const Quad2D& quad);
