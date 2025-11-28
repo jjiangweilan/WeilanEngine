@@ -8,7 +8,7 @@ using QuadTreeNode = ObjectPoolHandle<QuadTreeNode_t>;
 
 struct QuadTreeNode_t
 {
-    int infoIndex;
+    int lodLevel;
     int2 levelCoord;
     int2 minPos;
     int2 maxPos;
@@ -17,7 +17,7 @@ struct QuadTreeNode_t
 
 struct OceanQuadTreeConfig
 {
-    int lodMaxPatchSize; // in powers of two
+    int lodMinPatchSize; // in powers of two
     int mipLevels;
     std::span<float> lodViewDistance; // size of mipLevels
 };
@@ -25,24 +25,29 @@ struct OceanQuadTreeConfig
 class OceanQuadTree
 {
 public:
-    void SetLODLevels(const OceanQuadTreeConfig& config) { this->quadTreeConfig = config; }
+    void SetLODLevels(const OceanQuadTreeConfig& config);
     void UpdateQuadTree(const float3& center);
 
 private:
-    struct NodeInfo
+    struct NodeLodInfo
     {
         int level;
-        int size;
+        int patchSize;
     };
 
-    void DivideNode(QuadTreeNode node, int lodLevel, const float2& center);
-    void InitNode(QuadTreeNode node, int x, int y, int lodLevel);
+    struct OceanQuadTreeConfigExtended
+    {
+        int lodMinPatchSize; // in powers of two
+        int lodMaxPatchSize; // in powers of two
+        int mipLevels;
+        std::vector<float> lodViewDistance; // size of mipLevels
+    };
 
-    const NodeInfo& Access(const QuadTreeNode& node) { return prototypes[node->infoIndex]; }
-    bool SphereVsQuad();
+    void DivideNode(QuadTreeNode node, const float2& center);
+    void InitNode(QuadTreeNode node, int x, int y, int lodLevel);
 
     std::vector<QuadTreeNode> rootNodes;
     ObjectPool<QuadTreeNode_t> nodePool;
-    OceanQuadTreeConfig quadTreeConfig;
-    std::vector<NodeInfo> prototypes;
+    OceanQuadTreeConfigExtended quadTreeConfig;
+    std::vector<NodeLodInfo> lodInfos;
 };
