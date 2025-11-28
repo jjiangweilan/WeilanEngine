@@ -73,8 +73,10 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
 
 void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
 {
-    this->quadTreeConfig.lodMaxPatchSize = config.lodMinPatchSize << (config.mipLevels - 1);
-    this->quadTreeConfig.lodMinPatchSize = config.lodMinPatchSize;
+    const int lodMinPatchSize = config.resolution * patchMeshMeters;
+    this->quadTreeConfig.patchResolution = config.resolution;
+    this->quadTreeConfig.lodMinPatchSize = lodMinPatchSize;
+    this->quadTreeConfig.lodMaxPatchSize = lodMinPatchSize << (config.mipLevels - 1);
     this->quadTreeConfig.mipLevels = config.mipLevels;
     this->quadTreeConfig.lodViewDistance = std::vector<float>(config.lodViewDistance.begin(), config.lodViewDistance.end());
 
@@ -83,7 +85,7 @@ void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
     {
         NodeLodInfo info;
         info.level = lodLevel;
-        info.patchSize = config.lodMinPatchSize << lodLevel;
+        info.patchSize = quadTreeConfig.lodMinPatchSize << lodLevel;
         lodInfos.push_back(info);
     }
 }

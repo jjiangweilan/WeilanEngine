@@ -3,6 +3,7 @@
 #include "Libs/CppUtility.hpp"
 #include "Rendering/CommandBufferUtils.hpp"
 #include "Rendering/GeometryUtils.hpp"
+#include "Rendering/RenderPipeline/PerScene.hpp"
 DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01CAA53E73AB")
 {
     // Initialize default waves
@@ -13,6 +14,14 @@ DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01
     waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, true, false, 225.0f};
 
     globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, false, 1.0f};
+
+    const int mipLevels = 6;
+    float lodViewDistance[mipLevels] = {50.0f, 100.0f, 200.0f, 400.0f, 800.0f, 1600.0f};
+    OceanQuadTreeConfig quadTreeConfig;
+    quadTreeConfig.resolution = 1;
+    quadTreeConfig.mipLevels = mipLevels;
+    quadTreeConfig.lodViewDistance = lodViewDistance;
+    quadTree.SetLODLevels(quadTreeConfig);
 }
 
 DEFINE_SERIALIZATION(
@@ -92,21 +101,24 @@ void OceanComponent::UpdateWaveBuffer()
     material.SetFloat("waveCount", (float)upload.size());
 }
 
-void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderPipelineSetting& settings)
+void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
 {
     auto currentPolygonMode = material.GetShaderConfig()->polygonMode;
-    if (settings.debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Line)
+    auto settings = renderingData.renderPipelineSettings;
+    if (settings->debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Line)
     {
         auto config = *material.GetShaderConfig();
         config.polygonMode = Gfx::PolygonMode::Line;
         material.SetShaderConfig(config);
     }
-    else if (!settings.debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Fill)
+    else if (!settings->debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Fill)
     {
         auto config = *material.GetShaderConfig();
         config.polygonMode = Gfx::PolygonMode::Fill;
         material.SetShaderConfig(config);
     }
+
+    quadTree.UpdateQuadTree(renderingData.perScene->cameraParameter.position);
 
     Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
 }

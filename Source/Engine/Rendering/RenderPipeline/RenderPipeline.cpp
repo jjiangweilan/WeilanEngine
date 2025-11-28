@@ -574,7 +574,7 @@ void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, 
 
     for (auto obj : renderingObjects)
     {
-        obj->Render(cmd, *setting);
+        obj->Render(cmd, renderingData);
     }
 }
 
