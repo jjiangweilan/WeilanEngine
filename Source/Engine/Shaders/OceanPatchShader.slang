@@ -24,17 +24,24 @@ struct Varyings
     float3 worldPos;
 };
 
+struct DrawParams
+{
+    int lod;
+};
+
 [Global]
 ParameterBlock<PerScene> perScene;
 
 [Material]
 ParameterBlock<InputParams> params;
 
+[vk_push_constant]
+DrawParams drawParams;
 
 [shader("vertex")]
-Varyings Vertex(Attributes input, int instanceID : SV_InstanceID)
+Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInstance : SV_StartInstanceLocation)
 {
-    var instanceData = params.instanceData[instanceID];
+    var instanceData = params.instanceData[baseInstance + instanceID];
 
     float3 positionWS = input.position;
     positionWS.xz *= instanceData.scale;

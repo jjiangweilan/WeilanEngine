@@ -229,7 +229,7 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
     d.resolution = {width, height};
     editorCamera->SetFoV(glm::radians(60.0f));
     editorCamera->SetNear(0.01f);
-    editorCamera->SetFar(1000.f);
+    editorCamera->SetFar(25000.f);
 }
 
 void SceneEditor::Render(Gfx::CommandBuffer& cmd)

@@ -17,16 +17,16 @@ struct QuadTreeNode_t
 
 struct OceanQuadTreeConfig
 {
-    float resolution; // 1 : 1 to patch
+    float resolution; // 1 : 1 to node
     int mipLevels;
     std::span<float> lodViewDistance; // size of mipLevels
 };
 
 struct OceanQuadTreeConfigExtended
 {
-    float patchResolution;
-    int lodMinPatchSize; // in powers of two
-    int lodMaxPatchSize; // in powers of two
+    float nodeResolution;
+    int lodMinNodeSize; // in powers of two
+    int lodMaxNodeSize; // in powers of two
     int mipLevels;
     std::vector<float> lodViewDistance; // size of mipLevels
 };
@@ -45,12 +45,12 @@ private:
     struct NodeLodInfo
     {
         int level;
-        int patchSize;
+        int nodeSize;
     };
 
     using LodLevelNodes = std::vector<QuadTreeNode>;
 
-    const int patchMeshMeters = 32;
+    const int nodeMeshMeters = 32;
 
     void DivideNode(QuadTreeNode node, const float2& center);
     void InitNode(QuadTreeNode node, int x, int y, int lodLevel);

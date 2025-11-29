@@ -110,7 +110,7 @@ private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     float near = 0.01f;
-    float far = 1000.0f;
+    float far = 25000.0f;
     float fov = glm::radians(60.0);
     float aspect = -1.0f;
     bool updateProjectionMatrix = true;

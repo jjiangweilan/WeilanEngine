@@ -17,17 +17,17 @@ void OceanQuadTree::UpdateQuadTree(const float3& center3f)
     int maxLod = config.mipLevels - 1;
     float2 min, max;
     min = {
-        config.lodMaxPatchSize * glm::floor((center.x - config.lodViewDistance[maxLod]) / config.lodMaxPatchSize),
-        config.lodMaxPatchSize * glm::floor((center.y - config.lodViewDistance[maxLod]) / config.lodMaxPatchSize)
+        config.lodMaxNodeSize * glm::floor((center.x - config.lodViewDistance[maxLod]) / config.lodMaxNodeSize),
+        config.lodMaxNodeSize * glm::floor((center.y - config.lodViewDistance[maxLod]) / config.lodMaxNodeSize)
     };
     max = {
-        config.lodMaxPatchSize * glm::ceil((center.x + config.lodViewDistance[maxLod]) / config.lodMaxPatchSize),
-        config.lodMaxPatchSize * glm::ceil((center.y + config.lodViewDistance[maxLod]) / config.lodMaxPatchSize)
+        config.lodMaxNodeSize * glm::ceil((center.x + config.lodViewDistance[maxLod]) / config.lodMaxNodeSize),
+        config.lodMaxNodeSize * glm::ceil((center.y + config.lodViewDistance[maxLod]) / config.lodMaxNodeSize)
     };
 
-    for (int x = min.x; x < max.x; x += config.lodMaxPatchSize)
+    for (int x = min.x; x < max.x; x += config.lodMaxNodeSize)
     {
-        for (int y = min.y; y < max.y; y += config.lodMaxPatchSize)
+        for (int y = min.y; y < max.y; y += config.lodMaxNodeSize)
         {
             auto node = nodePool.Allocate();
             InitNode(node, x, y, maxLod);
@@ -45,9 +45,9 @@ void OceanQuadTree::InitNode(QuadTreeNode node, int x, int y, int lodLevel)
 {
     const auto& lodInfo = lodInfos[lodLevel];
     node->lodLevel = lodLevel;
-    node->levelCoord = {x / lodInfo.patchSize, y / lodInfo.patchSize};
+    node->levelCoord = {x / lodInfo.nodeSize, y / lodInfo.nodeSize};
     node->minPos = {x, y};
-    node->maxPos = {x + lodInfo.patchSize, y + lodInfo.patchSize};
+    node->maxPos = {x + lodInfo.nodeSize, y + lodInfo.nodeSize};
     node->children.clear();
 }
 
@@ -70,13 +70,13 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
     Quad2D quad{node->minPos, node->maxPos};
     if (CircleVsQuad2D(circle, quad))
     {
-        int nextPatchSize = lodInfos[nextLodLevel].patchSize;
+        int nextNodeSize = lodInfos[nextLodLevel].nodeSize;
         for (int i = 0; i < 4; ++i)
         {
             int lx = i & 0b01 ? 1 : 0;
             int ly = i & 0b10 ? 1 : 0;
             auto child = nodePool.Allocate();
-            InitNode(child, node->minPos.x + lx * nextPatchSize, node->minPos.y + ly * nextPatchSize, nextLodLevel);
+            InitNode(child, node->minPos.x + lx * nextNodeSize, node->minPos.y + ly * nextNodeSize, nextLodLevel);
             node->children.push_back(child);
         }
 
@@ -93,10 +93,10 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
 
 void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
 {
-    const int lodMinPatchSize = config.resolution * patchMeshMeters;
-    this->quadTreeConfig.patchResolution = config.resolution;
-    this->quadTreeConfig.lodMinPatchSize = lodMinPatchSize;
-    this->quadTreeConfig.lodMaxPatchSize = lodMinPatchSize << (config.mipLevels - 1);
+    const int lodMinNodeSize = config.resolution * nodeMeshMeters;
+    this->quadTreeConfig.nodeResolution = config.resolution;
+    this->quadTreeConfig.lodMinNodeSize = lodMinNodeSize;
+    this->quadTreeConfig.lodMaxNodeSize = lodMinNodeSize << (config.mipLevels - 1);
     this->quadTreeConfig.mipLevels = config.mipLevels;
     this->quadTreeConfig.lodViewDistance = std::vector<float>(config.lodViewDistance.begin(), config.lodViewDistance.end());
 
@@ -106,7 +106,7 @@ void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
     {
         NodeLodInfo info;
         info.level = lodLevel;
-        info.patchSize = quadTreeConfig.lodMinPatchSize << lodLevel;
+        info.nodeSize = quadTreeConfig.lodMinNodeSize << lodLevel;
         lodInfos.push_back(info);
 
         nodeToRender.push_back({});

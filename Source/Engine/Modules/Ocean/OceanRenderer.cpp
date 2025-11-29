@@ -8,7 +8,6 @@ OceanRenderer::OceanRenderer()
 
 void OceanRenderer::Setup()
 {
-    patch = Rendering::GeneratePlane(meshDesc.meter, meshDesc.meter, meshDesc.vertices, meshDesc.vertices, false);
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
 }
@@ -25,8 +24,28 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, con
     }
 
     EnsureInstanceBufferSize(totalInstance);
+    EnsurePatchLodData(quadTree);
     FillInstanceData(quadTree);
     DrawPatches(cmd, renderingData);
+}
+
+void OceanRenderer::EnsurePatchLodData(OceanQuadTree& quadTree)
+{
+    auto& quadTreeInfo = quadTree.GetQuadTreeInfo();
+
+    if (patchLodDatas.size() < quadTreeInfo.mipLevels)
+    {
+        patchLodDatas.clear();
+        for (int i = 0; i < quadTreeInfo.mipLevels; ++i)
+        {
+            PatchDesc patchDesc = {
+                .vertices = glm::max((512 >> i) + 1, 17),
+            };
+
+            PatchLodData lodData = {.desc = patchDesc, .patch = Rendering::GeneratePlane(patchDesc.meter, patchDesc.meter, patchDesc.vertices, patchDesc.vertices, false), .instanceDataOffset = 0, .instanceCount = 0};
+            patchLodDatas.push_back(std::move(lodData));
+        }
+    }
 }
 
 void OceanRenderer::EnsureInstanceBufferSize(size_t count)
@@ -48,7 +67,6 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count)
 
 void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
 {
-    auto submesh = patch->GetSubmesh(0);
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;
 
@@ -61,9 +79,14 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::Render
     }
     else
         cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
-    cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
-    cmd.BindVertexBuffer(submesh->GetGfxVertexBufferBindings(), 0);
-    cmd.DrawIndexed(submesh->GetIndexCount(), instanceBuffer.count, 0, 0, 0);
+    for (auto& patchLodData : patchLodDatas)
+    {
+        auto submesh = patchLodData.patch->GetSubmesh(0);
+
+        cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
+        cmd.BindVertexBuffer(submesh->GetGfxVertexBufferBindings(), 0);
+        cmd.DrawIndexed(submesh->GetIndexCount(), patchLodData.instanceCount, 0, 0, patchLodData.instanceDataOffset);
+    }
 }
 
 void OceanRenderer::FillInstanceData(OceanQuadTree& quadTree)
@@ -75,10 +98,13 @@ void OceanRenderer::FillInstanceData(OceanQuadTree& quadTree)
     {
         auto& nodes = quadTree.GetNodesAtLOD(lodLevel);
 
+        patchLodDatas[lodLevel].instanceDataOffset = nodeIdx;
+        patchLodDatas[lodLevel].instanceCount = nodes.size();
+
         for (auto& node : nodes)
         {
             instanceBuffer.cpuData[nodeIdx].position = node->minPos;
-            instanceBuffer.cpuData[nodeIdx].scale = (node->maxPos - node->minPos) / meshDesc.meter;
+            instanceBuffer.cpuData[nodeIdx].scale = (node->maxPos - node->minPos) / PatchDesc::meter;
             nodeIdx++;
         }
     }

@@ -32,17 +32,26 @@ private:
         int count = 0;
     } instanceBuffer;
 
-    std::unique_ptr<Mesh> patch;
     ObjPtr<Shader> oceanPatchShader;
     std::unique_ptr<Gfx::ShaderResource> patchRenderShaderResource;
 
-    struct
+    struct PatchDesc
     {
-        int meter = 32;
-        int vertices = 33;
-    } meshDesc;
+        static const int meter = 1; // not really meaningful parameter, the mesh will be scaled eventually to match the node size, change vertices to adjust resolution
+        int vertices = 513;
+    };
+
+    struct PatchLodData
+    {
+        PatchDesc desc;
+        std::unique_ptr<Mesh> patch;
+        int instanceDataOffset;
+        int instanceCount;
+    };
+    std::vector<PatchLodData> patchLodDatas{};
 
     void EnsureInstanceBufferSize(size_t count);
+    void EnsurePatchLodData(OceanQuadTree& quadTree);
     void FillInstanceData(OceanQuadTree& quadTree);
     void DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& data);
 };
