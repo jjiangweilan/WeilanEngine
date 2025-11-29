@@ -14,16 +14,6 @@ DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01
     waves[3] = {{{0.0f, 0.0f}, 0.15f, 3.0f, 1.8f, 0.3f}, true, false, 225.0f};
 
     globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, false, 1.0f};
-
-    const int mipLevels = 8;
-    float lodViewDistance[mipLevels] = {25.0f, 300.0f, 500.0f, 800.0f, 1200.0f, 1600, 2400, 6400.0f};
-    OceanQuadTreeConfig quadTreeConfig;
-    quadTreeConfig.resolution = 1;
-    quadTreeConfig.mipLevels = mipLevels;
-    quadTreeConfig.lodViewDistance = lodViewDistance;
-    quadTree.SetLODLevels(quadTreeConfig);
-
-    renderer.Setup();
 }
 
 DEFINE_SERIALIZATION(
@@ -32,7 +22,8 @@ DEFINE_SERIALIZATION(
     SER(waves),
     SER(globalTweak),
     SER(material),
-    SER(areaScale)
+    SER(areaScale),
+    SER(config)
 )
 
 void OceanComponent::OnInit()
@@ -44,6 +35,19 @@ void OceanComponent::OnInit()
     material.SetShader(oceanShader);
 
     UpdateWaveBuffer();
+
+    Reset();
+}
+
+void OceanComponent::Reset()
+{
+    OceanQuadTreeConfig quadTreeConfig;
+    quadTreeConfig.resolution = config.resolution;
+    quadTreeConfig.mipLevels = config.mipLevels;
+    quadTreeConfig.lodViewDistance = config.lodViewDistance;
+
+    quadTree.SetLODLevels(quadTreeConfig);
+    renderer.Setup(config.lodMeshVertices);
 }
 
 void OceanComponent::UpdateWaveBuffer()

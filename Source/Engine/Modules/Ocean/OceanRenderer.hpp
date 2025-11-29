@@ -14,7 +14,8 @@ class OceanRenderer
 public:
     OceanRenderer();
 
-    void Setup();
+    // vertexSize's count should match quadTree's LOD level count
+    void Setup(std::span<int> vertexSize);
     void Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData);
 
 private:
@@ -51,7 +52,7 @@ private:
     std::vector<PatchLodData> patchLodDatas{};
 
     void EnsureInstanceBufferSize(size_t count);
-    void EnsurePatchLodData(OceanQuadTree& quadTree);
+    void InitPatchLodData(std::span<int> vertexSize);
     void FillInstanceData(OceanQuadTree& quadTree);
     void DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& data);
 };

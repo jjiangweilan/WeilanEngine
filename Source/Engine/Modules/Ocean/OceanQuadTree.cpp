@@ -29,12 +29,17 @@ void OceanQuadTree::UpdateQuadTree(const float3& center3f, const Frustum& camera
     {
         for (int y = min.y; y < max.y; y += config.lodMaxNodeSize)
         {
-            AABB aabb(float3(min.x, -100, min.y), float3(max.x, 100, max.y));
+            auto node = nodePool.Allocate();
+            InitNode(node, x, y, maxLod);
+
+            AABB aabb(float3(node->minPos.x, -100, node->minPos.y), float3(node->maxPos.x, 100, node->maxPos.y));
             if (AABBVsFrustum(aabb, cameraFrustum))
             {
-                auto node = nodePool.Allocate();
-                InitNode(node, x, y, maxLod);
                 rootNodes.push_back(node);
+            }
+            else
+            {
+                nodePool.Free(node);
             }
         }
     }

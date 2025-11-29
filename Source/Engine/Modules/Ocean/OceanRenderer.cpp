@@ -4,12 +4,13 @@
 
 OceanRenderer::OceanRenderer()
 {
-}
-
-void OceanRenderer::Setup()
-{
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
+}
+
+void OceanRenderer::Setup(std::span<int> vertexSize)
+{
+    InitPatchLodData(vertexSize);
 }
 
 void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData)
@@ -24,27 +25,21 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, con
     }
 
     EnsureInstanceBufferSize(totalInstance);
-    EnsurePatchLodData(quadTree);
     FillInstanceData(quadTree);
     DrawPatches(cmd, renderingData);
 }
 
-void OceanRenderer::EnsurePatchLodData(OceanQuadTree& quadTree)
+void OceanRenderer::InitPatchLodData(std::span<int> vertexSize)
 {
-    auto& quadTreeInfo = quadTree.GetQuadTreeInfo();
-
-    if (patchLodDatas.size() < quadTreeInfo.mipLevels)
+    patchLodDatas.clear();
+    for (int i = 0; i < vertexSize.size(); ++i)
     {
-        patchLodDatas.clear();
-        for (int i = 0; i < quadTreeInfo.mipLevels; ++i)
-        {
-            PatchDesc patchDesc = {
-                .vertices = glm::max((256 >> (2 * i)) + 1, 5),
-            };
+        PatchDesc patchDesc = {
+            .vertices = vertexSize[i],
+        };
 
-            PatchLodData lodData = {.desc = patchDesc, .patch = Rendering::GeneratePlane(patchDesc.meter, patchDesc.meter, patchDesc.vertices, patchDesc.vertices, false), .instanceDataOffset = 0, .instanceCount = 0};
-            patchLodDatas.push_back(std::move(lodData));
-        }
+        PatchLodData lodData = {.desc = patchDesc, .patch = Rendering::GeneratePlane(patchDesc.meter, patchDesc.meter, patchDesc.vertices, patchDesc.vertices, false), .instanceDataOffset = 0, .instanceCount = 0};
+        patchLodDatas.push_back(std::move(lodData));
     }
 }
 

@@ -13,6 +13,42 @@ public:
         if (ocean == nullptr)
             return;
 
+        EditorGUI::SeparatorTextLabeled("Ocean Configuration");
+        auto& config = ocean->GetConfig();
+        EditorGUI::DragInt("Mip Levels", &config.mipLevels);
+        if (config.mipLevels < 1)
+            config.mipLevels = 1;
+
+        if (config.lodViewDistance.size() != config.mipLevels)
+            config.lodViewDistance.resize(config.mipLevels);
+        if (config.lodMeshVertices.size() != config.mipLevels)
+            config.lodMeshVertices.resize(config.mipLevels);
+
+        EditorGUI::DragFloat("Resolution", &config.resolution);
+
+        if (ImGui::TreeNode("LOD View Distances"))
+        {
+            for (int i = 0; i < config.lodViewDistance.size(); ++i)
+            {
+                EditorGUI::DragFloat(("Level " + std::to_string(i)).c_str(), &config.lodViewDistance[i]);
+            }
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("LOD Mesh Vertices"))
+        {
+            for (int i = 0; i < config.lodMeshVertices.size(); ++i)
+            {
+                EditorGUI::DragInt(("Level " + std::to_string(i)).c_str(), &config.lodMeshVertices[i]);
+            }
+            ImGui::TreePop();
+        }
+
+        if (EditorGUI::ButtonSimple("Reinitialize"))
+        {
+            ocean->Reset();
+        }
+
         auto& waves = ocean->GetWaves();
         auto& globalTweak = ocean->GetGlobalTweak();
 
