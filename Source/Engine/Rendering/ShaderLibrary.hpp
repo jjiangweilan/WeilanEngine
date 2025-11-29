@@ -32,14 +32,16 @@
                          Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),                     \
                          Do(FidelityFX_SPD, "ffx_spd"),                                                      \
                          Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                 \
-                         Do(DepthBasedFog, "DepthBasedFog"),
+                         Do(DepthBasedFog, "DepthBasedFog"),                                                 \
+                         Do(OceanPatchShader, "OceanPatchShader"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y
 
 enum class Shaders : int
 {
-    SHADER_ENUMS(_SHADER_ENUMS_PICK_FIRST) MAX_COUNT
+    SHADER_ENUMS(_SHADER_ENUMS_PICK_FIRST)
+        MAX_COUNT
 };
 
 class ShaderLibrary

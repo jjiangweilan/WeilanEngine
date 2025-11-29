@@ -49,8 +49,15 @@ void OceanQuadTree::InitNode(QuadTreeNode node, int x, int y, int lodLevel)
 
 void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
 {
+    // this function is called when this node doesn't need to be divided
+    auto pushToLodRendering = [this](QuadTreeNode& node)
+    {
+        this->nodeToRender[node->lodLevel].push_back(node);
+    };
+
     if (node->lodLevel == 0)
     {
+        pushToLodRendering(node);
         return;
     }
 
@@ -69,6 +76,10 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
             node->children.push_back(child);
         }
     }
+    else
+    {
+        pushToLodRendering(node);
+    }
 }
 
 void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
@@ -81,11 +92,19 @@ void OceanQuadTree::SetLODLevels(const OceanQuadTreeConfig& config)
     this->quadTreeConfig.lodViewDistance = std::vector<float>(config.lodViewDistance.begin(), config.lodViewDistance.end());
 
     lodInfos.clear();
+    nodeToRender.clear();
     for (int lodLevel = 0; lodLevel < config.mipLevels; ++lodLevel)
     {
         NodeLodInfo info;
         info.level = lodLevel;
         info.patchSize = quadTreeConfig.lodMinPatchSize << lodLevel;
         lodInfos.push_back(info);
+
+        nodeToRender.push_back({});
     }
+}
+
+std::vector<QuadTreeNode>& OceanQuadTree::GetNodesAtLOD(int lodLevel)
+{
+    return nodeToRender[lodLevel];
 }

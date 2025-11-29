@@ -4,6 +4,7 @@
 #include "Core/Ptr.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "Modules/Ocean/OceanQuadTree.hpp"
+#include "Modules/Ocean/OceanRenderer.hpp"
 #include "Rendering/Shader.hpp"
 
 namespace GPUResources
@@ -46,6 +47,9 @@ public:
     void UpdateWaveBuffer();
 
 private:
+    OceanRenderer renderer;
+    OceanQuadTree quadTree;
+
     std::unique_ptr<Mesh> plane;
     ObjPtr<Shader> oceanShader;
 
@@ -53,7 +57,6 @@ private:
     int materialSet;
     float areaScale;
 
-    OceanQuadTree quadTree;
     std::vector<CPUWave> waves;
     std::vector<GPUResources::Wave> gpuWaveCache;
     CPUWave globalTweak;

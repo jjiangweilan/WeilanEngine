@@ -61,12 +61,12 @@ struct PerScene
             return Light(0,0,0,0,0,0,0);
     }
 
-    float4 ModelToClipSpace(float4 position)
+    float4 WorldToClipSpace(float4 position)
     {
         return mul(camera.viewProjection, position);
     }
 
-    float4 ModelToClipSpace(float3 position)
+    float4 WorldToClipSpace(float3 position)
     {
         return mul(camera.viewProjection, float4(position, 1.0));
     }

@@ -62,7 +62,7 @@ ParameterBlock<ParticleParameter> param;
 VertexOutput Vert(VertexInput input, uint instanceID : SV_InstanceID)
 {
     VertexOutput output;
-    output.position = perScene.ModelToClipSpace(mul(param.GetParticleWorldMatrix(instanceID), float4(input.position,1.0)));
+    output.position = perScene.WorldToClipSpace(mul(param.GetParticleWorldMatrix(instanceID), float4(input.position,1.0)));
     output.instanceID = instanceID;
     return output;
 }

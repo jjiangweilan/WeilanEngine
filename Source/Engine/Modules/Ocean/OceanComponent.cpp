@@ -22,6 +22,8 @@ DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01
     quadTreeConfig.mipLevels = mipLevels;
     quadTreeConfig.lodViewDistance = lodViewDistance;
     quadTree.SetLODLevels(quadTreeConfig);
+
+    renderer.Setup();
 }
 
 DEFINE_SERIALIZATION(
@@ -117,8 +119,8 @@ void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingD
         config.polygonMode = Gfx::PolygonMode::Fill;
         material.SetShaderConfig(config);
     }
+    Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
 
     quadTree.UpdateQuadTree(renderingData.perScene->cameraParameter.position);
-
-    Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
+    renderer.Render(cmd, quadTree);
 }
