@@ -1,8 +1,8 @@
 {
     "gfxDriver" :
     {
-        "enableRenderDoc" : true,
-        "enableValidationLayer" : true,
+        "enableRenderDoc" : false,
+        "enableValidationLayer" : false,
         "enableGPUTimestamp" : true,
         "gpuTimestampQueryMaxCount" : 1024
     }

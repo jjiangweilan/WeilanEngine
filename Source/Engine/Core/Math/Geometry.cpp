@@ -301,3 +301,112 @@ bool CircleVsQuad2D(const Circle& circle, const Quad2D& quad)
     // Circle intersects if the distance is less than or equal to the radius
     return distanceSquared <= (circle.radius * circle.radius);
 }
+
+bool AABBVsFrustum(const AABB& aabb, const Frustum& frustum)
+{
+    const glm::vec3& vmin = aabb.min;
+    const glm::vec3& vmax = aabb.max;
+
+    for (size_t i = 0; i < 6; ++i)
+    {
+        const glm::vec4& g = frustum.planes[i];
+        if ((glm::dot(g, glm::vec4(vmin.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmin.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmax.z, 1.0f)) < 0.0))
+        {
+            // Completely outside the frustum
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool AABBVsFrustum_XZPlane(const AABB& aabb, const Frustum& frustum)
+{
+    // Project Frustum corners to 2D (XZ)
+    glm::vec2 f_corners[8];
+    for (int i = 0; i < 8; ++i)
+    {
+        f_corners[i] = glm::vec2(frustum.corners[i].x, frustum.corners[i].z);
+    }
+
+    // Calculate AABB of the Frustum in 2D
+    glm::vec2 f_min = f_corners[0];
+    glm::vec2 f_max = f_corners[0];
+    for (int i = 1; i < 8; ++i)
+    {
+        f_min = glm::min(f_min, f_corners[i]);
+        f_max = glm::max(f_max, f_corners[i]);
+    }
+
+    // Check AABB vs Frustum AABB (SAT on X and Z axes)
+    if (f_max.x < aabb.min.x || f_min.x > aabb.max.x ||
+        f_max.y < aabb.min.z || f_min.y > aabb.max.z)
+    {
+        return false;
+    }
+
+    // SAT on Frustum edges
+    // Edges indices
+    int edges[12][2] = {
+        {0, 1}, {1, 2}, {2, 3}, {3, 0}, // Near plane
+        {4, 5}, {5, 6}, {6, 7}, {7, 4}, // Far plane
+        {0, 4}, {1, 5}, {2, 6}, {3, 7}  // Connecting
+    };
+
+    // AABB corners in 2D
+    glm::vec2 a_corners[4] = {
+        glm::vec2(aabb.min.x, aabb.min.z),
+        glm::vec2(aabb.max.x, aabb.min.z),
+        glm::vec2(aabb.max.x, aabb.max.z),
+        glm::vec2(aabb.min.x, aabb.max.z)
+    };
+
+    for (int i = 0; i < 12; ++i)
+    {
+        glm::vec2 p1 = f_corners[edges[i][0]];
+        glm::vec2 p2 = f_corners[edges[i][1]];
+        glm::vec2 edge = p2 - p1;
+
+        // Skip degenerate edges
+        if (glm::dot(edge, edge) < 1e-6f)
+            continue;
+
+        // Normal (perpendicular) to the edge
+        glm::vec2 normal(-edge.y, edge.x);
+
+        // Project Frustum onto normal
+        float f_min_proj = glm::dot(normal, f_corners[0]);
+        float f_max_proj = f_min_proj;
+        for (int k = 1; k < 8; ++k)
+        {
+            float proj = glm::dot(normal, f_corners[k]);
+            f_min_proj = glm::min(f_min_proj, proj);
+            f_max_proj = glm::max(f_max_proj, proj);
+        }
+
+        // Project AABB onto normal
+        float a_min_proj = glm::dot(normal, a_corners[0]);
+        float a_max_proj = a_min_proj;
+        for (int k = 1; k < 4; ++k)
+        {
+            float proj = glm::dot(normal, a_corners[k]);
+            a_min_proj = glm::min(a_min_proj, proj);
+            a_max_proj = glm::max(a_max_proj, proj);
+        }
+
+        // Check for separation
+        if (f_max_proj < a_min_proj || a_max_proj < f_min_proj)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}

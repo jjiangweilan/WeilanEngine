@@ -177,3 +177,5 @@ bool RayVsMesh(
 
 bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
 bool CircleVsQuad2D(const Circle& circle, const Quad2D& quad);
+bool AABBVsFrustum(const AABB& aabb, const Frustum& frustum);
+bool AABBVsFrustum_XZPlane(const AABB& aabb, const Frustum& frustum);

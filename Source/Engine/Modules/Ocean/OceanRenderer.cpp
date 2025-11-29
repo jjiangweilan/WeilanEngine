@@ -39,7 +39,7 @@ void OceanRenderer::EnsurePatchLodData(OceanQuadTree& quadTree)
         for (int i = 0; i < quadTreeInfo.mipLevels; ++i)
         {
             PatchDesc patchDesc = {
-                .vertices = glm::max((512 >> i) + 1, 17),
+                .vertices = glm::max((256 >> (2 * i)) + 1, 5),
             };
 
             PatchLodData lodData = {.desc = patchDesc, .patch = Rendering::GeneratePlane(patchDesc.meter, patchDesc.meter, patchDesc.vertices, patchDesc.vertices, false), .instanceDataOffset = 0, .instanceCount = 0};

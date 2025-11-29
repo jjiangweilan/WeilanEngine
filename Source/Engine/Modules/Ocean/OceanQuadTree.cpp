@@ -1,7 +1,7 @@
 #include "OceanQuadTree.hpp"
 #include "Core/Math/Geometry.hpp"
 
-void OceanQuadTree::UpdateQuadTree(const float3& center3f)
+void OceanQuadTree::UpdateQuadTree(const float3& center3f, const Frustum& cameraFrustum)
 {
     nodePool.Clear();
     rootNodes.clear();
@@ -29,15 +29,19 @@ void OceanQuadTree::UpdateQuadTree(const float3& center3f)
     {
         for (int y = min.y; y < max.y; y += config.lodMaxNodeSize)
         {
-            auto node = nodePool.Allocate();
-            InitNode(node, x, y, maxLod);
-            rootNodes.push_back(node);
+            AABB aabb(float3(min.x, -100, min.y), float3(max.x, 100, max.y));
+            if (AABBVsFrustum(aabb, cameraFrustum))
+            {
+                auto node = nodePool.Allocate();
+                InitNode(node, x, y, maxLod);
+                rootNodes.push_back(node);
+            }
         }
     }
 
     for (auto& node : rootNodes)
     {
-        DivideNode(node, center);
+        DivideNode(node, center, cameraFrustum);
     }
 }
 
@@ -51,7 +55,7 @@ void OceanQuadTree::InitNode(QuadTreeNode node, int x, int y, int lodLevel)
     node->children.clear();
 }
 
-void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
+void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center, const Frustum& cameraFrustum)
 {
     // this function is called when this node doesn't need to be divided
     auto pushToLodRendering = [this](QuadTreeNode& node)
@@ -77,12 +81,21 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
             int ly = i & 0b10 ? 1 : 0;
             auto child = nodePool.Allocate();
             InitNode(child, node->minPos.x + lx * nextNodeSize, node->minPos.y + ly * nextNodeSize, nextLodLevel);
-            node->children.push_back(child);
+
+            AABB aabb(float3(child->minPos.x, -100, child->minPos.y), float3(child->maxPos.x, 100, child->maxPos.y));
+            if (AABBVsFrustum(aabb, cameraFrustum))
+            {
+                node->children.push_back(child);
+            }
+            else
+            {
+                nodePool.Free(child);
+            }
         }
 
-        for (int i = 0; i < 4; ++i)
+        for (auto& c : node->children)
         {
-            DivideNode(node->children[i], center);
+            DivideNode(c, center, cameraFrustum);
         }
     }
     else

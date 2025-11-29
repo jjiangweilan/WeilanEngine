@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Math/Geometry.hpp"
 #include "Libs/Math.hpp"
 #include "Libs/ObjectPool.hpp"
 #include <span>
@@ -35,7 +36,7 @@ class OceanQuadTree
 {
 public:
     void SetLODLevels(const OceanQuadTreeConfig& config);
-    void UpdateQuadTree(const float3& center);
+    void UpdateQuadTree(const float3& center, const Frustum& cameraFrustum);
 
     std::vector<QuadTreeNode>& GetNodesAtLOD(int lodLevel);
 
@@ -52,7 +53,7 @@ private:
 
     const int nodeMeshMeters = 32;
 
-    void DivideNode(QuadTreeNode node, const float2& center);
+    void DivideNode(QuadTreeNode node, const float2& center, const Frustum& cameraFrustum);
     void InitNode(QuadTreeNode node, int x, int y, int lodLevel);
 
     std::vector<LodLevelNodes> nodeToRender;
