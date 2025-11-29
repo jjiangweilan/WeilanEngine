@@ -15,6 +15,7 @@ void OceanRenderer::Setup(std::span<int> vertexSize)
 
 void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData)
 {
+    cmd.BeginLabel("Ocean Rendering", float4(0.05f, 0.865f, 0.345, 1.0f));
     auto& quadTreeInfo = quadTree.GetQuadTreeInfo();
 
     int totalInstance = 0;
@@ -27,6 +28,7 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, con
     EnsureInstanceBufferSize(totalInstance);
     FillInstanceData(quadTree);
     DrawPatches(cmd, renderingData);
+    cmd.EndLabel();
 }
 
 void OceanRenderer::InitPatchLodData(std::span<int> vertexSize)
