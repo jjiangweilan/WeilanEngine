@@ -122,5 +122,5 @@ void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingD
     Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
 
     quadTree.UpdateQuadTree(renderingData.perScene->cameraParameter.position);
-    renderer.Render(cmd, quadTree);
+    renderer.Render(cmd, quadTree, renderingData);
 }

@@ -2,7 +2,7 @@
 
 namespace Rendering
 {
-std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int vertexCountY)
+std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int vertexCountY, bool centeredInOrigin)
 {
     std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
     if (width <= 0 || height <= 0 || vertexCountX < 2 || vertexCountY < 2)
@@ -20,6 +20,7 @@ std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int
 
     // Generate grid vertices on XY plane (Z = 0), normal (0,0,1)
     // Plane spans [0,width] x [0,height]
+    float2 offset = centeredInOrigin ? float2(width * 0.5f, height * 0.5f) : float2(0, 0);
     for (int y = 0; y < vertCountY; ++y)
     {
         for (int x = 0; x < vertCountX; ++x)
@@ -28,7 +29,7 @@ std::unique_ptr<Mesh> GeneratePlane(int width, int height, int vertexCountX, int
             float fx = (float)x / (float)(vertCountX - 1);
             float fz = (float)y / (float)(vertCountY - 1);
             // Centered plane: shift by half width/height so it spans [-width/2, width/2] x [-height/2, height/2]
-            positions[idx] = glm::vec3(fx * width - width * 0.5f, 0, fz * height - height * 0.5f);
+            positions[idx] = glm::vec3(fx * width - offset.x, 0, fz * height - offset.y);
             uvs[idx] = glm::vec2(fx, fz);
         }
     }

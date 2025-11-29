@@ -5,6 +5,10 @@ void OceanQuadTree::UpdateQuadTree(const float3& center3f)
 {
     nodePool.Clear();
     rootNodes.clear();
+    for (auto& lodNodes : nodeToRender)
+    {
+        lodNodes.clear();
+    }
 
     auto& config = quadTreeConfig;
     float2 center = {center3f.x, center3f.z};
@@ -74,6 +78,11 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center)
             auto child = nodePool.Allocate();
             InitNode(child, node->minPos.x + lx * nextPatchSize, node->minPos.y + ly * nextPatchSize, nextLodLevel);
             node->children.push_back(child);
+        }
+
+        for (int i = 0; i < 4; ++i)
+        {
+            DivideNode(node->children[i], center);
         }
     }
     else

@@ -8,12 +8,12 @@ OceanRenderer::OceanRenderer()
 
 void OceanRenderer::Setup()
 {
-    patch = Rendering::GeneratePlane(meshDesc.meter, meshDesc.meter, meshDesc.vertices, meshDesc.vertices);
+    patch = Rendering::GeneratePlane(meshDesc.meter, meshDesc.meter, meshDesc.vertices, meshDesc.vertices, false);
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree)
+void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData)
 {
     auto& quadTreeInfo = quadTree.GetQuadTreeInfo();
 
@@ -26,7 +26,7 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree)
 
     EnsureInstanceBufferSize(totalInstance);
     FillInstanceData(quadTree);
-    DrawPatches(cmd);
+    DrawPatches(cmd, renderingData);
 }
 
 void OceanRenderer::EnsureInstanceBufferSize(size_t count)
@@ -42,16 +42,25 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count)
         );
         instanceBuffer.cpuData.resize(count);
         instanceBuffer.count = count;
+        patchRenderShaderResource->SetBuffer("instanceData", instanceBuffer.buffer.get());
     }
 }
 
-void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd)
+void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
 {
     auto submesh = patch->GetSubmesh(0);
     auto shader = oceanPatchShader->GetShaderProgram();
+    auto renderPipelineSettings = renderingData.renderPipelineSettings;
 
     cmd.BindResource(1, patchRenderShaderResource.get());
-    cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+    if (renderPipelineSettings->debugDraw.wireframe)
+    {
+        auto config = *shader->GetDefaultShaderConfig();
+        config.polygonMode = Gfx::PolygonMode::Line;
+        cmd.BindShaderProgram(shader, config);
+    }
+    else
+        cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
     cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
     cmd.BindVertexBuffer(submesh->GetGfxVertexBufferBindings(), 0);
     cmd.DrawIndexed(submesh->GetIndexCount(), instanceBuffer.count, 0, 0, 0);

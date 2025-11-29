@@ -3,6 +3,7 @@
 
 #include "Core/Graphics/Mesh.hpp"
 #include "Core/Ptr.hpp"
+#include "Rendering/RenderingData.hpp"
 
 #include "GfxDriver/Buffer.hpp"
 #include "Modules/Ocean/OceanQuadTree.hpp"
@@ -14,7 +15,7 @@ public:
     OceanRenderer();
 
     void Setup();
-    void Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree);
+    void Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData);
 
 private:
     // MAKE SURE this is stricly packed
@@ -43,5 +44,5 @@ private:
 
     void EnsureInstanceBufferSize(size_t count);
     void FillInstanceData(OceanQuadTree& quadTree);
-    void DrawPatches(Gfx::CommandBuffer& cmd);
+    void DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& data);
 };
