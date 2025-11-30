@@ -8,6 +8,8 @@ OceanRenderer::OceanRenderer()
     patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
     oceanParamsSetIndex = oceanPatchShader->GetSet("params");
     oceanMaterialSetIndex = oceanPatchShader->GetSet("mat");
+
+    patchRenderShaderResource->SetBuffer("buffer", &*rendererInputUBO);
 }
 
 void OceanRenderer::Setup(std::span<int> vertexSize)
@@ -66,11 +68,23 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count)
 
 void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& renderingData)
 {
+    // Prepare patchRenderShaderResource //
+    auto rendererInputUBOVal = *rendererInputUBO.GetPtr();
+    auto& depthTexDescription = renderingData.depthCopy->GetDescription();
+    rendererInputUBOVal.depthTexSize = {
+        depthTexDescription.width,
+        depthTexDescription.height,
+        1.0f / depthTexDescription.width,
+        1.0f / depthTexDescription.height
+    };
+    rendererInputUBO.SetAndUpload(rendererInputUBOVal);
+    patchRenderShaderResource->SetImage("depthTex", renderingData.depthCopy);
+
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;
 
-    cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
     cmd.BindResource(oceanMaterialSetIndex, waveMaterial.GetShaderResource());
+    cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
     if (renderPipelineSettings->debugDraw.wireframe)
     {
         auto config = *shader->GetDefaultShaderConfig();

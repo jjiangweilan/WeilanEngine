@@ -53,7 +53,7 @@ GPUParameter::Camera RenderingUtils::CreateCameraGPUParameter(
 
     // update camera parameters
     cameraParam.position = viewPos;
-    cameraParam.cameraZBufferParams = glm::vec4(near, far, (near - far) / (near * far), 1.0f / near);
+    cameraParam.cameraZBufferParams = glm::vec4(near, far, (far - near) / (near * far), 1.0f / far);
     cameraParam.cameraFrustum = glm::vec4(-right, right, -top, top);
     cameraParam.view = viewMatrix;
     cameraParam.projection = projectionMatrix;

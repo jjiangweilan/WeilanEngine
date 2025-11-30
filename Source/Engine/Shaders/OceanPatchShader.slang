@@ -1,5 +1,11 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
+
+#if CONFIG
+blend:
+    - one srcAlpha
+#endif
 
 #include "GerstnerWave.hlsl"
 
@@ -10,9 +16,17 @@ struct GPUNodeInstanceData
     float2 scale;
 };
 
+struct RendererInputBuffer
+{
+    float4 depthTexSize;
+};
+
 struct InputParams
 {
+    ConstantBuffer<RendererInputBuffer> buffer;
     StructuredBuffer<GPUNodeInstanceData> instanceData;
+    Texture2D depthTex;
+    SamplerState _PointClampSampler;
 };
 
 struct Attributes
@@ -40,6 +54,7 @@ struct MaterialInput
     [[Color]] float4 waveBottomColor;
     float areaScale;
     float yOffset;
+    float fodDensity;
     int waveCount;
     StructuredBuffer<Wave> waves;
 }
@@ -84,37 +99,45 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
 [shader("fragment")]
 float4 Fragment(Varyings input) : SV_Target
 {
+    float2 screenUV = (input.position.xy + 0.5) * params.buffer.depthTexSize.zw;
+
+    float sceneDepth = params.depthTex.SampleLevel(params._PointClampSampler, screenUV, 0).r;
+    float sceneDepthVS = LinearEyeDepth(sceneDepth, perScene.camera.cameraZBufferParams);
+    float depthVS = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
+    float depthDiff = max(0, sceneDepthVS - depthVS);
+    float fog = saturate(exp2(-depthDiff * mat.fodDensity));
+
     // Ocean material properties
     float3 baseColor = float3(0.02, 0.15, 0.3); // Deep ocean blue
     float metallic = 0.0; // Water is non-metallic
     float roughness = 0.05; // Very smooth surface
     float subsurfaceStrength = 0.3;
     float3 waveOffset = input.waveOffset;
-    
+
     // Normalize interpolated vectors
     float3 N = normalize(input.normalWS);
     float3 V = normalize(perScene.camera.position.xyz - input.positionWS);
-    
+
     // Lighting accumulation
     float3 finalColor = float3(0, 0, 0);
-    
+
     // Process each light
     for (int i = 0; i < perScene.scene.lightCount; i++)
     {
         Light light = perScene.scene.lights[i];
         float4 lightPos = light.position;
-        
+
         // Calculate light direction
         float3 L = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - input.positionWS);
         float3 H = normalize(L + V);
-        
+
         float NdotL = max(dot(N, L), 0.0);
         finalColor = NdotL * light.lightColor.xyz;
     }
 
-    
+
     float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
     float3 color = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
 
-    return float4(color, 1);
+    return float4(color, fog);
 }

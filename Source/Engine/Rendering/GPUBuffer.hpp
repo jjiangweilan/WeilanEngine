@@ -29,8 +29,11 @@ public:
 
     void SetAndUpload(T& newVal)
     {
-        cpuVal = newVal;
-        GetGfxDriver()->UploadBuffer(*buffer, (uint8_t*)&cpuVal, GetSize());
+        if (memcmp(&newVal, &cpuVal, sizeof(T)))
+        {
+            cpuVal = newVal;
+            GetGfxDriver()->UploadBuffer(*buffer, (uint8_t*)&cpuVal, GetSize());
+        }
     }
 
     size_t GetSize()

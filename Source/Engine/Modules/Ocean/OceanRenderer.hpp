@@ -3,6 +3,7 @@
 
 #include "Core/Graphics/Mesh.hpp"
 #include "Core/Ptr.hpp"
+#include "Rendering/GPUBuffer.hpp"
 #include "Rendering/RenderingData.hpp"
 
 #include "GfxDriver/Buffer.hpp"
@@ -33,9 +34,6 @@ private:
         int count = 0;
     } instanceBuffer;
 
-    ObjPtr<Shader> oceanPatchShader;
-    std::unique_ptr<Gfx::ShaderResource> patchRenderShaderResource;
-
     struct PatchDesc
     {
         static const int meter = 1; // not really meaningful parameter, the mesh will be scaled eventually to match the node size, change vertices to adjust resolution
@@ -49,6 +47,17 @@ private:
         int instanceDataOffset;
         int instanceCount;
     };
+
+    struct RendererInputBuffer
+    {
+        float4 depthTexSize;
+    };
+
+    GPUBuffer<RendererInputBuffer> rendererInputUBO;
+
+    ObjPtr<Shader> oceanPatchShader;
+    std::unique_ptr<Gfx::ShaderResource> patchRenderShaderResource;
+
     std::vector<PatchLodData> patchLodDatas{};
     int oceanParamsSetIndex;
     int oceanMaterialSetIndex;
