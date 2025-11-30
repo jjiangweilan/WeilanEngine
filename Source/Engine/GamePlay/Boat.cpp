@@ -52,7 +52,7 @@ void Boat::UpdateBoat(OceanComponent* ocean)
     {
         float3 normal;
         float3 waveOffset;
-        GPUResources::GerstenerWave(goPosition + b.samplePosition, waves.data(), waves.size(), ocean->GetAreaScale(), Time::TimeSinceLaunch(), normal, waveOffset);
+        GPUResources::GerstnerWave(goPosition + b.samplePosition, waves.data(), waves.size(), ocean->GetAreaScale(), Time::TimeSinceLaunch(), normal, waveOffset);
 
         b.outWorldPosition = b.samplePosition + goPosition + float3(0, waveOffset.y, 0);
     }

@@ -2,11 +2,6 @@ import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
 
-#if CONFIG
-blend:
-    - one srcAlpha
-#endif
-
 #include "GerstnerWave.hlsl"
 
 // should match the declaration in OceanRenderer
@@ -26,7 +21,9 @@ struct InputParams
     ConstantBuffer<RendererInputBuffer> buffer;
     StructuredBuffer<GPUNodeInstanceData> instanceData;
     Texture2D depthTex;
+    Texture2D colorTex;
     SamplerState _PointClampSampler;
+    SamplerState _LinearClampSampler;
 };
 
 struct Attributes
@@ -84,7 +81,7 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
     float time = perScene.scene.time;
     float3 normalWS = float3(0,0,0);
     float3 waveOffset = float3(0,0,0);
-    positionWS = GerstenerWave(positionWS, mat.waves, mat.waveCount, mat.areaScale, time, normalWS, waveOffset);
+    positionWS = GerstnerWave(positionWS, mat.waves, mat.waveCount, mat.areaScale, time, normalWS, waveOffset);
 
     float4 positionCS = perScene.WorldToClipSpace(positionWS);
 
@@ -101,6 +98,7 @@ float4 Fragment(Varyings input) : SV_Target
 {
     float2 screenUV = (input.position.xy + 0.5) * params.buffer.depthTexSize.zw;
 
+    // Calculate fog
     float sceneDepth = params.depthTex.SampleLevel(params._PointClampSampler, screenUV, 0).r;
     float sceneDepthVS = LinearEyeDepth(sceneDepth, perScene.camera.cameraZBufferParams);
     float depthVS = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
@@ -122,6 +120,8 @@ float4 Fragment(Varyings input) : SV_Target
     float3 finalColor = float3(0, 0, 0);
 
     // Process each light
+    float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
+    float3 baseBlendColor = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
     for (int i = 0; i < perScene.scene.lightCount; i++)
     {
         Light light = perScene.scene.lights[i];
@@ -132,12 +132,12 @@ float4 Fragment(Varyings input) : SV_Target
         float3 H = normalize(L + V);
 
         float NdotL = max(dot(N, L), 0.0);
-        finalColor = NdotL * light.lightColor.xyz;
+        finalColor += NdotL * light.lightColor.xyz * baseBlendColor;
     }
 
+    // transmitted light from bottom of the ocean
+    float3 sceneColor = params.colorTex.SampleLevel(params._LinearClampSampler, screenUV, 0).xyz;
+    float3 transmitted = sceneColor * baseColor * fog;
 
-    float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
-    float3 color = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
-
-    return float4(color, fog);
+    return float4(finalColor + transmitted, 1.0);
 }

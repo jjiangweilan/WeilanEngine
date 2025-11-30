@@ -217,6 +217,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             renderingData
         );
 
+        cmd->Blit(mainColor, colorCopy);
         cmd->EndRenderPass();
     }
     cmd->EndLabel(); // Shading
@@ -403,6 +404,7 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
 
     mainColorDescription.SetRandomWrite(true);
     AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
+    AllocateImage(*cmd, colorCopy, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
     AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
     AllocateImage(*cmd, depthCopy, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
 
@@ -420,6 +422,7 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
     renderingData.depthCopy = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
+    renderingData.colorCopy = GetGfxDriver()->GetImageFromRenderGraph(colorCopy);
     renderingData.scene = &scene;
     UpdateSceneInfo(scene, camera, screenSize);
     return true;

@@ -64,7 +64,7 @@ VertexOutput Vertex(VertexInput input)
 
     float3 normal = float3(0,0,0);
     float3 waveOffset = float3(0,0,0);
-    output.positionWS = GerstenerWave(worldPos, mat.waves, mat.waveCount, mat.areaScale, time, normal, waveOffset);
+    output.positionWS = GerstnerWave(worldPos, mat.waves, mat.waveCount, mat.areaScale, time, normal, waveOffset);
 
     // Calculate normal from tangent and binormal
     // float3 normal = normalize(cross(tangent, binormal));

@@ -56,6 +56,7 @@ class RenderPipeline
     Gfx::ImageIdentifier mainColor = "mainColor";
     Gfx::ImageIdentifier mainDepth = "mainDepth";
     Gfx::ImageIdentifier depthCopy = "depthCopy";
+    Gfx::ImageIdentifier colorCopy = "colorCopy";
     Gfx::ImageIdentifier downSampledDepthCopy = "downSampledDepthCopy";
     Gfx::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::ImageIdentifier normalGBuffer = "normalGBuffer";
