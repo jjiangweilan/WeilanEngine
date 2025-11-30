@@ -6,6 +6,8 @@ OceanRenderer::OceanRenderer()
 {
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
+    oceanParamsSetIndex = oceanPatchShader->GetSet("params");
+    oceanMaterialSetIndex = oceanPatchShader->GetSet("mat");
 }
 
 void OceanRenderer::Setup(std::span<int> vertexSize)
@@ -13,7 +15,7 @@ void OceanRenderer::Setup(std::span<int> vertexSize)
     InitPatchLodData(vertexSize);
 }
 
-void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData)
+void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, Material& waveMaterial, const Rendering::RenderingData& renderingData)
 {
     cmd.BeginLabel("Ocean Rendering", float4(0.05f, 0.865f, 0.345, 1.0f));
     auto& quadTreeInfo = quadTree.GetQuadTreeInfo();
@@ -27,7 +29,7 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, con
 
     EnsureInstanceBufferSize(totalInstance);
     FillInstanceData(quadTree);
-    DrawPatches(cmd, renderingData);
+    DrawPatches(cmd, waveMaterial, renderingData);
     cmd.EndLabel();
 }
 
@@ -62,12 +64,13 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count)
     }
 }
 
-void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& renderingData)
 {
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;
 
-    cmd.BindResource(1, patchRenderShaderResource.get());
+    cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
+    cmd.BindResource(oceanMaterialSetIndex, waveMaterial.GetShaderResource());
     if (renderPipelineSettings->debugDraw.wireframe)
     {
         auto config = *shader->GetDefaultShaderConfig();

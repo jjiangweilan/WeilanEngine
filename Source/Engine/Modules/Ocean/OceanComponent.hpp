@@ -71,7 +71,6 @@ private:
     ObjPtr<Shader> oceanShader;
 
     Material material;
-    int materialSet;
     float areaScale;
     OceanConfig config;
 

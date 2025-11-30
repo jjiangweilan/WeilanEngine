@@ -107,8 +107,11 @@ GameEditor::GameEditor(const char* path)
     if (!lastActiveSceneUUID.IsEmpty())
     {
         auto scene = (Scene*)engine->assetDatabase->LoadScene(lastActiveSceneUUID);
-        SceneManager::SetActiveScene(scene);
-        loop->SetScene(*scene);
+        if (scene)
+        {
+            SceneManager::SetActiveScene(scene);
+            loop->SetScene(*scene);
+        }
     }
 
     // Initialize standalone window implementations

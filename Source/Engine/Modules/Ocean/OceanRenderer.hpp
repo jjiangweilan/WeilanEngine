@@ -16,7 +16,7 @@ public:
 
     // vertexSize's count should match quadTree's LOD level count
     void Setup(std::span<int> vertexSize);
-    void Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, const Rendering::RenderingData& renderingData);
+    void Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, Material& waveMaterial, const Rendering::RenderingData& renderingData);
 
 private:
     // MAKE SURE this is stricly packed
@@ -50,9 +50,11 @@ private:
         int instanceCount;
     };
     std::vector<PatchLodData> patchLodDatas{};
+    int oceanParamsSetIndex;
+    int oceanMaterialSetIndex;
 
     void EnsureInstanceBufferSize(size_t count);
     void InitPatchLodData(std::span<int> vertexSize);
     void FillInstanceData(OceanQuadTree& quadTree);
-    void DrawPatches(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& data);
+    void DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& data);
 };

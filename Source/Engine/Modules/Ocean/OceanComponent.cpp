@@ -30,8 +30,7 @@ void OceanComponent::OnInit()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
     plane = Rendering::GeneratePlane(1, 1, 256, 256);
-    oceanShader = ShaderLibrary::GetShader(Shaders::Ocean);
-    materialSet = oceanShader->GetSet(Gfx::DescriptorSetSemantics::Material);
+    oceanShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     material.SetShader(oceanShader);
 
     UpdateWaveBuffer();
@@ -105,26 +104,11 @@ void OceanComponent::UpdateWaveBuffer()
     material.SetBuffer("waves", waveBuffer.get());
     material.SetFloat("areaScale", areaScale);
     material.SetFloat("waveCount", (float)upload.size());
+    material.SetFloat("yOffset", GetGameObject()->GetPosition().y);
 }
 
 void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
 {
-    auto currentPolygonMode = material.GetShaderConfig()->polygonMode;
-    auto settings = renderingData.renderPipelineSettings;
-    if (settings->debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Line)
-    {
-        auto config = *material.GetShaderConfig();
-        config.polygonMode = Gfx::PolygonMode::Line;
-        material.SetShaderConfig(config);
-    }
-    else if (!settings->debugDraw.wireframe && currentPolygonMode != Gfx::PolygonMode::Fill)
-    {
-        auto config = *material.GetShaderConfig();
-        config.polygonMode = Gfx::PolygonMode::Fill;
-        material.SetShaderConfig(config);
-    }
-    // Rendering::DrawMesh(cmd, *plane, material, gameObject->GetWorldMatrix(), materialSet);
-
     quadTree.UpdateQuadTree(renderingData.perScene->cameraParameter.position, renderingData.cameraFrustum);
-    renderer.Render(cmd, quadTree, renderingData);
+    renderer.Render(cmd, quadTree, material, renderingData);
 }
