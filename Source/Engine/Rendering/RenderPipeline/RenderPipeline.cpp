@@ -217,8 +217,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             renderingData
         );
 
-        cmd->Blit(mainColor, colorCopy);
         cmd->EndRenderPass();
+
+        cmd->Blit(mainColor, colorCopy);
     }
     cmd->EndLabel(); // Shading
 
