@@ -80,6 +80,7 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     rendererInputUBO.SetAndUpload(rendererInputUBOVal);
     patchRenderShaderResource->SetImage("depthTex", renderingData.depthCopy);
     patchRenderShaderResource->SetImage("colorTex", renderingData.colorCopy);
+    patchRenderShaderResource->SetImage("specularCubemap", renderingData.specularCubemap);
 
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;

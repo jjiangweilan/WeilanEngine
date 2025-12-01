@@ -23,6 +23,7 @@ struct InputParams
     StructuredBuffer<GPUNodeInstanceData> instanceData;
     Texture2D depthTex;
     Texture2D colorTex;
+    TextureCube specularCubemap;
     SamplerState _PointClampSampler;
     SamplerState _LinearClampSampler;
 };
@@ -122,7 +123,7 @@ float4 Fragment(Varyings input) : SV_Target
 
     ShadingObject shadingObject;
     shadingObject.positionWS = input.positionWS;
-    shadingObject.normalWS = input.normalWS;
+    shadingObject.normalWS = normalize(input.normalWS);
     shadingObject.baseColor = baseBlendColor;
     shadingObject.viewDir = normalize(perScene.camera.position.xyz - input.positionWS.xyz);
     shadingObject.metallic = 0.0f;
@@ -132,7 +133,10 @@ float4 Fragment(Varyings input) : SV_Target
         Light light = perScene.scene.lights[i];
         float4 lightPos = light.position;
 
-        finalColor += StandardLightShading_DirectLightOnly(
+        float3 fresnel = Fresnel_Schlick(dot(shadingObject.normalWS, shadingObject.viewDir), 0);
+        float specularCubemapBias = 0.5;
+        finalColor += fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, specularCubemapBias).xyz + 
+        StandardLightShading_DirectLightOnly(
         params._LinearClampSampler,
         params._PointClampSampler,
         screenUV,

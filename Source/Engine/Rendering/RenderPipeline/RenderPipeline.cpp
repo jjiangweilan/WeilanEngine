@@ -99,12 +99,13 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Reflection Probe Updateo
 
-    auto reflectionProbes = renderingScene.GetRenderingObjects<ReflectionProbe>();
-    for (RenderingObjectBase* r : reflectionProbes)
-    {
-        ReflectionProbe* reflectionProbe = static_cast<ReflectionProbe*>(r);
-        reflectionProbeUpdate->Execute(*cmd, renderingData, *reflectionProbe);
-    }
+    // auto reflectionProbes = renderingScene.GetRenderingObjects<ReflectionProbe>();
+    // for (RenderingObjectBase* r : reflectionProbes)
+    // {
+    //     ReflectionProbe* reflectionProbe = static_cast<ReflectionProbe*>(r);
+    // }
+    reflectionProbeUpdate->Execute(*cmd, renderingData);
+    renderingData.specularCubemap = reflectionProbeUpdate->GetIBLCubemap();
 
     cmd->BindResource(0, perScene.globalResource.get());
 

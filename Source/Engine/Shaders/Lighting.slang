@@ -108,6 +108,12 @@ float3 Fresnel(float3 albedo, float metallic, float dotVH)
     return F0 + (1 - F0) * attenuation;
 }
 
+float Fresnel_Schlick(float dotNV, float metallic)
+{
+    float F0 = lerp(0.04, 1.0, metallic);
+    return (F0 + (1.0-F0)*(pow(1.0 - max(0.0, dotNV), 5.0)));
+}
+
 // https://google.github.io/filament/Filament.html
 // this handles half precision well
 #define MEDIUMP_FLT_MAX    65504.0
