@@ -141,6 +141,13 @@ public:
             waveChanged = true;
         }
 
+        ImGui::SameLine();
+
+        if (EditorGUI::ButtonSimple("Randomize Waves"))
+        {
+            ocean->RandomizeWaves(waves.size());
+        }
+
         if (waveChanged || globalChanged)
         {
             ocean->UpdateWaveBuffer();

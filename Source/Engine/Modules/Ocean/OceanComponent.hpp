@@ -53,6 +53,7 @@ public:
     void Reset();
     void OnInit() override;
     void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData) override;
+    void RandomizeWaves(int iteration);
 
     std::vector<CPUWave>& GetWaves() { return waves; }
     CPUWave& GetGlobalTweak() { return globalTweak; }
