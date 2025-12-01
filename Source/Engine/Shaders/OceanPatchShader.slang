@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
+import Lighting;
 
 #include "GerstnerWave.hlsl"
 
@@ -112,32 +113,36 @@ float4 Fragment(Varyings input) : SV_Target
     float subsurfaceStrength = 0.3;
     float3 waveOffset = input.waveOffset;
 
-    // Normalize interpolated vectors
-    float3 N = normalize(input.normalWS);
-    float3 V = normalize(perScene.camera.position.xyz - input.positionWS);
-
     // Lighting accumulation
     float3 finalColor = float3(0, 0, 0);
 
     // Process each light
     float colorBlend = saturate(waveOffset.y / (mat.waveColorBlend.y - mat.waveColorBlend.x));
     float3 baseBlendColor = lerp(mat.waveBottomColor.xyz, mat.waveTopColor.xyz, colorBlend);
+
+    ShadingObject shadingObject;
+    shadingObject.positionWS = input.positionWS;
+    shadingObject.normalWS = input.normalWS;
+    shadingObject.baseColor = baseBlendColor;
+    shadingObject.viewDir = normalize(perScene.camera.position.xyz - input.positionWS.xyz);
+    shadingObject.metallic = 0.0f;
+    shadingObject.roughness = 0.1f;
     for (int i = 0; i < perScene.scene.lightCount; i++)
     {
         Light light = perScene.scene.lights[i];
         float4 lightPos = light.position;
 
-        // Calculate light direction
-        float3 L = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - input.positionWS);
-        float3 H = normalize(L + V);
-
-        float NdotL = max(dot(N, L), 0.0);
-        finalColor += NdotL * light.lightColor.xyz * baseBlendColor;
+        finalColor += StandardLightShading_DirectLightOnly(
+        params._LinearClampSampler,
+        params._PointClampSampler,
+        screenUV,
+        perScene.scene.lights[i],
+        perScene.mainLightShadow, shadingObject);
     }
 
     // transmitted light from bottom of the ocean
     float3 sceneColor = params.colorTex.SampleLevel(params._LinearClampSampler, screenUV, 0).xyz;
-    float3 transmitted = sceneColor * baseColor * fog;
+    float3 transmitted = sceneColor * fog;
 
     return float4(finalColor + transmitted, 1.0);
 }

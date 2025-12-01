@@ -158,6 +158,42 @@ float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic,
     return brdf;
 }
 
+float3 StandardLightShading_DirectLightOnly(
+        SamplerState linearClamp,
+        SamplerState pointClamp,
+        float2 screenUV,
+        Light light,
+        MainLightShadow mainLightShadow,
+        ShadingObject object)
+{
+        float4 lightPos = light.position;
+        float3 objPos = object.positionWS;
+        float3 objNormal = object.normalWS;
+
+        float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - objPos);
+
+        float dotNL = max(dot(objNormal, l), NearZero);
+        float3 F = 0.0f;
+        float3 specularBrdf = SpecularBRDF(object.baseColor, l, object.viewDir, object.normalWS, object.metallic, object.roughness, F);
+
+        float3 kd = 1 - F;
+        kd *= 1 - object.metallic;
+
+        float3 inputLight = dotNL * light.intensity * light.lightColor.xyz;
+
+        // falloff
+        float falloff = 1.0f;
+        if (lightPos.a != 0) 
+        {
+            falloff = PointLightInverseSquareFalloff(distance(lightPos.xyz, object.positionWS.xyz),  light.pointLightTerm2);
+        }
+
+        float3 lighting = inputLight * (kd * object.baseColor / M_PI + specularBrdf) * falloff; // this looks wrong for metal, metal shouldn't diffuse too much
+
+        float3 color = lighting;
+        return color;
+}
+
 float3 StandardLightShading(
         SamplerState linearClamp,
         SamplerState pointClamp,
