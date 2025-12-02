@@ -444,7 +444,7 @@ void AssetBrowser::ShowAssetIconItem(
 
     ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
     isHovered = ImGui::IsItemHovered();
-    isClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+    isClicked = isHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
     isDoubleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
     isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 
