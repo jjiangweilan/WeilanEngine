@@ -1,5 +1,5 @@
-#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
+#include "Editor/EditorState.hpp"
 #include "Modules/Ocean/OceanComponent.hpp"
 
 namespace Editor
@@ -79,7 +79,7 @@ public:
 
         float& areaScale = target->GetAreaScale();
         globalChanged |= EditorGUI::DragFloat("areaScale", &areaScale);
-        EditorGUI::DrawMaterial(material, {"waveCount", "areaScale"});
+        EditorGUI::DrawMaterial(material, {"waveCount", "areaScale", "yOffset"});
 
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
 

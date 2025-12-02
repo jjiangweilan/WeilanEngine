@@ -63,6 +63,7 @@ public:
     const std::vector<GPUResources::Wave>& GetGPUWaveCache() { return gpuWaveCache; };
 
     void UpdateWaveBuffer();
+    void TransformChanged() override;
 
 private:
     OceanRenderer renderer;
