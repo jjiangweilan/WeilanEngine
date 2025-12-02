@@ -133,9 +133,14 @@ float4 Fragment(Varyings input) : SV_Target
         Light light = perScene.scene.lights[i];
         float4 lightPos = light.position;
 
-        float3 fresnel = Fresnel_Schlick(dot(shadingObject.normalWS, shadingObject.viewDir), 0);
+        float3 halfVector = normalize(shadingObject.viewDir + lightPos.xyz);
+        float3 fresnel = Fresnel_Schlick(dot(halfVector, shadingObject.viewDir), 0.04f);
         float specularCubemapBias = 0.5;
-        finalColor += fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, specularCubemapBias).xyz + 
+        finalColor +=
+        fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, specularCubemapBias).xyz
+        +
+        baseBlendColor * 1 /3.1415926 * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, 6).xyz // ambient
+        +
         StandardLightShading_DirectLightOnly(
         params._LinearClampSampler,
         params._PointClampSampler,

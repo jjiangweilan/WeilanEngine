@@ -100,6 +100,7 @@ float3 CalcDiffuseCubemap(float3 n, SamplerCube diffuseCubemap, float metallic, 
     return ambient;
 }
 
+// Not Correct
 float3 Fresnel(float3 albedo, float metallic, float dotVH)
 {
     float3 F0 = float3(0.04); 
@@ -108,10 +109,10 @@ float3 Fresnel(float3 albedo, float metallic, float dotVH)
     return F0 + (1 - F0) * attenuation;
 }
 
-float Fresnel_Schlick(float dotNV, float metallic)
+float3 Fresnel_Schlick(float dotVH, float3 f0)
 {
-    float F0 = lerp(0.04, 1.0, metallic);
-    return (F0 + (1.0-F0)*(pow(1.0 - max(0.0, dotNV), 5.0)));
+    const float f90 = 1.0; // most Observation of real world materials show that both dielectrics and conductors exhibit achromatic specular reflectance at grazing angles and that the Fresnel reflectance is 1.0 at 90° [filament pbr rendering]
+    return (f0 + (f90-f0)*(pow(1.0 - max(0.0, dotVH), 5.0)));
 }
 
 // https://google.github.io/filament/Filament.html
@@ -158,7 +159,7 @@ float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic,
     float G = G_SmithGGX(dotNV, dotNL, roughness);
 
     // fresnel
-    F = Fresnel(albedo, metallic, dotVH);
+    F = Fresnel_Schlick(dotVH, lerp(0.04, albedo, metallic));
 
     float3 brdf = G * D * F / (4 * dotNL * dotNV);
     return brdf;
