@@ -139,19 +139,14 @@ float4 Fragment(Varyings input) : SV_Target
     shadingObject.viewDir = normalize(perScene.camera.position.xyz - input.positionWS.xyz);
     shadingObject.metallic = 0.0f;
     shadingObject.roughness = 0.1f;
+
+    // Add direct lights
     for (int i = 0; i < perScene.scene.lightCount; i++)
     {
         Light light = perScene.scene.lights[i];
         float4 lightPos = light.position;
 
-        float3 halfVector = normalize(shadingObject.viewDir + lightPos.xyz);
-        float3 fresnel = Fresnel_Schlick(dot(halfVector, shadingObject.viewDir), 0.04f);
-        float specularCubemapBias = 0.5;
         finalColor +=
-        fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, specularCubemapBias).xyz
-        +
-        baseBlendColor * 1 /3.1415926 * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, 6).xyz // ambient
-        +
         StandardLightShading_DirectLightOnly(
         params._LinearClampSampler,
         params._PointClampSampler,
@@ -159,6 +154,15 @@ float4 Fragment(Varyings input) : SV_Target
         perScene.scene.lights[i],
         perScene.mainLightShadow, shadingObject);
     }
+
+    // Add ambient
+    finalColor += baseBlendColor * 1 /3.1415926 * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, 6).xyz;
+
+    // Add Skybox reflectance
+    float3 fresnel = Fresnel_Schlick(dot(shadingObject.viewDir, shadingObject.normalWS), 0.02f); // water's IOR is 1.33, so the base reflectance is about 0.02 ((n-1)/(n+1))^2
+    float3 reflectedRay = normalize(reflect(shadingObject.viewDir, shadingObject.normalWS));
+    float specularCubemapBias = 0.5;
+    finalColor += fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, reflectedRay, specularCubemapBias).xyz;
 
     // transmitted light from bottom of the ocean
     float3 sceneColor = params.colorTex.SampleLevel(params._LinearClampSampler, screenUV, 0).xyz;
