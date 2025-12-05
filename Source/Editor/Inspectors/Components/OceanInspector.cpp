@@ -77,14 +77,13 @@ public:
 
         auto& material = target->GetMaterial();
 
+        bool waveChanged = false;
+
         float& areaScale = target->GetAreaScale();
         globalChanged |= EditorGUI::DragFloat("areaScale", &areaScale);
         EditorGUI::DrawMaterial(material, {"waveCount", "areaScale", "yOffset"});
 
         EditorGUI::SeparatorTextLabeled("Ocean Waves");
-
-        bool waveChanged = false;
-
         for (size_t i = 0; i < waves.size(); ++i)
         {
             ImGui::PushID(static_cast<int>(i));

@@ -533,6 +533,7 @@ Scene* AssetDatabase::LoadScene(const UUID& sceneUUID)
     if (assetData)
     {
         auto scene = asyncLoadProcessor.LoadAssetJob(assetData->GetAssetPath(), assetData);
+        asyncLoadProcessor.SyncLoad(); // make sure all dependent assets are loaded
         if (scene)
         {
             Asset* scenePtr = assetData->SetAsset(std::move(scene), projectRoot);

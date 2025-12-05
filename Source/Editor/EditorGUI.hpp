@@ -1,8 +1,8 @@
 #pragma once
-#include "Editor/EditorState.hpp"
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
+#include "Editor/EditorState.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Math.hpp"
 #include "Libs/Serialization/JsonSerializer.hpp"
@@ -490,13 +490,15 @@ public:
         ImGui::GetWindowDrawList()->AddImage(&image.GetDefaultImageView(), minPos, maxPos);
     }
 
+    static Texture* TextureField(const std::string& name, Texture* texture);
+
     static bool InputText(const char* label, std::string& text, const char* hind = nullptr, ImGuiInputTextFlags flags = 0)
     {
         if (textArea.size() < text.size() + 1)
         {
             textArea.resize((text.size() + 1) * 2);
         }
-        
+
         bool output = false;
         std::strcpy(textArea.data(), text.data());
         std::memset(textArea.data() + text.size(), 0, textArea.size() - text.size());

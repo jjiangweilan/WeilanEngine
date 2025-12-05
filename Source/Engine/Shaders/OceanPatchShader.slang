@@ -26,6 +26,7 @@ struct InputParams
     TextureCube specularCubemap;
     SamplerState _PointClampSampler;
     SamplerState _LinearClampSampler;
+    SamplerState _LinearRepeatSampler;
 };
 
 struct Attributes
@@ -122,7 +123,7 @@ float4 Fragment(Varyings input) : SV_Target
     float3 normalWS = normalize(input.normalWS);
     float3 tangentWS = normalize(input.tangentWS);
     float3 binormal = cross(normalWS, tangentWS);
-    float3 normalMap = mat.waterNormalTex.Sample(params._LinearClampSampler, input.positionWS.xz).xyz * 2.0 - 1.0;
+    float3 normalMap = mat.waterNormalTex.Sample(params._LinearRepeatSampler, input.positionWS.xz * 0.2 + float2(perScene.scene.time, perScene.scene.time) * 0.1).xyz * 2.0 - 1.0;
     float3 normal = normalize(tangentWS * normalMap.x + binormal * normalMap.y + normalWS * normalMap.z);
 
     // Lighting accumulation
@@ -160,8 +161,8 @@ float4 Fragment(Varyings input) : SV_Target
 
     // Add Skybox reflectance
     float3 fresnel = Fresnel_Schlick(dot(shadingObject.viewDir, shadingObject.normalWS), 0.02f); // water's IOR is 1.33, so the base reflectance is about 0.02 ((n-1)/(n+1))^2
-    float3 reflectedRay = normalize(reflect(shadingObject.viewDir, shadingObject.normalWS));
-    float specularCubemapBias = 0.5;
+    float3 reflectedRay = normalize(reflect(-shadingObject.viewDir, shadingObject.normalWS));
+    float specularCubemapBias = 0.3;
     finalColor += fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, reflectedRay, specularCubemapBias).xyz;
 
     // transmitted light from bottom of the ocean

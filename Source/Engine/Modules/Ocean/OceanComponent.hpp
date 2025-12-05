@@ -64,6 +64,7 @@ public:
 
     void UpdateWaveBuffer();
     void TransformChanged() override;
+    void OnLoaded() override;
 
 private:
     OceanRenderer renderer;

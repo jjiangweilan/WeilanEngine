@@ -26,6 +26,11 @@ DEFINE_SERIALIZATION(
     SER(config)
 )
 
+void OceanComponent::OnLoaded()
+{
+    material.OnLoaded();
+}
+
 void OceanComponent::OnInit()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);

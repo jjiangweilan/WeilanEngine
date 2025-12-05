@@ -1,6 +1,7 @@
 
 #include "EditorGUI.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Texture.hpp"
 #include "Libs/Serialization/SerializationSequenceFetcher.hpp"
 #include "Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -408,45 +409,56 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
                     }
 
                     auto texture = material.GetTexture(binding->name);
-                    if (texture != nullptr)
+                    Texture* newTexture = EditorGUI::TextureField(binding->name, texture);
+                    if (newTexture != texture)
                     {
-                        ImGui::Text("Texture: %s", binding->name.c_str());
-                        ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
-                        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                        {
-                            EditorState::SelectObject(texture);
-                        }
-                        std::filesystem::path path;
-
-                        auto regionMin = ImGui::GetItemRectMin();
-                        auto regionMax = ImGui::GetItemRectMax();
-                        if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
-                        {
-                            auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                            if (tex)
-                                SetTexture(binding->name, tex);
-                        }
-
-                        ImGui::SameLine();
-                        if (ImGui::Button("x"))
-                        {
-                            SetTexture(binding->name, nullptr);
-                        }
-                    }
-                    else
-                    {
-                        ImGui::Button(binding->name.c_str());
-                        std::filesystem::path path;
-                        if (EditorGUI::DragDropTarget(path))
-                        {
-                            auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                            if (tex)
-                                SetTexture(binding->name, tex);
-                        }
+                        SetTexture(binding->name, newTexture);
                     }
                 }
             }
         }
     }
+}
+
+Texture* EditorGUI::TextureField(const std::string& name, Texture* texture)
+{
+    if (texture != nullptr)
+    {
+        ImGui::Text("Texture: %s", name.c_str());
+        ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        {
+            EditorState::SelectObject(texture);
+        }
+        std::filesystem::path path;
+
+        auto regionMin = ImGui::GetItemRectMin();
+        auto regionMax = ImGui::GetItemRectMax();
+        if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
+        {
+            Texture* tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+            if (tex)
+                return tex;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("x"))
+        {
+            return nullptr;
+        }
+    }
+    else
+    {
+        ImGui::Button(name.c_str());
+        std::filesystem::path path;
+        if (EditorGUI::DragDropTarget(path))
+        {
+            auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+            if (tex)
+                return tex;
+        }
+    }
+
+    return texture;
 }
 } // namespace Editor
