@@ -10,7 +10,7 @@
 #ifdef GERSTNERWAVE_CPU_SIDE
 float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNumber, float3& normal)
 #else
-float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNumber, out float3 normal)
+float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNumber, out float3 normal, out float3 tangent)
 #endif
 {
     const float GERSTNER_M_PI = 3.1415926f;
@@ -44,9 +44,11 @@ float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNu
     // binormal.y = d.x * WA * c0;
     // 
     // Calculate tangent vector (derivative with respect to z)
-    // tangent.x = Q * d.x * d.y * WA * s0;
-    // tangent.z = Q * d.y * d.y * WA * s0;
-    // tangent.y = d.y * WA * c0;
+#ifndef GERSTNERWAVE_CPU_SIDE
+    tangent.x = Q * d.x * d.y * WA * s0;
+    tangent.z = Q * d.y * d.y * WA * s0;
+    tangent.y = d.y * WA * c0;
+#endif
 
     return result;
 }
@@ -54,21 +56,35 @@ float3 GerstnerWaveInternal(Wave wave, float3 position, float time, float waveNu
 #ifdef GERSTNERWAVE_CPU_SIDE
 float3 GerstnerWave(float3 pos, const GPUResources::Wave* waves, int waveCount, float areaScale, float time, float3& normal, float3& waveOffset)
 #else
-float3 GerstnerWave(float3 pos, StructuredBuffer<Wave> waves, int waveCount, float areaScale, float time, out float3 normal, out float3 waveOffset)
+float3 GerstnerWave(float3 pos, StructuredBuffer<Wave> waves, int waveCount, float areaScale, float time, out float3 normal, out float3 tangent, out float3 waveOffset)
 #endif
 {
     // Initialize tangent space vectors
     normal = float3(0,0,0);
+#ifndef GERSTNERWAVE_CPU_SIDE
+    tangent = float3(0,0,0);
+#endif
     waveOffset = float3(0, 0, 0);
     
     for (int i = 0; i < waveCount; i++)
     {
         float3 outNormal;
+#ifndef GERSTNERWAVE_CPU_SIDE
+        float3 outTangent;
+        waveOffset += GerstnerWaveInternal(waves[i], pos * areaScale, time, waveCount, outNormal, outTangent);
+        normal += outNormal;
+        tangent += outTangent;
+#else
         waveOffset += GerstnerWaveInternal(waves[i], pos * areaScale, time, waveCount, outNormal);
         normal += outNormal;
+#endif
+        
     }
 
     normal = normalize(float3(-normal.x, 1 - normal.y, -normal.z));
+#ifndef GERSTNERWAVE_CPU_SIDE
+    tangent = normalize(float3(-tangent.x, tangent.y, 1 - tangent.z));
+#endif
 
     pos += waveOffset;
 

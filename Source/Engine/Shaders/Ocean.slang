@@ -63,8 +63,9 @@ VertexOutput Vertex(VertexInput input)
     float time = perScene.scene.time;
 
     float3 normal = float3(0,0,0);
+    float3 tangent = float3(0,0,0);
     float3 waveOffset = float3(0,0,0);
-    output.positionWS = GerstnerWave(worldPos, mat.waves, mat.waveCount, mat.areaScale, time, normal, waveOffset);
+    output.positionWS = GerstnerWave(worldPos, mat.waves, mat.waveCount, mat.areaScale, time, normal, tangent, waveOffset);
 
     // Calculate normal from tangent and binormal
     // float3 normal = normalize(cross(tangent, binormal));

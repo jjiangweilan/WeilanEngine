@@ -38,6 +38,7 @@ struct Varyings
     float4 position : SV_Position;
     float3 positionWS;
     float3 normalWS;
+    float3 tangentWS;
     float3 waveOffset;
 };
 
@@ -56,6 +57,7 @@ struct MaterialInput
     float fodDensity;
     int waveCount;
     StructuredBuffer<Wave> waves;
+    Texture2D waterNormalTex;
 }
 
 [Global]
@@ -83,7 +85,8 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
     float time = perScene.scene.time;
     float3 normalWS = float3(0,0,0);
     float3 waveOffset = float3(0,0,0);
-    positionWS = GerstnerWave(positionWS, mat.waves, mat.waveCount, mat.areaScale, time, normalWS, waveOffset);
+    float3 tangentWS = float3(0,0,0);
+    positionWS = GerstnerWave(positionWS, mat.waves, mat.waveCount, mat.areaScale, time, normalWS, tangentWS, waveOffset);
 
     float4 positionCS = perScene.WorldToClipSpace(positionWS);
 
@@ -91,6 +94,7 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
     output.position = positionCS;
     output.positionWS = positionWS;
     output.normalWS = normalWS;
+    output.tangentWS = tangentWS;
     output.waveOffset = waveOffset;
     return output;
 }
@@ -114,6 +118,13 @@ float4 Fragment(Varyings input) : SV_Target
     float subsurfaceStrength = 0.3;
     float3 waveOffset = input.waveOffset;
 
+    // calculate normal
+    float3 normalWS = normalize(input.normalWS);
+    float3 tangentWS = normalize(input.tangentWS);
+    float3 binormal = cross(normalWS, tangentWS);
+    float3 normalMap = mat.waterNormalTex.Sample(params._LinearClampSampler, input.positionWS.xz).xyz * 2.0 - 1.0;
+    float3 normal = normalize(tangentWS * normalMap.x + binormal * normalMap.y + normalWS * normalMap.z);
+
     // Lighting accumulation
     float3 finalColor = float3(0, 0, 0);
 
@@ -123,7 +134,7 @@ float4 Fragment(Varyings input) : SV_Target
 
     ShadingObject shadingObject;
     shadingObject.positionWS = input.positionWS;
-    shadingObject.normalWS = normalize(input.normalWS);
+    shadingObject.normalWS = normal;
     shadingObject.baseColor = baseBlendColor;
     shadingObject.viewDir = normalize(perScene.camera.position.xyz - input.positionWS.xyz);
     shadingObject.metallic = 0.0f;
