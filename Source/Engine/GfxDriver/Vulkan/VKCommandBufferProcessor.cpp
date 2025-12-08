@@ -1,6 +1,7 @@
 #include "VKCommandBufferProcessor.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Assert.hpp"
+#include "Libs/Hash.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDriver.hpp"
@@ -11,6 +12,19 @@
 
 namespace Gfx
 {
+
+static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderStage stages)
+{
+    VkPipelineStageFlags pipelineStages = 0;
+    if (HasFlag(stages, ShaderStage::Vertex))
+        pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+    if (HasFlag(stages, ShaderStage::Fragment))
+        pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    if (HasFlag(stages, ShaderStage::Compute))
+        pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+    return pipelineStages;
+}
 class VKCommandBufferProcessor::ResourceAllocator
 {
 public:
@@ -486,6 +500,7 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed ||
                  cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
+            FlushAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
             FlushAllBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
@@ -785,7 +800,7 @@ void VKCommandBufferProcessor::FlushBindResourceTrack() {}
 size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - TrackResourceForPushDescriptorSet");
-    int imageIndex = 0;
+    int imageCount = 0;
     int barrierCount = 0;
     auto& pushDescriptorCmd = std::get<VKPushDescriptorCmd>(cmd.args);
     for (int bindingIndex = 0; bindingIndex < pushDescriptorCmd.bindingCount; ++bindingIndex)
@@ -793,9 +808,9 @@ size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, b
         auto& b = pushDescriptorCmd.bindings[bindingIndex];
         if (b.imageView != nullptr)
         {
-            for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
+            for (int imageIndex = 0; imageIndex < b.descriptorCount; imageIndex += 1, imageCount += 1)
             {
-                VKImageView* vkImageView = static_cast<VKImageView*>(b.imageView + imageJedex);
+                VKImageView* vkImageView = static_cast<VKImageView*>(b.imageView + imageIndex);
                 auto layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 auto image = static_cast<VKImage*>(&vkImageView->GetImage());
                 if (image->IsGPUWrite())
@@ -824,7 +839,6 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
 
     auto& executedCmds = framePrepare.cmds;
 
-    int cmdIndexOffset = executedCmds.size();
     // track where to put barriers
     for (int visitIndex = 0; visitIndex < executedCmds.size(); visitIndex++)
     {
@@ -856,7 +870,6 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             bool hasDepth = !imgs.empty() && IsDepthStencilFormat(lastImage->GetDescription().format);
             if (hasDepth)
             {
-                auto& depthRenderAttachment = *imgs.end();
                 depthAttachmentDescription = SubpassAttachment{
                     (int)imgs.size() - 1,
                     imgs.back().loadOp,
@@ -897,6 +910,13 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             auto& args = std::get<VKBindResourceCmd>(cmd.args);
             recordState.bindSetCmdIndex[args.set] = visitIndex;
             recordState.bindedSetUpdateNeeded[args.set] = true;
+        }
+        else if (cmd.type == VKCmdType::DynamicBindResource)
+        {
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: dynamic bind resource");
+            auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
+            recordState.dynamicBindSetCmdIndex[args.set] = visitIndex;
+            recordState.dynamicBindedSetUpdateNeeded[args.set] = true;
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
@@ -1084,6 +1104,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
+            FlushAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
         else if (cmd.type == VKCmdType::DispatchIndirect)
@@ -1093,6 +1114,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
+            FlushAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
     }
@@ -1150,9 +1172,9 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::DrawIndexed:
                 {
-
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     auto& args = std::get<VKDrawIndexedCmd>(cmd.args);
                     vkCmdDrawIndexed(
                         vkcmd,
@@ -1169,6 +1191,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDraw(vkcmd, args.vertexCount, args.instanceCount, args.firstVertex, args.firstInstance);
                     break;
                 }
@@ -1205,6 +1228,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndirect(
                         vkcmd,
                         static_cast<VKBuffer*>(args.buffer)->GetHandle(),
@@ -1219,6 +1243,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndexedIndirect(
                         vkcmd,
                         static_cast<VKBuffer*>(args.buffer)->GetHandle(),
@@ -1381,6 +1406,17 @@ void VKCommandBufferProcessor::Execute(
                     exeState.setResources[args.set].needUpdate = true;
                     break;
                 }
+            case VKCmdType::DynamicBindResource:
+                {
+                    auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
+                    if (args.set > 4)
+                        return;
+
+                    exeState.setResources[args.set].resource = nullptr;
+                    exeState.setResources[args.set].dynamicBindSetCmdIndex = i;
+                    exeState.setResources[args.set].dynamicBindingNeedUpdate = true;
+                    break;
+                }
             case VKCmdType::BindVertexBuffer:
                 {
                     auto& args = std::get<VKBindVertexBufferCmd>(cmd.args);
@@ -1497,6 +1533,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDispatchCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1514,6 +1551,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1559,7 +1597,7 @@ void VKCommandBufferProcessor::Execute(
                                 .dstArrayElement = (uint32_t)b.dstArrayElement,
                                 .descriptorCount = (uint32_t)b.descriptorCount,
                                 .descriptorType =
-                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // I think should be queried from shader,
+                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, // this should be queried from shader,
                                                                                // but shader currently don't support an
                                                                                // easy way to get the binding type (need
                                                                                // iterate through ShaderInfo.bindings)
@@ -1727,6 +1765,23 @@ void VKCommandBufferProcessor::Execute(
     resourceAllocator->Tick();
 }
 
+void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
+{
+    for (int setIndex = 0; setIndex < 4; ++setIndex)
+    {
+        if (exeState.setResources[setIndex].dynamicBindingNeedUpdate)
+        {
+            if (exeState.setResources[setIndex].resource == nullptr)
+            {
+                exeState.setResources[setIndex].dynamicBindingNeedUpdate = false;
+
+                VKDynamicBindResourceCmd& dynamicBindResourceCmd = std::get<VKDynamicBindResourceCmd>(cmds[exeState.setResources[setIndex].dynamicBindSetCmdIndex].args);
+                PushDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
+            }
+        }
+    }
+}
+
 void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
     UpdateDescriptorSetBinding(cmd, 0, bindPoint);
@@ -1740,10 +1795,15 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
     if ((exeState.bindedShader != exeState.pendingBindedShader || exeState.shaderConfig != exeState.pendingShaderConfig) &&
         exeState.pendingBindedShader != nullptr)
     {
+        bool requirePushDescriptorSet = false;
+        for (int setIndex = 0; setIndex < 4; ++setIndex)
+        {
+            requirePushDescriptorSet = requirePushDescriptorSet || exeState.setResources[setIndex].dynamicBindingNeedUpdate;
+        }
 
         if (exeState.pendingBindedShader->IsCompute())
         {
-            auto pipeline = exeState.pendingBindedShader->RequestComputePipeline();
+            auto pipeline = exeState.pendingBindedShader->RequestComputePipeline(requirePushDescriptorSet);
 
             if (pipeline != exeState.lastBindedPipeline)
             {
@@ -1769,7 +1829,8 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                     exeState.shaderConfig,
                     std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
                     exeState.renderPass,
-                    exeState.subpassIndex
+                    exeState.subpassIndex,
+                    requirePushDescriptorSet
                 );
 
                 if (pipeline != exeState.lastBindedPipeline)
@@ -1795,32 +1856,35 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
     VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint
 )
 {
-    if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
+    if (exeState.setResources[index].needUpdate)
     {
-        auto sourceSet =
-            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.bindedShader, this);
-        if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
+        if (exeState.setResources[index].resource)
         {
-            vkCmdBindDescriptorSets(
-                cmd,
-                bindPoint,
-                exeState.bindedShader->GetVKPipelineLayout(),
-                index,
-                1,
-                &sourceSet,
-                0,
-                VK_NULL_HANDLE
-            );
-
-            exeState.bindedDescriptorSets[index] = sourceSet;
-            exeState.setResources[index].needUpdate = false;
-
-            // if a lower order set is being changed there is high chance that lower order set is being disturbed so we
-            // need to bind them again
-            for (int i = index + 1; i < 4; ++i)
+            auto sourceSet =
+                exeState.setResources[index].resource->GetDescriptorSet(index, exeState.bindedShader, this);
+            if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
             {
-                exeState.bindedDescriptorSets[i] = VK_NULL_HANDLE;
-                exeState.setResources[i].needUpdate = true;
+                vkCmdBindDescriptorSets(
+                    cmd,
+                    bindPoint,
+                    exeState.bindedShader->GetVKPipelineLayout(),
+                    index,
+                    1,
+                    &sourceSet,
+                    0,
+                    VK_NULL_HANDLE
+                );
+
+                exeState.bindedDescriptorSets[index] = sourceSet;
+                exeState.setResources[index].needUpdate = false;
+
+                // if a lower order set is being changed there is high chance that lower order set is being disturbed so we
+                // need to bind them again
+                for (int i = index + 1; i < 4; ++i)
+                {
+                    exeState.bindedDescriptorSets[i] = VK_NULL_HANDLE;
+                    exeState.setResources[i].needUpdate = true;
+                }
             }
         }
     }
@@ -1963,7 +2027,84 @@ VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount)
 {
     resourceAllocator = std::make_unique<ResourceAllocator>(this);
 }
-VKCommandBufferProcessor::~VKCommandBufferProcessor() {}
+
+VKCommandBufferProcessor::~VKCommandBufferProcessor()
+{
+    for (auto& d : descriptorSetCache)
+    {
+        if (d.second.shaderProgram)
+        {
+            d.second.shaderProgram->GetDescriptorPool(d.second.setIndex)->Deallocate(d.second.set);
+        }
+    }
+}
+
+void VKCommandBufferProcessor::MakeBarrierFromWritableResources(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded, const std::vector<VKWritableGPUResource>& writableResources)
+{
+    for (auto& w : writableResources)
+    {
+        ResourceType type = ResourceType::Image;
+        switch (w.type)
+        {
+            case VKWritableGPUResource::Type::Image: type = ResourceType::Image; break;
+            case VKWritableGPUResource::Type::Buffer: type = ResourceType::Buffer; break;
+        }
+        if (type == ResourceType::Image)
+        {
+            VKImage* data = static_cast<VKImage*>(std::get<ObjPtr<Image>>(w.data).Get());
+
+            if (data == nullptr ||
+                std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
+                    shaderImageSampleIgnoreList.end())
+            {
+                continue;
+            }
+
+            if (TrackResource(
+                    data,
+                    w.imageView ? w.imageView->GetSubresourceRange() : data->GetSubresourceRange(),
+                    w.layout,
+                    w.stages,
+                    w.access
+                ))
+            {
+                barrierCountAdded += MakeBarrierForLastUsage2(data);
+            }
+        }
+        else
+        {
+            VKBuffer* data = static_cast<VKBuffer*>(std::get<ObjPtr<Buffer>>(w.data).Get());
+            if (data == nullptr)
+                continue;
+
+            if (TrackResource((VKBuffer*)data, w.stages, w.access))
+            {
+
+                barrierCountAdded += MakeBarrierForLastUsage(data, data->GetUUID());
+            }
+        }
+    }
+}
+void VKCommandBufferProcessor::FlushAllDynamicBindedSetUpdate(
+    std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+)
+{
+    for (int i = 0; i < 4; ++i)
+    {
+        if (recordState.dynamicBindedSetUpdateNeeded[i] == true)
+        {
+            recordState.dynamicBindedSetUpdateNeeded[i] = false;
+            auto bindSetCmdIndex = recordState.dynamicBindSetCmdIndex[i];
+            auto bindProgramIndex = recordState.bindProgramIndex;
+            auto& bindProgramArgs = std::get<VKBindShaderProgramCmd>(cmds[bindProgramIndex].args);
+            auto program = bindProgramArgs.program;
+            VKDynamicBindResourceCmd* dynamicBindResourceCmd = &std::get<VKDynamicBindResourceCmd>(cmds[bindSetCmdIndex].args);
+            uint32_t updateSet = dynamicBindResourceCmd->set;
+            auto writableResources = GetWritableResourcesNoCache(updateSet, *dynamicBindResourceCmd, program, this);
+            MakeBarrierFromWritableResources(shaderImageSampleIgnoreList, barrierCountAdded, writableResources);
+        }
+    }
+}
 
 void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
@@ -1984,49 +2125,7 @@ void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
             if (resource == nullptr)
                 continue;
             auto& writableResources = resource->GetWritableResources(updateSet, program, this);
-            for (auto& w : writableResources)
-            {
-                ResourceType type = ResourceType::Image;
-                switch (w.type)
-                {
-                    case VKWritableGPUResource::Type::Image: type = ResourceType::Image; break;
-                    case VKWritableGPUResource::Type::Buffer: type = ResourceType::Buffer; break;
-                }
-                if (type == ResourceType::Image)
-                {
-                    VKImage* data = static_cast<VKImage*>(std::get<ObjPtr<Image>>(w.data).Get());
-
-                    if (data == nullptr ||
-                        std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
-                            shaderImageSampleIgnoreList.end())
-                    {
-                        continue;
-                    }
-
-                    if (TrackResource(
-                            data,
-                            w.imageView ? w.imageView->GetSubresourceRange() : data->GetSubresourceRange(),
-                            w.layout,
-                            w.stages,
-                            w.access
-                        ))
-                    {
-                        barrierCountAdded += MakeBarrierForLastUsage2(data);
-                    }
-                }
-                else
-                {
-                    VKBuffer* data = static_cast<VKBuffer*>(std::get<ObjPtr<Buffer>>(w.data).Get());
-                    if (data == nullptr)
-                        continue;
-
-                    if (TrackResource((VKBuffer*)data, w.stages, w.access))
-                    {
-
-                        barrierCountAdded += MakeBarrierForLastUsage(data, data->GetUUID());
-                    }
-                }
-            }
+            MakeBarrierFromWritableResources(shaderImageSampleIgnoreList, barrierCountAdded, writableResources);
         }
     }
 }
@@ -2129,6 +2228,441 @@ void VKCommandBufferProcessor::BeginRenderPass(
     }
 
     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void VKCommandBufferProcessor::PushDescriptorSet(
+    VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram
+)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+    std::vector<VKWritableGPUResource> writableGPUResources{};
+    auto sharedResource = VKContext::Instance()->sharedResource;
+
+    VkWriteDescriptorSet writes[64];
+    VkDescriptorBufferInfo bufferInfos[64];
+    VkDescriptorImageInfo imageInfos[64];
+    uint32_t bufferWriteIndex = 0;
+    uint32_t imageWriteIndex = 0;
+    uint32_t writeCount = 0;
+
+    const auto& descriptorSet = shaderInfo.descriptorSets[set];
+    {
+        for (const auto& b : descriptorSet.bindings)
+        {
+            writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[writeCount].pNext = VK_NULL_HANDLE;
+            writes[writeCount].dstSet = VK_NULL_HANDLE;
+            writes[writeCount].descriptorType = MapDescriptorType(b.descriptorType);
+            writes[writeCount].dstBinding = b.bindingNum;
+            writes[writeCount].dstArrayElement = 0;
+            writes[writeCount].descriptorCount = b.descriptorCount;
+            writes[writeCount].pImageInfo = VK_NULL_HANDLE;
+            writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
+            writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
+
+            auto& bindings = dynamicBindResourceCmd.bindings;
+            auto binding = std::ranges::find_if(
+                bindings,
+                [&b](DynmaicBinding& binding)
+                { return binding.name == b.name; }
+            );
+
+            switch (b.descriptorType)
+            {
+                case DescriptorType::UniformBuffer:
+                case DescriptorType::StorageBuffer:
+                    writes[writeCount].pBufferInfo = &bufferInfos[bufferWriteIndex];
+                    break;
+                case DescriptorType::CombinedImageSampler:
+                case DescriptorType::StorageImage:
+                case DescriptorType::SampledImage:
+                case DescriptorType::Sampler: writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex]; break;
+            }
+
+            VKImageView* imageView = nullptr;
+            if (binding->imageIdentifier.GetAsImage() != nullptr)
+            {
+                imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+            }
+            else if (binding->imageIdentifier.GetAsImageView() != nullptr)
+                imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+            else
+            {
+                auto image = GetImage(binding->imageIdentifier.GetAsUUID());
+                if (image)
+                    imageView = static_cast<VKImageView*>(&image->GetDefaultImageViewForShaderResource());
+            }
+
+            for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+            {
+                switch (b.descriptorType)
+                {
+                    case DescriptorType::UniformBuffer:
+                    case DescriptorType::StorageBuffer:
+                        {
+                            VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                            VKBuffer* buffer = nullptr;
+                            if (binding->buffer == nullptr)
+                            {
+                                if (defaultBuffer == nullptr)
+                                {
+                                    Buffer::CreateInfo createInfo{
+                                        .usages = (b.descriptorType == DescriptorType::UniformBuffer
+                                                       ? BufferUsage::Uniform
+                                                       : BufferUsage::Storage) |
+                                                  BufferUsage::Transfer_Dst,
+                                        .size = 1,
+                                        .visibleInCPU = false,
+                                        .debugName = "Default Buffer"
+                                    };
+                                    defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                                }
+
+                                buffer = defaultBuffer.get();
+                            }
+                            else
+                            {
+                                buffer = static_cast<VKBuffer*>(binding->buffer);
+                            }
+
+                            bufferInfo.buffer = buffer->GetHandle();
+                            bufferInfo.offset = 0;
+                            bufferInfo.range = VK_WHOLE_SIZE;
+                            break;
+                        }
+                    case DescriptorType::StorageImage:
+                        {
+                            // it's possible a storage image isn't used if it's an array
+                            if (imageView == nullptr)
+                            {
+                                if (b.isTextureArray)
+                                {
+                                    auto& imageView = sharedResource->GetDefaultStoargeImage2D()->GetImageView(Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Color, true});
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.sampler = VK_NULL_HANDLE;
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                    imageInfo.imageView = static_cast<VKImageView&>(imageView).GetHandle();
+                                }
+                                else
+                                {
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.sampler = VK_NULL_HANDLE;
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                    imageInfo.imageView =
+                                        sharedResource->GetDefaultStoargeImage2D()->GetDefaultVkImageView();
+                                }
+                            }
+                            else
+                            {
+                                VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
+
+                                VKWritableGPUResource gpuResource{
+                                    .type = VKWritableGPUResource::Type::Image,
+                                    .data = ObjPtr<Image>(&imageView->GetImage()),
+                                    .stages = pipelineStages,
+                                    .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+                                    .imageView = imageView,
+                                    .layout = VK_IMAGE_LAYOUT_GENERAL,
+                                };
+
+                                writableGPUResources.push_back(gpuResource);
+
+                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                imageInfo.sampler = sharedResource->GetDefaultSampler();
+                                if (imageView != nullptr)
+                                {
+                                    imageInfo.imageView = imageView->GetHandle();
+                                }
+                                else
+                                {
+                                    // using ImageID is not supported in shader resource because we don't have the chance to know if the underlying image is changed in shader resource
+                                    throw std::runtime_error("a storage image has to be set before use");
+                                    // imageInfo.imageView =
+                                    // sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
+                                }
+                            }
+
+                            break;
+                        }
+                    case DescriptorType::CombinedImageSampler:
+                    case DescriptorType::SampledImage:
+                        {
+                            if (b.textureType == TextureType::Tex2D || b.textureType == TextureType::Tex3D)
+                            {
+                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                imageInfo.sampler = b.descriptorType == DescriptorType::SampledImage
+                                                        ? sharedResource->GetDefaultSampler()
+                                                        : VK_NULL_HANDLE;
+                                if (imageView != nullptr)
+                                {
+                                    imageInfo.imageView = imageView->GetHandle();
+                                }
+                                else
+                                {
+                                    if (b.textureType == TextureType::Tex2D)
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
+                                    else if (b.textureType == TextureType::Tex3D)
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
+                                }
+                            }
+                            else if (b.textureType == TextureType::TexCube)
+                            {
+                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                imageInfo.sampler = sharedResource->GetDefaultSampler();
+
+                                if (imageView != nullptr && imageView->GetImage().GetDescription().isCubemap)
+                                {
+                                    imageInfo.imageView = imageView->GetHandle();
+                                }
+                                else
+                                {
+                                    imageInfo.imageView =
+                                        sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
+                                }
+                            }
+
+                            if (imageView && imageView->GetImage().IsGPUWrite())
+                            {
+                                VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
+                                VKWritableGPUResource gpuResource{
+                                    .type = VKWritableGPUResource::Type::Image,
+                                    .data = ObjPtr<Image>(&imageView->GetImage()),
+                                    .stages = pipelineStages,
+                                    .access = VK_ACCESS_SHADER_READ_BIT,
+                                    .imageView = imageView,
+                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                };
+
+                                writableGPUResources.push_back(gpuResource);
+                            }
+                            break;
+                        }
+                    case DescriptorType::Sampler:
+                        {
+                            auto createInfo = SamplerCachePool::GenerateSamplerCreateInfo(
+                                descriptorSet.samplerConfigs[b.samplerIndex]
+                            );
+                            VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
+                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                            imageInfo.sampler = sampler;
+                            imageInfo.imageView = VK_NULL_HANDLE;
+                            break;
+                        }
+                    default: ASSERT(0 && "Not implemented"); break;
+                }
+            }
+
+            writeCount += 1;
+        }
+
+        VkDescriptorSet finalSet = RequestDescriptorSet(writes, writeCount, set, shaderProgram);
+        vkCmdBindDescriptorSets(
+            cmd,
+            bindPoint,
+            exeState.bindedShader->GetVKPipelineLayout(),
+            set,
+            1,
+            &finalSet,
+            0,
+            VK_NULL_HANDLE
+        );
+
+        // VKExtensionFunc::vkCmdPushDescriptorSetKHR(
+        //     cmd,
+        //     bindPoint,
+        //     shaderProgram->GetVKPipelineLayout(),
+        //     set,
+        //     writeCount,
+        //     writes
+        // );
+    }
+}
+
+std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+
+    if (shaderInfo.descriptorSets.size() <= set)
+        return {};
+
+    std::vector<VKWritableGPUResource> writableGPUResources{};
+    const auto& descriptorSet = shaderInfo.descriptorSets[set];
+    auto& bindings = dynamicBindResourceCmd.bindings;
+    for (const auto& b : descriptorSet.bindings)
+    {
+        ShaderBindingHandle bindingHandle(b.name);
+
+        auto binding = std::ranges::find_if(
+            bindings,
+            [&b](DynmaicBinding& binding)
+            { return binding.name == b.name; }
+        );
+
+        VKImageView* imageView = nullptr;
+        if (binding->imageIdentifier.GetAsImage() != nullptr)
+        {
+            imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+        }
+        else if (binding->imageIdentifier.GetAsImageView() != nullptr)
+            imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+        else
+            imageView =
+                static_cast<VKImageView*>(&graph->GetImage(binding->imageIdentifier.GetAsUUID())->GetDefaultImageViewForShaderResource());
+
+        for (int i = 0; i < b.descriptorCount; ++i)
+        {
+            switch (b.descriptorType)
+            {
+                case DescriptorType::UniformBuffer:
+                case DescriptorType::StorageBuffer:
+                    {
+                        VKBuffer* buffer = nullptr;
+                        if (binding->buffer == nullptr)
+                        {
+                            if (defaultBuffer == nullptr)
+                            {
+                                Buffer::CreateInfo createInfo{
+                                    .usages = (b.descriptorType == DescriptorType::UniformBuffer
+                                                   ? BufferUsage::Uniform
+                                                   : BufferUsage::Storage) |
+                                              BufferUsage::Transfer_Dst,
+                                    .size = 1,
+                                    .visibleInCPU = false,
+                                    .debugName = "Default Buffer"
+                                };
+                                defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                            }
+
+                            buffer = defaultBuffer.get();
+                        }
+                        else
+                        {
+                            buffer = static_cast<VKBuffer*>(binding->buffer);
+                        }
+
+                        if (buffer->IsGPUWrite())
+                        {
+                            VkPipelineStageFlags pipelineStages = 0;
+                            if (HasFlag(b.stages, ShaderStage::Vertex))
+                                pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                            if (HasFlag(b.stages, ShaderStage::Fragment))
+                                pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                            if (HasFlag(b.stages, ShaderStage::Compute))
+                                pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                            VKWritableGPUResource gpuResource{
+                                .type = VKWritableGPUResource::Type::Buffer,
+                                .data = ObjPtr<Buffer>(buffer),
+                                .stages = pipelineStages,
+                                .access = static_cast<VkAccessFlags>(
+                                    VK_ACCESS_SHADER_READ_BIT |
+                                    (b.descriptorType == DescriptorType::StorageBuffer
+                                         ? VK_ACCESS_SHADER_WRITE_BIT
+                                         : 0)
+                                ),
+                            };
+
+                            writableGPUResources.push_back(gpuResource);
+                        }
+                        break;
+                    }
+                case DescriptorType::StorageImage:
+                    {
+                        if (imageView != nullptr)
+                        {
+                            VKImageView* imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+                            VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
+
+                            VKWritableGPUResource gpuResource{
+                                .type = VKWritableGPUResource::Type::Image,
+                                .data = ObjPtr<Image>(&imageView->GetImage()),
+                                .stages = pipelineStages,
+                                .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+                                .imageView = imageView,
+                                .layout = VK_IMAGE_LAYOUT_GENERAL,
+                            };
+
+                            writableGPUResources.push_back(gpuResource);
+                        }
+
+                        break;
+                    }
+                case DescriptorType::CombinedImageSampler:
+                case DescriptorType::SampledImage:
+                    {
+                        if (imageView && imageView->GetImage().IsGPUWrite())
+                        {
+                            VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
+                            VKWritableGPUResource gpuResource{
+                                .type = VKWritableGPUResource::Type::Image,
+                                .data = ObjPtr<Image>(&imageView->GetImage()),
+                                .stages = pipelineStages,
+                                .access = VK_ACCESS_SHADER_READ_BIT,
+                                .imageView = imageView,
+                                .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                            };
+
+                            writableGPUResources.push_back(gpuResource);
+                        }
+                        break;
+                    }
+                case DescriptorType::Sampler:
+                    {
+                        break;
+                    }
+                default: ASSERT(0 && "Not implemented"); break;
+            }
+        }
+    }
+
+    return writableGPUResources;
+}
+
+VkDescriptorSet VKCommandBufferProcessor::RequestDescriptorSet(VkWriteDescriptorSet* writes, uint32_t writeCount, uint32_t set, VKShaderProgram* shaderProgram)
+{
+    uint64_t hash = 0;
+    for (int writeIndex = 0; writeIndex < writeCount; ++writeIndex)
+    {
+        Hash64(hash, writes[writeIndex].descriptorCount);
+        if (writes[writeIndex].pImageInfo != nullptr)
+        {
+            for (int i = 0; i < writes[writeIndex].descriptorCount; ++i)
+            {
+                Hash64(hash, *writes[writeIndex].pImageInfo);
+            }
+        }
+        else if (writes[writeIndex].pBufferInfo != nullptr)
+        {
+            for (int i = 0; i < writes[writeIndex].descriptorCount; ++i)
+            {
+                Hash64(hash, *writes[writeIndex].pBufferInfo);
+            }
+        }
+    }
+    auto iter = descriptorSetCache.find(hash);
+    VkDescriptorSet finalSet = VK_NULL_HANDLE;
+    if (iter == descriptorSetCache.end())
+    {
+        finalSet = shaderProgram->GetDescriptorPool(set)->Allocate();
+        for (int writeIndex = 0; writeIndex < writeCount; ++writeIndex)
+        {
+            writes[writeIndex].dstSet = finalSet;
+        }
+        vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
+        descriptorSetCache[hash] = DescriptorSetCacheInfo{finalSet, set, shaderProgram};
+    }
+    else
+    {
+        finalSet = iter->second.set;
+    }
+
+    return finalSet;
 }
 
 } // namespace Gfx

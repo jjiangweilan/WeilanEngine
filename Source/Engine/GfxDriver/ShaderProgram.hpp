@@ -2,9 +2,9 @@
 
 #include "CompiledSpv.hpp"
 #include "Core/Ptr.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "ShaderConfig.hpp"
 #include <string>
-#include "Libs/DynamicArray.hpp"
 namespace Gfx
 {
 struct ShaderResourceLayout
@@ -14,7 +14,7 @@ struct ShaderResourceLayout
     uint32_t offset;
 };
 
-class ShaderProgram
+class ShaderProgram : public Object
 {
 public:
     ShaderProgram(bool isCompute) : isCompute(isCompute) {}

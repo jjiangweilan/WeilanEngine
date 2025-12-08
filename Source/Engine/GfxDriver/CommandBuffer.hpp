@@ -68,6 +68,25 @@ struct DescriptorBinding
     Buffer* buffer;
 };
 
+struct DynmaicBinding
+{
+    DynmaicBinding(std::string_view name, Gfx::Buffer* buffer) : name(name), buffer(buffer), imageIdentifier()
+    {}
+
+    DynmaicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image)
+    {}
+
+    DynmaicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView)
+    {}
+
+    DynmaicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id)
+    {}
+
+    std::string name;
+    Gfx::Buffer* buffer;
+    ImageIdentifier imageIdentifier;
+};
+
 struct BlitOp
 {
     std::optional<uint32_t> srcMip;
@@ -93,6 +112,7 @@ public:
     virtual void InsertLabel(std::string_view label, const glm::float4& color) = 0;
 
     virtual void BindResource(uint32_t set, Gfx::ShaderResource* resource) = 0;
+    virtual void BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;

@@ -243,6 +243,12 @@ struct VKCopyBufferToImageCmd
     int barrierCount;
 };
 
+struct VKDynamicBindResourceCmd
+{
+    uint32_t set;
+    std::vector<DynmaicBinding> bindings;
+};
+
 struct VKBlitCmd
 {
     VKImage* from;
@@ -324,6 +330,7 @@ enum class VKCmdType
     BeginRenderPass,
     RGBeginRenderPass,
     DynamicBeginRenderPass,
+    DynamicBindResource,
     EndRenderPass,
     Blit,
     BindResource,
@@ -367,6 +374,7 @@ struct VKCmd
         VKBeginRenderPassCmd,
         VKRGBeginRenderPassCmd,
         VKDynamicRenderPassCmd,
+        VKDynamicBindResourceCmd,
         VKEndRenderPassCmd,
         VKBlitCmd,
         VKBindResourceCmd,
@@ -431,6 +439,7 @@ public:
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
+    void BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings) override;
     void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) override;

@@ -82,8 +82,12 @@ private:
         VKShaderProgram* bindedProgram = nullptr;
         PipelineConfig config{};
         int bindProgramIndex{};
+
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
+
+        int dynamicBindSetCmdIndex[4];
+        bool dynamicBindedSetUpdateNeeded[4] = {false, false, false, false};
     } recordState{};
 
     struct ExecutionState
@@ -91,7 +95,9 @@ private:
         struct SetResources
         {
             bool needUpdate = false;
+            bool dynamicBindingNeedUpdate = false;
             VKShaderResource* resource = VK_NULL_HANDLE;
+            int dynamicBindSetCmdIndex = -1;
         } setResources[4] = {};
 
         VkPipeline lastBindedPipeline = VK_NULL_HANDLE;
@@ -109,11 +115,19 @@ private:
         int currentTimestapQueryIndex = 0;
     } exeState;
 
+    struct DescriptorSetCacheInfo
+    {
+        VkDescriptorSet set;
+        uint32_t setIndex;
+        ObjPtr<VKShaderProgram> shaderProgram;
+    };
+
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;
 
+    std::unique_ptr<VKBuffer> defaultBuffer;
     std::vector<Barrier> barriers;
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
@@ -126,10 +140,16 @@ private:
     // std::unique_ptr<VKShaderResource> globalResource;
     //
     std::unique_ptr<ResourceAllocator> resourceAllocator;
+    std::unordered_map<uint64_t, DescriptorSetCacheInfo> descriptorSetCache;
 
+    VkDescriptorSet RequestDescriptorSet(VkWriteDescriptorSet* writes, uint32_t writeCount, uint32_t set, VKShaderProgram* shaderProgram);
     void CreateRenderPassNode(int visitIndex);
     // scheduling
     void FlushAllBindedSetUpdate(
+        std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+    );
+    void MakeBarrierFromWritableResources(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded, const std::vector<VKWritableGPUResource>& writableResources);
+    void FlushAllDynamicBindedSetUpdate(
         std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
     );
     bool TrackResource(
@@ -147,6 +167,8 @@ private:
         int& barrierCount,
         int& barrierOffset
     );
+    void PushDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
+    std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res, const UUID& resUUID);
@@ -156,6 +178,7 @@ private:
     void TryBindShader(VkCommandBuffer cmd);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
+    void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
     void PreExecute(VKFramePrepareData& framePrepare);

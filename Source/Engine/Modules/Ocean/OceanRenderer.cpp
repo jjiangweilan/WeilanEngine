@@ -86,7 +86,15 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     auto renderPipelineSettings = renderingData.renderPipelineSettings;
 
     cmd.BindResource(oceanMaterialSetIndex, waveMaterial.GetShaderResource());
-    cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
+    // cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
+
+    cmd.BindResource(oceanParamsSetIndex, {
+        {"buffer", &*rendererInputUBO},
+        {"instanceData", instanceBuffer.buffer.get()},
+        {"depthTex", *renderingData.depthCopy},
+        {"colorTex", *renderingData.colorCopy},
+        {"specularCubemap", *renderingData.specularCubemap}
+        });
     if (renderPipelineSettings->debugDraw.wireframe)
     {
         auto config = *shader->GetDefaultShaderConfig();
