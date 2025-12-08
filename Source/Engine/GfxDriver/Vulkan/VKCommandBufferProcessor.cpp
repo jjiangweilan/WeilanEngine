@@ -1776,7 +1776,7 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKC
                 exeState.setResources[setIndex].dynamicBindingNeedUpdate = false;
 
                 VKDynamicBindResourceCmd& dynamicBindResourceCmd = std::get<VKDynamicBindResourceCmd>(cmds[exeState.setResources[setIndex].dynamicBindSetCmdIndex].args);
-                PushDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
+                UpdateDynamicDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
             }
         }
     }
@@ -2026,6 +2026,17 @@ VKImage* VKCommandBufferProcessor::GetImage(const UUID& hash)
 VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount)
 {
     resourceAllocator = std::make_unique<ResourceAllocator>(this);
+
+    Buffer::CreateInfo createInfo{
+        .usages = BufferUsage::Storage | BufferUsage::Transfer_Dst,
+        .size = 1,
+        .visibleInCPU = false,
+        .debugName = "Default Buffer"
+    };
+    defaultSSBOBuffer = std::make_unique<VKBuffer>(createInfo);
+
+    createInfo.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst;
+    defaultUBOBuffer = std::make_unique<VKBuffer>(createInfo);
 }
 
 VKCommandBufferProcessor::~VKCommandBufferProcessor()
@@ -2230,7 +2241,7 @@ void VKCommandBufferProcessor::BeginRenderPass(
     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void VKCommandBufferProcessor::PushDescriptorSet(
+void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
     VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram
 )
 {
@@ -2280,17 +2291,11 @@ void VKCommandBufferProcessor::PushDescriptorSet(
             }
 
             VKImageView* imageView = nullptr;
-            if (binding->imageIdentifier.GetAsImage() != nullptr)
+            VKBuffer* buffer = nullptr;
+
+            if (binding != bindings.end())
             {
-                imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
-            }
-            else if (binding->imageIdentifier.GetAsImageView() != nullptr)
-                imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
-            else
-            {
-                auto image = GetImage(binding->imageIdentifier.GetAsUUID());
-                if (image)
-                    imageView = static_cast<VKImageView*>(&image->GetDefaultImageViewForShaderResource());
+                GetImageViewOrBuffer(*binding, imageView, buffer);
             }
 
             for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
@@ -2301,31 +2306,20 @@ void VKCommandBufferProcessor::PushDescriptorSet(
                     case DescriptorType::StorageBuffer:
                         {
                             VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
-                            VKBuffer* buffer = nullptr;
-                            if (binding->buffer == nullptr)
+                            VKBuffer* bufferUsed = nullptr;
+                            if (buffer == nullptr)
                             {
-                                if (defaultBuffer == nullptr)
-                                {
-                                    Buffer::CreateInfo createInfo{
-                                        .usages = (b.descriptorType == DescriptorType::UniformBuffer
-                                                       ? BufferUsage::Uniform
-                                                       : BufferUsage::Storage) |
-                                                  BufferUsage::Transfer_Dst,
-                                        .size = 1,
-                                        .visibleInCPU = false,
-                                        .debugName = "Default Buffer"
-                                    };
-                                    defaultBuffer = std::make_unique<VKBuffer>(createInfo);
-                                }
-
-                                buffer = defaultBuffer.get();
+                                if (b.descriptorType == DescriptorType::UniformBuffer)
+                                    bufferUsed = defaultUBOBuffer.get();
+                                else if (b.descriptorType == DescriptorType::StorageBuffer)
+                                    bufferUsed = defaultSSBOBuffer.get();
                             }
                             else
                             {
-                                buffer = static_cast<VKBuffer*>(binding->buffer);
+                                bufferUsed = buffer;
                             }
 
-                            bufferInfo.buffer = buffer->GetHandle();
+                            bufferInfo.buffer = bufferUsed->GetHandle();
                             bufferInfo.offset = 0;
                             bufferInfo.range = VK_WHOLE_SIZE;
                             break;
@@ -2461,7 +2455,7 @@ void VKCommandBufferProcessor::PushDescriptorSet(
             writeCount += 1;
         }
 
-        VkDescriptorSet finalSet = RequestDescriptorSet(writes, writeCount, set, shaderProgram);
+        VkDescriptorSet finalSet = RequestDescriptorSet({writes, writeCount}, set, shaderProgram);
         vkCmdBindDescriptorSets(
             cmd,
             bindPoint,
@@ -2472,18 +2466,31 @@ void VKCommandBufferProcessor::PushDescriptorSet(
             0,
             VK_NULL_HANDLE
         );
-
-        // VKExtensionFunc::vkCmdPushDescriptorSetKHR(
-        //     cmd,
-        //     bindPoint,
-        //     shaderProgram->GetVKPipelineLayout(),
-        //     set,
-        //     writeCount,
-        //     writes
-        // );
     }
 }
 
+void VKCommandBufferProcessor::GetImageViewOrBuffer(DynmaicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer)
+{
+    if (binding.buffer != nullptr)
+    {
+        buffer = static_cast<VKBuffer*>(binding.buffer);
+    }
+    else
+    {
+        if (binding.imageIdentifier.GetType() == ImageIdentifier::Type::Image)
+        {
+            imageView = static_cast<VKImageView*>(&binding.imageIdentifier.GetAsImage()->GetDefaultImageViewForShaderResource());
+        }
+        else if (binding.imageIdentifier.GetType() == ImageIdentifier::Type::ImageView)
+            imageView = static_cast<VKImageView*>(binding.imageIdentifier.GetAsImageView());
+        else if (binding.imageIdentifier.GetType() == ImageIdentifier::Type::Handle)
+        {
+            auto image = GetImage(binding.imageIdentifier.GetAsUUID());
+            if (image)
+                imageView = static_cast<VKImageView*>(&image->GetDefaultImageViewForShaderResource());
+        }
+    }
+}
 std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph)
 {
     auto& shaderInfo = shaderProgram->GetShaderInfo();
@@ -2505,15 +2512,12 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
         );
 
         VKImageView* imageView = nullptr;
-        if (binding->imageIdentifier.GetAsImage() != nullptr)
+        VKBuffer* buffer = nullptr;
+
+        if (binding != bindings.end())
         {
-            imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
+            GetImageViewOrBuffer(*binding, imageView, buffer);
         }
-        else if (binding->imageIdentifier.GetAsImageView() != nullptr)
-            imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
-        else
-            imageView =
-                static_cast<VKImageView*>(&graph->GetImage(binding->imageIdentifier.GetAsUUID())->GetDefaultImageViewForShaderResource());
 
         for (int i = 0; i < b.descriptorCount; ++i)
         {
@@ -2522,31 +2526,20 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
                 case DescriptorType::UniformBuffer:
                 case DescriptorType::StorageBuffer:
                     {
-                        VKBuffer* buffer = nullptr;
-                        if (binding->buffer == nullptr)
+                        VKBuffer* bufferUsed = nullptr;
+                        if (buffer == nullptr)
                         {
-                            if (defaultBuffer == nullptr)
-                            {
-                                Buffer::CreateInfo createInfo{
-                                    .usages = (b.descriptorType == DescriptorType::UniformBuffer
-                                                   ? BufferUsage::Uniform
-                                                   : BufferUsage::Storage) |
-                                              BufferUsage::Transfer_Dst,
-                                    .size = 1,
-                                    .visibleInCPU = false,
-                                    .debugName = "Default Buffer"
-                                };
-                                defaultBuffer = std::make_unique<VKBuffer>(createInfo);
-                            }
-
-                            buffer = defaultBuffer.get();
+                            if (b.descriptorType == DescriptorType::UniformBuffer)
+                                bufferUsed = defaultUBOBuffer.get();
+                            else if (b.descriptorType == DescriptorType::StorageBuffer)
+                                bufferUsed = defaultSSBOBuffer.get();
                         }
                         else
                         {
-                            buffer = static_cast<VKBuffer*>(binding->buffer);
+                            bufferUsed = buffer;
                         }
 
-                        if (buffer->IsGPUWrite())
+                        if (bufferUsed->IsGPUWrite())
                         {
                             VkPipelineStageFlags pipelineStages = 0;
                             if (HasFlag(b.stages, ShaderStage::Vertex))
@@ -2558,7 +2551,7 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
 
                             VKWritableGPUResource gpuResource{
                                 .type = VKWritableGPUResource::Type::Buffer,
-                                .data = ObjPtr<Buffer>(buffer),
+                                .data = ObjPtr<Buffer>(bufferUsed),
                                 .stages = pipelineStages,
                                 .access = static_cast<VkAccessFlags>(
                                     VK_ACCESS_SHADER_READ_BIT |
@@ -2576,7 +2569,6 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
                     {
                         if (imageView != nullptr)
                         {
-                            VKImageView* imageView = static_cast<VKImageView*>(binding->imageIdentifier.GetAsImageView());
                             VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
 
                             VKWritableGPUResource gpuResource{
@@ -2624,9 +2616,10 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
     return writableGPUResources;
 }
 
-VkDescriptorSet VKCommandBufferProcessor::RequestDescriptorSet(VkWriteDescriptorSet* writes, uint32_t writeCount, uint32_t set, VKShaderProgram* shaderProgram)
+VkDescriptorSet VKCommandBufferProcessor::RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram)
 {
     uint64_t hash = 0;
+    int writeCount = writes.size();
     for (int writeIndex = 0; writeIndex < writeCount; ++writeIndex)
     {
         Hash64(hash, writes[writeIndex].descriptorCount);
@@ -2654,7 +2647,7 @@ VkDescriptorSet VKCommandBufferProcessor::RequestDescriptorSet(VkWriteDescriptor
         {
             writes[writeIndex].dstSet = finalSet;
         }
-        vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
+        vkUpdateDescriptorSets(GetDevice(), writeCount, writes.data(), 0, VK_NULL_HANDLE);
         descriptorSetCache[hash] = DescriptorSetCacheInfo{finalSet, set, shaderProgram};
     }
     else

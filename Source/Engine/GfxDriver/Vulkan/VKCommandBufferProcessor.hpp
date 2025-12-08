@@ -127,7 +127,8 @@ private:
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;
 
-    std::unique_ptr<VKBuffer> defaultBuffer;
+    std::unique_ptr<VKBuffer> defaultUBOBuffer;
+    std::unique_ptr<VKBuffer> defaultSSBOBuffer;
     std::vector<Barrier> barriers;
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
@@ -142,7 +143,7 @@ private:
     std::unique_ptr<ResourceAllocator> resourceAllocator;
     std::unordered_map<uint64_t, DescriptorSetCacheInfo> descriptorSetCache;
 
-    VkDescriptorSet RequestDescriptorSet(VkWriteDescriptorSet* writes, uint32_t writeCount, uint32_t set, VKShaderProgram* shaderProgram);
+    VkDescriptorSet RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram);
     void CreateRenderPassNode(int visitIndex);
     // scheduling
     void FlushAllBindedSetUpdate(
@@ -167,7 +168,7 @@ private:
         int& barrierCount,
         int& barrierOffset
     );
-    void PushDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
+    void UpdateDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
     std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
@@ -190,6 +191,8 @@ private:
         int barrierOffset,
         int barrierCount
     );
+
+    void GetImageViewOrBuffer(DynmaicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer);
 
     int MakeBarrierForLastUsage2(VKImage* image)
     {
