@@ -48,6 +48,8 @@ struct PipelineConfig
             bool boundTestEnable = false;
             float minBounds = 0;
             float maxBounds = 1;
+            float depthBias = 0.0f;
+            float depthSlopBias = 0.0f;
         };
 
         struct Stencil

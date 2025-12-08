@@ -119,6 +119,8 @@ void GameLoop::Play()
     for (auto go : gos)
     {
         go->OnStart();
+        if (go->IsActiveInScene())
+            go->OnAwake();
     }
 
     // recreate render pipeline when playing

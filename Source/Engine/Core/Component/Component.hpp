@@ -34,6 +34,7 @@ public:
     Scene* GetScene();
 
     // called when play mode enter
+    virtual void OnAwake() {}
     virtual void OnStart() {}
     virtual void OnStop() {}
     virtual void OnDrawGizmos() {}
@@ -42,6 +43,7 @@ public:
 
 protected:
     bool enabled = false;
+    bool isAwake = false;
     GameObject* gameObject;
 
     virtual void OnInit() {};
@@ -72,13 +74,13 @@ private:
         return name;                             \
     }
 
-#define DECLARE_COMPONENT_CONSTRUCT(TypeName)       \
-    DECLARE_OBJECT()                                \
-public:                                             \
-    TypeName() : TypeName(nullptr){};               \
-    TypeName(GameObject* gameObject);               \
-    const std::string& GetName() const override;    \
-                                                    \
+#define DECLARE_COMPONENT_CONSTRUCT(TypeName)    \
+    DECLARE_OBJECT()                             \
+public:                                          \
+    TypeName() : TypeName(nullptr){};            \
+    TypeName(GameObject* gameObject);            \
+    const std::string& GetName() const override; \
+                                                 \
 private:
 
 #define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \

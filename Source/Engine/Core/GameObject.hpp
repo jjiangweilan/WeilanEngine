@@ -70,6 +70,7 @@ class GameObject : public Object
     std::vector<std::unique_ptr<Component>> components;
     ObjPtr<GameObject> parent = nullptr;
     ObjPtr<Scene> gameScene = nullptr;
+    bool isAwaked = false;
 
     inline static const float compareEpsilon = 1e-6f;
 
@@ -185,6 +186,7 @@ public:
 
     // Lifecycle Callbacks
     void OnStart();
+    void OnAwake();
     void OnStop();
 
 private:

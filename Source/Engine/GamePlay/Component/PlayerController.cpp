@@ -144,7 +144,7 @@ void PlayerController::UpdatePhysicalCharacterVelocity()
     physicalCharacter->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
 }
 
-void PlayerController::OnStart()
+void PlayerController::OnAwake()
 {
     valid = false;
     if (camera == nullptr)

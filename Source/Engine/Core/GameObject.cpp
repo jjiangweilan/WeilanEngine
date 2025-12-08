@@ -265,15 +265,6 @@ void GameObject::SetEnable(bool isEnabled)
     if (enabled == isEnabled || gameScene == nullptr)
         return;
 
-    for (auto child : children)
-    {
-        // child may be nullptr when deserializing
-        if (child)
-        {
-            child->SetEnable(isEnabled);
-        }
-    }
-
     if (isEnabled)
     {
         for (auto& c : components)
@@ -283,6 +274,18 @@ void GameObject::SetEnable(bool isEnabled)
                 c->OnEnable();
             }
         }
+
+        if (!isAwaked)
+        {
+            isAwaked = true;
+            for (auto& c : components)
+            {
+                if (c && c->IsEnabled())
+                {
+                    c->OnAwake();
+                }
+            }
+        }
     }
     else
     {
@@ -290,6 +293,15 @@ void GameObject::SetEnable(bool isEnabled)
         {
             if (c && c->IsEnabled())
                 c->OnDisable();
+        }
+    }
+
+    for (auto child : children)
+    {
+        // child may be nullptr when deserializing
+        if (child)
+        {
+            child->SetEnable(isEnabled);
         }
     }
 
@@ -662,6 +674,15 @@ void GameObject::OnContactRemoved(
     {
         if (f)
             f(body1, body2, manifold, settings);
+    }
+}
+
+void GameObject::OnAwake()
+{
+    for (auto& c : components)
+    {
+        if (c->IsEnabled())
+            c->OnAwake();
     }
 }
 

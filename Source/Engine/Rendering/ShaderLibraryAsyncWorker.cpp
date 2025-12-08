@@ -1127,6 +1127,8 @@ public:
             depth.get_if("boundTestEnable", &config.depth.boundTestEnable);
             depth.get_if("minBounds", &config.depth.minBounds);
             depth.get_if("maxBounds", &config.depth.maxBounds);
+            depth.get_if("depthBias", &config.depth.depthBias);
+            depth.get_if("depthSlopBias", &config.depth.depthSlopBias);
         }
 
         if (root.has_child("stencil"))

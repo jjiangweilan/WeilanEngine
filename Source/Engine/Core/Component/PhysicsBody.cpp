@@ -313,9 +313,19 @@ void PhysicsBody::OnStart() {}
 
 void PhysicsBody::TransformChanged()
 {
-    if (recreateShape)
+    if (auto i = GetBodyInterface())
     {
-        recreateShape();
+        if (body)
+        {
+            auto pos = gameObject->GetPosition();
+            auto rot = gameObject->GetRotation();
+            i->SetPositionAndRotation(
+                body->GetID(),
+                { pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z },
+                { rot.x, rot.y, rot.z, rot.w },
+                EActivation::DontActivate
+            );
+        }
     }
 }
 
@@ -490,8 +500,7 @@ void PhysicsBody::SetSensor(bool isSensor)
 
     if (oldVal != this->isSensor)
     {
-        if (recreateShape)
-            recreateShape();
+        body->SetIsSensor(this->isSensor);
     }
 }
 

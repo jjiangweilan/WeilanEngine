@@ -41,6 +41,12 @@ void Component::Enable()
         enabled = true;
         if (gameObject->IsEnabled())
             OnEnable();
+
+        if (!isAwake)
+        {
+            isAwake = true;
+            OnAwake();
+        }
     }
 }
 
