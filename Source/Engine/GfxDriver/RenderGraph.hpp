@@ -95,6 +95,7 @@ struct ImageIdentifier
         Handle
     };
 
+    ImageIdentifier(const ImageIdentifier& other) = default;
     ImageIdentifier() : type(Type::Handle), rtHandle(UUID()) {}
     ImageIdentifier(const char* name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(std::string_view name) : type(Type::Handle), name(name), rtHandle(UUID()) {}

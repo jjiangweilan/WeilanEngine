@@ -559,4 +559,13 @@ void VKCommandBuffer::BeginRenderPass(std::span<const RenderAttachment> images, 
     cmds.push_back(VKCmd{VKCmdType::DynamicBeginRenderPass, cmd});
 }
 
+void VKCommandBuffer::BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings)
+{
+    VKDynamicBindResourceCmd cmd{};
+    cmd.set = set;
+    cmd.bindings = bindings;
+
+    cmds.push_back(VKCmd{VKCmdType::DynamicBindResource, cmd});
+}
+
 } // namespace Gfx

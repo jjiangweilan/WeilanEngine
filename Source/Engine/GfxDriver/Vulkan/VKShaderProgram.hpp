@@ -4,10 +4,10 @@
 #include "../ShaderProgram.hpp"
 #include "GfxDriver/VertexAttributes.hpp"
 #include "GfxDriver/Vulkan/Internal/VKMemAllocator.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "VKShaderInfo.hpp"
 #include <memory>
 #include <unordered_map>
-#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
@@ -33,8 +33,11 @@ private:
 
 class VKShaderProgram : public ShaderProgram
 {
+    DECLARE_OBJECT();
+
 public:
     using SetNum = uint32_t;
+    VKShaderProgram();
     VKShaderProgram(VKContext* context, const PipelineCreateInfo& createInfo);
 
     VKShaderProgram(const VKShaderProgram& other) = delete;
@@ -46,9 +49,10 @@ public:
         const PipelineConfig& config,
         std::span<VKBuffer*> vertexBindingBuffers,
         VKRenderPass* renderPass,
-        uint32_t subpass
+        uint32_t subpass,
+        int requirePushDescriptorSet
     );
-    VkPipeline RequestComputePipeline();
+    VkPipeline RequestComputePipeline(int requirePushDescriptorSet);
     VKDescriptorPool* GetDescriptorPool(DescriptorSetSlot slot);
 
     // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
@@ -69,6 +73,7 @@ private:
     };
     typedef std::unordered_map<SetNum, DescriptorSetLayoutBindingWrap> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
+    int isPushDescriptorSetCompatible = false;
 
     std::string name = "";
     VKObjectManager* objManager = nullptr;

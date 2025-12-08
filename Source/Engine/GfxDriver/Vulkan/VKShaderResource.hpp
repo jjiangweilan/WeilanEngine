@@ -69,6 +69,9 @@ public:
     void Clear() override;
     void RebuildAll() override;
 
+    void PushDescriptorSet(VkCommandBuffer cmd, uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
+    std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
+
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     const std::vector<VKWritableGPUResource>& GetWritableResources(
         uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph

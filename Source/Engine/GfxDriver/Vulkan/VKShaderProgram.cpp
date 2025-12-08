@@ -17,6 +17,10 @@
 namespace Gfx
 {
 
+DEFINE_OBJECT(VKShaderProgram, "B78EF37A-4703-4240-B245-23B36BB43F69");
+
+VKShaderProgram::VKShaderProgram() : ShaderProgram(false) {};
+
 VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& createInfo)
     : ShaderProgram(false), name(createInfo.pipelineInfo.name), objManager(context->objManager)
 {
@@ -295,8 +299,9 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
     return pipelineLayout;
 }
 
-VkPipeline VKShaderProgram::RequestComputePipeline()
+VkPipeline VKShaderProgram::RequestComputePipeline(int requirePushDescriptorSet)
 {
+    this->isPushDescriptorSetCompatible = requirePushDescriptorSet;
     if (isCompute)
     {
         return caches.begin()->second.second;
@@ -312,9 +317,11 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     const PipelineConfig& config,
     std::span<VKBuffer*> vertexBindingBuffers,
     VKRenderPass* renderPass,
-    uint32_t subpassIndex
+    uint32_t subpassIndex,
+    int requirePushDescriptorSet
 )
 {
+    this->isPushDescriptorSetCompatible = requirePushDescriptorSet;
     PipelineRequestHash requestHash = config.GetHash();
     Hash64(
         requestHash,
