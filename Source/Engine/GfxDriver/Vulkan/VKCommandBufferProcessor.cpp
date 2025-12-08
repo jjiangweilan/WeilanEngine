@@ -493,6 +493,13 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
             recordState.bindSetCmdIndex[std::get<VKBindResourceCmd>(cmd.args).set] = visitIndex;
             recordState.bindedSetUpdateNeeded[std::get<VKBindResourceCmd>(cmd.args).set] = true;
         }
+        else if (cmd.type == VKCmdType::DynamicBindResource)
+        {
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: dynamic bind resource");
+            auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
+            recordState.dynamicBindSetCmdIndex[args.set] = visitIndex;
+            recordState.dynamicBindedSetUpdateNeeded[args.set] = true;
+        }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
             ScheduleBindShaderProgram(cmd, visitIndex);
