@@ -199,6 +199,9 @@ public:
 
     void Tick()
     {
+        // render pass may depend on allocated image, so we remove renderPass first
+        UpdateResources(renderPasses);
+
         // remove images
         int removeCount = 0;
         UUID readyToRemove[8];
@@ -216,8 +219,6 @@ public:
         {
             images.erase(readyToRemove[i]);
         }
-
-        UpdateResources(renderPasses);
     }
 
 private:
@@ -495,7 +496,6 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         }
         else if (cmd.type == VKCmdType::DynamicBindResource)
         {
-            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: dynamic bind resource");
             auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
             recordState.dynamicBindSetCmdIndex[args.set] = visitIndex;
             recordState.dynamicBindedSetUpdateNeeded[args.set] = true;
@@ -1160,25 +1160,28 @@ void VKCommandBufferProcessor::Execute(
         {
             case VKCmdType::SetLineWidth:
                 {
-
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetLineWidth");
                     auto& args = std::get<VKSetLineWidthCmd>(cmd.args);
                     vkCmdSetLineWidth(vkcmd, args.lineWidth);
                     break;
                 }
             case VKCmdType::SetDepthBias:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetDepthBias");
                     auto& args = std::get<VKSetDepthBiasCmd>(cmd.args);
                     vkCmdSetDepthBias(vkcmd, args.constantFactor, args.clamp, args.slopeFactor);
                     break;
                 }
             case VKCmdType::SetDepthBiasEnable:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetDepthBiasEnable");
                     auto& args = std::get<VKSetDepthBiasEnableCmd>(cmd.args);
                     vkCmdSetDepthBiasEnable(vkcmd, args.enable ? VK_TRUE : VK_FALSE);
                     break;
                 }
             case VKCmdType::DrawIndexed:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndexed");
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1195,6 +1198,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::Draw:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Draw");
                     auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1204,6 +1208,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case Gfx::VKCmdType::ClearColorImage:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - ClearColorImage");
                     auto& args = std::get<VKClearColorImageCmd>(cmd.args);
 
                     VKImage* image = static_cast<VKImage*>(args.image);
@@ -1232,6 +1237,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::DrawIndirect:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndirect");
                     auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1247,6 +1253,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::DrawIndexedIndirect:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndexedIndirect");
                     auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1262,11 +1269,13 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::AsyncReadback:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - AsyncReadback");
                     // vkCmdSetEvent(vkcmd, cmd.asyncReadback.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
                     break;
                 }
             case Gfx::VKCmdType::DynamicBeginRenderPass:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DynamicBeginRenderPass");
                     auto& args = std::get<VKDynamicRenderPassCmd>(cmd.args);
                     VKRenderPass* renderPasss = args.resolvedRenderPass;
                     std::span<ClearValue> clearValues = args.clearValues;
@@ -1294,6 +1303,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::BeginRenderPass:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BeginRenderPass");
                     auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
                     Gfx::VKRenderPass* renderPass = args.renderPass;
                     VkRenderPass vkRenderPass = renderPass->GetHandle();
@@ -1349,12 +1359,14 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::EndRenderPass:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - EndRenderPass");
                     vkCmdEndRenderPass(vkcmd);
                     exeState.renderPass = nullptr;
                     break;
                 }
             case VKCmdType::Blit:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Blit");
                     auto& args = std::get<VKBlitCmd>(cmd.args);
                     uint32_t srcMip = args.blitOp.srcMip.value_or(0);
                     uint32_t dstMip = args.blitOp.dstMip.value_or(0);
@@ -1405,6 +1417,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::BindResource:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindResource");
                     auto& args = std::get<VKBindResourceCmd>(cmd.args);
                     if (args.set > 4)
                         return;
@@ -1415,6 +1428,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::DynamicBindResource:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DynamicBindResource");
                     auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
                     if (args.set > 4)
                         return;
@@ -1426,6 +1440,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::BindVertexBuffer:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindVertexBuffer");
                     auto& args = std::get<VKBindVertexBufferCmd>(cmd.args);
                     VkBuffer vkBuffers[8];
                     uint64_t vkOffsets[8];
@@ -1449,6 +1464,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::BindShaderProgram:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindShaderProgram");
                     auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
                     exeState.pendingBindedShader = args.program;
                     exeState.shaderConfig = *args.config;
@@ -1456,6 +1472,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::BindIndexBuffer:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindIndexBuffer");
                     auto& args = std::get<VKBindIndexBufferCmd>(cmd.args);
                     VKBuffer* buffer = args.buffer;
 
@@ -1465,6 +1482,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::SetViewport:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetViewport");
                     auto& args = std::get<VKSetViewportCmd>(cmd.args);
                     exeState.overrideViewport = true;
                     vkCmdSetViewport(vkcmd, 0, 1, &args.viewport);
@@ -1472,6 +1490,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::CopyImageToBuffer:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - CopyImageToBuffer");
                     std::vector<VkBufferImageCopy> vkRegions;
                     auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
 
@@ -1515,6 +1534,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::SetPushConstant:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetPushConstant");
                     auto& args = std::get<VKSetPushConstantCmd>(cmd.args);
                     VKShaderProgram* shaderProgram = args.shaderProgram;
 
@@ -1530,6 +1550,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::SetScissor:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - SetScissor");
                     auto& args = std::get<VKSetScissorCmd>(cmd.args);
                     exeState.overrideScissor = true;
                     vkCmdSetScissor(vkcmd, args.firstScissor, args.scissorCount, args.rects);
@@ -1537,6 +1558,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::Dispatch:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Dispatch");
                     auto& args = std::get<VKDispatchCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
@@ -1555,6 +1577,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::DispatchIndirect:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DispatchIndirect");
                     auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
@@ -1572,12 +1595,14 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::NextRenderPass:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - NextRenderPass");
                     exeState.subpassIndex += 1;
                     vkCmdNextSubpass(vkcmd, VK_SUBPASS_CONTENTS_INLINE);
                     break;
                 }
             case VKCmdType::PushDescriptorSet:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - PushDescriptorSet");
                     auto& args = std::get<VKPushDescriptorCmd>(cmd.args);
                     VkWriteDescriptorSet writeSets[8];
                     VkDescriptorImageInfo imageInfos[16];
@@ -1627,6 +1652,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::CopyBuffer:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - CopyBuffer");
                     auto& args = std::get<VKCopyBufferCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1647,6 +1673,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::CopyBufferToImage:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - CopyBufferToImage");
                     auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1667,6 +1694,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case VKCmdType::Present:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Present");
                     auto& args = std::get<VKPresentCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1680,6 +1708,7 @@ void VKCommandBufferProcessor::Execute(
 
             case VKCmdType::RGBeginRenderPass:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - RGBeginRenderPass");
                     auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
                     Gfx::VKRenderPass* renderPass = resourceAllocator->Request(args.renderPass);
                     BeginRenderPass(
@@ -1694,6 +1723,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case Gfx::VKCmdType::BeginLabel:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BeginLabel");
                     auto& args = std::get<VKBeginLabelCmd>(cmd.args);
                     VKDebugUtils::CmdBeginLabel(vkcmd, args.label.data(), args.color);
                     if (enableGPUTimestamp && exeState.currentTimestapQueryIndex < inflightCmd.maxtimestapQueryCount)
@@ -1711,6 +1741,7 @@ void VKCommandBufferProcessor::Execute(
                 }
             case Gfx::VKCmdType::EndLabel:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - EndLabel");
                     VKDebugUtils::CmdEndLabel(vkcmd);
                     if (enableGPUTimestamp && exeState.currentTimestapQueryIndex < inflightCmd.maxtimestapQueryCount)
                     {
@@ -1727,12 +1758,14 @@ void VKCommandBufferProcessor::Execute(
                 }
             case Gfx::VKCmdType::InsertLabel:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - InsertLabel");
                     auto& args = std::get<VKInsertLabelCmd>(cmd.args);
                     VKDebugUtils::CmdInsertLabel(vkcmd, args.label.data(), args.color);
                     break;
                 }
             case Gfx::VKCmdType::GraphicsBlit:
                 {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - GraphicsBlit");
                     auto& args = std::get<VKGraphicsBlitCmd>(cmd.args);
                     VkRenderingAttachmentInfo colorAttachmentInfo =
                         VkRenderingAttachmentInfo{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
@@ -1774,6 +1807,8 @@ void VKCommandBufferProcessor::Execute(
 
 void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDynamicDescriptorSetBinding");
+
     for (int setIndex = 0; setIndex < 4; ++setIndex)
     {
         if (exeState.setResources[setIndex].dynamicBindingNeedUpdate)
@@ -1791,6 +1826,8 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKC
 
 void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDescriptorSetBinding");
+
     UpdateDescriptorSetBinding(cmd, 0, bindPoint);
     UpdateDescriptorSetBinding(cmd, 1, bindPoint);
     UpdateDescriptorSetBinding(cmd, 2, bindPoint);
@@ -1799,6 +1836,8 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, V
 
 void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - TryBindShader");
+
     if ((exeState.bindedShader != exeState.pendingBindedShader || exeState.shaderConfig != exeState.pendingShaderConfig) &&
         exeState.pendingBindedShader != nullptr)
     {
@@ -1819,10 +1858,10 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                 exeState.bindedShader = exeState.pendingBindedShader;
                 exeState.shaderConfig = exeState.pendingShaderConfig;
 
-                exeState.setResources[0].needUpdate = true;
-                exeState.setResources[1].needUpdate = true;
-                exeState.setResources[2].needUpdate = true;
-                exeState.setResources[3].needUpdate = true;
+                exeState.setResources[0].needUpdate = exeState.setResources[0].resource != nullptr;
+                exeState.setResources[1].needUpdate = exeState.setResources[1].resource != nullptr;
+                exeState.setResources[2].needUpdate = exeState.setResources[2].resource != nullptr;
+                exeState.setResources[3].needUpdate = exeState.setResources[3].resource != nullptr;
             }
         }
         else
@@ -1847,10 +1886,10 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                     exeState.bindedShader = exeState.pendingBindedShader;
                     exeState.shaderConfig = exeState.pendingShaderConfig;
 
-                    exeState.setResources[0].needUpdate = true;
-                    exeState.setResources[1].needUpdate = true;
-                    exeState.setResources[2].needUpdate = true;
-                    exeState.setResources[3].needUpdate = true;
+                    exeState.setResources[0].needUpdate = exeState.setResources[0].resource != nullptr;
+                    exeState.setResources[1].needUpdate = exeState.setResources[1].resource != nullptr;
+                    exeState.setResources[2].needUpdate = exeState.setResources[2].resource != nullptr;
+                    exeState.setResources[3].needUpdate = exeState.setResources[3].resource != nullptr;
                 }
             }
             else
@@ -1863,6 +1902,8 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
     VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint
 )
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDescriptorSetBinding");
+
     if (exeState.setResources[index].needUpdate)
     {
         if (exeState.setResources[index].resource)
@@ -1884,14 +1925,6 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
 
                 exeState.bindedDescriptorSets[index] = sourceSet;
                 exeState.setResources[index].needUpdate = false;
-
-                // if a lower order set is being changed there is high chance that lower order set is being disturbed so we
-                // need to bind them again
-                for (int i = index + 1; i < 4; ++i)
-                {
-                    exeState.bindedDescriptorSets[i] = VK_NULL_HANDLE;
-                    exeState.setResources[i].needUpdate = true;
-                }
             }
         }
     }
@@ -1899,6 +1932,8 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
 
 void VKCommandBufferProcessor::PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount)
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - PutBarriers2");
+
     std::vector<VkImageMemoryBarrier2> imageBarriers{};
     std::vector<VkBufferMemoryBarrier2> bufferBarriers{};
     std::vector<VkMemoryBarrier2> memoryBarrier2s{};
@@ -1971,6 +2006,7 @@ void VKCommandBufferProcessor::PutBarriers(VkCommandBuffer vkcmd, int barrierOff
 
 void VKCommandBufferProcessor::PutBarrier(VkCommandBuffer vkcmd, int index)
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - PutBarriers");
 
     Barrier& barrier = barriers[index];
     if (barrier.bufferMemoryBarrierIndex != -1)
@@ -2107,6 +2143,8 @@ void VKCommandBufferProcessor::FlushAllDynamicBindedSetUpdate(
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - FlushAllDynamicBindedSetUpdate");
+
     for (int i = 0; i < 4; ++i)
     {
         if (recordState.dynamicBindedSetUpdateNeeded[i] == true)
@@ -2128,6 +2166,8 @@ void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
+    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: FlushAllBindedSetUpdate");
+
     for (int i = 0; i < 4; ++i)
     {
         if (recordState.bindedSetUpdateNeeded[i] == true)
