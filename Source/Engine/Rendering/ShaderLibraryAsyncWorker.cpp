@@ -1222,8 +1222,13 @@ class ShaderLibraryAsyncWorker::CompileWorker
 {
     struct CachedShaderInformation
     {
-        ShaderPermutation permutation;
         ShaderFeatures shaderFeatures;
+    };
+
+    struct CompiledShaderVariant
+    {
+        std::string shaderName;
+        ShaderPermutation permutation;
     };
 
     JobHandle workingThread;
@@ -1234,6 +1239,10 @@ class ShaderLibraryAsyncWorker::CompileWorker
     Slang::ComPtr<slang::IGlobalSession> globalSession;
     Slang::ComPtr<slang::ISession> session;
     std::unordered_map<std::string, CachedShaderInformation> compiledShaderInformationCache;
+    std::vector<CompiledShaderVariant> compiledShaderVariants;
+
+    // mutex used to protect querying from other threads
+    std::mutex queryMutex;
 
 public:
     CompileWorker() : workQueue(32), compiledQueue(32) { Init(); }
@@ -1253,12 +1262,12 @@ public:
 
         LoadSession();
 
-        auto copy = compiledShaderInformationCache;
-        compiledShaderInformationCache.clear();
+        auto copy = compiledShaderVariants;
+        compiledShaderVariants.clear();
 
         for (auto& shader : copy)
         {
-            PushWork(CompileJobParams{shader.first.c_str(), shader.second.permutation});
+            PushWork(CompileJobParams{shader.shaderName, shader.permutation});
         }
     }
 
@@ -1361,10 +1370,16 @@ public:
         return std::nullopt;
     }
 
+    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName)
+    {
+        std::scoped_lock alock(queryMutex);
+        return RetriveShaderFeaturesNoLock(shaderName);
+    }
+
 private:
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
 
-    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName, ShaderPermutation permutation)
+    const ShaderFeatures& RetriveShaderFeaturesNoLock(const char* shaderName)
     {
         auto iter = compiledShaderInformationCache.find(shaderName);
 
@@ -1390,7 +1405,7 @@ private:
                 }
             }
 
-            compiledShaderInformationCache[shaderName] = {permutation, features};
+            compiledShaderInformationCache[shaderName] = {features};
             return compiledShaderInformationCache[shaderName].shaderFeatures; // returning a reference
         }
 
@@ -1429,6 +1444,9 @@ private:
         workingThread = JobSystem::Instance().Schedule(
             [this]()
             {
+                // prevent race condition when querying shader features from other threads
+                std::scoped_lock alock(queryMutex);
+
                 while (!workQueue.empty())
                 {
                     CompileJobParams params;
@@ -1438,6 +1456,9 @@ private:
                     auto shaderProgram =
                         CompileShader(params.shaderName.data(), params.permutation, compiledShaderFeature);
 
+                    compiledShaderVariants.push_back(
+                        CompiledShaderVariant{params.shaderName, params.permutation}
+                    );
                     AsyncCompiledData compiledData(
                         std::move(params.shaderName),
                         std::move(params.permutation),
@@ -1457,7 +1478,7 @@ private:
         ShaderCompiler compiler;
         Gfx::ShaderPipelineInfo pipelineInfo{};
         Gfx::PipelineConfig pipelineConfig{};
-        auto& features = RetriveShaderFeatures(shaderName, permutation);
+        auto& features = RetriveShaderFeaturesNoLock(shaderName);
         outFeature = features;
         auto featureStrings = features.GetFeautresFromBitmask(permutation);
         try
@@ -1614,4 +1635,9 @@ Gfx::ShaderPipelineInfo::Binding ShaderCompiler::AddBindingAsResource(const std:
     }
 
     return binding;
+}
+
+const ShaderFeatures& ShaderLibraryAsyncWorker::RetriveShaderFeatures(const char* shaderName)
+{
+    return compileWorker->RetriveShaderFeatures(shaderName);
 }

@@ -3,8 +3,6 @@
 #include "Libs/Hash.hpp"
 #include "Shader.hpp"
 #include "ShaderLibraryAsyncWorker.hpp"
-#include <slang-com-ptr.h>
-#include <slang.h>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
 
@@ -59,9 +57,6 @@ class ShaderLibrary
         Shader shaderHandle; // contains the shader object and return it to user
         ShaderPermutation permutation;
 
-        [[deprecated("use ReplaceShader")]]
-        void Recompile(ShaderLibrary* parent);
-
         void ReplaceShader(std::unique_ptr<Gfx::ShaderProgram>&& newShader);
     };
 
@@ -71,8 +66,6 @@ class ShaderLibrary
         std::unordered_map<ShaderPermutation, CompiledShader> shaders;
     };
 
-    Slang::ComPtr<slang::IGlobalSession> globalSession;
-    Slang::ComPtr<slang::ISession> session;
     std::unordered_map<std::string, ShaderCached> library;
     const char* shaderRootPath = GetShaderRootPath();
     ShaderLibraryAsyncWorker asyncWorker;
@@ -120,11 +113,6 @@ public:
 
     static void WaitForShaderCompilation() { Singleton().WaitForAllImpl(); }
 
-    static void DestorySlangInstance()
-    {
-        return Singleton().DestorySlangInstanceImpl();
-    }
-
     static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
 
     void RemoveAllShaders()
@@ -140,10 +128,8 @@ public:
 private:
     ShaderLibrary();
 
-    void Init();
     void LoadSession();
     void WaitForAllImpl() { asyncWorker.WaitForAll(); }
-    void DestorySlangInstanceImpl();
     Shader* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
     void ReloadAllShadersImpl();
@@ -152,13 +138,6 @@ private:
         return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/";
     }
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
-    void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
+    void CompileSingleShader();
     void CompileAllDefaultShadersImpl();
-    void CheckPushconstant(
-        slang::VariableLayoutReflection* param,
-        Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
-        std::vector<Gfx::ShaderPipelineInfo::PushConstant>& outPushConstants,
-        int entryPointIndex,
-        Gfx::ShaderStage stage
-    );
 };

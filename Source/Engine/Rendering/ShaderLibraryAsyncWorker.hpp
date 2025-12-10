@@ -103,6 +103,7 @@ public:
     void WaitForAll();
     void ReloadAllShaders();
     void CleanUp();
+    const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
     std::optional<AsyncCompiledData> PollCompiled();
 
 private:

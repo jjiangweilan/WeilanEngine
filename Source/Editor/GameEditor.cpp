@@ -478,16 +478,6 @@ void GameEditor::MainMenuBar()
         }
     }
 
-    if (ImGui::BeginMenu("Debug"))
-    {
-        if (ImGui::MenuItem("Destroy slang instance"))
-        {
-            ShaderLibrary::DestorySlangInstance();
-        }
-
-        ImGui::EndMenu();
-    }
-
     for (auto& windowInfo : WindowRegistery::GetRegistery())
     {
         WindowRegisteryIteration(windowInfo, 0);
