@@ -17,6 +17,7 @@ public:
     virtual void Tick() {}
     virtual void IdleTick() {}
     virtual void PrePhysicsTick() {};
+    virtual void DebugDraw() {};
 
     virtual const std::string& GetName() const = 0;
     virtual std::unique_ptr<Component> Clone(GameObject& owner) { return nullptr; }

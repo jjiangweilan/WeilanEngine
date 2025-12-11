@@ -32,6 +32,19 @@ void Graphics::DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm:
     GetSingleton().drawCmds.push_back(DrawCubeCmd{pos, scale, rotation});
 }
 
+void Graphics::DrawSphere(const glm::vec3& pos, const glm::vec3& scale)
+{
+    Mesh* sphere = EngineInternalResources::GetModels().sphere;
+    Material* mat = EngineInternalResources::GetDefaultMaterial();
+    if (!sphere || !mat)
+    {
+        return;
+    }
+
+    glm::mat4 m = glm::translate(glm::mat4(1), pos) * glm::scale(glm::mat4(1), scale);
+    DrawMesh(*sphere, 0, m, *mat);
+}
+
 void Graphics::DrawPlane(const glm::vec3& normal, float w)
 {
     GetSingleton().drawCmds.push_back(DrawPlaneCmd{normal, w});

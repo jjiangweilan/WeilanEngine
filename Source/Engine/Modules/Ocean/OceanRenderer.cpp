@@ -5,11 +5,8 @@
 OceanRenderer::OceanRenderer()
 {
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
-    patchRenderShaderResource = GetGfxDriver()->CreateShaderResource();
     oceanParamsSetIndex = oceanPatchShader->GetSet("params");
     oceanMaterialSetIndex = oceanPatchShader->GetSet("mat");
-
-    patchRenderShaderResource->SetBuffer("buffer", &*rendererInputUBO);
 }
 
 void OceanRenderer::Setup(std::span<int> vertexSize)
@@ -62,7 +59,6 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count)
         );
         instanceBuffer.cpuData.resize(count);
         instanceBuffer.count = count;
-        patchRenderShaderResource->SetBuffer("instanceData", instanceBuffer.buffer.get());
     }
 }
 
@@ -78,9 +74,6 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
         1.0f / depthTexDescription.height
     };
     rendererInputUBO.SetAndUpload(rendererInputUBOVal);
-    patchRenderShaderResource->SetImage("depthTex", renderingData.depthCopy);
-    patchRenderShaderResource->SetImage("colorTex", renderingData.colorCopy);
-    patchRenderShaderResource->SetImage("specularCubemap", renderingData.specularCubemap);
 
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;

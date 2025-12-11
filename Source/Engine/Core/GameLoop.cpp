@@ -1,8 +1,7 @@
 #include "GameLoop.hpp"
-#include "Core/Time.hpp"
+#include "Core/DebugOptions.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Profiler/Profiler.hpp"
-#include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
@@ -13,6 +12,27 @@ GameLoop::GameLoop()
 }
 
 GameLoop::~GameLoop() {}
+
+static void TickGameObjectDebugDraw(const std::vector<ObjPtr<GameObject>>& rootObjects)
+{
+    static std::function<void(GameObject*)> f = [](GameObject* go)
+    {
+        if (go->IsEnabled())
+        {
+            go->DebugDraw();
+
+            for (auto child : go->GetChildren())
+            {
+                f(child);
+            }
+        }
+    };
+
+    for (auto go : rootObjects)
+    {
+        f(go);
+    }
+}
 
 static void TickGameObject(GameObject* go)
 {
@@ -77,6 +97,11 @@ const void GameLoop::Tick(
 
     if (scene && scene->GetMainCamera())
     {
+        ENGINE_BEGIN_PROFILE("GameLoop - GameObject Debug Draw");
+        if (GetDebugOptions().drawGameObjectDebugDraw)
+            TickGameObjectDebugDraw(rootObjects);
+        ENGINE_END_PROFILE
+
         ENGINE_BEGIN_PROFILE("GameLoop - Physics Debug Draw");
         scene->GetPhysicsScene().DebugDraw();
         ENGINE_END_PROFILE

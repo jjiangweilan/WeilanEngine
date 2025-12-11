@@ -164,12 +164,6 @@ void JoltDebugRenderer::DrawText3D(
 JoltDebugRenderer::BatchImpl::BatchImpl() {}
 JoltDebugRenderer::BatchImpl::~BatchImpl() {}
 
-bool& JoltDebugRenderer::GetDrawAll()
-{
-    static bool drawAll = false;
-    return drawAll;
-}
-
 std::unique_ptr<JoltDebugRenderer>& JoltDebugRenderer::GetDebugRenderer()
 {
     static std::unique_ptr<JoltDebugRenderer> joltDebugRenderer;

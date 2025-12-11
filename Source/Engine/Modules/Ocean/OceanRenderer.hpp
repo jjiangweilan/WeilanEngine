@@ -56,7 +56,6 @@ private:
     GPUBuffer<RendererInputBuffer> rendererInputUBO;
 
     ObjPtr<Shader> oceanPatchShader;
-    std::unique_ptr<Gfx::ShaderResource> patchRenderShaderResource;
 
     std::vector<PatchLodData> patchLodDatas{};
     int oceanParamsSetIndex;

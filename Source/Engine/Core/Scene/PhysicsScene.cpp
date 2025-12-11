@@ -1,5 +1,6 @@
 #include "PhysicsScene.hpp"
 #include "Core/Component/PhysicsBody.hpp"
+#include "Core/DebugOptions.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
 #include "Libs/Assert.hpp"
@@ -89,7 +90,7 @@ void PhysicsScene::DebugDraw()
     bodyDrawFilter.drawRequested.clear();
     for (auto& b : bodies)
     {
-        if (b.second->debugDrawRequest || JoltDebugRenderer::GetDrawAll())
+        if (b.second->debugDrawRequest || GetDebugOptions().drawPhysicsColliders)
         {
             b.second->debugDrawRequest = false;
             bodyDrawFilter.drawRequested.emplace(b.second->GetBody()->GetID());

@@ -10,8 +10,6 @@ class Mesh;
 class JoltDebugRenderer : public JPH::DebugRenderer
 {
 public:
-    static bool& GetDrawAll();
-
     JoltDebugRenderer()
     {
         Initialize();

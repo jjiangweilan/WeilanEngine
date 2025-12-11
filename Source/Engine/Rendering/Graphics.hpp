@@ -19,6 +19,7 @@ class Graphics
 public:
     static void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color = {1, 1, 1, 1});
     static void DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
+    static void DrawSphere(const glm::vec3& pos, const glm::vec3& scale);
     static void DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm::quat& rotation);
     static void DrawPlane(const glm::vec3& normal, float w);
     static void DrawCapsule(

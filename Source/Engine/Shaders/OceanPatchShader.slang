@@ -123,7 +123,7 @@ float4 Fragment(Varyings input) : SV_Target
     float3 normalWS = normalize(input.normalWS);
     float3 tangentWS = normalize(input.tangentWS);
     float3 binormal = cross(normalWS, tangentWS);
-    float3 normalMap = mat.waterNormalTex.Sample(params._LinearRepeatSampler, input.positionWS.xz * 0.2 + float2(perScene.scene.time, perScene.scene.time) * 0.1).xyz * 2.0 - 1.0;
+    float3 normalMap = mat.waterNormalTex.Sample(params._LinearRepeatSampler, input.positionWS.xz * 0.1 + float2(perScene.scene.time, perScene.scene.time) * 0.1).xyz * 2.0 - 1.0;
     float3 normal = normalize(tangentWS * normalMap.x + binormal * normalMap.y + normalWS * normalMap.z);
 
     // Lighting accumulation

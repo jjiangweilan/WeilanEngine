@@ -76,6 +76,14 @@ void GameObject::Tick()
     }
 }
 
+void GameObject::DebugDraw()
+{
+    for (auto& comp : components)
+    {
+        comp->DebugDraw();
+    }
+}
+
 void GameObject::IdleTick()
 {
     for (auto& comp : components)

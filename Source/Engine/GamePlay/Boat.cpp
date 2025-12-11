@@ -4,6 +4,7 @@
 #include "Libs/Math.hpp"
 #include "Modules/Ocean/OceanComponent.hpp"
 #include "Profiler/Profiler.hpp"
+#include "Rendering/Graphics.hpp"
 
 #define GERSTNERWAVE_CPU_SIDE
 namespace GPUResources
@@ -56,7 +57,6 @@ void Boat::UpdateBoat(OceanComponent* ocean)
 
         b.outWorldPosition = b.samplePosition + goPosition + float3(0, waveOffset.y, 0);
     }
-
 }
 
 OceanComponent* Boat::GetOceanComponent()
@@ -67,6 +67,15 @@ OceanComponent* Boat::GetOceanComponent()
 void Boat::SetOceanComponent(OceanComponent* o)
 {
     oceanComponent = o;
+}
+
+void Boat::PrePhysicsTick()
+{
+}
+
+void Boat::DebugDraw()
+{
+    Graphics::DrawSphere(gameObject->GetPosition(), float3(0.2f));
 }
 
 } // namespace Game

@@ -2,12 +2,13 @@
 
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/DebugOptions.hpp"
 #include "Core/EngineState.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/SystemInfo.hpp"
 #include "Core/Time.hpp"
-#include "Editor/HudDebug.hpp"
 #include "Editor/EditorState.hpp"
+#include "Editor/HudDebug.hpp"
 #include "GameEditor.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Math.hpp"
@@ -372,7 +373,8 @@ bool SceneEditor::Tick()
     {
         p.frameCount += 1;
     }
-    pendingDeleteSceneImages.remove_if([](PendingDelete& p) { return p.frameCount > 5; });
+    pendingDeleteSceneImages.remove_if([](PendingDelete& p)
+                                       { return p.frameCount > 5; });
 
     bool open = true;
     isVisible = ImGui::Begin("Scene", &open, ImGuiWindowFlags_MenuBar);
@@ -406,9 +408,11 @@ bool SceneEditor::Tick()
 
     if (ImGui::BeginMenuBar())
     {
-        if (ImGui::MenuItem("Physics Debug Draw"))
+        if (ImGui::BeginMenu("Debug Draw"))
         {
-            JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
+            ImGui::Checkbox("Physics", &GetDebugOptions().drawPhysicsColliders);
+            ImGui::Checkbox("Game Object", &GetDebugOptions().drawGameObjectDebugDraw);
+            ImGui::EndMenu();
         }
         if (ImGui::MenuItem("Toggle Grid"))
         {
@@ -599,7 +603,8 @@ bool SceneEditor::Tick()
                         auto findIter = std::find_if(
                             selectedObjects.begin(),
                             selectedObjects.end(),
-                            [picked](ObjPtr<Object> o) { return o.Get() == picked; }
+                            [picked](ObjPtr<Object> o)
+                            { return o.Get() == picked; }
                         );
                         if (findIter == selectedObjects.end())
                         {

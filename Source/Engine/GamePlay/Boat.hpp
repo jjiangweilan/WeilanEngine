@@ -40,6 +40,8 @@ public:
     void Tick() override;
     void IdleTick() override;
     void OnInit() override;
+    void PrePhysicsTick() override;
+    void DebugDraw() override;
 
     // Boat
     void UpdateBoat(OceanComponent* ocean);

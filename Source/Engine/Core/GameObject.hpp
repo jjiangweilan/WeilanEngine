@@ -105,6 +105,7 @@ public:
     void Tick();
     void IdleTick();
     void PrePhysicsTick();
+    void DebugDraw();
 
     // Serialization
     void Serialize(Serializer* s) const override;
