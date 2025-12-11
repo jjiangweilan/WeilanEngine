@@ -64,5 +64,6 @@ struct RenderingData
 
         return nullptr;
     }
+
 };
 } // namespace Rendering
