@@ -7,6 +7,13 @@ OceanRenderer::OceanRenderer()
     oceanPatchShader = ShaderLibrary::GetShader(Shaders::OceanPatchShader);
     oceanParamsSetIndex = oceanPatchShader->GetSet("params");
     oceanMaterialSetIndex = oceanPatchShader->GetSet("mat");
+
+    instanceBuffer.buffer = PipelineGPUBufferAllocator::RequestGPUBuffer("OceanRenderer InstanceBuffer", PipelineGPUBufferUsage::Stoage);
+}
+
+OceanRenderer::~OceanRenderer()
+{
+    PipelineGPUBufferAllocator::ReturnBuffer(instanceBuffer.buffer);
 }
 
 void OceanRenderer::Setup(std::span<int> vertexSize)
@@ -26,7 +33,7 @@ void OceanRenderer::Render(Gfx::CommandBuffer& cmd, OceanQuadTree& quadTree, Mat
         totalInstance += nodes.size();
     }
 
-    EnsureInstanceBufferSize(totalInstance);
+    EnsureInstanceBufferSize(totalInstance, renderingData);
     FillInstanceData(quadTree);
     DrawPatches(cmd, waveMaterial, renderingData);
     cmd.EndLabel();
@@ -46,20 +53,15 @@ void OceanRenderer::InitPatchLodData(std::span<int> vertexSize)
     }
 }
 
-void OceanRenderer::EnsureInstanceBufferSize(size_t count)
+void OceanRenderer::EnsureInstanceBufferSize(size_t count, const Rendering::RenderingData& renderingData)
 {
     if (instanceBuffer.count < count)
     {
-        instanceBuffer.buffer = GetGfxDriver()->CreateBuffer(
-            count * sizeof(GPUNodeInstanceData),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-            false,
-            false,
-            "OceanRenderer InstanceBuffer"
-        );
         instanceBuffer.cpuData.resize(count);
-        instanceBuffer.count = count;
     }
+
+    instanceBuffer.count = count;
+    renderingData.pipelineAllocator->AllocateBuffer(instanceBuffer.buffer, sizeof(GPUNodeInstanceData) * count);
 }
 
 void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& renderingData)
@@ -81,13 +83,16 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     cmd.BindResource(oceanMaterialSetIndex, waveMaterial.GetShaderResource());
     // cmd.BindResource(oceanParamsSetIndex, patchRenderShaderResource.get());
 
-    cmd.BindResource(oceanParamsSetIndex, {
-        {"buffer", &*rendererInputUBO},
-        {"instanceData", instanceBuffer.buffer.get()},
-        {"depthTex", *renderingData.depthCopy},
-        {"colorTex", *renderingData.colorCopy},
-        {"specularCubemap", *renderingData.specularCubemap}
-        });
+    cmd.BindResource(
+        oceanParamsSetIndex,
+        {
+            {"buffer", &*rendererInputUBO},
+            {"instanceData", instanceBuffer.buffer.GetBuffer()},
+            {"depthTex", *renderingData.depthCopy},
+            {"colorTex", *renderingData.colorCopy},
+            {"specularCubemap", *renderingData.specularCubemap},
+        }
+    );
     if (renderPipelineSettings->debugDraw.wireframe)
     {
         auto config = *shader->GetDefaultShaderConfig();
@@ -126,9 +131,5 @@ void OceanRenderer::FillInstanceData(OceanQuadTree& quadTree)
         }
     }
 
-    GetGfxDriver()->UploadBuffer(
-        *instanceBuffer.buffer,
-        (uint8_t*)instanceBuffer.cpuData.data(),
-        instanceBuffer.cpuData.size() * sizeof(GPUNodeInstanceData)
-    );
+    instanceBuffer.buffer.Write(instanceBuffer.cpuData.data(), instanceBuffer.count * sizeof(GPUNodeInstanceData));
 }

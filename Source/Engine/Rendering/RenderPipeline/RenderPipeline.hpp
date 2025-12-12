@@ -14,6 +14,7 @@
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
+#include "Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Rendering/RenderPipeline/Passes/FogPass.hpp"
 #include "Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Rendering/RenderPipeline/RenderPipelinePass.hpp"
@@ -83,6 +84,8 @@ class RenderPipeline
     Passes::DepthDownSampler* depthDownSamplerPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
+
+    std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 
     struct ExecutionState
     {

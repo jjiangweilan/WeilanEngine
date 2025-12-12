@@ -8,12 +8,14 @@
 
 #include "GfxDriver/Buffer.hpp"
 #include "Modules/Ocean/OceanQuadTree.hpp"
+#include "Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Rendering/Shader.hpp"
 
 class OceanRenderer
 {
 public:
     OceanRenderer();
+    ~OceanRenderer();
 
     // vertexSize's count should match quadTree's LOD level count
     void Setup(std::span<int> vertexSize);
@@ -29,7 +31,7 @@ private:
 
     struct
     {
-        std::unique_ptr<Gfx::Buffer> buffer = nullptr;
+        PipelineGPUBuffer buffer;
         std::vector<GPUNodeInstanceData> cpuData;
         int count = 0;
     } instanceBuffer;
@@ -61,7 +63,7 @@ private:
     int oceanParamsSetIndex;
     int oceanMaterialSetIndex;
 
-    void EnsureInstanceBufferSize(size_t count);
+    void EnsureInstanceBufferSize(size_t count, const Rendering::RenderingData&);
     void InitPatchLodData(std::span<int> vertexSize);
     void FillInstanceData(OceanQuadTree& quadTree);
     void DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& data);

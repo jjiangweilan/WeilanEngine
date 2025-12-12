@@ -43,6 +43,8 @@ RenderPipeline::RenderPipeline()
     };
     skyboxOnlyPass.SetSubpass(0, skyboxOnlyPassAttachment);
 
+    bufferAllocator = std::make_unique<PipelineGPUBufferAllocator>();
+    renderingData.pipelineAllocator = bufferAllocator.get();
     renderingData.perScene = &perScene;
 
     for (auto& p : renderPipelinePasses)

@@ -3,6 +3,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/DrawList.hpp"
 #include "Rendering/GPUParameter.hpp"
+#include "Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 class Camera;
 class Terrain;
@@ -36,6 +37,7 @@ private:
 
 struct RenderingData
 {
+    PipelineGPUBufferAllocator* pipelineAllocator;
     Scene* scene;
     Camera* mainCamera;
     RenderPipelineSetting* renderPipelineSettings;
@@ -64,6 +66,5 @@ struct RenderingData
 
         return nullptr;
     }
-
 };
 } // namespace Rendering
