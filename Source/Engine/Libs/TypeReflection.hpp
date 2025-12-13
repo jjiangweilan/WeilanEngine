@@ -1,4 +1,5 @@
 #pragma once
+#include "Libs/CppUtility.hpp"
 
 #include <functional>
 #include <string>
@@ -12,58 +13,84 @@ public:
     template <class MemType>
     static void RegisterMemberVariable(const std::string& name, MemType T::* memPtr)
     {
-        Singleton().variables[name] = {
+        ASSERT(GetVariablesPrivate().find(name) == GetVariablesPrivate().end());
+
+        GetVariablesPrivate()[name] = {
             &typeid(MemType),
-            [memPtr](T& obj, void* val) { *((MemType*)val) = obj.*memPtr; }
+            [memPtr](T& obj, void*& val)
+            { val = &(obj.*memPtr); }
         };
     }
 
     template <class MemType>
-    static bool Get(T& obj, const std::string& name, MemType& val)
+    static MemType* GetVariable(T& obj, const std::string& name)
     {
-        auto iter = Singleton().variables.find(name);
+        auto iter = GetVariablesPrivate().find(name);
 
-        if (iter == Singleton().variables.end())
+        if (iter == GetVariablesPrivate().end())
         {
-            val = MemType();
-            return false;
+            return nullptr;
         }
 
         auto& pair = iter->second;
         auto& typeInfo = pair.first;
         if (typeid(MemType) != *typeInfo)
         {
-            val = MemType();
-            return false;
+            return nullptr;
         }
 
         auto& f = pair.second;
-        f(obj, &val);
+        void* val = nullptr;
+        f(obj, val);
 
-        return true;
+        return (MemType*)val;
     }
 
-    static const std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*)>>>&
-    GetAllFields()
+    static const std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>>&
+    GetVariables()
     {
-        return Singleton().variables;
+        return GetVariablesPrivate();
     }
 
-    template <class MemType>
-    bool Get(const std::string& name, MemType& val)
-    {
-        return TypeReflection<T>::Get(*static_cast<T*>(this), name, val);
-    }
+    // this can be used for derived class
+    // template <class MemType>
+    // bool Get(const std::string& name, MemType& val)
+    // {
+    //     return TypeReflection<T>::Get(*static_cast<T*>(this), name, val);
+    // }
 
 private:
-    static TypeReflection<T>& Singleton()
+    static std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>>& GetVariablesPrivate()
     {
-        static TypeReflection<T> instance;
-        return instance;
-    };
-
-    std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*)>>> variables;
+        static std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>> variables;
+        return variables;
+    }
 };
 
-#define REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Type, memName)                                                        \
+#define REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Type, memName) \
     TypeReflection<Type>::RegisterMemberVariable(#memName, &Type::memName)
+
+template <class T>
+struct TypeReflectionPack
+{
+    TypeReflectionPack(const char* name, T val) : name(name), val(val) {}
+    const char* name;
+    T val;
+};
+
+#define TYPE_REFLECTION_MEM1(Type, x) TypeReflectionPack(#x, &Type::x)
+#define TYPE_REFLECTION_MEM2(Type, name, x) TypeReflectionPack(#name, &Type::x)
+#define TYPE_REFLECTION_MEM_EXPAND(x) x
+#define TYPE_REFLECTION_GET_MACRO(_1, _2, name, ...) name
+#define TYPE_REFLECTION_MEM(Type, ...) TYPE_REFLECTION_MEM_EXPAND(TYPE_REFLECTION_GET_MACRO(__VA_ARGS__, TYPE_REFLECTION_MEM2, TYPE_REFLECTION_MEM1)(Type, __VA_ARGS__))
+#define TYPE_REFLECTION_MEMBER_VARIABLES(Type, ...)                                                                                          \
+    namespace TypeReflectionNS                                                                                                               \
+    {                                                                                                                                        \
+    static bool RegisterMemberVariables()                                                                                                    \
+    {                                                                                                                                        \
+        [](auto&&... fields)                                                                                                                 \
+        { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberVariable(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
+        return true;                                                                                                                         \
+    }                                                                                                                                        \
+    static bool registered = RegisterMemberVariables();                                                                                      \
+    }

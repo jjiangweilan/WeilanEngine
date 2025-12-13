@@ -1,6 +1,7 @@
 #include "OceanComponent.hpp"
 #include "Core/GameObject.hpp"
 #include "Libs/CppUtility.hpp"
+#include "Libs/TypeReflection.hpp"
 #include "Rendering/CommandBufferUtils.hpp"
 #include "Rendering/GeometryUtils.hpp"
 #include "Rendering/RenderPipeline/PerScene.hpp"
@@ -15,6 +16,15 @@ DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01
 
     globalTweak = {{{0.0f, 0.0f}, 1.0f, 1.0f, 1.0f}, true, false, 1.0f};
 }
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    OceanComponent,
+    TYPE_REFLECTION_MEM(OceanComponent, waves),
+    TYPE_REFLECTION_MEM(OceanComponent, globalTweak),
+    TYPE_REFLECTION_MEM(OceanComponent, material),
+    TYPE_REFLECTION_MEM(OceanComponent, areaScale),
+    TYPE_REFLECTION_MEM(OceanComponent, config)
+);
 
 DEFINE_SERIALIZATION(
     OceanComponent,

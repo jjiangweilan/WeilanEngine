@@ -9,6 +9,7 @@ OceanRenderer::OceanRenderer()
     oceanMaterialSetIndex = oceanPatchShader->GetSet("mat");
 
     instanceBuffer.buffer = PipelineGPUBufferAllocator::RequestGPUBuffer("OceanRenderer InstanceBuffer", PipelineGPUBufferUsage::Stoage);
+    rendererInputUBO = PipelineGPUBufferAllocator::RequestGPUBuffer("OceanRenderer InputUBO", PipelineGPUBufferUsage::Uniform);
 }
 
 OceanRenderer::~OceanRenderer()
@@ -67,15 +68,15 @@ void OceanRenderer::EnsureInstanceBufferSize(size_t count, const Rendering::Rend
 void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial, const Rendering::RenderingData& renderingData)
 {
     // Prepare patchRenderShaderResource //
-    auto rendererInputUBOVal = *rendererInputUBO.GetPtr();
     auto& depthTexDescription = renderingData.depthCopy->GetDescription();
-    rendererInputUBOVal.depthTexSize = {
+    rendererInputBuffer.depthTexSize = {
         depthTexDescription.width,
         depthTexDescription.height,
         1.0f / depthTexDescription.width,
         1.0f / depthTexDescription.height
     };
-    rendererInputUBO.SetAndUpload(rendererInputUBOVal);
+    renderingData.pipelineAllocator->AllocateBuffer(rendererInputUBO, sizeof(rendererInputBuffer));
+    rendererInputUBO.Write(&rendererInputBuffer, sizeof(rendererInputBuffer));
 
     auto shader = oceanPatchShader->GetShaderProgram();
     auto renderPipelineSettings = renderingData.renderPipelineSettings;
@@ -86,7 +87,7 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     cmd.BindResource(
         oceanParamsSetIndex,
         {
-            {"buffer", &*rendererInputUBO},
+            {"buffer", rendererInputUBO.GetBuffer()},
             {"instanceData", instanceBuffer.buffer.GetBuffer()},
             {"depthTex", *renderingData.depthCopy},
             {"colorTex", *renderingData.colorCopy},

@@ -1,5 +1,6 @@
 #include "../Inspector.hpp"
 #include "Editor/EditorState.hpp"
+#include "Libs/TypeReflection.hpp"
 #include "Modules/Ocean/OceanComponent.hpp"
 
 namespace Editor
@@ -49,7 +50,10 @@ public:
             ocean->Reset();
         }
 
+        std::vector<OceanComponent::CPUWave>* wavesPtr = TypeReflection<OceanComponent>::GetVariable<std::vector<OceanComponent::CPUWave>>(*target, "waves");
+
         auto& waves = ocean->GetWaves();
+        ASSERT(&waves == wavesPtr);
         auto& globalTweak = ocean->GetGlobalTweak();
 
         EditorGUI::SeparatorTextLabeled("Global Wave Tweak");

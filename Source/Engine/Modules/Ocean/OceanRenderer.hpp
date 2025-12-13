@@ -53,9 +53,8 @@ private:
     struct RendererInputBuffer
     {
         float4 depthTexSize;
-    };
-
-    GPUBuffer<RendererInputBuffer> rendererInputUBO;
+    } rendererInputBuffer = {};
+    PipelineGPUBuffer rendererInputUBO;
 
     ObjPtr<Shader> oceanPatchShader;
 

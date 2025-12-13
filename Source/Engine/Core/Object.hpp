@@ -58,6 +58,8 @@ protected:
     UUID uuid;
 
     friend class ObjectTracker;
+    template <class T>
+    friend class TypeReflection;
 };
 
 using ObjectTypeID = UUID;
@@ -107,6 +109,12 @@ private:
 template <class T>
 concept IsObject = requires { std::derived_from<T, Object>; };
 
+// forward declared for type reflection
+namespace TypeReflectionNS
+{
+bool RegisterMemberVariables();
+}
+
 template <class T>
 std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 {
@@ -115,15 +123,17 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
     return std::unique_ptr<T>(ptr);
 }
 
-#define DECLARE_OBJECT()                                  \
-                                                          \
-public:                                                   \
-    static const ObjectTypeID& StaticGetObjectTypeID();   \
-    static const std::string& StaticGetTypeName();        \
-    const std::string& GetTypeName() const override;      \
-    const ObjectTypeID& GetObjectTypeID() const override; \
-                                                          \
-private:                                                  \
+#define DECLARE_OBJECT()                                     \
+                                                             \
+public:                                                      \
+    static const ObjectTypeID& StaticGetObjectTypeID();      \
+    static const std::string& StaticGetTypeName();           \
+    const std::string& GetTypeName() const override;         \
+    const ObjectTypeID& GetObjectTypeID() const override;    \
+                                                             \
+    friend bool TypeReflectionNS::RegisterMemberVariables(); \
+                                                             \
+private:                                                     \
     static const char _objectRegister;
 
 #define DEFINE_OBJECT(Type, ObjectID)                                        \
