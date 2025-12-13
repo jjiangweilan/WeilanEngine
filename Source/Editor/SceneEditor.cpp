@@ -418,6 +418,11 @@ bool SceneEditor::Tick()
         {
             editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
         }
+        float fovDegrees = glm::degrees(editorCamera->GetFoV());
+        if (ImGui::DragFloat("Camera FoV", &fovDegrees, 0.1f, 1.0f, 179.0f))
+        {
+            editorCamera->SetFoV(glm::radians(fovDegrees));
+        }
         ImGui::EndMenuBar();
     }
 

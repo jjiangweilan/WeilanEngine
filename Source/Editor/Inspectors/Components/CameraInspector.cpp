@@ -27,7 +27,15 @@ public:
             &Camera::SetProjectionMode
         );
 
-        if (target->GetProjectionMode() == Camera::ProjectionMode::Orthographic)
+        if (target->GetProjectionMode() == Camera::ProjectionMode::Perspective)
+        {
+            float fovDegrees = glm::degrees(target->GetFoV());
+            if (EditorGUI::DragFloat("Field of View", &fovDegrees, 0.1f, 1.0f, 179.0f))
+            {
+                target->SetFoV(glm::radians(fovDegrees));
+            }
+        }
+        else if (target->GetProjectionMode() == Camera::ProjectionMode::Orthographic)
         {
             float orthoSize = target->GetOrthographicSize();
             if (EditorGUI::DragFloat("Orthographic Size", &orthoSize, 0.05f, 0.0001f))

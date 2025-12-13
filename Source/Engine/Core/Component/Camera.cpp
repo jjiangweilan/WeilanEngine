@@ -274,7 +274,7 @@ float Camera::GetFoV()
     {
         return 0.0f;
     }
-    return glm::atan(GetProjectionTop() / GetNear());
+    return fov;
 }
 
 Frustum Camera::GetFrustum(float aspect)
