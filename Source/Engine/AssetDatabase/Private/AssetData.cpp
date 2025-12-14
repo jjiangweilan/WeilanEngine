@@ -1,5 +1,7 @@
 #include "AssetData.hpp"
+#include "Libs/PodVector.hpp"
 #include <spdlog/spdlog.h>
+
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
 )
@@ -21,6 +23,19 @@ AssetData::AssetData(
     isValid = false;
 }
 
+static PodVector<uint8_t> ReadFile(const std::filesystem::path& path)
+{
+    std::ifstream f;
+    // f.rdbuf()->pubsetbuf(streamBuf.data(), streamBufSize);
+    f.open(path, std::ios::binary);
+    if (!f.good())
+        return {};
+    auto fileSize = std::filesystem::file_size(path);
+    PodVector<uint8_t> d(fileSize);
+    f.read((char*)d.data(), fileSize);
+    return d;
+}
+
 AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot)
     : assetDataUUID(assetDataUUID), lastWriteTime(0)
 {
@@ -30,11 +45,21 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
 
     if (!assetDataUUID.IsEmpty())
     {
-        std::ifstream f(path);
+        if (!std::filesystem::exists(path))
+        {
+            isValid = false;
+            return;
+        }
+
         nlohmann::json dataJson;
+
         try
         {
-            dataJson = nlohmann::json::parse(f);
+            std::ifstream file(path);
+            if (file.good() && file.peek() != std::ifstream::traits_type::eof())
+            {
+                dataJson = nlohmann::json::parse(file); // seems nlohmann::json::parse() having issue with VS 2026 build, we need to make sure the json is valid
+            }
         }
         catch (...)
         {
@@ -42,7 +67,6 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
             isValid = false;
             return;
         }
-
         if (dataJson.empty())
         {
             isValid = false;

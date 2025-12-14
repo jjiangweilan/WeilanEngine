@@ -15,18 +15,20 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
-add_compile_options("/Zc:__cplusplus")
+add_compile_options(/Zc:__cplusplus /MP)
+
+if (ENABLE_ASAN)
+add_compile_options("/fsanitize=address")
+endif()
+
 endif()
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
-option(ENABLE_ADDRESS_SANITIZER "" OFF)
+option(ENABLE_ASAN "" OFF)
 
 include(CheckIPOSupported)
 include(FetchContent)
 
-if (ENABLE_ADDRESS_SANITIZER)
-add_compile_options("/fsanitize=address")
-endif()
 
 function(ResolveTargetAlias target resolved)
     get_target_property(aliased ${target} ALIASED_TARGET)
@@ -110,7 +112,7 @@ endfunction()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
-    GIT_TAG "v2025.18.2"
+    GIT_TAG "v2025.24"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
 )
@@ -129,6 +131,9 @@ set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 set(SLANG_ENABLE_SLANG_GLSLANG ON)
 set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
+if(ENABLE_ASAN)
+    set(SLANG_ENABLE_ASAN ON)
+endif()
 FetchContent_MakeAvailable(Slang)
 
 add_dependencies(slang
@@ -142,7 +147,7 @@ FetchContent_Declare(SDL2
     GIT_PROGRESS TRUE
     )
 
-if (ENABLE_ADDRESS_SANITIZER)
+if (ENABLE_ASAN)
     set(SDL_STATIC ON)
     set(SDL_SHARED OFF)
 else()
@@ -185,7 +190,7 @@ FetchContent_MakeAvailable(rapidyaml)
 
 FetchContent_Declare(json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
+    GIT_TAG v3.12.0
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )
@@ -295,34 +300,33 @@ option(EDITOR_ON "compile with game editor" ON)
 option(DEV_BUILD "Define ENGINE_DEV_BUILD" ON)
 
 # link WeilanEngine to editor
-add_executable(WeilanEngineEditor
-    Source/Editor/Launcher.cpp)
+add_executable(WeilanEngineEditor)
 add_library(WeilanEngine SHARED)
+target_link_libraries(WeilanEngineEditor PRIVATE WeilanEngine)
 
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-    target_compile_options(WeilanEngine PUBLIC /MP /W1)
-    target_compile_options(WeilanEngine PRIVATE "/ZI")
-    target_compile_options(WeilanEngine PRIVATE "/Od")
-    target_compile_options(WeilanEngine PRIVATE "/Ob0")
-    target_compile_options(WeilanEngineEditor PRIVATE "/ZI")
-endif()
-
-set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
-file(GLOB_RECURSE CORE_ENGINE_SRC "Source/Engine/*.c" "Source/Engine/*.cpp" "Source/Engine/*.hpp" "Source/Engine/*.h" "Source/Engine/*.tpp")
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
 endif()
 
-if (${EDITOR_ON})
-    target_compile_definitions(WeilanEngine PUBLIC ENGINE_EDITOR)
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    target_compile_options(WeilanEngine PUBLIC /W1)
+
+if (NOT ENABLE_ASAN)
+    target_compile_options(WeilanEngine PUBLIC "/ZI")
 endif()
+    target_compile_options(WeilanEngine PUBLIC "/Od")
+    target_compile_options(WeilanEngine PUBLIC "/Ob0")
+endif()
+
+set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
+file(GLOB_RECURSE CORE_ENGINE_SRC "Source/Engine/*.c" "Source/Engine/*.cpp" "Source/Engine/*.hpp" "Source/Engine/*.h" "Source/Engine/*.tpp")
 
 target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
 find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngine
-    PUBLIC
+    PRIVATE
     "Source/Engine/"
 
     SYSTEM
@@ -331,13 +335,13 @@ target_include_directories( WeilanEngine
 
 if(USE_VULKAN_SDK_TOOLS)
     target_link_directories(WeilanEngine
-        PUBLIC
+        PRIVATE
         $ENV{VULKAN_SDK}/Lib
         )
 endif()
 
 target_link_libraries( WeilanEngine
-    PUBLIC
+    PRIVATE
     ryml::ryml
     SDL2::SDL2
     spdlog
@@ -357,7 +361,7 @@ target_link_libraries( WeilanEngine
 
 target_compile_definitions(
     WeilanEngine
-    PUBLIC
+    PRIVATE
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -365,27 +369,25 @@ target_compile_definitions(
     GLM_ENABLE_EXPERIMENTAL
     )
 
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Od")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Ob0")
-endif()
-file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
-target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
-target_link_libraries(WeilanEngineEditor WeilanEngine)
-target_include_directories( WeilanEngineEditor
-    PUBLIC
-    "Source/Editor/"
+if (${EDITOR_ON})
+    target_sources(WeilanEngineEditor PRIVATE Source/EditorLauncher.cpp)
+    target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
+    file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
+    target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})
+    target_include_directories( WeilanEngine
+        PRIVATE
+        "Source/Editor/"
 
-    SYSTEM
-    # "${CMAKE_BINARY_DIR}/bin"
-    # "${CMAKE_BINARY_DIR}/include"
-    ${Vulkan_INCLUDE_DIRS}
+        SYSTEM
+        # "${CMAKE_BINARY_DIR}/bin"
+        # "${CMAKE_BINARY_DIR}/include"
+        ${Vulkan_INCLUDE_DIRS}
     )
+endif()
 
 if (MSVC)
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "WeilanEngineEditor")
-    set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+    #    set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
 source_group(
@@ -417,6 +419,11 @@ if (UNIT_TEST)
         WeilanEngineTest
         WeilanEngine
         GTest::gtest_main
+    )
+    target_include_directories(
+        WeilanEngineTest
+        PRIVATE
+        "Source/Engine/"
     )
 
     include(GoogleTest)

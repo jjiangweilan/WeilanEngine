@@ -1,4 +1,5 @@
 #include "JobSystem.hpp"
+#include <spdlog/spdlog.h>
 
 JobSystem::JobSystem() : mainThreadJobs(jobCapacityPerWorker), done(false)
 {
@@ -93,9 +94,15 @@ void JobSystem::WorkerThread(int threadIdx)
         // 1. Try getting from local
         // 2. Try getting from main thread
         // 3. Try stealing from other workers
-        if (TryPopLocalJob(job) || TryPopMainThreadJob(job) || TryStealOtherJob(job))
-            job();
-        else
+        if (TryPopLocalJob(job) || TryPopMainThreadJob(job) || TryStealOtherJob(job)) {
+            try {
+                job();
+            } catch (const std::exception& e) {
+                spdlog::error("{}", e.what());
+            } catch (...) {
+                spdlog::error("unknown exception thrown");
+            }
+        } else
         {
             std::unique_lock lk{workerSignalMutex};
             workerSignal.wait(lk);

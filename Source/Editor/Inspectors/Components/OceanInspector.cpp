@@ -53,7 +53,6 @@ public:
         std::vector<OceanComponent::CPUWave>* wavesPtr = TypeReflection<OceanComponent>::GetVariable<std::vector<OceanComponent::CPUWave>>(*target, "waves");
 
         auto& waves = ocean->GetWaves();
-        ASSERT(&waves == wavesPtr);
         auto& globalTweak = ocean->GetGlobalTweak();
 
         EditorGUI::SeparatorTextLabeled("Global Wave Tweak");
