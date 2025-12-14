@@ -3,9 +3,20 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Libs/Assert.hpp"
+#include "Libs/TypeReflection.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    Material,
+    TYPE_REFLECTION_MEM(Material, shaderName),
+    TYPE_REFLECTION_MEM(Material, shaderInUse),
+    TYPE_REFLECTION_MEM(Material, ubo),
+    TYPE_REFLECTION_MEM(Material, textureValues),
+    TYPE_REFLECTION_MEM(Material, enabledFeatures),
+    TYPE_REFLECTION_MEM(Material, overrideShaderConfig),
+    TYPE_REFLECTION_MEM(Material, shaderConfig)
+)
 
 Material::Material(std::string_view shaderName)
 {
@@ -26,6 +37,23 @@ Material::Material() : shaderInUse(nullptr), shaderResource(nullptr)
 }
 
 Material::~Material() {};
+
+void Material::Copy(const Material& src)
+{
+    ubo = src.ubo;
+    shaderName = src.shaderName;
+    shaderFeatures = src.shaderFeatures;
+    shaderInUse = src.shaderInUse;
+    shaderConfig = src.shaderConfig;
+    overrideShaderConfig = src.overrideShaderConfig;
+    textureValues = src.textureValues;
+    textureImageViewOptions = src.textureImageViewOptions;
+    bufferValues = src.bufferValues;
+    enabledFeatures = src.enabledFeatures;
+
+    uploadNeeded = true;
+    needRequestNewShader = src.needRequestNewShader;
+}
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {

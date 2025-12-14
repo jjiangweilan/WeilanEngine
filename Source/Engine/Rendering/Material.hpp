@@ -28,8 +28,15 @@ public:
     Material();
     Material(std::string_view shaderName);
     Material(ObjPtr<Shader> shader);
-    Material(const Material& other) = delete;
+    Material(const Material& src) { Copy(src); }
+    Material& operator=(const Material& src)
+    {
+        Copy(src);
+        return *this;
+    };
     ~Material() override;
+
+    void Copy(const Material& src);
 
     void SetName(std::string_view name) override
     {
@@ -106,6 +113,17 @@ public:
 private:
     struct UBO
     {
+        UBO& operator=(const UBO& src)
+        {
+            dirty = true;
+            floats = src.floats;
+            vectors = src.vectors;
+            matrices = src.matrices;
+            buffer = nullptr; // created upon first use
+
+            return *this;
+        };
+
         bool dirty = false;
         std::unique_ptr<Gfx::Buffer> buffer;
         std::unordered_map<std::string, float> floats;
@@ -114,12 +132,13 @@ private:
 
         void Serialize(Serializer* ser) const;
         void Deserialize(Serializer* ser);
-    } ubo;
+        void CreateUBO();
+    };
 
+    UBO ubo;
     std::string shaderName;
     const ShaderFeatures* shaderFeatures = nullptr;
     ObjPtr<Shader> shaderInUse = nullptr;
-    std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::PipelineConfig shaderConfig;
     bool overrideShaderConfig = false;
 
@@ -128,8 +147,11 @@ private:
     std::unordered_map<std::string, std::optional<Gfx::ImageViewOption>> textureImageViewOptions;
     std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;
+
+    // ============ Runtime =============/
     bool uploadNeeded = false;
     bool needRequestNewShader = false;
+    std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void WriteParameterDataToBuffer(

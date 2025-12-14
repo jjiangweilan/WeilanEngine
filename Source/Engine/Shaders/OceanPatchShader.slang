@@ -41,6 +41,7 @@ struct Varyings
     float3 normalWS;
     float3 tangentWS;
     float3 waveOffset;
+    nointerpolation float2 waveDir;
 };
 
 struct DrawParams
@@ -89,6 +90,14 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
     float3 tangentWS = float3(0,0,0);
     positionWS = GerstnerWave(positionWS, mat.waves, mat.waveCount, mat.areaScale, time, normalWS, tangentWS, waveOffset);
 
+    float2 avgWaveDir = 0;
+    for(int i = 0; i < mat.waveCount; i++)
+    {
+        avgWaveDir += mat.waves[i].direction;
+    }
+    avgWaveDir = normalize(avgWaveDir / mat.waveCount);
+
+
     float4 positionCS = perScene.WorldToClipSpace(positionWS);
 
     Varyings output;
@@ -97,6 +106,7 @@ Varyings Vertex(Attributes input, int instanceID :  SV_InstanceID, int baseInsta
     output.normalWS = normalWS;
     output.tangentWS = tangentWS;
     output.waveOffset = waveOffset;
+    output.waveDir = avgWaveDir;
     return output;
 }
 
@@ -123,7 +133,7 @@ float4 Fragment(Varyings input) : SV_Target
     float3 normalWS = normalize(input.normalWS);
     float3 tangentWS = normalize(input.tangentWS);
     float3 binormal = cross(normalWS, tangentWS);
-    float3 normalMap = mat.waterNormalTex.Sample(params._LinearRepeatSampler, input.positionWS.xz * 0.1 + float2(perScene.scene.time, perScene.scene.time) * 0.1).xyz * 2.0 - 1.0;
+    float3 normalMap = mat.waterNormalTex.Sample(params._LinearRepeatSampler, input.positionWS.xz * 0.1 - input.waveDir * float2(perScene.scene.time, perScene.scene.time) * 0.1).xyz * 2.0 - 1.0;
     float3 normal = normalize(tangentWS * normalMap.x + binormal * normalMap.y + normalWS * normalMap.z);
 
     // Lighting accumulation
@@ -160,8 +170,9 @@ float4 Fragment(Varyings input) : SV_Target
     finalColor += baseBlendColor * 1 /3.1415926 * params.specularCubemap.SampleLevel(params._LinearClampSampler, shadingObject.normalWS, 6).xyz;
 
     // Add Skybox reflectance
-    float3 fresnel = Fresnel_Schlick(dot(shadingObject.viewDir, shadingObject.normalWS), 0.02f); // water's IOR is 1.33, so the base reflectance is about 0.02 ((n-1)/(n+1))^2
+    float3 fresnel = saturate(Fresnel_Schlick(dot(shadingObject.viewDir, shadingObject.normalWS), 0.02f)); // water's IOR is 1.33, so the base reflectance is about 0.02 ((n-1)/(n+1))^2
     float3 reflectedRay = normalize(reflect(-shadingObject.viewDir, shadingObject.normalWS));
+    reflectedRay.y = lerp(0.2, 1.0, reflectedRay.y); // fix the issue of the skybox turning too grey when approaching horizon level
     float specularCubemapBias = 0.3;
     finalColor += fresnel * params.specularCubemap.SampleLevel(params._LinearClampSampler, reflectedRay, specularCubemapBias).xyz;
 

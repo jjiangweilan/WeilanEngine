@@ -36,6 +36,18 @@ DEFINE_SERIALIZATION(
     SER(config)
 )
 
+void OceanComponent::Copy(OceanComponent& src)
+{
+    waves = src.waves;
+    globalTweak = src.globalTweak;
+    material = src.material;
+    areaScale = src.areaScale;
+    config = src.config;
+
+    UpdateWaveBuffer();
+    Reset();
+}
+
 void OceanComponent::OnLoaded()
 {
     material.OnLoaded();
@@ -159,4 +171,11 @@ void OceanComponent::Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingD
 {
     quadTree.UpdateQuadTree(renderingData.perScene->cameraParameter.position, renderingData.cameraFrustum);
     renderer.Render(cmd, quadTree, material, renderingData);
+}
+
+std::unique_ptr<Component> OceanComponent::Clone(GameObject& owner)
+{
+    std::unique_ptr<OceanComponent> clone = std::make_unique<OceanComponent>(&owner);
+    clone->Copy(*this);
+    return clone;
 }

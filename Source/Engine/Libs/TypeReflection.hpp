@@ -11,6 +11,42 @@ template <class T>
 class TypeReflection
 {
 public:
+    struct FunctionMetadata
+    {
+        std::function<void(T&, void*, void**, size_t)> func;
+        const std::type_info* returnType;
+        std::vector<const std::type_info*> argTypes;
+        size_t argCount;
+    };
+
+    struct PropertyMetadata
+    {
+        const std::type_info* typeInfo;
+        std::function<void(T&, void*&)> getter;
+        std::function<void(void*, void*)> copyOperator;
+    };
+
+public:
+    static void Copy(const T& src, T& dst)
+    {
+        for (const auto& varPair : GetVariables())
+        {
+            const std::string& name = varPair.first;
+            const auto& typeInfo = varPair.second.typeInfo;
+            const auto& getter = varPair.second.getter;
+            const auto& copyOperator = varPair.second.copyOperator;
+
+            void* srcVal = nullptr;
+            getter(const_cast<T&>(src), srcVal);
+
+            void* dstVal = nullptr;
+            getter(dst, dstVal);
+
+            if (srcVal != nullptr && dstVal != nullptr)
+                copyOperator(srcVal, dstVal);
+        }
+    }
+
     template <class MemType>
     static void RegisterMemberVariable(const std::string& name, MemType T::* memPtr)
     {
@@ -19,7 +55,9 @@ public:
         GetVariablesPrivate()[name] = {
             &typeid(MemType),
             [memPtr](T& obj, void*& val)
-            { val = &(obj.*memPtr); }
+            { val = &(obj.*memPtr); },
+            [memPtr](void* src, void* dst)
+            { *((MemType*)dst) = *((MemType*)src); }
         };
     }
 
@@ -32,7 +70,7 @@ public:
             [funcPtr](T& obj, void* rtnPtr, void** argPtrs, size_t argCount)
             {
                 ASSERT(argCount == sizeof...(Args));
-                
+
                 if constexpr (std::is_void_v<Rtn>)
                 {
                     CallMemberFunctionImpl(obj, funcPtr, argPtrs, std::index_sequence_for<Args...>{});
@@ -47,7 +85,7 @@ public:
                 }
             },
             &typeid(Rtn),
-            { &typeid(Args)... },
+            {&typeid(Args)...},
             sizeof...(Args)
         };
     }
@@ -62,14 +100,14 @@ public:
             return nullptr;
         }
 
-        auto& pair = iter->second;
-        auto& typeInfo = pair.first;
+        auto& metaData = iter->second;
+        auto& typeInfo = metaData.typeInfo;
         if (typeid(MemType) != *typeInfo)
         {
             return nullptr;
         }
 
-        auto& f = pair.second;
+        auto& f = metaData.getter;
         void* val = nullptr;
         f(obj, val);
 
@@ -83,25 +121,25 @@ public:
         ASSERT(iter != GetFunctionsPrivate().end());
 
         auto& metadata = iter->second;
-        
+
         // Type check: verify return type matches
         ASSERT(*metadata.returnType == typeid(Rtn));
-        
+
         // Type check: verify argument count matches
         ASSERT(metadata.argCount == sizeof...(Args));
-        
+
         // Type check: verify each argument type matches
         if constexpr (sizeof...(Args) > 0)
         {
-            const std::type_info* callArgTypes[] = { &typeid(Args)... };
+            const std::type_info* callArgTypes[] = {&typeid(Args)...};
             for (size_t i = 0; i < sizeof...(Args); ++i)
             {
                 ASSERT(*metadata.argTypes[i] == *callArgTypes[i]);
             }
         }
-        
+
         auto& f = metadata.func;
-        
+
         if constexpr (std::is_void_v<Rtn>)
         {
             // Handle void return type
@@ -111,7 +149,7 @@ public:
             }
             else
             {
-                void* argPtrs[] = { &args... };
+                void* argPtrs[] = {&args...};
                 f(obj, nullptr, argPtrs, sizeof...(Args));
             }
         }
@@ -125,14 +163,14 @@ public:
             }
             else
             {
-                void* argPtrs[] = { &args... };
+                void* argPtrs[] = {&args...};
                 f(obj, &result, argPtrs, sizeof...(Args));
             }
             return result;
         }
     }
 
-    static const std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>>&
+    static const std::unordered_map<std::string, PropertyMetadata>&
     GetVariables()
     {
         return GetVariablesPrivate();
@@ -146,17 +184,9 @@ public:
     // }
 
 private:
-    struct FunctionMetadata
+    static std::unordered_map<std::string, PropertyMetadata>& GetVariablesPrivate()
     {
-        std::function<void(T&, void*, void**, size_t)> func;
-        const std::type_info* returnType;
-        std::vector<const std::type_info*> argTypes;
-        size_t argCount;
-    };
-
-    static std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>>& GetVariablesPrivate()
-    {
-        static std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*&)>>> variables;
+        static std::unordered_map<std::string, PropertyMetadata> variables;
         return variables;
     }
 
@@ -209,14 +239,14 @@ struct TypeReflectionPack
 #define TYPE_REFLECTION_FUNC_EXPAND(x) x
 #define TYPE_REFLECTION_FUNC_GET_MACRO(_1, _2, name, ...) name
 #define TYPE_REFLECTION_FUNC(Type, ...) TYPE_REFLECTION_FUNC_EXPAND(TYPE_REFLECTION_FUNC_GET_MACRO(__VA_ARGS__, TYPE_REFLECTION_FUNC2, TYPE_REFLECTION_FUNC1)(Type, __VA_ARGS__))
-#define TYPE_REFLECTION_MEMBER_FUNCTIONS(Type, ...)                                                                                           \
-    namespace TypeReflectionNS                                                                                                                \
-    {                                                                                                                                         \
-    static bool RegisterMemberFunctions()                                                                                                     \
-    {                                                                                                                                         \
-        [](auto&&... fields)                                                                                                                  \
+#define TYPE_REFLECTION_MEMBER_FUNCTIONS(Type, ...)                                                                                          \
+    namespace TypeReflectionNS                                                                                                               \
+    {                                                                                                                                        \
+    static bool RegisterMemberFunctions()                                                                                                    \
+    {                                                                                                                                        \
+        [](auto&&... fields)                                                                                                                 \
         { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberFunction(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
-        return true;                                                                                                                          \
-    }                                                                                                                                         \
-    static bool registeredFuncs = RegisterMemberFunctions();                                                                                  \
+        return true;                                                                                                                         \
+    }                                                                                                                                        \
+    static bool registeredFuncs = RegisterMemberFunctions();                                                                                 \
     }

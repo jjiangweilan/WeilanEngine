@@ -35,6 +35,8 @@ public:
         );
     };
 
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
+
     struct OceanConfig
     {
         int mipLevels = 8;
@@ -55,6 +57,7 @@ public:
     void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData) override;
     void RandomizeWaves(int iteration);
     float TestThis(float h) { return h + 5.0f; };
+    void Copy(OceanComponent& src);
 
     std::vector<CPUWave>& GetWaves() { return waves; }
     CPUWave& GetGlobalTweak() { return globalTweak; }
