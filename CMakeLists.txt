@@ -327,7 +327,7 @@ find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngine
     PRIVATE
-    "Source/Engine/"
+    "Source/"
 
     SYSTEM
     ${Vulkan_INCLUDE_DIRS}
@@ -374,15 +374,6 @@ if (${EDITOR_ON})
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
     file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
     target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})
-    target_include_directories( WeilanEngine
-        PRIVATE
-        "Source/Editor/"
-
-        SYSTEM
-        # "${CMAKE_BINARY_DIR}/bin"
-        # "${CMAKE_BINARY_DIR}/include"
-        ${Vulkan_INCLUDE_DIRS}
-    )
 endif()
 
 if (MSVC)
@@ -423,7 +414,7 @@ if (UNIT_TEST)
     target_include_directories(
         WeilanEngineTest
         PRIVATE
-        "Source/Engine/"
+        "Source/"
     )
 
     include(GoogleTest)
