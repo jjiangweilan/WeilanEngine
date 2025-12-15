@@ -1,6 +1,6 @@
 #pragma once
-#include "GfxDriver/GfxDriver.hpp"
-#include "Libs/Math.hpp"
+#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Library/Math.hpp"
 #include <filesystem>
 #include <functional>
 #include <unordered_map>

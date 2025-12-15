@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/ObjectTracker.hpp"
-#include "Libs/Serialization/Serializable.hpp"
-#include "Libs/UUID.hpp"
+#include "Library/Serialization/Serializable.hpp"
+#include "Library/UUID.hpp"
 #include "SafeReferenceable.hpp"
 #include <spdlog/spdlog.h>
 #include <unordered_map>

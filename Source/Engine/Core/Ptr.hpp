@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Object.hpp"
 #include "Core/ObjectTracker.hpp"
-#include "Libs/UUID.hpp"
+#include "Library/UUID.hpp"
 #include <cstddef>
 #include <memory>
 

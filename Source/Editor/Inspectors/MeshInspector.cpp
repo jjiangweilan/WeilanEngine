@@ -1,5 +1,5 @@
 #include "Editor/EditorState.hpp"
-#include "Core/Graphics/Mesh.hpp"
+#include "Runtime/Object/Graphics/Mesh.hpp"
 #include "Inspector.hpp"
 namespace Editor
 {

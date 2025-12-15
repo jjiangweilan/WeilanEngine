@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/DelayDestroy.hpp"
-#include "GfxDriver/GfxDriver.hpp"
+#include "Driver/GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor

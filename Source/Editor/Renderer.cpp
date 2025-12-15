@@ -1,7 +1,7 @@
 #include "Renderer.hpp"
-#include "GfxDriver/GfxDriver.hpp"
-#include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/ShaderLibrary.hpp"
+#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Driver/GfxDriver/ShaderProgram.hpp"
+#include "Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "spdlog/spdlog.h"
 namespace Editor
 {

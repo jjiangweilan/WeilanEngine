@@ -1,6 +1,6 @@
 #pragma once
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Texture.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/Texture/Texture.hpp"
 #include <filesystem>
 #include <typeindex>
 #include <unordered_map>

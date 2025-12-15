@@ -1,6 +1,6 @@
 #pragma once
-#include "GfxDriver/CommandBuffer.hpp"
-#include "Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "Driver/GfxDriver/CommandBuffer.hpp"
+#include "Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
 #include <memory>
 
 namespace Gfx

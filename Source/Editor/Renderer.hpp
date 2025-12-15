@@ -1,6 +1,6 @@
 #pragma once
-#include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/Shader.hpp"
+#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Runtime/System/Rendering/Shader.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <tuple>
 

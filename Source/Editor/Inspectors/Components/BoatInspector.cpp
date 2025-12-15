@@ -1,6 +1,6 @@
 #include "../Inspector.hpp"
-#include "GamePlay/Boat.hpp"
-#include "Modules/Ocean/OceanComponent.hpp"
+#include "Game/Boat.hpp"
+#include "Runtime/Module/Ocean/OceanComponent.hpp"
 
 namespace Editor
 {

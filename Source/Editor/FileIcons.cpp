@@ -1,7 +1,7 @@
 #include "FileIcons.hpp"
-#include "AssetDatabase/Loaders/AssetLoader.hpp"
-#include "AssetDatabase/Loaders/ModelLoader.hpp"
-#include "AssetDatabase/Loaders/TextureLoader.hpp"
+#include "Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
+#include "Runtime/System/AssetDatabase/Loaders/ModelLoader.hpp"
+#include "Runtime/System/AssetDatabase/Loaders/TextureLoader.hpp"
 #include <codecvt>
 #include <locale>
 

@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Gizmo.hpp"
-#include "Core/Scene/Scene.hpp"
-#include "Core/Scene/SceneManager.hpp"
+#include "Game/Gizmo.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Runtime/System/SceneManager/SceneManager.hpp"
 #include "Editor/EditorContext.hpp"
 #include "Editor/Gizmos/GizmoManager.hpp"
-#include "Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include <list>

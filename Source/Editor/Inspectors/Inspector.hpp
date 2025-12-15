@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "Core/Component/Component.hpp"
+#include "Runtime/Object/Component/Component.hpp"
 #include "Core/Object.hpp"
 #include "EditorGUI.hpp"
 #include "InspectorRegistry.hpp"

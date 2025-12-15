@@ -1,6 +1,6 @@
 #include "GameObjectInspector.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Component/Component.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/Component/Component.hpp"
 #include "Editor/EditorState.hpp"
 #include "ThirdParty/imgui/imgui.h"
 

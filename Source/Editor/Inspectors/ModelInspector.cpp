@@ -1,5 +1,5 @@
 #include "Editor/EditorState.hpp"
-#include "Core/Model.hpp"
+#include "Runtime/Object/Mesh/Model.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "Inspector.hpp"

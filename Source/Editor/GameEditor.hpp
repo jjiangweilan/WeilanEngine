@@ -1,11 +1,11 @@
 #pragma once
 #include "AssetBrowser.hpp"
 #include "Core/Ptr.hpp"
-#include "Core/Scene/Scene.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
 #include "Editor/EditorContext.hpp"
 #include "EngineCommandGUI.hpp"
 #include "GameView.hpp"
-#include "Profiler/Profiler.hpp"
+#include "Core/Profiler/Profiler.hpp"
 #include "Renderer.hpp"
 #include "SceneEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"

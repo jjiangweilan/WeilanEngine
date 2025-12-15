@@ -1,10 +1,10 @@
 #include "Editor/EditorState.hpp"
-#include "Core/Component/ReflectionProbe.hpp"
+#include "Runtime/Object/Component/ReflectionProbe.hpp"
 #include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "Inspector.hpp"
-#include "Rendering/Graphics.hpp"
+#include "Runtime/System/Rendering/Graphics.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "WeilanEngine.hpp"
 

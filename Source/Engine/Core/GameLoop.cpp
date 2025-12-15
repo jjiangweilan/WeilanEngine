@@ -1,7 +1,7 @@
 #include "GameLoop.hpp"
-#include "Core/DebugOptions.hpp"
-#include "GfxDriver/GfxDriver.hpp"
-#include "Profiler/Profiler.hpp"
+#include "MiddleLayer/DebugOptions.hpp"
+#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Core/Profiler/Profiler.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>

@@ -1,12 +1,12 @@
 #include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Component/Camera.hpp"
-#include "Core/Scene/Scene.hpp"
-#include "Core/Scene/SceneManager.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/Component/Camera.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Runtime/System/SceneManager/SceneManager.hpp"
 #include "DragDropIDs.hpp"
 #include "EditorGUI.hpp"
-#include "Rendering/Graphics.hpp"
+#include "Runtime/System/Rendering/Graphics.hpp"
 namespace Editor
 {
 class CameraInspector : public Inspector<Camera>

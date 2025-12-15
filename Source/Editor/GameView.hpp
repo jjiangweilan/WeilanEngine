@@ -1,7 +1,7 @@
 #pragma once
-#include "Core/Gizmo.hpp"
-#include "Core/Scene/Scene.hpp"
-#include "Core/Scene/SceneManager.hpp"
+#include "Game/Gizmo.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Runtime/System/SceneManager/SceneManager.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include <list>

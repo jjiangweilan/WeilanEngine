@@ -1,4 +1,4 @@
-#include "Core/Scene/SceneSettings.hpp"
+#include "Runtime/System/SceneManager/SceneSettings.hpp"
 #include "Inspector.hpp"
 #include "InspectorHelper_Image.hpp"
 

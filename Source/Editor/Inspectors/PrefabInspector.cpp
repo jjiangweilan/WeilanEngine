@@ -1,4 +1,4 @@
-#include "Core/Prefab.hpp"
+#include "Runtime/Object/GameObject/Prefab.hpp"
 #include "EditorGUI.hpp"
 #include "GameObjectInspector.hpp"
 #include "Inspector.hpp"

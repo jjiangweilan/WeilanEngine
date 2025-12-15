@@ -1,6 +1,6 @@
 #include "Editor/EditorState.hpp"
 #include "../GameEditor.hpp"
-#include "Core/Scene/Scene.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
 #include "Inspector.hpp"
 
 namespace Editor

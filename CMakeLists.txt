@@ -370,7 +370,7 @@ target_compile_definitions(
     )
 
 if (${EDITOR_ON})
-    target_sources(WeilanEngineEditor PRIVATE Source/EditorLauncher.cpp)
+    target_sources(WeilanEngineEditor PRIVATE Source/Main/EditorLauncher.cpp)
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
     file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
     target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})

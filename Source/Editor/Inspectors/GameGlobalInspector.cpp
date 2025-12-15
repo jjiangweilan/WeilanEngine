@@ -1,6 +1,6 @@
 
-#include "GamePlay/Boat.hpp"
-#include "GamePlay/GameGlobal.hpp"
+#include "Game/Boat.hpp"
+#include "Game/GameGlobal.hpp"
 #include "Inspector.hpp"
 #include "ThirdParty/imgui/imgui.h"
 

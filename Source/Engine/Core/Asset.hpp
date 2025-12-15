@@ -1,7 +1,7 @@
-#include "Libs/EnumFlags.hpp"
-#include "Libs/Serialization/Serializable.hpp"
-#include "Libs/Serialization/Serializer.hpp"
-#include "Libs/Utils.hpp"
+#include "Library/EnumFlags.hpp"
+#include "Library/Serialization/Serializable.hpp"
+#include "Library/Serialization/Serializer.hpp"
+#include "Library/Utils.hpp"
 #include "Object.hpp"
 #include <filesystem>
 #include <functional>

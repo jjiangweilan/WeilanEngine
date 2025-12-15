@@ -1,9 +1,9 @@
 
 #include "EditorGUI.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Texture.hpp"
-#include "Libs/Serialization/SerializationSequenceFetcher.hpp"
-#include "Rendering/Material.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/Texture/Texture.hpp"
+#include "Library/Serialization/SerializationSequenceFetcher.hpp"
+#include "Runtime/System/Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor

@@ -1,11 +1,11 @@
 #include "Editor/EditorState.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "EditorGUI.hpp"
-#include "GfxDriver/GfxEnums.hpp"
-#include "GfxDriver/ShaderProgram.hpp"
+#include "Driver/GfxDriver/GfxEnums.hpp"
+#include "Driver/GfxDriver/ShaderProgram.hpp"
 #include "Inspector.hpp"
-#include "Rendering/EnumStringMapping.hpp"
-#include "Rendering/Material.hpp"
+#include "Runtime/System/Rendering/EnumStringMapping.hpp"
+#include "Runtime/System/Rendering/Material.hpp"
 #include "ThirdParty/imgui/imgui.h"
 namespace Editor
 {

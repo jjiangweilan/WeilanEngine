@@ -1,5 +1,5 @@
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Prefab.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/GameObject/Prefab.hpp"
 #include "EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "GameEditor.hpp"

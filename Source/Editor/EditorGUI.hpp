@@ -1,11 +1,11 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "Core/GameObject.hpp"
+#include "Runtime/Object/GameObject/GameObject.hpp"
 #include "Core/Object.hpp"
 #include "Editor/EditorState.hpp"
-#include "Libs/EnumFlags.hpp"
-#include "Libs/Math.hpp"
-#include "Libs/Serialization/JsonSerializer.hpp"
+#include "Library/EnumFlags.hpp"
+#include "Library/Math.hpp"
+#include "Library/Serialization/JsonSerializer.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include <concepts>

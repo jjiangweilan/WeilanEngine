@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Component/MeshRenderer.hpp"
-#include "Core/GameObject.hpp"
+#include "Runtime/Object/Component/MeshRenderer.hpp"
+#include "Runtime/Object/GameObject/GameObject.hpp"
 #include "Core/JobSystem.hpp"
-#include "Core/Scene/Scene.hpp"
-#include "Libs/DynamicArray.hpp"
-#include "Libs/EnumFlags.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Library/DynamicArray.hpp"
+#include "Library/EnumFlags.hpp"
 
 enum class PickObjectLayer : int
 {

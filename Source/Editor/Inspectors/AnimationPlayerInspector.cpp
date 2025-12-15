@@ -1,5 +1,5 @@
 #include "Editor/EditorState.hpp"
-#include "Core/Component/AnimationPlayer.hpp"
+#include "Runtime/Object/Component/AnimationPlayer.hpp"
 #include "EditorGUI.hpp"
 #include "Inspector.hpp"
 #include <string.h>

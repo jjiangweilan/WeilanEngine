@@ -1,11 +1,11 @@
 #include "WeilanEngine.hpp"
-#include "Core/Component/GameScript.hpp"
+#include "Runtime/Object/Component/GameScript.hpp"
 #include "Core/DelayDestroy.hpp"
-#include "Core/FrameContext.hpp"
+#include "MiddleLayer/FrameContext.hpp"
 #include "Core/GameLoop.hpp"
 #include "Core/JobSystem.hpp"
-#include "Profiler/Profiler.hpp"
-#include "Rendering/Graphics.hpp"
+#include "Core/Profiler/Profiler.hpp"
+#include "Runtime/System/Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -21,7 +21,7 @@
 #include <Jolt/RegisterTypes.h>
 // clang-format on
 //
-#include "Rendering/ShaderLibrary.hpp"
+#include "Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 WeilanEngine::WeilanEngine() {};

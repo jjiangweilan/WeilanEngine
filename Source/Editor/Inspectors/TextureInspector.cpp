@@ -1,6 +1,6 @@
 #include "Editor/EditorState.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Texture.hpp"
+#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Runtime/Object/Texture/Texture.hpp"
 #include "Inspector.hpp"
 #include "InspectorHelper_Image.hpp"
 
