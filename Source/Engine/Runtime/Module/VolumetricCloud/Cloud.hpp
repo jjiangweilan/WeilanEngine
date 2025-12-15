@@ -52,7 +52,7 @@ private:
 
     Gfx::RenderPass debugRenderPass = Gfx::RenderPass::SingleColor("a debug pass");
     inline static const char* cloudNoiseGeneratorShader =
-        "Source/Engine/Module/VolumetricCloud/Shaders/CloudNoiseGenerator";
+        "Source/Engine/Runtime/Module/VolumetricCloud/Shaders/CloudNoiseGenerator";
 
     const float cloudSideResolution = 128;
     bool isSetup = false;
