@@ -9,7 +9,7 @@
 #include "Engine/Game/Input.hpp"
 #include <spdlog/spdlog.h>
 #if ENGINE_EDITOR
-#include "HudDebug.hpp"
+#include "Editor/HudDebug.hpp"
 #endif
 
 // clang-format off

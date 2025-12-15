@@ -4,10 +4,10 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
-#include "FileIcons.hpp"
+#include "Editor/FileIcons.hpp"
 #include "Editor/GameEditor.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
-#include "WeilanEngine.hpp"
+#include "Engine/WeilanEngine.hpp"
 #include <algorithm>
 #include <vector>
 

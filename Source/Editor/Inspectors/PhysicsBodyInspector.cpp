@@ -2,7 +2,7 @@
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Jolt/Physics/Body/Body.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
 

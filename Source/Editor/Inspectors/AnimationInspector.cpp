@@ -1,5 +1,5 @@
 #include "Editor/EditorGUI.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 
 namespace Editor

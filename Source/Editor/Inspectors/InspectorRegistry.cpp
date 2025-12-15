@@ -1,5 +1,5 @@
-#include "Editor/InspectorRegistry.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/InspectorRegistry.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 
 namespace Editor
 {

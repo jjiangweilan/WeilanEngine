@@ -1,7 +1,7 @@
 #include "Editor/EditorState.hpp"
 #include "../GameEditor.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 
 namespace Editor
 {

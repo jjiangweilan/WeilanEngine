@@ -1,5 +1,5 @@
 #include "Editor/EditorState.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Library/Serialization/JsonSerializer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 

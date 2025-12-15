@@ -3,7 +3,7 @@
 #include "Editor/EditorGUI.hpp"
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Driver/GfxDriver/ShaderProgram.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"

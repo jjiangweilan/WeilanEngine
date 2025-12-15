@@ -1,8 +1,8 @@
 #include "Editor/EditorState.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
-#include "Editor/Inspector.hpp"
-#include "Editor/InspectorHelper_Image.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
+#include "Editor/Inspectors/InspectorHelper_Image.hpp"
 
 namespace Editor
 {

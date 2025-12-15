@@ -3,10 +3,10 @@
 #include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/GameEditor.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
-#include "WeilanEngine.hpp"
+#include "Engine/WeilanEngine.hpp"
 
 namespace Editor
 {

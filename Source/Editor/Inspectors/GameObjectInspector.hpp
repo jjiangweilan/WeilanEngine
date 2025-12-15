@@ -13,7 +13,7 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Game/Component/PlayerController.hpp"
-#include "Editor/Inspector.hpp"
+#include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/Module/VolumetricCloud/Cloud.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>

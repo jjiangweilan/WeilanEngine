@@ -303,6 +303,7 @@ option(DEV_BUILD "Define ENGINE_DEV_BUILD" ON)
 add_executable(WeilanEngineEditor)
 add_library(WeilanEngine SHARED)
 target_link_libraries(WeilanEngineEditor PRIVATE WeilanEngine)
+target_include_directories(WeilanEngineEditor PRIVATE "Source/")
 
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
