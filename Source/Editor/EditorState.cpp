@@ -1,4 +1,4 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 
 namespace Editor
 {

@@ -1,4 +1,4 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "Runtime/Object/Component/GameScript.hpp"
 #include "Inspector.hpp"
 namespace Editor

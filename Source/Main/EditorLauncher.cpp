@@ -1,4 +1,4 @@
-#include "Editor/GameEditorLauncher.hpp"
+#include "../Editor/GameEditorLauncher.hpp"
 #include <filesystem>
 #include <memory>
 #include <iostream>

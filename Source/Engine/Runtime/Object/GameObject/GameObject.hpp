@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Asset.hpp"
-#include "Component/Component.hpp"
+#include "Core/Asset.hpp"
+#include "Runtime/Object/Component/Component.hpp"
 #include "Runtime/Object/GameObject/Prefab.hpp"
 #include "Core/Ptr.hpp"
-#include "EngineState.hpp"
+#include "Core/EngineState.hpp"
 #include "Library/DynamicArray.hpp"
 #include <functional>
 #include <glm/glm.hpp>

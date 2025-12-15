@@ -1,6 +1,6 @@
 #pragma once
 #include "Library/Math/Geometry/Geometry.hpp"
-#include "Editor/EditorContext.hpp"
+#include "EditorContext.hpp"
 #include "Library/DynamicArray.hpp"
 #include "Runtime/System/Rendering/Material.hpp"
 #include "Runtime/System/Rendering/Structs.hpp"

@@ -1,6 +1,6 @@
 #include "ProbeBaker.hpp"
 #include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Editor/MainMenuModule.hpp"
+#include "MainMenuModule.hpp"
 
 namespace Rendering::LFP
 {

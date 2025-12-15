@@ -1,4 +1,4 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "../Inspector.hpp"
 #include "Runtime/Object/Component/SceneEnvironment.hpp"
 #include "Runtime/Object/Texture/Texture.hpp"

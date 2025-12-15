@@ -1,7 +1,7 @@
 #include "GameObjectInspector.hpp"
 #include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Runtime/Object/Component/Component.hpp"
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor

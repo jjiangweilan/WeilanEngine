@@ -1,6 +1,6 @@
 #pragma once
 #include "Runtime/System/SceneManager/SceneManager.hpp"
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "EngineCommand.hpp"
 
 namespace EngineCommands

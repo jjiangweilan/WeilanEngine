@@ -1,4 +1,4 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "../GameEditor.hpp"
 #include "Runtime/System/SceneManager/Scene.hpp"
 #include "Inspector.hpp"

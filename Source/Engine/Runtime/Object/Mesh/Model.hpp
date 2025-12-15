@@ -1,6 +1,6 @@
 #pragma once
 #include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Graphics/Mesh.hpp"
+#include "Runtime/Object/Graphics/Mesh.hpp"
 #include "Runtime/System/Rendering/Animation.hpp"
 #include "Runtime/System/Rendering/Material.hpp"
 #include <glm/glm.hpp>

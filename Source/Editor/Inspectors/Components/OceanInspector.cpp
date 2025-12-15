@@ -1,5 +1,5 @@
 #include "../Inspector.hpp"
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "Library/TypeReflection.hpp"
 #include "Runtime/Module/Ocean/OceanComponent.hpp"
 

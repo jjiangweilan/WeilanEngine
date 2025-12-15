@@ -1,5 +1,5 @@
 #pragma once
-#include "Game/Gizmo.hpp"
+#include "Gizmos/Gizmo.hpp"
 #include "Runtime/System/SceneManager/Scene.hpp"
 #include "Runtime/System/SceneManager/SceneManager.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"

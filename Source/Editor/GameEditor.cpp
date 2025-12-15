@@ -5,7 +5,7 @@
 #include "MiddleLayer/EngineDebug.hpp"
 #include "MiddleLayer/EngineInternalResources.hpp"
 #include "EditorGUI.hpp"
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "FileIcons.hpp"
 #include "Driver/GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"

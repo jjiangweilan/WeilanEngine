@@ -1,6 +1,6 @@
 #include "../Window.hpp"
 #include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Game/Gizmo.hpp"
+#include "Gizmos/Gizmo.hpp"
 #include "Runtime/Object/Mesh/Model.hpp"
 #include "ThirdParty/imgui/imgui.h"
 class Shader;

@@ -1,4 +1,4 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Runtime/Object/Texture/Texture.hpp"
 #include "Inspector.hpp"

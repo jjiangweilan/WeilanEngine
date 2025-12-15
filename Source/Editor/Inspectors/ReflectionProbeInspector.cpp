@@ -1,6 +1,6 @@
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "Runtime/Object/Component/ReflectionProbe.hpp"
-#include "Editor/Gizmos/ScaleBoxGizmo.hpp"
+#include "Gizmos/ScaleBoxGizmo.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "Inspector.hpp"

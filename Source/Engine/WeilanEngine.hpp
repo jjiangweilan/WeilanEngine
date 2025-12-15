@@ -4,7 +4,7 @@
 #include "Core/GameLoop.hpp"
 #include "Runtime/System/SceneManager/SceneManager.hpp"
 #include "Core/Time.hpp"
-#include "Editor/IGameEditor.hpp"
+#include "IGameEditor.hpp"
 #include "Runtime/System/Event/Event.hpp"
 #include "Driver/GfxDriver/GfxDriver.hpp"
 #include "Runtime/System/ScriptingBackend/LuaBackend.hpp"

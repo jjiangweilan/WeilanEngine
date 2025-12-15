@@ -1,4 +1,4 @@
-#include "EngineDebugVars.hpp"
+#include "EngineDebug.hpp"
 
 #define ENGINE_DEBUG_VAR(name)                                                                                         \
     bool& EngineDebugVars::name()                                                                                      \

@@ -2,8 +2,8 @@
 #include "MiddleLayer/DebugOptions.hpp"
 #include "Driver/GfxDriver/GfxDriver.hpp"
 #include "Core/Profiler/Profiler.hpp"
-#include "Scene/RenderingScene.hpp"
-#include "Scene/Scene.hpp"
+#include "Runtime/System/SceneManager/RenderingScene.hpp"
+#include "Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
 
 GameLoop::GameLoop()

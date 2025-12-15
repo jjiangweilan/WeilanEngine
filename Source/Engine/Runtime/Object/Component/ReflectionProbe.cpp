@@ -1,6 +1,6 @@
 #include "ReflectionProbe.hpp"
 #include "Runtime/System/SceneManager/Scene.hpp"
-#include "Editor/Gizmos/ScaleBoxGizmo.hpp"
+#include "Gizmos/ScaleBoxGizmo.hpp"
 #include "Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
 
 DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")

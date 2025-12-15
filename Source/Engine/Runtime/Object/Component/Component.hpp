@@ -1,8 +1,8 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "Game/Gizmo.hpp"
+#include "Gizmos/Gizmo.hpp"
 #include "Core/Ptr.hpp"
-#include "Editor/Gizmos/GizmoManager.hpp"
+#include "Gizmos/GizmoManager.hpp"
 #include <functional>
 #include <string>
 #include <string_view>

@@ -2,7 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Runtime/Object/GameObject/GameObject.hpp"
 #include "Core/Object.hpp"
-#include "Editor/EditorState.hpp"
+#include "EditorState.hpp"
 #include "Library/EnumFlags.hpp"
 #include "Library/Math.hpp"
 #include "Library/Serialization/JsonSerializer.hpp"

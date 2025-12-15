@@ -2,7 +2,7 @@
 #include "AssetBrowser.hpp"
 #include "Core/Ptr.hpp"
 #include "Runtime/System/SceneManager/Scene.hpp"
-#include "Editor/EditorContext.hpp"
+#include "EditorContext.hpp"
 #include "EngineCommandGUI.hpp"
 #include "GameView.hpp"
 #include "Core/Profiler/Profiler.hpp"

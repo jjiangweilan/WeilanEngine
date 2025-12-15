@@ -1,7 +1,7 @@
 #include "Gizmo.hpp"
 #include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Runtime/Object/Texture/Texture.hpp"
-#include "Editor/Gizmos/MeshGizmo.hpp"
+#include "Gizmos/MeshGizmo.hpp"
 #include "Driver/GfxDriver/CommandBuffer.hpp"
 #include "Runtime/System/Rendering/Graphics.hpp"
 #include <glm/glm.hpp>
