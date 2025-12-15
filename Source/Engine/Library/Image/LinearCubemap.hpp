@@ -1,9 +1,9 @@
 #pragma once
-#include "Library/Assert.hpp"
-#include "Library/Math.hpp"
+#include "Engine/Library/Assert.hpp"
+#include "Engine/Library/Math.hpp"
 
 #include <cstdint>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 class LinearCubemap
 {
 public:

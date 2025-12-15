@@ -1,11 +1,11 @@
 #pragma once
-#include "Core/Asset.hpp"
+#include "Engine/Core/Asset.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 class GameObject;
 

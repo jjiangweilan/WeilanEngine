@@ -1,7 +1,7 @@
 #pragma once
-#include "Runtime/System/Rendering/RenderingData.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Engine/Runtime/System/Rendering/RenderingData.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 namespace Rendering::Passes
 {
 class DepthDownSampler : public RenderPipelinePass

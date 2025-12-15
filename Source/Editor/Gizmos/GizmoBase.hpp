@@ -1,9 +1,9 @@
 #pragma once
-#include "Library/Math/Geometry/Geometry.hpp"
-#include "EditorContext.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
+#include "Editor/EditorContext.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <variant>

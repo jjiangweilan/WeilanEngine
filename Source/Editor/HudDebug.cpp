@@ -1,4 +1,4 @@
-#include "HudDebug.hpp"
+#include "Editor/HudDebug.hpp"
 #include <ranges>
 
 namespace Editor

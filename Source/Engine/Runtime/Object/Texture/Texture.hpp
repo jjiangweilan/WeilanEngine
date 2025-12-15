@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Asset.hpp"
-#include "Driver/GfxDriver/Image.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Driver/GfxDriver/Image.hpp"
 #include <ktx.h>
 
 struct TextureDescription

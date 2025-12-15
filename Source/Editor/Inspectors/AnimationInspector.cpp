@@ -1,6 +1,6 @@
-#include "EditorGUI.hpp"
-#include "Inspector.hpp"
-#include "Runtime/System/Rendering/Animation.hpp"
+#include "Editor/EditorGUI.hpp"
+#include "Editor/Inspector.hpp"
+#include "Engine/Runtime/System/Rendering/Animation.hpp"
 
 namespace Editor
 {

@@ -6,7 +6,7 @@
 #include "Image.hpp"
 #include "RenderGraph.hpp"
 #include "RenderPass.hpp"
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"
 #include "VertexBufferBinding.hpp"

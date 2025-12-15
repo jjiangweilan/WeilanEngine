@@ -1,6 +1,6 @@
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 
 namespace Editor
 {

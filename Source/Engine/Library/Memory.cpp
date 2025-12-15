@@ -1,5 +1,5 @@
 #include "Memory.hpp"
-#include "Library/LazyInit.hpp"
+#include "Engine/Library/LazyInit.hpp"
 
 class MemoryManager
 {

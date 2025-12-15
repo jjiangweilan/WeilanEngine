@@ -1,10 +1,10 @@
 #include "OceanComponent.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Library/CppUtility.hpp"
-#include "Library/TypeReflection.hpp"
-#include "Runtime/System/Rendering/CommandBufferUtils.hpp"
-#include "Runtime/System/Rendering/GeometryUtils.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/PerScene.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Library/CppUtility.hpp"
+#include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/System/Rendering/CommandBufferUtils.hpp"
+#include "Engine/Runtime/System/Rendering/GeometryUtils.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/PerScene.hpp"
 DEFINE_RENDERING_COMPONENT_CONSTRUCT(OceanComponent, "503C87A6-3892-4EA7-877C-01CAA53E73AB")
 {
     // Initialize default waves

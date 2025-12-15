@@ -1,7 +1,7 @@
 #include "EngineInternalResources.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Runtime/Object/Mesh/Model.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 EngineInternalResources::EngineInternalResources()
 {
     auto db = AssetDatabase::Singleton();

@@ -1,5 +1,5 @@
 #include "Terrain.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 DEFINE_OBJECT(Terrain, "F9F80900-D99F-45F4-A41D-B3414B3CCB0F");
 Terrain::Terrain() : Component(nullptr) {}

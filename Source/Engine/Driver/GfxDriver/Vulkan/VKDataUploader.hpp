@@ -1,9 +1,9 @@
 #pragma once
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include "VKRawBuffer.hpp"
 #include <queue>
 #include <vulkan/vulkan.h>
-#include "Core/Ptr.hpp"
+#include "Engine/Core/Ptr.hpp"
 namespace Gfx
 {
 class VKDriver;

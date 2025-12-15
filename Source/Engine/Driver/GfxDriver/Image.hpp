@@ -1,13 +1,13 @@
 #pragma once
-#include "Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 
-#include "Core/Object.hpp"
-#include "Core/SafeReferenceable.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Library/UUID.hpp"
-#include "ThirdParty/xxHash/xxhash.h"
-#include <Library/Assert.hpp>
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/UUID.hpp"
+#include "Engine/ThirdParty/xxHash/xxhash.h"
+#include "Engine/Library/Assert.hpp"
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <span>

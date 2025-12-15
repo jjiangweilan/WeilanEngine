@@ -1,14 +1,14 @@
 #include "LuaBindings.hpp"
-#include "Runtime/Object/Component/AnimationPlayer.hpp"
-#include "Runtime/Object/Component/Camera.hpp"
-#include "Runtime/Object/Component/GameScript.hpp"
-#include "Runtime/Object/Component/Light.hpp"
-#include "Runtime/Object/Component/MeshRenderer.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Core/Time.hpp"
-#include "Game/Input.hpp"
+#include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Engine/Runtime/Object/Component/Light.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Game/Input.hpp"
 #include "LuaBindings_Private.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
 
 std::unordered_map<void*, std::unique_ptr<Asset>>& GetLuaCreatedRuntimeAssets()
 {

@@ -1,5 +1,5 @@
 #include "GeometryRendering.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
 
 void GeometryRendering::DrawWireBox(Gfx::CommandBuffer& cmd, const Box& box)
 {

@@ -1,10 +1,10 @@
-#include "EditorState.hpp"
-#include "Runtime/Object/Component/GameScript.hpp"
-#include "Runtime/Object/Component/PhysicsBody.hpp"
-#include "Runtime/System/SceneManager/PhysicsScene.hpp"
-#include "Inspector.hpp"
+#include "Editor/EditorState.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
+#include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
+#include "Editor/Inspector.hpp"
 #include "Jolt/Physics/Body/Body.h"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {

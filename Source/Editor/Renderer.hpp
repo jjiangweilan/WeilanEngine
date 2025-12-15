@@ -1,7 +1,7 @@
 #pragma once
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <tuple>
 
 namespace Editor

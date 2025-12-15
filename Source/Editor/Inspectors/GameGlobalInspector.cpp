@@ -1,8 +1,8 @@
 
-#include "Game/Boat.hpp"
-#include "Game/GameGlobal.hpp"
-#include "Inspector.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Game/Boat.hpp"
+#include "Engine/Game/GameGlobal.hpp"
+#include "Editor/Inspector.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {

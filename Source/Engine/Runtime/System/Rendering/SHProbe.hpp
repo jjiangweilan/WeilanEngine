@@ -1,7 +1,7 @@
 #pragma once
-#include "Runtime/Object/Component/Component.hpp"
-#include "Driver/GfxDriver/Buffer.hpp"
-#include "Library/Math.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
+#include "Engine/Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Library/Math.hpp"
 #include <array>
 
 struct SHProbeUpdateSettings

@@ -1,6 +1,6 @@
 #pragma once
-#include "Driver/GfxDriver/Buffer.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 
 template <class T>
 class GPUBuffer

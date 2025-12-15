@@ -1,11 +1,11 @@
 #include "Model.hpp"
-#include "Runtime/Object/Component/AnimationPlayer.hpp"
-#include "Runtime/Object/Component/MeshRenderer.hpp"
-#include "Runtime/Object/Component/PhysicsBody.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Library/GLB.hpp"
-#include "Library/Math.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Library/GLB.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <fstream>
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb,fbx");

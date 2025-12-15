@@ -1,7 +1,7 @@
 #pragma once
 #include "Component.hpp"
-#include "Core/Ptr.hpp"
-#include "Runtime/System/Rendering/Animation.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Runtime/System/Rendering/Animation.hpp"
 
 class AnimationPlayer : public Component
 {

@@ -2,11 +2,11 @@
 
 #include "Image.hpp"
 #include "ImageView.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Library/Hash.hpp"
-#include "Library/UUID.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/Hash.hpp"
+#include "Engine/Library/UUID.hpp"
 #include "ResourceHandle.hpp"
-#include "ThirdParty/xxHash/xxhash.h"
+#include "Engine/ThirdParty/xxHash/xxhash.h"
 #include <optional>
 
 namespace Gfx

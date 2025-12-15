@@ -1,6 +1,6 @@
 #pragma once
-#include "Runtime/Object/Component/Component.hpp"
-#include "Core/Object.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
+#include "Engine/Core/Object.hpp"
 
 // clang-format off
 #include <Jolt/Jolt.h>

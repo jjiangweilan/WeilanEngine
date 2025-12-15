@@ -1,5 +1,5 @@
 #include "ModelImporter.hpp"
-#include "Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
 
 DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 

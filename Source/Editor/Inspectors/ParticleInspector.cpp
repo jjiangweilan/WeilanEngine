@@ -1,5 +1,5 @@
-#include "Runtime/Object/Component/ParticleSystem.hpp"
-#include "Inspector.hpp"
+#include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
+#include "Editor/Inspector.hpp"
 namespace Editor
 {
 class ParticleSystemInspector : public Inspector<ParticleSystem>

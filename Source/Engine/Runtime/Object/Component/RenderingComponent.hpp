@@ -1,6 +1,6 @@
 #pragma once
-#include "Runtime/Object/Component/Component.hpp"
-#include "Runtime/System/SceneManager/RenderingObjectList.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
+#include "Engine/Runtime/System/SceneManager/RenderingObjectList.hpp"
 
 class RenderingComponentBase : public Component
 {

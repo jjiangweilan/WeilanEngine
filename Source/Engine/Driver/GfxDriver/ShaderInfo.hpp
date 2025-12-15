@@ -1,15 +1,15 @@
 //#pragma once
-//#include "Driver/GfxDriver/ShaderConfig.hpp"
+//#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
 //#include <cinttypes>
 //#include <nlohmann/json.hpp>
 //#include <string>
 //#include <unordered_map>
 //#include <utility>
-//#include "Library/DynamicArray.hpp"
+//#include "Engine/Library/DynamicArray.hpp"
 //
-//#include "Core/Ptr.hpp"
+//#include "Engine/Core/Ptr.hpp"
 //#include "DescriptorSetSlot.hpp"
-//#include "Driver/GfxDriver/ResourceHandle.hpp"
+//#include "Engine/Driver/GfxDriver/ResourceHandle.hpp"
 //
 //namespace Gfx::ShaderInfo
 //{

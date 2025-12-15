@@ -1,7 +1,7 @@
 #pragma once
 #include "../DescriptorSetSlot.hpp"
-#include "Driver/GfxDriver/ShaderResource.hpp"
-#include "Driver/GfxDriver/Vulkan/VKImageView.hpp"
+#include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKImageView.hpp"
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "VKShaderInfo.hpp"

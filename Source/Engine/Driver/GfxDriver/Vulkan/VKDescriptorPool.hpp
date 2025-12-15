@@ -1,8 +1,8 @@
 #pragma once
-#include "Core/Ptr.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include <string>
 #include <unordered_map>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {

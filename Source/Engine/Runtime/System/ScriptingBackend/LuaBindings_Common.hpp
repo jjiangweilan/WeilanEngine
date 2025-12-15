@@ -1,7 +1,7 @@
 #pragma once
-#include "Core/Asset.hpp"
-#include "Core/Object.hpp"
-#include "Core/Ptr.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include <typeindex>
 
 enum class LuaEngineUserDataType

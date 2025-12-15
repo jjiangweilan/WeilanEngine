@@ -1,5 +1,5 @@
 #include "Light.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");

@@ -1,8 +1,8 @@
 #pragma once
-#include "Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 class GameObject;
 namespace Utils

@@ -1,8 +1,8 @@
 #pragma once
-#include "Library/SpinLock.hpp"
-#include "Library/UUID.hpp"
+#include "Engine/Library/SpinLock.hpp"
+#include "Engine/Library/UUID.hpp"
 #include <unordered_map>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 class Object;
 using ObjectTrackHandle = uint32_t;

@@ -1,8 +1,8 @@
 #pragma once
 #include "LinearImage.hpp"
-#include "ThirdParty/stb/stb_image.h"
-#include "ThirdParty/stb/stb_image_write.h"
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/ThirdParty/stb/stb_image.h"
+#include "Engine/ThirdParty/stb/stb_image_write.h"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <filesystem>
 #include <format>
 namespace Libs::Image

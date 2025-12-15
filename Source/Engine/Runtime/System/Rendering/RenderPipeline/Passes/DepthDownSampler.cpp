@@ -1,6 +1,6 @@
 #include "DepthDownSampler.hpp"
-#include "Driver/GfxDriver/CommandBuffer.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
 namespace Rendering::Passes
 {

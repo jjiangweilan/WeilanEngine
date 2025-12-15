@@ -1,5 +1,5 @@
 #pragma once
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
@@ -9,7 +9,7 @@
 
 #include "../GfxDriver.hpp"
 
-#include "Driver/GfxDriver/Vulkan/VKWindow.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKWindow.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommandBufferProcessor.hpp"
 #include "VKCommonDefinations.hpp"
@@ -20,7 +20,7 @@
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
 
-#include "Library/ArenaAllocator.hpp"
+#include "Engine/Library/ArenaAllocator.hpp"
 #include "VKRawBuffer.hpp"
 
 namespace Gfx

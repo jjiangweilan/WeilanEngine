@@ -1,5 +1,5 @@
-#include "MainMenuModule.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Editor/MainMenuModule.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {

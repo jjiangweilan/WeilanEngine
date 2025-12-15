@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Library/Assert.hpp"
+#include "Engine/Library/Assert.hpp"
 #include "Library/TypeReflection.hpp"
 
 // Test class with various member types

@@ -1,7 +1,7 @@
 #include "./GizmoManager.hpp"
 #include "./MeshGizmo.hpp"
 #include "./ScaleBoxGizmo.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 GizmoManager::GizmoManager() {}
 

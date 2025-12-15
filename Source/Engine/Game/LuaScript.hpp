@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Asset.hpp"
-#include "ThirdParty/lua/lua.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/ThirdParty/lua/lua.hpp"
 
 // representing a lua class derived from GameScript
 class LuaScript : public Asset

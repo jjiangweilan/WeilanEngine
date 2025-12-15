@@ -1,7 +1,7 @@
 #pragma once
 #include "AssetData.hpp"
-#include "Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
-#include "Core/Asset.hpp"
+#include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
+#include "Engine/Core/Asset.hpp"
 #include <filesystem>
 
 class AssetFileSystem

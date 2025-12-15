@@ -1,6 +1,6 @@
 #include "VirtualTexture.hpp"
 
-#include "ThirdParty/stb/stb_image.h"
+#include "Engine/ThirdParty/stb/stb_image.h"
 #include "spdlog/spdlog.h"
 namespace Rendering
 {

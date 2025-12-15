@@ -1,9 +1,9 @@
 #pragma once
-#include "Library/Assert.hpp"
+#include "Engine/Library/Assert.hpp"
 #include "LuaBindings_Common.hpp"
-#include "Library/Serialization/Serializable.hpp"
+#include "Engine/Library/Serialization/Serializable.hpp"
 
-#include "ThirdParty/lua/lua.hpp"
+#include "Engine/ThirdParty/lua/lua.hpp"
 #include <stdexcept>
 #include <typeindex>
 

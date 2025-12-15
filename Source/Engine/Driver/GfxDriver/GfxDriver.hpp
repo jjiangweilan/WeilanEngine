@@ -5,14 +5,14 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "CompiledSpv.hpp"
-#include "Core/Ptr.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
-#include "Library/EnumFlags.hpp"
-#include "Core/Profiler/Profiler.hpp"
+#include "Engine/Library/EnumFlags.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Semaphore.hpp"
-#include "ThirdParty/renderdoc/renderdoc_app.h"
+#include "Engine/ThirdParty/renderdoc/renderdoc_app.h"
 #include "Window.hpp"
 
 #include <SDL.h>
@@ -20,7 +20,7 @@
 #include <memory>
 #include <slang.h>
 #include <span>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx

@@ -1,5 +1,5 @@
 #pragma once
-#include "Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Driver/GfxDriver/Buffer.hpp"
 
 enum class PipelineGPUBufferUsage
 {

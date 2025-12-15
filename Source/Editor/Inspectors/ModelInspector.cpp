@@ -1,9 +1,9 @@
-#include "EditorState.hpp"
-#include "Runtime/Object/Mesh/Model.hpp"
-#include "EditorGUI.hpp"
-#include "GameEditor.hpp"
-#include "Inspector.hpp"
-#include "ThirdParty/imgui/imgui_internal.h"
+#include "Editor/EditorState.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Editor/EditorGUI.hpp"
+#include "Editor/GameEditor.hpp"
+#include "Editor/Inspector.hpp"
+#include "Engine/ThirdParty/imgui/imgui_internal.h"
 #include "WeilanEngine.hpp"
 
 namespace Editor

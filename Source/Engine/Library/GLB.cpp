@@ -1,7 +1,7 @@
 #include "GLB.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Driver/GfxDriver/VertexAttributes.hpp"
-#include "Library/Assert.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
+#include "Engine/Library/Assert.hpp"
 #include <fstream>
 
 namespace Utils

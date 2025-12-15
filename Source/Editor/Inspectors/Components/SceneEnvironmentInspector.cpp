@@ -1,8 +1,8 @@
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Runtime/Object/Component/SceneEnvironment.hpp"
-#include "Runtime/Object/Texture/Texture.hpp"
-#include "EditorGUI.hpp"
+#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Editor/EditorGUI.hpp"
 
 namespace Editor
 {

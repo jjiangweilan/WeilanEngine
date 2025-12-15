@@ -1,5 +1,5 @@
 #pragma once
-#include "Gizmos/GizmoBase.hpp"
+#include "Editor/Gizmos/GizmoBase.hpp"
 
 class Texture;
 class GameObject;

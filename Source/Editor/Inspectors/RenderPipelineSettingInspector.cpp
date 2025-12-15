@@ -1,7 +1,7 @@
-#include "EditorState.hpp"
-#include "Inspector.hpp"
-#include "Library/Serialization/JsonSerializer.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
+#include "Editor/EditorState.hpp"
+#include "Editor/Inspector.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 
 using namespace Rendering;
 namespace Editor

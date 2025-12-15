@@ -1,6 +1,6 @@
 #pragma once
-#include "Runtime/System/Rendering/Material.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
 
 namespace Rendering::Passes
 {

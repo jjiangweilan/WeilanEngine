@@ -1,13 +1,13 @@
 #include "RenderingScene.hpp"
-#include "Runtime/Object/Component/MeshRenderer.hpp"
-#include "Runtime/Object/Component/SceneEnvironment.hpp"
-#include "MiddleLayer/EngineDebug.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Library/Math.hpp"
-#include "Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
+#include "Engine/MiddleLayer/EngineDebug.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 SceneEnvironmentData& RenderingScene::GetSceneEnvironmentData()
 {

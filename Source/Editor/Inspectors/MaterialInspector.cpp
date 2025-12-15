@@ -1,12 +1,12 @@
-#include "EditorState.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "EditorGUI.hpp"
-#include "Driver/GfxDriver/GfxEnums.hpp"
-#include "Driver/GfxDriver/ShaderProgram.hpp"
-#include "Inspector.hpp"
-#include "Runtime/System/Rendering/EnumStringMapping.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Editor/EditorState.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Editor/EditorGUI.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Driver/GfxDriver/ShaderProgram.hpp"
+#include "Editor/Inspector.hpp"
+#include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>

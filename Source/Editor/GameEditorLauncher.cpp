@@ -1,5 +1,5 @@
-#include "GameEditorLauncher.hpp"
-#include "GameEditor.hpp"
+#include "Editor/GameEditorLauncher.hpp"
+#include "Editor/GameEditor.hpp"
 
 void LaunchGameEditor(const char* projectPath)
 {

@@ -1,7 +1,7 @@
 #pragma once
-#include "Library/Math/Geometry/Geometry.hpp"
-#include "Library/Math.hpp"
-#include "Library/ObjectPool.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/Library/ObjectPool.hpp"
 #include <span>
 
 struct QuadTreeNode_t;

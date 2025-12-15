@@ -5,8 +5,8 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
 // clang-format on
-#include "Core/Ptr.hpp"
-#include "Driver/Physics/JoltDebugRenderer.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/Physics/JoltDebugRenderer.hpp"
 #include "PhysicsLayer.hpp"
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>

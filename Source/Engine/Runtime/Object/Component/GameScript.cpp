@@ -1,9 +1,9 @@
 #include "GameScript.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Runtime/System/ScriptingBackend/LuaBackend.hpp"
-#include "ThirdParty/lua/lauxlib.h"
-#include "ThirdParty/lua/lua.h"
-#include "Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
+#include "Engine/ThirdParty/lua/lauxlib.h"
+#include "Engine/ThirdParty/lua/lua.h"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 

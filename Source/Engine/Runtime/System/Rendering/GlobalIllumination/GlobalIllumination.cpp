@@ -1,7 +1,7 @@
 #include "GlobalIllumination.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Runtime/System/Rendering/DrawList.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/System/Rendering/DrawList.hpp"
 namespace Rendering::GI
 {
 

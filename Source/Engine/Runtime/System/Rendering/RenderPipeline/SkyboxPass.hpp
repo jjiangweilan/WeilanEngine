@@ -1,9 +1,9 @@
 #pragma once
 
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Runtime/Object/Graphics/Mesh.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 
 namespace Rendering::RenderPasses
 {

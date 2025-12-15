@@ -1,5 +1,5 @@
 #include "Component.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 

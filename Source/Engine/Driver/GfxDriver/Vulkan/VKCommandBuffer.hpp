@@ -1,7 +1,7 @@
 #pragma once
 #include "../CommandBuffer.hpp"
-#include "Driver/GfxDriver/Vulkan/VKShaderResource.hpp"
-#include "Library/DynamicArray.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKShaderResource.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
 #include <vulkan/vulkan.h>

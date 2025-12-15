@@ -1,6 +1,6 @@
 #include "ObjectTracker.hpp"
-#include "Core/Asset.hpp"
-#include "Library/Assert.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Library/Assert.hpp"
 #include "Object.hpp"
 
 ObjectTracker& ObjectTracker::Singleton()

@@ -1,6 +1,6 @@
-#include "EditorState.hpp"
-#include "Runtime/Object/Component/GameScript.hpp"
-#include "Inspector.hpp"
+#include "Editor/EditorState.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Editor/Inspector.hpp"
 namespace Editor
 {
 class GameScriptInspector : public Inspector<GameScript>

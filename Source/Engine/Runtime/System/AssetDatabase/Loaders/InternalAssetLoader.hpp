@@ -1,5 +1,5 @@
 #include "AssetLoader.hpp"
-#include "Library/Serialization/JsonSerializer.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
 
 // converting image files to ktx file
 class InternalAssetLoader : public AssetLoader

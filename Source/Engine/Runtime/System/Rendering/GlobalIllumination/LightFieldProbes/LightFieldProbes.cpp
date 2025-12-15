@@ -1,6 +1,6 @@
 #include "LightFieldProbes.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "ProbeBaker.hpp"
 
 namespace Rendering::LFP

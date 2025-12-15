@@ -1,5 +1,5 @@
 #include "ScreenSpaceShadowPass.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
 namespace Rendering::Passes
 {

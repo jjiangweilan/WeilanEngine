@@ -1,7 +1,7 @@
-#include "Runtime/Object/GameObject/Prefab.hpp"
-#include "EditorGUI.hpp"
+#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Editor/EditorGUI.hpp"
 #include "GameObjectInspector.hpp"
-#include "Inspector.hpp"
+#include "Editor/Inspector.hpp"
 
 namespace Editor
 {

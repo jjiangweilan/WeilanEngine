@@ -1,6 +1,6 @@
 #include "VKDataUploader.hpp"
-#include "Core/JobSystem.hpp"
-#include "Core/Profiler/Profiler.hpp"
+#include "Engine/Core/JobSystem.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "VKBuffer.hpp"
 #include "VKDriver.hpp"
 #include <spdlog/spdlog.h>

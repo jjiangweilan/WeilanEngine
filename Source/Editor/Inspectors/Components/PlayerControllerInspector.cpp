@@ -1,10 +1,10 @@
 #include "../Inspector.hpp"
-#include "Runtime/Object/Component/AnimationPlayer.hpp"
-#include "Runtime/Object/Component/Camera.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "EditorGUI.hpp"
-#include "Game/Component/PlayerController.hpp"
-#include "Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Editor/EditorGUI.hpp"
+#include "Engine/Game/Component/PlayerController.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 
 namespace Editor
 {

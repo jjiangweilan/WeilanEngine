@@ -1,11 +1,11 @@
 #pragma once
-#include "Runtime/Object/Component/RenderingComponent.hpp"
-#include "Library/Math/Geometry/Geometry.hpp"
-#include "Runtime/System/SceneManager/RenderingObject.hpp"
-#include "Runtime/System/Rendering/GPUBuffer.hpp"
+#include "Engine/Runtime/Object/Component/RenderingComponent.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
+#include "Engine/Runtime/System/SceneManager/RenderingObject.hpp"
+#include "Engine/Runtime/System/Rendering/GPUBuffer.hpp"
 namespace GPUResources::ReflectionProbe
 {
-#include "Shaders/ReflectionProbeIBLGeneratorInput.hlsl"
+#include "Engine/Shaders/ReflectionProbeIBLGeneratorInput.hlsl"
 };
 
 class ReflectionProbe : public RenderingComponent<ReflectionProbe>

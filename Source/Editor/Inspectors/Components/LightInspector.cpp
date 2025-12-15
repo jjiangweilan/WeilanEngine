@@ -1,9 +1,9 @@
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Runtime/Object/Component/Camera.hpp"
-#include "Runtime/Object/Component/Light.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/Component/Light.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 
 namespace Editor
 {

@@ -1,6 +1,6 @@
 #include "LuaScript.hpp"
-#include "Runtime/System/ScriptingBackend/LuaBackend.hpp"
-#include "ThirdParty/lua/lua.h"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
+#include "Engine/ThirdParty/lua/lua.h"
 
 DEFINE_ASSET(LuaScript, "656C3158-FDAB-4EB3-AED4-CC4DFACA46F8", "lua")
 

@@ -1,9 +1,9 @@
 #pragma once
-#include "Gizmos/Gizmo.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Runtime/System/SceneManager/SceneManager.hpp"
-#include "ThirdParty/imgui/ImGuizmo.h"
-#include "ThirdParty/imgui/imgui.h"
+#include "Editor/Gizmos/Gizmo.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
+#include "Engine/ThirdParty/imgui/ImGuizmo.h"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <list>
 
 namespace Editor

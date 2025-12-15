@@ -1,7 +1,7 @@
 #include "../Inspector.hpp"
-#include "EditorState.hpp"
-#include "Library/TypeReflection.hpp"
-#include "Runtime/Module/Ocean/OceanComponent.hpp"
+#include "Editor/EditorState.hpp"
+#include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
 
 namespace Editor
 {

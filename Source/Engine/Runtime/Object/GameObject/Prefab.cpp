@@ -1,5 +1,5 @@
 #include "Prefab.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 DEFINE_ASSET(Prefab, "E7A241A8-D2F2-494C-BEB9-4934B4D2C2F9", "prefab")
 

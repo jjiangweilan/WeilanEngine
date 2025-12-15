@@ -1,9 +1,9 @@
 #pragma once
 #include "Component.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
-#include "Runtime/System/Rendering/Renderers/ParticleRenderer.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/ParticleRenderer.hpp"
 
-#include "Shaders/Particles/Particle.hlsl"
+#include "Engine/Shaders/Particles/Particle.hlsl"
 
 class ParticleSystem;
 

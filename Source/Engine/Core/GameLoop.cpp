@@ -1,9 +1,9 @@
 #include "GameLoop.hpp"
-#include "MiddleLayer/DebugOptions.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Core/Profiler/Profiler.hpp"
-#include "Runtime/System/SceneManager/RenderingScene.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/MiddleLayer/DebugOptions.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Runtime/System/SceneManager/RenderingScene.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
 
 GameLoop::GameLoop()

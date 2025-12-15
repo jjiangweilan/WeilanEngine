@@ -1,7 +1,7 @@
 #include "ParticleSystem.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Core/Time.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Core/Time.hpp"
 
 DEFINE_COMPONENT(ParticleSystem, "78E33F89-76E6-4B90-831F-490EB6C9F8D1")
 

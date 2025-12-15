@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <glm/glm.hpp>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx

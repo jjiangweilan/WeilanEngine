@@ -1,6 +1,6 @@
 #pragma once
-#include "Library/DynamicArray.hpp"
-#include "Library/EnumFlags.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/EnumFlags.hpp"
 #include "ShaderPipelineInfo.hpp"
 #include <nlohmann/json.hpp>
 #include <sstream>

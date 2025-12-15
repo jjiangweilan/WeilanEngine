@@ -1,10 +1,10 @@
 #include "BRDFResponseGeneration.hpp"
 
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Runtime/System/AssetDatabase/Exporters/KtxExporter.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Driver/GfxDriver/Image.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/AssetDatabase/Exporters/KtxExporter.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/GfxDriver/Image.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
 namespace Rendering
 {
 void GenerateBRDFResponseTexture(const char* path)

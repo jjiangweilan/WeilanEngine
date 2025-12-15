@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Object.hpp"
-#include "Runtime/System/Rendering/SHProbe.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Runtime/System/Rendering/SHProbe.hpp"
 
 class SceneSettings : public Component
 {

@@ -1,7 +1,7 @@
-#include "EditorState.hpp"
-#include "Runtime/Object/Component/AnimationPlayer.hpp"
-#include "EditorGUI.hpp"
 #include "Inspector.hpp"
+#include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Editor/EditorState.hpp"
+#include "Editor/EditorGUI.hpp"
 #include <string.h>
 
 namespace Editor

@@ -1,6 +1,6 @@
 #pragma once
 #include "Exporter.hpp"
-#include "Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include <cinttypes>
 #include <cstddef>
 

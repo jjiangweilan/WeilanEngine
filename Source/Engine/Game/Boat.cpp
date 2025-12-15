@@ -1,15 +1,15 @@
 #include "Boat.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Core/Time.hpp"
-#include "Library/Math.hpp"
-#include "Runtime/Module/Ocean/OceanComponent.hpp"
-#include "Core/Profiler/Profiler.hpp"
-#include "Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 
 #define GERSTNERWAVE_CPU_SIDE
 namespace GPUResources
 {
-#include "Shaders/GerstnerWave.hlsl"
+#include "Engine/Shaders/GerstnerWave.hlsl"
 }
 
 namespace Game

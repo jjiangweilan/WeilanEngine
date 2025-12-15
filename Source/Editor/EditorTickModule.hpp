@@ -1,6 +1,6 @@
 #pragma once
 #include <functional>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 namespace Editor
 {
 class EditorTickModule

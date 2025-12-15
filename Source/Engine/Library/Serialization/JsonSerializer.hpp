@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Ptr.hpp"
-#include "Library/UUID.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/UUID.hpp"
 #include "Serializable.hpp"
 #include "Serializer.hpp"
 #include <nlohmann/json.hpp>

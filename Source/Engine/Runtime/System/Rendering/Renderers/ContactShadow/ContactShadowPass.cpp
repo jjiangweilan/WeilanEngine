@@ -1,6 +1,6 @@
 #include "ContactShadowPass.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Shaders/ContactShadow/ContactShadowParameters.hlsl"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Shaders/ContactShadow/ContactShadowParameters.hlsl"
 
 namespace Rendering
 {

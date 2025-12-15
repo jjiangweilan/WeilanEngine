@@ -1,7 +1,7 @@
 #pragma once
-#include "Driver/GfxDriver/GfxEnums.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Library/Hash.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/Hash.hpp"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>

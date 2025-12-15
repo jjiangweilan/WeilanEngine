@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Ptr.hpp"
-#include "Driver/GfxDriver/Image.hpp"
-#include "Driver/GfxDriver/ImageView.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/Image.hpp"
+#include "Engine/Driver/GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <optional>
 
 namespace Gfx

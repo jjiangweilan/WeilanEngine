@@ -1,4 +1,4 @@
-#include "EditorTickModule.hpp"
+#include "Editor/EditorTickModule.hpp"
 
 namespace Editor
 {

@@ -1,6 +1,6 @@
 #pragma once
 #include "Probe.hpp"
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 class Scene;
 namespace Rendering::LFP
 {

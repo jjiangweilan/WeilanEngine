@@ -1,14 +1,14 @@
 #include "ReflectionProbeUpdate.hpp"
-#include "Runtime/Object/Component/ReflectionProbe.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/PerScene.hpp"
-#include "Runtime/System/Rendering/RenderingUtils.hpp"
+#include "Engine/Runtime/Object/Component/ReflectionProbe.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/PerScene.hpp"
+#include "Engine/Runtime/System/Rendering/RenderingUtils.hpp"
 #include <span>
 
 #define FFX_CPU 1
-#include "Shaders/fidelityfx/ffx_common_types.h"
-#include "Shaders/fidelityfx/ffx_core_cpu.h"
-#include "Shaders/fidelityfx/spd/ffx_spd.h"
+#include "Engine/Shaders/fidelityfx/ffx_common_types.h"
+#include "Engine/Shaders/fidelityfx/ffx_core_cpu.h"
+#include "Engine/Shaders/fidelityfx/spd/ffx_spd.h"
 
 namespace Rendering::Passes
 {

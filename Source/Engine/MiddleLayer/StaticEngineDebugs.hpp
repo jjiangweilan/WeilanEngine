@@ -1,5 +1,5 @@
 #pragma once
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 #define ENGINE_DEBUG_VAR(name)                                                                                         \
     static bool& name()                                                                                                \

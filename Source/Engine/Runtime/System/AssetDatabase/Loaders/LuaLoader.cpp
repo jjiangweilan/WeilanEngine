@@ -1,5 +1,5 @@
 #include "LuaLoader.hpp"
-#include "Game/LuaScript.hpp"
+#include "Engine/Game/LuaScript.hpp"
 #include "../AssetDatabase.hpp"
 
 DEFINE_ASSET_LOADER(LuaLoader, "lua")

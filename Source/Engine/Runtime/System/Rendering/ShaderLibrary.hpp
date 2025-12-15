@@ -1,6 +1,6 @@
 #pragma once
-#include "Library/DynamicArray.hpp"
-#include "Library/Hash.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/Hash.hpp"
 #include "Shader.hpp"
 #include "ShaderLibraryAsyncWorker.hpp"
 #include <spdlog/spdlog.h>

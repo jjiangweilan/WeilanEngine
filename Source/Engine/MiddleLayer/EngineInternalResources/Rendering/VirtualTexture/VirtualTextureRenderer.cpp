@@ -1,7 +1,7 @@
 // #include "VirtualTextureRenderer.hpp"
-// #include "Library/Image/MipQuadTree.hpp"
+// #include "Engine/Library/Image/MipQuadTree.hpp"
 // #define STB_IMAGE_WRITE_IMPLEMENTATION
-// #include "ThirdParty/stb/stb_image_write.h"
+// #include "Engine/ThirdParty/stb/stb_image_write.h"
 // #include "glm/detail/type_half.hpp"
 // #include <queue>
 // #include <set>

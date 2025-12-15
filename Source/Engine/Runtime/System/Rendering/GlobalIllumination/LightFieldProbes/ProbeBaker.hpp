@@ -1,6 +1,6 @@
-#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Probe.hpp"
-#include "Runtime/System/Rendering/DrawList.hpp"
+#include "Engine/Runtime/System/Rendering/DrawList.hpp"
 namespace Rendering::LFP
 {
 struct ProbeFace

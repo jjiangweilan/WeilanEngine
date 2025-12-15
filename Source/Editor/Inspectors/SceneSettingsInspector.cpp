@@ -1,6 +1,6 @@
-#include "Runtime/System/SceneManager/SceneSettings.hpp"
-#include "Inspector.hpp"
-#include "InspectorHelper_Image.hpp"
+#include "Engine/Runtime/System/SceneManager/SceneSettings.hpp"
+#include "Editor/Inspector.hpp"
+#include "Editor/InspectorHelper_Image.hpp"
 
 namespace Editor
 {

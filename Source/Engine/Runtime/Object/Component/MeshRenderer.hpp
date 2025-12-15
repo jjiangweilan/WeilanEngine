@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Runtime/Object/Graphics/Mesh.hpp"
-#include "Driver/GfxDriver/ShaderResource.hpp"
-#include "Runtime/System/Rendering/Animation.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
-#include "Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Runtime/System/Rendering/Animation.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
 class MeshRenderer : public Component

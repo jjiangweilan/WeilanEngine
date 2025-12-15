@@ -1,7 +1,7 @@
 #pragma once
-#include "Runtime/Object/Component/MeshRenderer.hpp"
-#include "Driver/GfxDriver/GfxEnums.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 

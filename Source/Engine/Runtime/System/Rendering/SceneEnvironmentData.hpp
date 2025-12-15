@@ -1,5 +1,5 @@
 #pragma once
-#include "Runtime/System/Rendering/RenderPipeline/Passes/FogPassParameters.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/FogPassParameters.hpp"
 
 struct SceneEnvironmentData
 {

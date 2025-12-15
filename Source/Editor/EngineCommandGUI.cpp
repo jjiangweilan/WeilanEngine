@@ -1,6 +1,6 @@
 #include "EngineCommandGUI.hpp"
-#include "EditorGUI.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Editor/EditorGUI.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <algorithm>
 namespace Editor
 {

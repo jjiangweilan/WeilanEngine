@@ -1,6 +1,6 @@
-#include "Core/Asset.hpp"
-#include "Library/Math.hpp"
-#include "Library/Serialization/Serializable.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/Library/Serialization/Serializable.hpp"
 
 #pragma once
 namespace Rendering

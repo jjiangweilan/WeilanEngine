@@ -1,6 +1,6 @@
 #include "Mesh.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Library/GLB.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/GLB.hpp"
 #include <filesystem>
 
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");

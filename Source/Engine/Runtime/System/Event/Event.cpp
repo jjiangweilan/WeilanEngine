@@ -1,7 +1,7 @@
 #include "Event.hpp"
 #include <SDL.h>
 #if ENGINE_EDITOR
-#include "ThirdParty/imgui/imgui_impl_sdl2.h"
+#include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
 #include <spdlog/spdlog.h>
 

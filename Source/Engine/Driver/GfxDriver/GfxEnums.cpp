@@ -1,5 +1,5 @@
 #include "GfxEnums.hpp"
-#include "Library/Assert.hpp"
+#include "Engine/Library/Assert.hpp"
 namespace Gfx
 {
 bool HasWriteAccessMask(AccessMaskFlags flags)

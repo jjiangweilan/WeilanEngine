@@ -1,8 +1,8 @@
 #include "Probe.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "ProbeBaker.hpp"
-#include "Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
 
 namespace Rendering::LFP
 {

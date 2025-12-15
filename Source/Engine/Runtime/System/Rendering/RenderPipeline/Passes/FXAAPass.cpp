@@ -1,6 +1,6 @@
 #include "FXAAPass.hpp"
-#include "Driver/GfxDriver/GfxDriver.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
 namespace Rendering::Passes
 {

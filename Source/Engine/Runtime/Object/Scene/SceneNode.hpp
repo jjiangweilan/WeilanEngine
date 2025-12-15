@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Ptr.hpp"
-#include "Library/DynamicArray.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 class GameObject;
 class SceneNode

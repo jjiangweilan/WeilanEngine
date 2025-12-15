@@ -1,10 +1,10 @@
 #pragma once
-#include "Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <optional>
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 
 union ClearColorValue
 {

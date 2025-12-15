@@ -1,15 +1,15 @@
 #pragma once
-#include "Runtime/Object/Component/RenderingComponent.hpp"
+#include "Engine/Runtime/Object/Component/RenderingComponent.hpp"
 
-#include "Core/Ptr.hpp"
-#include "Driver/GfxDriver/Buffer.hpp"
-#include "Runtime/Module/Ocean/OceanQuadTree.hpp"
-#include "Runtime/Module/Ocean/OceanRenderer.hpp"
-#include "Runtime/System/Rendering/Shader.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Runtime/Module/Ocean/OceanQuadTree.hpp"
+#include "Engine/Runtime/Module/Ocean/OceanRenderer.hpp"
+#include "Engine/Runtime/System/Rendering/Shader.hpp"
 
 namespace GPUResources
 {
-#include "Shaders/OceanInput.hlsl"
+#include "Engine/Shaders/OceanInput.hlsl"
 }
 
 class OceanComponent : public RenderingComponent<OceanComponent>

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Library/Math/Geometry/Geometry.hpp"
-#include "Core/Ptr.hpp"
-#include "Library/Math.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/Math.hpp"
 
 namespace Rendering::FrameGraph
 {

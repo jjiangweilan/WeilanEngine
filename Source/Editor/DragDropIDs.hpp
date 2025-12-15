@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Object.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Core/Object.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <typeinfo>
 
 class DragDropIDs

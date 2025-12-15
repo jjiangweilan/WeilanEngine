@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Object.hpp"
-#include "Driver/GfxDriver/CompiledSpv.hpp"
-#include "Driver/GfxDriver/VertexAttributes.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Driver/GfxDriver/CompiledSpv.hpp"
+#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 #include "GfxEnums.hpp"
-#include "Library/Assert.hpp"
-#include "Library/UUID.hpp"
+#include "Engine/Library/Assert.hpp"
+#include "Engine/Library/UUID.hpp"
 #include <unordered_map>
 namespace Gfx
 {

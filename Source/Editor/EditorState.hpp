@@ -1,6 +1,6 @@
 #pragma once
-#include "Core/Object.hpp"
-#include "Core/Ptr.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include <span>
 class Object;
 class Scene;

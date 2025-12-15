@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/Asset.hpp"
-#include "Runtime/Object/Component/Component.hpp"
-#include "Core/Object.hpp"
-#include "EditorGUI.hpp"
 #include "InspectorRegistry.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Editor/EditorGUI.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <concepts>
 namespace Editor
 {

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../Image.hpp"
-#include "Core/Ptr.hpp"
-#include "Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
@@ -12,7 +12,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_hash.hpp>
 
-#include "Library/DynamicArray.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include <cinttypes>
 #include <string>
 namespace Gfx

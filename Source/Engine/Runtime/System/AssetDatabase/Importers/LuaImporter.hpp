@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AssetImporter.hpp"
-#include "Game/LuaScript.hpp"
+#include "Engine/Game/LuaScript.hpp"
 
 class LuaImporter : public AssetImporter
 {

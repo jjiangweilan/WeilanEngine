@@ -1,8 +1,8 @@
 #pragma once
-#include "Core/Object.hpp"
-#include "Core/Ptr.hpp"
-#include "Library/DynamicArray.hpp"
-#include "Library/UUID.hpp"
+#include "Engine/Core/Object.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/UUID.hpp"
 #include "Serializable.hpp"
 #include "nlohmann/json_fwd.hpp"
 #include <concepts>

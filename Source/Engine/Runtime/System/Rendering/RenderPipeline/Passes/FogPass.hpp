@@ -1,13 +1,13 @@
 #pragma once
 #include "FogPassParameters.hpp"
-#include "Driver/GfxDriver/Image.hpp"
-#include "Driver/GfxDriver/RenderGraph.hpp"
-#include "Driver/GfxDriver/ShaderResource.hpp"
-#include "Runtime/System/Rendering/GPUBuffer.hpp"
-#include "Runtime/System/Rendering/ShaderLibrary.hpp"
-#include "Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Engine/Driver/GfxDriver/Image.hpp"
+#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Runtime/System/Rendering/GPUBuffer.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 
-#include "Shaders/DepthBasedFogInput.hlsl"
+#include "Engine/Shaders/DepthBasedFogInput.hlsl"
 
 namespace Rendering::Passes
 {

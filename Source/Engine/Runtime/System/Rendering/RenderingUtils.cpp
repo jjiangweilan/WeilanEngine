@@ -1,6 +1,6 @@
 #include "RenderingUtils.hpp"
-#include "Runtime/Object/Component/Camera.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Graphics.hpp"
 
 namespace Rendering

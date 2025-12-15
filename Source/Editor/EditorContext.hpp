@@ -1,7 +1,7 @@
 #pragma once
-#include "Runtime/GameContext.hpp"
-#include "Library/Math.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Runtime/GameContext.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 
 class Camera;
 class GizmoManager;

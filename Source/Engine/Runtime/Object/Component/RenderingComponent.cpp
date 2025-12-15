@@ -1,6 +1,6 @@
 #include "RenderingComponent.hpp"
-#include "Runtime/System/SceneManager/RenderingScene.hpp"
-#include "Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/SceneManager/RenderingScene.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 void RenderingComponentBase::AddToRenderingScene(uint32_t objectTypeID, RenderingObjectBase* self)
 {

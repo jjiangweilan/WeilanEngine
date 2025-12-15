@@ -1,6 +1,6 @@
 #pragma once
 #include "Component.hpp"
-#include "Runtime/System/Rendering/GlobalIllumination/LightFieldProbes/LightFieldProbes.hpp"
+#include "Engine/Runtime/System/Rendering/GlobalIllumination/LightFieldProbes/LightFieldProbes.hpp"
 class LightFieldProbes : public Component
 {
     DECLARE_OBJECT();

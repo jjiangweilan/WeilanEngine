@@ -1,8 +1,8 @@
 #include "VKDescriptorPool.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "ThirdParty/xxHash/xxhash.h"
+#include "Engine/ThirdParty/xxHash/xxhash.h"
 #include "VKContext.hpp"
-#include "Library/Assert.hpp"
+#include "Engine/Library/Assert.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx

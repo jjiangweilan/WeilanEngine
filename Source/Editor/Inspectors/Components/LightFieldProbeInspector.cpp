@@ -1,13 +1,13 @@
-#include "EditorState.hpp"
+#include "Editor/EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Runtime/Object/Component/LightFieldProbes.hpp"
-#include "MiddleLayer/EngineInternalResources.hpp"
-#include "Runtime/Object/GameObject/GameObject.hpp"
-#include "Gizmos/Gizmo.hpp"
-#include "Runtime/System/Rendering/GlobalIllumination/LightFieldProbes/ProbeBaker.hpp"
-#include "Runtime/System/Rendering/Graphics.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/Object/Component/LightFieldProbes.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Editor/Gizmos/Gizmo.hpp"
+#include "Engine/Runtime/System/Rendering/GlobalIllumination/LightFieldProbes/ProbeBaker.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 

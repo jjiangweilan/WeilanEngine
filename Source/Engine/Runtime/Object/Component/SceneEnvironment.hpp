@@ -1,7 +1,7 @@
 #pragma once
 #include "Component.hpp"
-#include "Runtime/System/Rendering/SHProbe.hpp"
-#include "Runtime/System/Rendering/SceneEnvironmentData.hpp"
+#include "Engine/Runtime/System/Rendering/SHProbe.hpp"
+#include "Engine/Runtime/System/Rendering/SceneEnvironmentData.hpp"
 
 class Texture;
 class SceneEnvironment : public Component

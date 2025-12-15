@@ -1,6 +1,6 @@
 #pragma once
 #include "LuaBindings_Common.hpp"
-#include "ThirdParty/lua/lua.hpp"
+#include "Engine/ThirdParty/lua/lua.hpp"
 
 class LuaBindings
 {
