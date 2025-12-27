@@ -247,9 +247,9 @@ void Serializer::Serialize(std::string_view name, const std::unique_ptr<T>& val)
 
     if constexpr (std::is_abstract_v<T>)
     {
-        std::string path = fmt::format("{}/objectTypeID", name);
+        std::string path = fmt::format("{}/_objectTypeID", name);
         Serialize(path, val->GetObjectTypeID());
-        path = fmt::format("{}/object", name);
+        path = fmt::format("{}/_object", name);
         Serialize(path, *val);
     }
     else
@@ -266,7 +266,7 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
         bool valid = false;
         if constexpr (std::is_abstract_v<T>)
         {
-            std::string path = fmt::format("{}/objectTypeID", name);
+            std::string path = fmt::format("{}/_objectTypeID", name);
             ObjectTypeID id;
             Deserialize(path, id);
             auto obj = ObjectRegistry::CreateObject(id);
@@ -280,7 +280,7 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
                 auto objPtr = obj.release();
                 val.reset(static_cast<T*>(objPtr));
 
-                path = fmt::format("{}/object", name);
+                path = fmt::format("{}/_object", name);
                 Deserialize(path, *val);
                 valid = true;
             }
