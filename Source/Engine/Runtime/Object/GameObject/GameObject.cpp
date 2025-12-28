@@ -5,7 +5,7 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
-DEFINE_OBJECT(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
+DEFINE_OBJECT(Object, GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
 
 GameObject::GameObject() : gameScene(nullptr)
 {

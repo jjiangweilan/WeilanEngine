@@ -3,7 +3,7 @@
 #include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
 
-DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
+DEFINE_OBJECT(Component, ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
 
 ReflectionProbe::ReflectionProbe() : RenderingComponent() {}
 ReflectionProbe::ReflectionProbe(GameObject* go) : RenderingComponent(go) {}

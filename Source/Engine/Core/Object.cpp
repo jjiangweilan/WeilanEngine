@@ -17,32 +17,56 @@ Object::EngineObjectMap Object::GetAllEngineObjects()
     return map;
 }
 
-std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistry()
+std::unordered_map<std::string, ObjectTypeInfo*>* ObjectRegistry::GetObjectTypeRegistryByName()
 {
-    static std::unique_ptr<std::unordered_map<ObjectTypeID, ObjectRegistry::Creator>> registeredObject =
-        std::make_unique<std::unordered_map<ObjectTypeID, ObjectRegistry::Creator>>();
+    static std::unique_ptr<std::unordered_map<std::string, ObjectTypeInfo*>> registeredObject =
+        std::make_unique<std::unordered_map<std::string, ObjectTypeInfo*>>();
     return registeredObject.get();
 }
 
-std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistryByName()
+const ObjectTypeInfo* ObjectRegistry::GetObjectTypeInfo(const UUID& typeID)
 {
-    static std::unique_ptr<std::unordered_map<std::string, ObjectRegistry::Creator>> registeredObject =
-        std::make_unique<std::unordered_map<std::string, ObjectRegistry::Creator>>();
-    return registeredObject.get();
+    std::unordered_map<ObjectTypeID, std::unique_ptr<ObjectTypeInfo>>& registry = *GetObjectTypeInfoRegistry();
+
+    auto iter = registry.find(typeID);
+    if (iter == registry.end())
+        return nullptr;
+
+    return iter->second.get();
 }
 
-std::unordered_map<ObjectTypeID, std::string>* ObjectRegistry::GetObjectTypeToTypeNameMap()
+ObjectTypeInfo* ObjectRegistry::GetObjectTypeInfoPrivate(const UUID& typeID)
 {
-    static std::unordered_map<ObjectTypeID, std::string> registry;
+    std::unordered_map<ObjectTypeID, std::unique_ptr<ObjectTypeInfo>>& registry = *GetObjectTypeInfoRegistry();
+
+    auto iter = registry.find(typeID);
+    ObjectTypeInfo* ret = nullptr;
+    if (iter == registry.end())
+    {
+        std::unique_ptr<ObjectTypeInfo> info = std::make_unique<ObjectTypeInfo>();
+        ret = info.get();
+        registry[typeID] = std::move(info);
+    }
+    else
+    {
+        ret = iter->second.get();
+    }
+
+    return ret;
+}
+
+std::unordered_map<ObjectTypeID, std::unique_ptr<ObjectTypeInfo>>* ObjectRegistry::GetObjectTypeInfoRegistry()
+{
+    static std::unordered_map<ObjectTypeID, std::unique_ptr<ObjectTypeInfo>> registry;
     return &registry;
 }
 
 std::unique_ptr<Object> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 {
-    auto iter = GetObjectTypeRegistry()->find(id);
-    if (iter != GetObjectTypeRegistry()->end())
+    auto typeInfo = GetObjectTypeInfo(id);
+    if (typeInfo != nullptr)
     {
-        return iter->second();
+        return typeInfo->CreateInstance();
     }
 
     return nullptr;
@@ -50,10 +74,11 @@ std::unique_ptr<Object> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 
 std::unique_ptr<Object> ObjectRegistry::CreateObjectByName(std::string_view name)
 {
-    auto iter = GetObjectTypeRegistryByName()->find(std::string(name));
-    if (iter != GetObjectTypeRegistryByName()->end())
+    auto t = GetObjectTypeRegistryByName();
+    auto typeInfo = t->find(std::string(name));
+    if (typeInfo != t->end())
     {
-        return iter->second();
+        return typeInfo->second->CreateInstance();
     }
 
     return nullptr;
@@ -77,4 +102,30 @@ void Object::Deserialize(Serializer* s)
     s->Deserialize("uuid", uuid);
     s->Deserialize("name", name);
     ObjectTracker::Singleton().ReplaceObjectUUID(this, uuid);
+}
+
+const char Object::_objectRegister = ObjectRegistry::RegisterBaseObject(
+    StaticGetObjectTypeID(),
+    "Object",
+    []()
+    { return nullptr; }
+);
+
+const ObjectTypeID& Object::StaticGetObjectTypeID()
+{
+    static const UUID uuid = UUID("6F574346-3464-4A2F-AFA6-32E0442C4EFB");
+    return uuid;
+}
+const ObjectTypeID& Object::GetObjectTypeID() const
+{
+    return Object::StaticGetObjectTypeID();
+}
+const std::string& Object::StaticGetTypeName()
+{
+    static std::string typeName = "Object";
+    return typeName;
+}
+const std::string& Object::GetTypeName() const
+{
+    return StaticGetTypeName();
 }

@@ -5,7 +5,7 @@
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 namespace Gfx
 {
-DEFINE_OBJECT(VKBuffer, "A3C7ED23-1F74-47D2-BAA0-060B13A96EBE");
+DEFINE_OBJECT(Buffer, VKBuffer, "A3C7ED23-1F74-47D2-BAA0-060B13A96EBE");
 
 VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 {

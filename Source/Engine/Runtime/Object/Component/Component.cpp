@@ -1,6 +1,8 @@
 #include "Component.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
+DEFINE_OBJECT(Object, Component, "2C3B2BF0-8BBD-4373-AC09-5B7AD2128630")
+
 Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 
 Component::~Component()

@@ -2,7 +2,7 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 
-DEFINE_OBJECT(SceneEnvironment, "7E237F73-396E-455F-B227-657432A66877");
+DEFINE_OBJECT(Component, SceneEnvironment, "7E237F73-396E-455F-B227-657432A66877");
 
 const std::string& SceneEnvironment::GetName() const
 {

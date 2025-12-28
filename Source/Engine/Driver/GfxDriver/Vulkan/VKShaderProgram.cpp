@@ -17,7 +17,7 @@
 namespace Gfx
 {
 
-DEFINE_OBJECT(VKShaderProgram, "B78EF37A-4703-4240-B245-23B36BB43F69");
+DEFINE_OBJECT(ShaderProgram, VKShaderProgram, "B78EF37A-4703-4240-B245-23B36BB43F69");
 
 VKShaderProgram::VKShaderProgram() : ShaderProgram(false) {};
 

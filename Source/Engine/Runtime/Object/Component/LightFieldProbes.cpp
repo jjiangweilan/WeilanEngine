@@ -1,6 +1,6 @@
 #include "LightFieldProbes.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-DEFINE_OBJECT(LightFieldProbes, "EA1F3D6D-9016-4BD0-8062-BA88D022BB50");
+DEFINE_OBJECT(Component, LightFieldProbes, "EA1F3D6D-9016-4BD0-8062-BA88D022BB50");
 
 LightFieldProbes::LightFieldProbes() : Component(nullptr) {}
 LightFieldProbes::LightFieldProbes(GameObject* gameObject) : Component(gameObject){};

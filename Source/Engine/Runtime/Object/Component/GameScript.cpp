@@ -7,7 +7,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-DEFINE_OBJECT(GameScript, "8584BFED-B936-44D3-9011-9D492118A17C");
+DEFINE_OBJECT(Component, GameScript, "8584BFED-B936-44D3-9011-9D492118A17C");
 
 GameScript::GameScript() : Component(nullptr) {}
 GameScript::GameScript(GameObject* gameObject) : Component(gameObject) {}

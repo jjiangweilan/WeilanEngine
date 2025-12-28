@@ -2,7 +2,7 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
+DEFINE_OBJECT(Component, Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
 Light::Light() : Component(nullptr) {}
 
 Light::Light(GameObject* gameObject) : Component(gameObject) {}

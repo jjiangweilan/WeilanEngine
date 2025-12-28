@@ -1,8 +1,8 @@
 #pragma once
-#include "Engine/Core/Asset.hpp"
 #include "Editor/Gizmos/Gizmo.hpp"
-#include "Engine/Core/Ptr.hpp"
 #include "Editor/Gizmos/GizmoManager.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include <functional>
 #include <string>
 #include <string_view>
@@ -11,6 +11,8 @@ class GameObject;
 class Scene;
 class Component : public Object
 {
+    DECLARE_OBJECT();
+
 public:
     Component(GameObject* gameObject);
     virtual ~Component();
@@ -68,7 +70,7 @@ public:                                                         \
 private:
 
 #define DEFINE_COMPONENT(TypeName, UUID)         \
-    DEFINE_OBJECT(TypeName, UUID)                \
+    DEFINE_OBJECT(Component, TypeName, UUID)\
     const std::string& TypeName::GetName() const \
     {                                            \
         static std::string name = #TypeName;     \
@@ -85,7 +87,7 @@ public:                                          \
 private:
 
 #define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \
-    DEFINE_OBJECT(TypeName, UUID)                  \
+    DEFINE_OBJECT(Component, TypeName, UUID)\
     const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \

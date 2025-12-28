@@ -2,6 +2,7 @@
 
 #include "Engine/Core/ObjectTracker.hpp"
 #include "Engine/Library/Serialization/Serializable.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "SafeReferenceable.hpp"
 #include <spdlog/spdlog.h>
@@ -9,8 +10,48 @@
 
 class Component;
 
+// forward declared for type reflection
+namespace TypeReflectionNS
+{
+bool RegisterMemberVariables();
+}
+
+class ObjectTypeInfo
+{
+public:
+    const ObjectTypeInfo* GetParentTypeInfo() const { return parentTypeInfo; }
+    const std::string& GetTypeName() const { return typeName; }
+    const UUID& GetTypeID() const { return typeID; }
+    std::unique_ptr<Object> CreateInstance() const
+    {
+        if (creator)
+            return creator();
+
+        return nullptr;
+    }
+
+private:
+    ObjectTypeInfo* parentTypeInfo;
+    std::string typeName;
+    UUID typeID;
+    std::function<std::unique_ptr<Object>()> creator;
+
+    friend class ObjectRegistry;
+};
+
+using ObjectTypeID = UUID;
 class Object : public Serializable, public SafeReferenceable<Object>
 {
+public:
+    static const ObjectTypeID& StaticGetObjectTypeID();
+    static const std::string& StaticGetTypeName();
+    virtual const UUID& GetObjectTypeID() const;
+    virtual const std::string& GetTypeName() const;
+    friend bool TypeReflectionNS::RegisterMemberVariables();
+
+private:
+    static const char _objectRegister;
+
 public:
     using EngineObjectMap = std::unordered_map<UUID, Object*>;
 
@@ -35,14 +76,6 @@ public:
         this->uuid = uuid;
         ObjectTracker::Singleton().AddObject(this);
     }
-
-    virtual const UUID& GetObjectTypeID() const = 0;
-    virtual const std::string& GetTypeName() const = 0;
-    static const std::string& StaticGetTypeName()
-    {
-        static std::string typeName = "Object";
-        return typeName;
-    }
     static EngineObjectMap GetAllEngineObjects();
     template <class T>
     static std::vector<T*> GetObjectsOfType();
@@ -62,23 +95,31 @@ protected:
     friend class TypeReflection;
 };
 
-using ObjectTypeID = UUID;
 struct ObjectRegistry
 {
 public:
     using Creator = std::function<std::unique_ptr<Object>()>;
+
+    // ============ Functional APIs ============ //
     static std::unique_ptr<Object> CreateObject(const ObjectTypeID& id);
     template <class T>
     static std::unique_ptr<T> CreateObject(const ObjectTypeID& id);
     template <class T>
     static std::unique_ptr<T> CreateObject(std::string_view id);
     static std::unique_ptr<Object> CreateObjectByName(std::string_view name);
+
+    // =========== Register Object ================ //
     template <class T>
-    static char RegisterObject(const ObjectTypeID& objectID, std::string_view typeName, const Creator& creator)
+    static char RegisterObject(const ObjectTypeID& parentID, const ObjectTypeID& objectID, std::string_view typeName, const Creator& creator)
     {
-        GetObjectTypeRegistry()->emplace(objectID, creator);
-        GetObjectTypeRegistryByName()->emplace(typeName, creator);
-        GetObjectTypeToTypeNameMap()->emplace(objectID, typeName);
+        auto self = GetObjectTypeInfoPrivate(objectID);
+        auto parent = GetObjectTypeInfoPrivate(parentID);
+        GetObjectTypeRegistryByName()->emplace(typeName, self);
+
+        self->creator = creator;
+        self->typeID = objectID;
+        self->typeName = typeName;
+        self->parentTypeInfo = parent;
 
         if (std::derived_from<T, Component>)
         {
@@ -87,33 +128,32 @@ public:
         return '0';
     }
 
-    static const std::vector<std::string>& GetComponentTypeNames() { return GetComponentTypeNamesRegistry(); }
-    static const std::string& GetTypeName(const ObjectTypeID& id)
+    static char RegisterBaseObject(const ObjectTypeID& objectID, std::string_view typeName, const Creator& creator)
     {
-        auto iter = GetObjectTypeToTypeNameMap()->find(id);
-        if (iter == GetObjectTypeToTypeNameMap()->end())
-        {
-            static std::string invalid = "Invalid Type";
-            return invalid;
-        }
-        return iter->second;
+        auto self = GetObjectTypeInfoPrivate(objectID);
+        GetObjectTypeRegistryByName()->emplace(typeName, self);
+
+        self->creator = creator;
+        self->typeID = objectID;
+        self->typeName = typeName;
+        self->parentTypeInfo = nullptr;
+
+        return '0';
     }
 
+    static const std::vector<std::string>& GetComponentTypeNames() { return GetComponentTypeNamesRegistry(); }
+
+    static const ObjectTypeInfo* GetObjectTypeInfo(const UUID& typeID);
+
 private:
-    static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistry();
-    static std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistryByName();
-    static std::unordered_map<ObjectTypeID, std::string>* GetObjectTypeToTypeNameMap();
+    static ObjectTypeInfo* GetObjectTypeInfoPrivate(const UUID& typeID);
+    static std::unordered_map<ObjectTypeID, std::unique_ptr<ObjectTypeInfo>>* GetObjectTypeInfoRegistry();
+    static std::unordered_map<std::string, ObjectTypeInfo*>* GetObjectTypeRegistryByName();
     static std::vector<std::string>& GetComponentTypeNamesRegistry();
 };
 
 template <class T>
 concept IsObject = requires { std::derived_from<T, Object>; };
-
-// forward declared for type reflection
-namespace TypeReflectionNS
-{
-bool RegisterMemberVariables();
-}
 
 template <class T>
 std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
@@ -136,11 +176,18 @@ public:                                                      \
 private:                                                     \
     static const char _objectRegister;
 
-#define DEFINE_OBJECT(Type, ObjectID)                                        \
+#define DEFINE_OBJECT(Parent, Type, ObjectID)                                \
     const char Type::_objectRegister = ObjectRegistry::RegisterObject<Type>( \
+        Parent::StaticGetObjectTypeID(),                                     \
         StaticGetObjectTypeID(),                                             \
         #Type,                                                               \
-        []() { return std::unique_ptr<Object>(new Type()); }                 \
+        []() { \
+        if constexpr (std::is_abstract_v<Type>) { \
+            return nullptr; \
+        } \
+        else { \
+            return std::unique_ptr<Object>(new Type()); \
+        } }                                                             \
     );                                                                       \
     const ObjectTypeID& Type::StaticGetObjectTypeID()                        \
     {                                                                        \

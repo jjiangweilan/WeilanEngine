@@ -256,5 +256,5 @@ nlohmann::json AssetData::DumpInfo() const
 
 std::string AssetData::GetNameToUUIDKey(Asset* obj)
 {
-    return fmt::format("{}-{}", obj->GetName(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()));
+    return fmt::format("{}-{}", obj->GetName(), ObjectRegistry::GetObjectTypeInfo(obj->GetObjectTypeID())->GetTypeName());
 }

@@ -7,7 +7,7 @@
 
 namespace Gfx
 {
-DEFINE_OBJECT(VKDescriptorPool, "FBAB18F5-E9C3-4CEF-91E2-08CF3386DA1A");
+DEFINE_OBJECT(Object, VKDescriptorPool, "FBAB18F5-E9C3-4CEF-91E2-08CF3386DA1A");
 
 VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo)
     : context(context)

@@ -1044,7 +1044,7 @@ void GameEditor::ShowEngineResourceDebug()
     auto objs = Object::GetAllEngineObjects();
     for (auto& o : objs)
     {
-        allObjects.push_back({o.first, o.second, &ObjectRegistry::GetTypeName(o.second->GetObjectTypeID())});
+        allObjects.push_back({o.first, o.second, &ObjectRegistry::GetObjectTypeInfo(o.second->GetObjectTypeID())->GetTypeName()});
     }
 
     std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r)

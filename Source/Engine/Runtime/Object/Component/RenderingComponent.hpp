@@ -51,7 +51,7 @@ public:                                                 \
     TypeName(GameObject* gameObject);
 
 #define DEFINE_RENDERING_COMPONENT(TypeName, UUID) \
-    DEFINE_OBJECT(TypeName, UUID)                  \
+    DEFINE_OBJECT(RenderingComponent, TypeName, UUID)\
     const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \
@@ -59,7 +59,7 @@ public:                                                 \
     }
 
 #define DEFINE_RENDERING_COMPONENT_CONSTRUCT(TypeName, UUID) \
-    DEFINE_OBJECT(TypeName, UUID)                            \
+    DEFINE_OBJECT(RenderingComponent, TypeName, UUID)\
     const std::string& TypeName::GetName() const             \
     {                                                        \
         static std::string name = #TypeName;                 \

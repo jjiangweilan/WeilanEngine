@@ -7,7 +7,7 @@
 #include <glm/gtc/random.hpp>
 #include <spdlog/spdlog.h>
 using namespace Rendering;
-DEFINE_OBJECT(SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
+DEFINE_OBJECT(Object, SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
 
 SHProbe::SHProbe() {}
 SHProbe::SHProbe(GameObject* gameObject) {}

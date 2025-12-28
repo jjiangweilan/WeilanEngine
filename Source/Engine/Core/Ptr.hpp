@@ -8,9 +8,10 @@
 template <class T>
 class ObjPtr
 {
-    
+
     template <class U>
     friend class ObjPtr;
+
 public:
     using element_type = T;
 
@@ -25,11 +26,14 @@ public:
     ObjPtr(const UUID& uuid) { handle = ObjectTracker::Singleton().Track(uuid); }
     ObjPtr(std::nullptr_t) { handle = ObjectTracker::NullHandle; }
     ObjPtr(const ObjPtr<T>& other) { handle = ObjectTracker::Singleton().Track(other.handle); }
-    template<class U>
-    ObjPtr(ObjPtr<U>&& other) { handle = std::exchange(other.handle, 0); }
+    template <class U>
+    ObjPtr(ObjPtr<U>&& other)
+    {
+        handle = std::exchange(other.handle, 0);
+    }
     ~ObjPtr() { ObjectTracker::Singleton().Detrack(handle); }
 
-    template<class U>
+    template <class U>
     ObjPtr<U>& operator=(ObjPtr<U>&& other)
     {
         handle = std::exchange(other.handle, 0);
@@ -152,6 +156,7 @@ public:
     T*& GetPtrRef() { return ptr; }
     inline T* operator->() const { return ptr; }
     inline T& operator*() const { return *ptr; }
+    operator T*() const { return ptr; }
 
 private:
     T* ptr = nullptr;

@@ -4,7 +4,7 @@
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
 
-DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
+DEFINE_OBJECT(Component, MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
 MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material)
     : Component(parent), meshes(), materials({material})
 {}

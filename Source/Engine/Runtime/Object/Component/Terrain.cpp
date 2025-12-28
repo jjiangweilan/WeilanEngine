@@ -1,7 +1,7 @@
 #include "Terrain.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
-DEFINE_OBJECT(Terrain, "F9F80900-D99F-45F4-A41D-B3414B3CCB0F");
+DEFINE_OBJECT(Component, Terrain, "F9F80900-D99F-45F4-A41D-B3414B3CCB0F");
 Terrain::Terrain() : Component(nullptr) {}
 Terrain::Terrain(GameObject* owner) : Component(owner) {}
 

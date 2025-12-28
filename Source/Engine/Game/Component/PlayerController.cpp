@@ -1,12 +1,12 @@
 #include "PlayerController.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Core/Time.hpp"
-#include "Engine/Game/Input.hpp"
 #include <spdlog/spdlog.h>
 #if ENGINE_EDITOR
 #include "Editor/HudDebug.hpp"
@@ -21,7 +21,7 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 
-DEFINE_OBJECT(PlayerController, "A14D66B4-47AB-4703-BEAA-06EBD285034F");
+DEFINE_OBJECT(Component, PlayerController, "A14D66B4-47AB-4703-BEAA-06EBD285034F");
 
 PlayerController::PlayerController() : Component(nullptr) {}
 

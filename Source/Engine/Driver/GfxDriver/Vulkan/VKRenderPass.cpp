@@ -10,7 +10,7 @@
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
-DEFINE_OBJECT(VKRenderPass, "E84D6781-F767-4282-837E-74994AF91161");
+DEFINE_OBJECT(RenderPass_Deprecated, VKRenderPass, "E84D6781-F767-4282-837E-74994AF91161");
 
 VKRenderPass::VKRenderPass() {}
 

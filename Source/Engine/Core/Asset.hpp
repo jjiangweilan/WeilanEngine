@@ -138,7 +138,7 @@ private:                                                                        
     static char _register;
 
 #define DEFINE_ASSET(Type, ObjectID, Extension)                                                                        \
-    DEFINE_OBJECT(Type, ObjectID)                                                                                      \
+    DEFINE_OBJECT(Asset, Type, ObjectID)                                                                               \
     char Type::_register = AssetRegistry::RegisterAsset(                                                               \
         Type::StaticGetObjectTypeID(),                                                                                 \
         StaticGetExtensions(),                                                                                         \

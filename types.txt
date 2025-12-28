@@ -1,0 +1,35 @@
+Source\Engine\Game\Component\PlayerController.cpp             DEFINE_OBJECT(Component, PlayerController, "A14D66B4-47AB-4703-BEAA-06EBD285034F");
+Source\Engine\Game\Component\PlayerInteractable.cpp           // DEFINE_OBJECT(PlayerInteractable, "B6398D7B-1E06-41E1-B57B-199AC7A708F9");
+Source\Engine\Runtime\Object\GameObject\GameObject.cpp        DEFINE_OBJECT(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
+Source\Engine\Core\Object.hpp                                 #define DEFINE_OBJECT(Parent, Type, ObjectID)                                \
+Source\Engine\Runtime\Module\VolumetricCloud\Cloud.cpp        DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
+Source\Engine\Core\Asset.hpp                                      DEFINE_OBJECT(Type, ObjectID)                                                                                      \
+Source\Engine\Runtime\System\SceneManager\SceneSettings.cpp   DEFINE_OBJECT(SceneSettings, "1F6B289E-09E9-4AC4-951D-B5DD1FDE8E6B")
+Source\Engine\Runtime\Object\Component\Terrain.cpp            DEFINE_OBJECT(Terrain, "F9F80900-D99F-45F4-A41D-B3414B3CCB0F");
+Source\Engine\Runtime\Object\Component\SceneEnvironment.cpp   DEFINE_OBJECT(SceneEnvironment, "7E237F73-396E-455F-B227-657432A66877");
+Source\Engine\Runtime\Module\Foliage\FoliagePatch.cpp         DEFINE_OBJECT(FoliagePatch, "96C9856F-1F2C-4F25-AF8B-ABD231403FE4");
+Source\Engine\Runtime\Object\Component\RenderingComponent.hpp     DEFINE_OBJECT(TypeName, UUID)                  \
+Source\Engine\Runtime\Object\Component\RenderingComponent.hpp     DEFINE_OBJECT(TypeName, UUID)                            \
+Source\Engine\Runtime\Object\Component\ReflectionProbe.cpp    DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
+Source\Engine\Runtime\Object\Component\PhysicsBody.cpp        DEFINE_OBJECT(PhysicsBody, "670E10EF-2532-4977-A356-63C9B07C6F5D");
+Source\Engine\Runtime\Object\Component\ParticleSystem.cpp     DEFINE_OBJECT(Velocity, "E85E78E6-26E1-47DB-9357-82B17AEF7856");
+Source\Engine\Runtime\Object\Component\ParticleSystem.cpp     DEFINE_OBJECT(Fade, "44210283-C49E-4C21-B2ED-C19E854FEDB0");
+Source\Engine\Runtime\Object\Component\ParticleSystem.cpp     DEFINE_OBJECT(Emitter, "75F819E1-9137-405A-BD30-24D81FBC4336");
+Source/Engine/Runtime/Object/Component/MeshRenderer.cpp       DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
+Source\Engine\Runtime\Object\Component\LightFieldProbes.cpp   DEFINE_OBJECT(LightFieldProbes, "EA1F3D6D-9016-4BD0-8062-BA88D022BB50");
+Source\Engine\Runtime\Object\Component\Light.cpp              DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
+Source\Engine\Runtime\Object\Component\GrassSurface.cpp       DEFINE_OBJECT(GrassSurface, "8B141EA8-BD84-4800-91AA-B07FCA7C7605")
+Source\Engine\Runtime\Object\Component\GameScript.cpp         DEFINE_OBJECT(GameScript, "8584BFED-B936-44D3-9011-9D492118A17C");
+Source\Engine\Runtime\Object\Component\Component.hpp              DEFINE_OBJECT(TypeName, UUID)                \
+Source\Engine\Runtime\Object\Component\Component.hpp              DEFINE_OBJECT(TypeName, UUID)                  \
+Source\Engine\Runtime\Object\Component\Component.cpp          DEFINE_OBJECT(Object, Component, "2C3B2BF0-8BBD-4373-AC09-5B7AD2128630")
+Source\Engine\Runtime\System\Rendering\SHProbe.cpp            DEFINE_OBJECT(SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
+Source\Engine\Runtime\Object\Component\Camera.cpp             DEFINE_OBJECT(Camera, "7BDC1BC9-A96E-4ABC-AE76-DD6AB8C69A19");
+Source\Engine\Runtime\Object\Component\AnimationPlayer.cpp    DEFINE_OBJECT(AnimationPlayer, "F1093426-DC3A-45F6-9C3B-B7CFA098285A");
+Source\Engine\Runtime\System\Rendering\Shader.cpp             DEFINE_OBJECT(Shader, "B1E88B63-32EF-4690-B694-EE8F23BF7E72");
+Source\Engine\Driver\GfxDriver\Vulkan\VKBuffer.cpp            DEFINE_OBJECT(VKBuffer, "A3C7ED23-1F74-47D2-BAA0-060B13A96EBE");
+Source\Engine\Driver\GfxDriver\Vulkan\VKImageView.cpp         DEFINE_OBJECT(VKImageView, "C4DB6D40-5AA2-463B-A9D0-9BC0D974102C");
+Source\Engine\Driver\GfxDriver\Vulkan\VKImage.cpp             DEFINE_OBJECT(VKImage, "D713D759-996D-4CB1-BDF2-12ED4F0CB043");
+Source\Engine\Driver\GfxDriver\Vulkan\VKRenderPass.cpp        DEFINE_OBJECT(VKRenderPass, "E84D6781-F767-4282-837E-74994AF91161");
+Source\Engine\Driver\GfxDriver\Vulkan\VKShaderProgram.cpp     DEFINE_OBJECT(VKShaderProgram, "B78EF37A-4703-4240-B245-23B36BB43F69");
+Source\Engine\Driver\GfxDriver\Vulkan\VKDescriptorPool.cpp    DEFINE_OBJECT(VKDescriptorPool, "FBAB18F5-E9C3-4CEF-91E2-08CF3386DA1A");

@@ -5,7 +5,7 @@
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include <spdlog/spdlog.h>
 
-DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
+DEFINE_OBJECT(Component, Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
 Cloud::Cloud() : Component(nullptr) {};
 
 Cloud::Cloud(GameObject* owner) : Component(owner) {};
