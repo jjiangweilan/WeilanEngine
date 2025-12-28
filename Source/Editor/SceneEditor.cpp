@@ -66,9 +66,9 @@ void SceneEditor::Init(EditorContext* editorContext)
         SetActiveScene(scene);
     }
 
-    if (GameEditor::instance->editorConfig.contains("editorCamera"))
+    if (GameEditor::instance->editorState.contains("editorCamera"))
     {
-        auto& camJson = GameEditor::instance->editorConfig["editorCamera"];
+        auto& camJson = GameEditor::instance->editorState["editorCamera"];
         std::array<float, 3> pos{0, 0, 0};
         std::array<float, 4> rot{1, 0, 0, 0};
         std::array<float, 3> scale{1, 1, 1};

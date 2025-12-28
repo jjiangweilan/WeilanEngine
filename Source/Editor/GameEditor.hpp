@@ -35,7 +35,7 @@ public:
     void SetActiveScene(ObjPtr<Scene> scene);
 
     std::unique_ptr<Gfx::Image> fontImage;
-    nlohmann::json editorConfig;
+    nlohmann::json editorState;
     static GameEditor* instance;
 
     EditorContext* GetEditorContext() { return editorContext.get(); }

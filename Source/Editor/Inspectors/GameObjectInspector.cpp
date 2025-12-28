@@ -117,7 +117,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
             // ImGui::SeparatorText(c.GetName().c_str());
             bool showAsSelected =
                 contextComponent != nullptr &&
-                (contextComponent == co.get() || EditorState::GetMainSelectedObject() == contextComponent);
+                (contextComponent == co || EditorState::GetMainSelectedObject() == contextComponent);
             ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
             bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
             EditorGUI::DragDropSource(c.GetName().c_str(), &c);
@@ -126,7 +126,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                 if (!popupTriggered)
                 {
                     popupTriggered = true;
-                    contextComponent = co.get();
+                    contextComponent = co;
                     contextComponentIdx = currentComponentIdx;
                 }
             }
@@ -151,7 +151,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                 if (!popupTriggered)
                 {
                     popupTriggered = true;
-                    contextComponent = co.get();
+                    contextComponent = co;
                     contextComponentIdx = currentComponentIdx;
                 }
             }

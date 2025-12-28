@@ -1,8 +1,9 @@
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Editor/EditorConfig.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/GameEditor.hpp"
+#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -219,8 +220,9 @@ void GameEditor::SceneTree(
 
     bool hasPrefab = go->HasPrefab();
 
+    auto& editorConfig = EditorConfig::GetInstance();
     if (hasPrefab)
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3, 0.3, 0.3, 1.0));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
     if (hasPrefab)
         ImGui::PopStyleColor();
@@ -257,10 +259,9 @@ void GameEditor::SceneTree(
     if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
     {
         endEvents.Register([go, dropGO]()
-        {
+                           {
             GameObject* casted = static_cast<GameObject*>(dropGO);
-            casted->SetParent(go);
-        });
+            casted->SetParent(go); });
     }
 
     if (EditorGUI::DragDropTarget(dropGO))

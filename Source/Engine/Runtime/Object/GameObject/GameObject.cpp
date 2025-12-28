@@ -1,8 +1,8 @@
 #include "GameObject.hpp"
+#include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Library/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
 DEFINE_OBJECT(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
@@ -14,10 +14,12 @@ GameObject::GameObject() : gameScene(nullptr)
 }
 
 GameObject::GameObject(GameObject&& other)
-    : components(std::move(other.components)), gameScene(std::exchange(other.gameScene, nullptr))
+    : components(std::move(other.components)), prefab(std::exchange(other.prefab, nullptr)), gameScene(std::exchange(other.gameScene, nullptr))
 {
     SetName(other.GetName());
     ResetTransform();
+    ApplyPrefabComponents();
+    UpdateAllComponents();
 }
 
 GameObject::GameObject(Scene* gameScene) : gameScene(gameScene)
@@ -37,6 +39,7 @@ void GameObject::ResetTransform()
 void GameObject::Copy(const GameObject& other)
 {
     SetName(other.GetName());
+    prefab = other.prefab;
     position = other.position;
     scale = other.scale;
     rotation = other.rotation;
@@ -55,6 +58,9 @@ void GameObject::Copy(const GameObject& other)
         owningChildren.push_back(std::make_unique<GameObject>(*child));
         owningChildren.back()->SetParent(this, false);
     }
+
+    ApplyPrefabComponents();
+    UpdateAllComponents();
 }
 
 GameObject::GameObject(const GameObject& other)
@@ -65,11 +71,12 @@ GameObject::GameObject(const GameObject& other)
 GameObject::~GameObject()
 {
     components.clear();
+    prefabComponents.clear();
 }
 
 void GameObject::Tick()
 {
-    for (auto& comp : components)
+    for (auto& comp : allComponents)
     {
         if (comp && comp->IsEnabled())
             comp->Tick();
@@ -78,7 +85,7 @@ void GameObject::Tick()
 
 void GameObject::DebugDraw()
 {
-    for (auto& comp : components)
+    for (auto& comp : allComponents)
     {
         comp->DebugDraw();
     }
@@ -86,7 +93,7 @@ void GameObject::DebugDraw()
 
 void GameObject::IdleTick()
 {
-    for (auto& comp : components)
+    for (auto& comp : allComponents)
     {
         if (comp && comp->IsEnabled())
             comp->IdleTick();
@@ -95,16 +102,16 @@ void GameObject::IdleTick()
 
 void GameObject::PrePhysicsTick()
 {
-    for (auto& comp : components)
+    for (auto& comp : allComponents)
     {
         if (comp && comp->IsEnabled())
             comp->PrePhysicsTick();
     }
 }
 
-std::vector<std::unique_ptr<Component>>& GameObject::GetComponents()
+std::span<Component*> GameObject::GetComponents()
 {
-    return components;
+    return allComponents;
 }
 
 Scene* GameObject::GetScene()
@@ -116,6 +123,7 @@ void GameObject::Serialize(Serializer* s) const
 {
     Object::Serialize(s);
     s->Serialize("components", components);
+    s->Serialize("prefabComponents", prefabComponents);
     s->Serialize("rotation", rotation);
     s->Serialize("position", position);
     s->Serialize("scale", scale);
@@ -159,13 +167,16 @@ void GameObject::Deserialize(Serializer* s)
 
 void GameObject::OnLoaded()
 {
-    for (auto& c : components)
+    ApplyPrefabComponents();
+    UpdateAllComponents();
+
+    for (auto& c : allComponents)
     {
         if (c)
             c->gameObject = this;
     }
 
-    for (auto& c : components)
+    for (auto& c : allComponents)
     {
         if (c)
         {
@@ -246,7 +257,7 @@ void GameObject::SetScene(Scene* scene)
     {
         if (this->gameScene != nullptr)
         {
-            for (auto& c : components)
+            for (auto& c : allComponents)
             {
                 if (c && c->IsEnabled())
                     c->OnDisable();
@@ -254,7 +265,7 @@ void GameObject::SetScene(Scene* scene)
         }
 
         this->gameScene = scene;
-        for (auto& c : components)
+        for (auto& c : allComponents)
         {
             if (c && c->IsEnabled() && enabled)
                 c->OnEnable();
@@ -275,7 +286,7 @@ void GameObject::SetEnable(bool isEnabled)
 
     if (isEnabled)
     {
-        for (auto& c : components)
+        for (auto& c : allComponents)
         {
             if (c && c->IsEnabled())
             {
@@ -286,7 +297,7 @@ void GameObject::SetEnable(bool isEnabled)
         if (!isAwaked)
         {
             isAwaked = true;
-            for (auto& c : components)
+            for (auto& c : allComponents)
             {
                 if (c && c->IsEnabled())
                 {
@@ -297,7 +308,7 @@ void GameObject::SetEnable(bool isEnabled)
     }
     else
     {
-        for (auto& c : components)
+        for (auto& c : allComponents)
         {
             if (c && c->IsEnabled())
                 c->OnDisable();
@@ -545,11 +556,11 @@ ObjPtr<Component> GameObject::GetComponentInHierachy(const char* className)
 
 ObjPtr<Component> GameObject::GetComponent(const char* className)
 {
-    for (auto& c : components)
+    for (auto& c : allComponents)
     {
         if (c && c->GetTypeName().compare(className) == 0)
         {
-            return c.get();
+            return c;
         }
     }
 
@@ -849,5 +860,34 @@ void GameObject::MoveInComponent(Component* otherPtr)
 
         if (isInEnableState)
             otherPtr->Enable();
+    }
+}
+
+void GameObject::UpdateAllComponents()
+{
+    allComponents.clear();
+
+    for (auto& c : components)
+    {
+        allComponents.push_back(c.get());
+    }
+
+    for (auto& c : prefabComponents)
+    {
+        allComponents.push_back(c.get());
+    }
+}
+
+void GameObject::ApplyPrefabComponents()
+{
+    if (prefab != nullptr)
+    {
+        prefabComponents.clear();
+
+        auto comps = prefab->GetGameObject()->GetComponents();
+        for (auto comp : comps)
+        {
+            prefabComponents.push_back(comp->Clone(*this));
+        }
     }
 }

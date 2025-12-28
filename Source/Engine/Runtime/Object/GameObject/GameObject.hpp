@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Engine/Core/Asset.hpp"
+#include "Engine/Core/EngineState.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/DynamicArray.hpp"
 #include "Engine/Runtime/Object/Component/Component.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
-#include "Engine/Core/Ptr.hpp"
-#include "Engine/Core/EngineState.hpp"
-#include "Engine/Library/DynamicArray.hpp"
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -68,6 +68,8 @@ class GameObject : public Object
     std::vector<ObjPtr<GameObject>> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;
     std::vector<std::unique_ptr<Component>> components;
+    std::vector<std::unique_ptr<Component>> prefabComponents;
+    std::vector<Component*> allComponents;
     ObjPtr<GameObject> parent = nullptr;
     ObjPtr<Scene> gameScene = nullptr;
     bool isAwaked = false;
@@ -94,7 +96,7 @@ public:
     T* GetComponent();
     ObjPtr<Component> GetComponent(const char* className);
     ObjPtr<Component> GetComponentInHierachy(const char* className);
-    std::vector<std::unique_ptr<Component>>& GetComponents();
+    std::span<Component*> GetComponents();
 
     template <class T>
     std::vector<T*> GetComponentsInChildren();
@@ -200,6 +202,9 @@ private:
 
     void TransformChanged();
     void Copy(const GameObject& other);
+
+    void UpdateAllComponents();
+    void ApplyPrefabComponents();
 
     friend void RegisterSerializedObjects();
 };

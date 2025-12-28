@@ -1,20 +1,21 @@
 #include "Editor/GameEditor.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Engine/Core/Asset.hpp"
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
-#include "Engine/MiddleLayer/EngineDebug.hpp"
-#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Editor/EditorConfig.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
-#include "FileIcons.hpp"
-#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Engine/Core/Asset.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/Platform/FileExplore.hpp"
+#include "Engine/MiddleLayer/EngineDebug.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "Engine/ThirdParty/imgui/implot.h"
+#include "FileIcons.hpp"
 #include <cmath>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <memory>
@@ -64,6 +65,8 @@ GameEditor::GameEditor(const char* path)
     engine->Init({.projectPath = path});
     loop = engine->GetGameLoop();
     EditorState::GetGameLoop() = loop;
+    auto& editorConfig = EditorConfig::GetInstance();
+    editorConfig.Reload();
 
     // engine is in another dynamic library which has different static logger instance, we need to register it for
     // editor too
@@ -75,22 +78,22 @@ GameEditor::GameEditor(const char* path)
     spdlog::set_default_logger(logger);
 
     this->imguiInitPath = (engine->GetProjectPath() / "imgui.ini").string();
-    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
+    auto editorConfigPath = engine->GetProjectPath() / "editorState.json";
     if (std::filesystem::exists(editorConfigPath))
     {
         try
         {
-            editorConfig = nlohmann::json::parse(std::ifstream(editorConfigPath));
+            editorState = nlohmann::json::parse(std::ifstream(editorConfigPath));
         }
         catch (...)
         {
-            editorConfig = nlohmann::json::object();
+            editorState = nlohmann::json::object();
         }
     }
 
-    if (editorConfig.is_null())
+    if (editorState.is_null())
     {
-        editorConfig = nlohmann::json::object();
+        editorState = nlohmann::json::object();
     }
 
     if (!std::filesystem::exists(imguiInitPath))
@@ -103,7 +106,7 @@ GameEditor::GameEditor(const char* path)
     }
 
     // Load previous active scene
-    UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
+    UUID lastActiveSceneUUID(editorState.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
         auto scene = (Scene*)engine->assetDatabase->LoadScene(lastActiveSceneUUID);
@@ -149,7 +152,7 @@ GameEditor::~GameEditor()
     InspectorRegistry::DestroyAll();
 
     if (SceneManager::GetActiveScene())
-        editorConfig["lastActiveScene"] = SceneManager::GetActiveScene()->GetUUID().ToString();
+        editorState["lastActiveScene"] = SceneManager::GetActiveScene()->GetUUID().ToString();
 
     loop = nullptr;
 
@@ -162,12 +165,12 @@ GameEditor::~GameEditor()
         camJson["position"] = {pos.x, pos.y, pos.z};
         camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
         camJson["scale"] = {scale.x, scale.y, scale.z};
-        editorConfig["editorCamera"] = camJson;
+        editorState["editorCamera"] = camJson;
     }
 
-    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
-    std::ofstream editorConfigFile(editorConfigPath);
-    editorConfigFile << editorConfig.dump(0);
+    auto editorStatePath = engine->GetProjectPath() / "editorState.json";
+    std::ofstream editorStateFile(editorStatePath);
+    editorStateFile << editorState.dump(0);
 
     // cleanup editor state
     EditorState::Clear();
@@ -593,6 +596,7 @@ void GameEditor::GUIPass()
     {
         engine->assetDatabase->RequestShaderRefresh(false);
         engine->assetDatabase->ReloadScripts();
+        EditorConfig::GetInstance().Reload();
     }
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S))
