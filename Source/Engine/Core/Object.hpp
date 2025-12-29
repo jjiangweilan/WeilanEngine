@@ -95,7 +95,7 @@ protected:
     friend class TypeReflection;
 };
 
-struct ObjectRegistry
+class ObjectRegistry
 {
 public:
     using Creator = std::function<std::unique_ptr<Object>()>;
