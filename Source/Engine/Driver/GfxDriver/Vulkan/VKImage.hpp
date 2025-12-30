@@ -56,6 +56,7 @@ protected:
     std::vector<BarrierTrack> subresourceBarrierTrack;
 
 public:
+    VKImage();
     VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags);
     VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags);
     VKImage(const VKImage& other) = delete;
@@ -89,7 +90,6 @@ public:
     std::vector<VkImageMemoryBarrier2> MakeBarrierIfNeeded(VkPipelineStageFlags2 stageFlags, VkAccessFlags2 accessFlags, VkImageLayout expectedImageLayout, VkImageSubresourceRange subresourceRange);
 
 protected:
-    VKImage();
 
     void InitBarrierTrack();
     ImageViewType GenerateDefaultImageViewViewType();

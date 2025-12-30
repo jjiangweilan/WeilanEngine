@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "Engine/Library/Assert.hpp"
-#include "Library/TypeReflection.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 
 // Test class with various member types
 class TestClass
@@ -143,7 +143,7 @@ TEST_F(TypeReflectionTest, GetVariablesReturnsMap)
     TypeReflection<TestClass>::RegisterMemberVariable("test6_testInt", &TestClass::intValue);
     TypeReflection<TestClass>::RegisterMemberVariable("test6_testFloat", &TestClass::floatValue);
 
-    const auto& vars = TypeReflection<TestClass>::GetVariables();
+    const auto& vars = TypeReflection<TestClass>::StaticGetVariables();
     EXPECT_GE(vars.size(), 2u);
     EXPECT_NE(vars.find("test6_testInt"), vars.end());
     EXPECT_NE(vars.find("test6_testFloat"), vars.end());

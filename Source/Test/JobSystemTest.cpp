@@ -3,7 +3,7 @@
 #include <thread>
 #include <vector>
 #include <chrono>
-#include "Core/JobSystem.hpp"
+#include "Engine/Core/JobSystem.hpp"
 
 // Test fixture for JobSystem tests
 class JobSystemTestFixture : public ::testing::Test {

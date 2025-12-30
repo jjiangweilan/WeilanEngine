@@ -2,60 +2,124 @@
 #include "Engine/Library/CppUtility.hpp"
 
 #include <functional>
+#include <span>
 #include <string>
 #include <typeinfo>
 #include <unordered_map>
 #include <vector>
 
-template <class T>
-class TypeReflection
+class Object;
+struct FunctionMetadata
+{
+    std::string name;
+    std::function<void(void*, void*, void**, size_t)> func;
+    const std::type_info* returnType;
+    std::vector<const std::type_info*> argTypes;
+    size_t argCount;
+};
+
+struct PropertyMetadata
+{
+    std::string name;
+    const std::type_info* typeInfo;
+
+    std::function<void(void*, void*&)> getter;
+    std::function<void(void*, void*)> copyOperator;
+};
+
+class ITypeReflection
 {
 public:
-    struct FunctionMetadata
-    {
-        std::function<void(T&, void*, void**, size_t)> func;
-        const std::type_info* returnType;
-        std::vector<const std::type_info*> argTypes;
-        size_t argCount;
-    };
+    virtual const std::unordered_map<std::string, PropertyMetadata>&
+    GetVariables() = 0;
 
-    struct PropertyMetadata
-    {
-        const std::type_info* typeInfo;
-        std::function<void(T&, void*&)> getter;
-        std::function<void(void*, void*)> copyOperator;
-    };
+    virtual void Copy(Object* src, Object* dst) const = 0;
+    virtual void GetVariable(Object& obj, const std::string& name, void* ptr) const = 0;
+    virtual void CallFunction(
+        Object& obj,
+        const std::string& name,
+        void* rtnPtr,
+        void** argPtrs,
+        size_t argCount
+    ) const = 0;
+};
 
+template <class T>
+class TypeReflection : public ITypeReflection
+{
 public:
-    static void Copy(const T& src, T& dst)
+    const std::unordered_map<std::string, PropertyMetadata>&
+    GetVariables() override
     {
-        for (const auto& varPair : GetVariables())
+        return StaticGetVariables();
+    }
+
+    void Copy(Object* src, Object* dst) const override
+    {
+        if (src && dst)
         {
-            const std::string& name = varPair.first;
-            const auto& typeInfo = varPair.second.typeInfo;
-            const auto& getter = varPair.second.getter;
-            const auto& copyOperator = varPair.second.copyOperator;
+            for (const auto& varPair : StaticGetVariables())
+            {
+                const auto& typeInfo = varPair.second.typeInfo;
+                const auto& getter = varPair.second.getter;
+                const auto& copyOperator = varPair.second.copyOperator;
 
-            void* srcVal = nullptr;
-            getter(const_cast<T&>(src), srcVal);
+                void* srcVal = nullptr;
+                getter((void*)src, srcVal);
 
-            void* dstVal = nullptr;
-            getter(dst, dstVal);
+                void* dstVal = nullptr;
+                getter((void*)dst, dstVal);
 
-            if (srcVal != nullptr && dstVal != nullptr)
-                copyOperator(srcVal, dstVal);
+                if (srcVal != nullptr && dstVal != nullptr)
+                    copyOperator(srcVal, dstVal);
+            }
         }
     }
 
+    void GetVariable(Object& obj, const std::string& name, void* ptr) const override
+    {
+        auto iter = GetVariablesPrivate().find(name);
+
+        if (iter == GetVariablesPrivate().end())
+        {
+            return;
+        }
+
+        auto& metaData = iter->second;
+        auto& f = metaData.getter;
+        f(&obj, ptr);
+    }
+
+    void CallFunction(
+        Object& obj,
+        const std::string& name,
+        void* rtnPtr,
+        void** argPtrs,
+        size_t argCount
+    ) const override
+    {
+        auto iter = GetFunctionsPrivate().find(name);
+        if (iter == GetFunctionsPrivate().end())
+        {
+            return;
+        }
+
+        auto& metadata = iter->second;
+        auto& f = metadata.func;
+        f(&obj, rtnPtr, argPtrs, argCount);
+    }
+
+public:
     template <class MemType>
     static void RegisterMemberVariable(const std::string& name, MemType T::* memPtr)
     {
         ASSERT(GetVariablesPrivate().find(name) == GetVariablesPrivate().end());
 
         GetVariablesPrivate()[name] = {
+            name,
             &typeid(MemType),
-            [memPtr](T& obj, void*& val)
-            { val = &(obj.*memPtr); },
+            [memPtr](void* obj, void*& val)
+            { val = &(static_cast<T*>((Object*)obj)->*memPtr); },
             [memPtr](void* src, void* dst)
             { *((MemType*)dst) = *((MemType*)src); }
         };
@@ -67,7 +131,8 @@ public:
         ASSERT(GetFunctionsPrivate().find(name) == GetFunctionsPrivate().end());
 
         GetFunctionsPrivate()[name] = {
-            [funcPtr](T& obj, void* rtnPtr, void** argPtrs, size_t argCount)
+            name,
+            [funcPtr](void* obj, void* rtnPtr, void** argPtrs, size_t argCount)
             {
                 ASSERT(argCount == sizeof...(Args));
 
@@ -109,7 +174,7 @@ public:
 
         auto& f = metaData.getter;
         void* val = nullptr;
-        f(obj, val);
+        f((void*)&obj, val);
 
         return (MemType*)val;
     }
@@ -145,12 +210,12 @@ public:
             // Handle void return type
             if constexpr (sizeof...(Args) == 0)
             {
-                f(obj, nullptr, nullptr, 0);
+                f((void*)&obj, nullptr, nullptr, 0);
             }
             else
             {
                 void* argPtrs[] = {&args...};
-                f(obj, nullptr, argPtrs, sizeof...(Args));
+                f((void*)&obj, nullptr, argPtrs, sizeof...(Args));
             }
         }
         else
@@ -159,29 +224,22 @@ public:
             Rtn result;
             if constexpr (sizeof...(Args) == 0)
             {
-                f(obj, &result, nullptr, 0);
+                f((void*)&obj, &result, nullptr, 0);
             }
             else
             {
                 void* argPtrs[] = {&args...};
-                f(obj, &result, argPtrs, sizeof...(Args));
+                f((void*)&obj, &result, argPtrs, sizeof...(Args));
             }
             return result;
         }
     }
 
     static const std::unordered_map<std::string, PropertyMetadata>&
-    GetVariables()
+    StaticGetVariables()
     {
         return GetVariablesPrivate();
     }
-
-    // this can be used for derived class
-    // template <class MemType>
-    // bool Get(const std::string& name, MemType& val)
-    // {
-    //     return TypeReflection<T>::Get(*static_cast<T*>(this), name, val);
-    // }
 
 private:
     static std::unordered_map<std::string, PropertyMetadata>& GetVariablesPrivate()
@@ -197,9 +255,9 @@ private:
     }
 
     template <class Rtn, class... Args, size_t... Is>
-    static Rtn CallMemberFunctionImpl(T& obj, Rtn (T::*funcPtr)(Args...), void** argPtrs, std::index_sequence<Is...>)
+    static Rtn CallMemberFunctionImpl(void* obj, Rtn (T::*funcPtr)(Args...), void** argPtrs, std::index_sequence<Is...>)
     {
-        return (obj.*funcPtr)(*static_cast<std::remove_reference_t<Args>*>(argPtrs[Is])...);
+        return (((Object*)obj)->*funcPtr)(*static_cast<std::remove_reference_t<Args>*>(argPtrs[Is])...);
     }
 };
 

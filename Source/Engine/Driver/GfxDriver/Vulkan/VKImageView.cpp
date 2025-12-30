@@ -5,7 +5,7 @@
 
 namespace Gfx
 {
-DEFINE_OBJECT(ImageView, VKImageView, "C4DB6D40-5AA2-463B-A9D0-9BC0D974102C");
+DEFINE_OBJECT(Object, VKImageView, "C4DB6D40-5AA2-463B-A9D0-9BC0D974102C");
 
 VkImageViewType MapImageViewType(ImageViewType type)
 {

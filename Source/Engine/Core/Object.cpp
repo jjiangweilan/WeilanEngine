@@ -129,3 +129,15 @@ const std::string& Object::GetTypeName() const
 {
     return StaticGetTypeName();
 }
+
+const ObjectTypeInfo* Object::GetTypeInfo() const
+{
+    static const ObjectTypeInfo* info = ObjectRegistry::GetObjectTypeInfo(StaticGetObjectTypeID());
+    return info;
+}
+
+std::unordered_map<ObjectTypeID, std::unique_ptr<ITypeReflection>>& ObjectRegistry::GetTypeReflectionInstances()
+{
+    static std::unordered_map<ObjectTypeID, std::unique_ptr<ITypeReflection>> typeReflections;
+    return typeReflections;
+}

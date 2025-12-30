@@ -11,6 +11,7 @@ class VKImageView : public ImageView
 {
     DECLARE_OBJECT();
 public:
+    VKImageView() = default;
     VKImageView(const CreateInfo& createInfo);
     VKImageView(const VKImageView& imageView) = delete;
     VKImageView(VKImageView&& other);
@@ -57,7 +58,6 @@ public:
     }
 
 protected:
-    VKImageView() = default;
 
     size_t hash;
     VKImage* image;
