@@ -169,3 +169,24 @@ void ObjectTypeInfo::GetVariable(Object& obj, const std::string& name, void*& pt
         }
     }
 }
+
+void Object::SerializeByReflection(Serializer* s)
+{
+    auto typeInfo = GetTypeInfo();
+    typeInfo->Serialize(*this, *s);
+}
+
+void Object::DeserializeByReflection(Serializer* s)
+{
+    // because we register the object before deserializing, we need to
+    // temporarily store the old uuid and restore it after deserialization
+    auto typeInfo = GetTypeInfo();
+    UUID oldUUID = std::move(this->uuid);
+
+    typeInfo->Deserialize(*this, *s);
+
+    UUID newUUILD = std::move(this->uuid);
+    this->uuid = std::move(oldUUID);
+
+    ObjectTracker::Singleton().ReplaceObjectUUID(this, newUUILD);
+}

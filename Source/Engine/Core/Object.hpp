@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 class Component;
-
+class Serializer;
 // forward declared for type reflection
 namespace TypeReflectionNS
 {
@@ -26,20 +26,6 @@ bool RegisterMemberFunctions()
 class ObjectTypeInfo
 {
 public:
-    const ObjectTypeInfo* GetParentTypeInfo() const { return parentTypeInfo; }
-    const std::string& GetTypeName() const { return typeName; }
-    const UUID& GetTypeID() const { return typeID; }
-    const ITypeReflection* GetTypeReflection() const { return typeReflection; }
-    template<class T>
-    T* GetVariable(Object& obj, const std::string& name) const
-    {
-        void* ptr = nullptr;
-        GetVariable(obj, name, ptr);
-        return static_cast<T*>(ptr);
-    }
-
-    void GetVariable(Object& obj, const std::string& name, void*& ptr) const;
-
     class PropertyIterator
     {
     public:
@@ -109,6 +95,11 @@ public:
             return temp;
         }
 
+        operator bool const()
+        {
+            return currentTypeInfo != nullptr;
+        }
+
     private:
         void ValidateAndAdvance()
         {
@@ -140,8 +131,37 @@ public:
         map_iterator currentIter;
     };
 
-    PropertyIterator GetFieldIterator() const { return PropertyIterator(this); }
-    PropertyIterator FieldEnd() const { return PropertyIterator(); }
+    const ObjectTypeInfo* GetParentTypeInfo() const { return parentTypeInfo; }
+    const std::string& GetTypeName() const { return typeName; }
+    const UUID& GetTypeID() const { return typeID; }
+    const ITypeReflection* GetTypeReflection() const { return typeReflection; }
+    template <class T>
+    T* GetVariable(Object& obj, const std::string& name) const
+    {
+        void* ptr = nullptr;
+        GetVariable(obj, name, ptr);
+        return static_cast<T*>(ptr);
+    }
+
+    PropertyIterator GetVariables() const { return PropertyIterator(this); }
+
+    void GetVariable(Object& obj, const std::string& name, void*& ptr) const;
+
+    void Serialize(Object& obj, Serializer& s) const
+    {
+        for (auto var = GetVariables(); var; ++var)
+        {
+            var->second.serialize(var->second.name, &obj, &s);
+        }
+    }
+
+    void Deserialize(Object& obj, Serializer& s) const
+    {
+        for (auto var = GetVariables(); var; ++var)
+        {
+            var->second.deserialize(var->second.name, &obj, &s);
+        }
+    }
 
     std::unique_ptr<Object> CreateInstance() const
     {
@@ -209,6 +229,9 @@ public:
     const std::string& GetName() const { return name; }
 
     virtual const ObjectTypeInfo* GetTypeInfo() const;
+
+    void SerializeByReflection(Serializer* s) override;
+    void DeserializeByReflection(Serializer* s) override;
 
 protected:
     void Serialize(Serializer* s) const override;

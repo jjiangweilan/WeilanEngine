@@ -1,15 +1,32 @@
 #pragma once
 #include "Engine/Library/CppUtility.hpp"
+#include <concepts>
 #include <string>
 #include <unordered_map>
 class Serializer;
 class Serializable
 {
 public:
+    virtual void SerializeByReflection(Serializer* s) {};
+    virtual void DeserializeByReflection(Serializer* s) {};
     virtual void Serialize(Serializer* s) const = 0;
     virtual void Deserialize(Serializer* s) = 0;
     virtual ~Serializable() {};
 };
+
+template <class T>
+concept IsSerializableClass = std::derived_from<T, Serializable>;
+
+template <class T>
+concept HasSerializeFunc = requires(T a, Serializer* s) {
+    a.Serialize(s);
+    a.Deserialize(s);
+};
+
+template <class T>
+concept IsSerializable =
+    IsSerializableClass<T> ||
+    HasSerializeFunc<T>; // use with CanBeSerializerParameter for full test, Serializer itself uses this only
 
 #define SERIALIZE(ser, name) ser->Serialize(#name, name)
 #define DESERIALIZE(ser, name) ser->Deserialize(#name, name)

@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Library/CppUtility.hpp"
+#include "Engine/Library/Serialization/Serializable.hpp" // for IsSerializable.
 
 #include <functional>
 #include <span>
@@ -8,7 +9,14 @@
 #include <unordered_map>
 #include <vector>
 
+template <class T, class SerializerType>
+concept IsBaseSerializationType = requires(T a, SerializerType * s) {
+    s->Serialize("", a);
+    s->Deserialize("", a);
+};
+
 class Object;
+class Serializer;
 struct FunctionMetadata
 {
     std::string name;
@@ -25,6 +33,8 @@ struct PropertyMetadata
 
     std::function<void(void*, void*&)> getter;
     std::function<void(void*, void*)> copyOperator;
+    std::function<void(std::string_view, void*, Serializer*)> serialize;
+    std::function<void(std::string_view, void*, Serializer*)> deserialize;
 };
 
 class ITypeReflection
@@ -60,7 +70,6 @@ public:
         {
             for (const auto& varPair : StaticGetVariables())
             {
-                const auto& typeInfo = varPair.second.typeInfo;
                 const auto& getter = varPair.second.getter;
                 const auto& copyOperator = varPair.second.copyOperator;
 
@@ -110,7 +119,7 @@ public:
     }
 
 public:
-    template <class MemType>
+    template <class MemType, class SerializerType = Serializer>
     static void RegisterMemberVariable(const std::string& name, MemType T::* memPtr)
     {
         ASSERT(GetVariablesPrivate().find(name) == GetVariablesPrivate().end());
@@ -121,7 +130,23 @@ public:
             [memPtr](void* obj, void*& val)
             { val = &(static_cast<T*>((Object*)obj)->*memPtr); },
             [memPtr](void* src, void* dst)
-            { *((MemType*)dst) = *((MemType*)src); }
+            { *((MemType*)dst) = *((MemType*)src); },
+            [memPtr](std::string_view name, void* obj, SerializerType* s)
+            {
+                if constexpr (IsSerializable<MemType> || IsBaseSerializationType<MemType, SerializerType>)
+                {
+                    MemType* val = &(static_cast<T*>((Object*)obj)->*memPtr);
+                    s->Serialize(name, *val);
+                }
+            },
+            [memPtr](std::string_view name, void* obj, SerializerType* s)
+            {
+                if constexpr (IsSerializable<MemType> || IsBaseSerializationType<MemType, SerializerType>)
+                {
+                    MemType* val = &(static_cast<T*>((Object*)obj)->*memPtr);
+                    s->Deserialize(name, *val);
+                }
+            }
         };
     }
 

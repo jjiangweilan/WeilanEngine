@@ -24,20 +24,6 @@ template <class T>
 concept HasUUID = requires(T* a, UUID uuid) { a->GetUUID(); };
 
 template <class T>
-concept IsSerializableClass = std::derived_from<T, Serializable>;
-
-template <class T>
-concept HasSerializeFunc = requires(T a, Serializer* s) {
-    a.Serialize(s);
-    a.Deserialize(s);
-};
-
-template <class T>
-concept IsSerializable =
-    IsSerializableClass<T> ||
-    HasSerializeFunc<T>; // use with CanBeSerializerParameter for full test, Serializer itself uses this only
-
-template <class T>
 struct HasUUIDContained : std::false_type
 {};
 

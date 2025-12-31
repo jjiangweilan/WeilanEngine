@@ -1,4 +1,5 @@
 #include "Engine/Core/Object.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include <gtest/gtest.h>
 
@@ -25,13 +26,13 @@ TYPE_REFLECTION_MEMBER_VARIABLES(IterTestBase, TYPE_REFLECTION_MEM(IterTestBase,
 
 TYPE_REFLECTION_MEMBER_VARIABLES(IterTestDerived, TYPE_REFLECTION_MEM(IterTestDerived, derivedVar))
 
-TEST(FieldIteratorTest, IterateFields)
+TEST(ObjectInfoTest, IterateFields)
 {
     auto derived = std::make_unique<IterTestDerived>();
     const ObjectTypeInfo* typeInfo = derived->GetTypeInfo();
 
     std::vector<std::string> foundFields;
-    for (auto it = typeInfo->GetFieldIterator(); it != typeInfo->FieldEnd(); ++it)
+    for (auto it = typeInfo->GetVariables(); it; ++it)
     {
         foundFields.push_back(it->first);
     }
@@ -52,7 +53,7 @@ TEST(FieldIteratorTest, IterateFields)
     EXPECT_EQ(foundFields.size(), 2);
 }
 
-TEST(FieldIteratorTest, GetVariable)
+TEST(ObjectInfoTest, GetVariable)
 {
     auto derived = std::make_unique<IterTestDerived>();
     const ObjectTypeInfo* typeInfo = derived->GetTypeInfo();
@@ -62,7 +63,36 @@ TEST(FieldIteratorTest, GetVariable)
     EXPECT_EQ(*val, 1);
 }
 
-TEST(FieldIteratorTest, EmptyIteratorComparison)
+TEST(ObjectInfoTest, Serialization)
+{
+    auto derived = std::make_unique<IterTestDerived>();
+
+    auto typeInfo = derived->GetTypeInfo();
+    JsonSerializer s;
+    typeInfo->Serialize(*derived, s);
+
+    auto& j = s.GetJson();
+    EXPECT_EQ(j["baseVar"], 1);
+    EXPECT_EQ(j["derivedVar"], 2.0f);
+}
+
+TEST(ObjectInfoTest, Deserialization)
+{
+    nlohmann::json j;
+    j["baseVar"] = 10;
+    j["derivedVar"] = 20.0f;
+
+    JsonSerializer s(j);
+    auto derived = std::make_unique<IterTestDerived>();
+    auto typeInfo = derived->GetTypeInfo();
+
+    typeInfo->Deserialize(*derived, s);
+
+    EXPECT_EQ(derived->baseVar, 10);
+    EXPECT_EQ(derived->derivedVar, 20.0f);
+}
+
+TEST(ObjectInfoTest, EmptyIteratorComparison)
 {
     ObjectTypeInfo::PropertyIterator it1;
     ObjectTypeInfo::PropertyIterator it2;

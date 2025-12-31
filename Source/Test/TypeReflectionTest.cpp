@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
 #include "Engine/Core/Object.hpp"
 
 // Test class with various member types

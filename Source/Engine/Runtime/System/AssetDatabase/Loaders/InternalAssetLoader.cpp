@@ -1,6 +1,6 @@
 #include "InternalAssetLoader.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <fstream>
 #include <typeindex>
 
@@ -26,6 +26,7 @@ void InternalAssetLoader::Load()
             std::vector<uint8_t> binary(std::istreambuf_iterator<char>(f), {});
             ser = JsonSerializer(binary, &resolveMap);
             asset->Deserialize(&ser);
+            // asset->DeserializeByReflection(&ser);
         }
     }
 }
