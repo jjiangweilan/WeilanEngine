@@ -342,7 +342,7 @@ if(USE_VULKAN_SDK_TOOLS)
 endif()
 
 target_link_libraries( WeilanEngine
-    PRIVATE
+    PUBLIC
     ryml::ryml
     SDL2::SDL2
     spdlog
@@ -362,7 +362,7 @@ target_link_libraries( WeilanEngine
 
 target_compile_definitions(
     WeilanEngine
-    PRIVATE
+    PUBLIC
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE

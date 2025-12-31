@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <spdlog/spdlog.h>
 
 class Spinlock
 {

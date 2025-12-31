@@ -31,7 +31,7 @@ class ITypeReflection
 {
 public:
     virtual const std::unordered_map<std::string, PropertyMetadata>&
-    GetVariables() = 0;
+    GetVariables() const = 0;
 
     virtual void Copy(Object* src, Object* dst) const = 0;
     virtual void GetVariable(Object& obj, const std::string& name, void* ptr) const = 0;
@@ -49,7 +49,7 @@ class TypeReflection : public ITypeReflection
 {
 public:
     const std::unordered_map<std::string, PropertyMetadata>&
-    GetVariables() override
+    GetVariables() const override
     {
         return StaticGetVariables();
     }
@@ -257,7 +257,7 @@ private:
     template <class Rtn, class... Args, size_t... Is>
     static Rtn CallMemberFunctionImpl(void* obj, Rtn (T::*funcPtr)(Args...), void** argPtrs, std::index_sequence<Is...>)
     {
-        return (((Object*)obj)->*funcPtr)(*static_cast<std::remove_reference_t<Args>*>(argPtrs[Is])...);
+        return (static_cast<T*>((Object*)obj)->*funcPtr)(*static_cast<std::remove_reference_t<Args>*>(argPtrs[Is])...);
     }
 };
 
@@ -280,13 +280,14 @@ struct TypeReflectionPack
 #define TYPE_REFLECTION_MEMBER_VARIABLES(Type, ...)                                                                                          \
     namespace TypeReflectionNS                                                                                                               \
     {                                                                                                                                        \
-    static bool RegisterMemberVariables()                                                                                                    \
+    template <>                                                                                                                              \
+    bool RegisterMemberVariables<Type>()                                                                                                     \
     {                                                                                                                                        \
         [](auto&&... fields)                                                                                                                 \
         { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberVariable(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
         return true;                                                                                                                         \
     }                                                                                                                                        \
-    static bool registered = RegisterMemberVariables();                                                                                      \
+    static bool registered_##Type = RegisterMemberVariables<Type>();                                                                         \
     }
 
 #define REGISTER_TYPE_REFLECTION_MEMBER_FUNCTION(Type, funcName) \
@@ -300,11 +301,12 @@ struct TypeReflectionPack
 #define TYPE_REFLECTION_MEMBER_FUNCTIONS(Type, ...)                                                                                          \
     namespace TypeReflectionNS                                                                                                               \
     {                                                                                                                                        \
-    static bool RegisterMemberFunctions()                                                                                                    \
+    template <>                                                                                                                              \
+    static bool RegisterMemberFunctions<Type>()                                                                                              \
     {                                                                                                                                        \
         [](auto&&... fields)                                                                                                                 \
         { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberFunction(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
         return true;                                                                                                                         \
     }                                                                                                                                        \
-    static bool registeredFuncs = RegisterMemberFunctions();                                                                                 \
+    static bool registeredFuncs_##Type = RegisterMemberFunctions<Type>();                                                                    \
     }

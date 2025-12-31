@@ -141,3 +141,31 @@ std::unordered_map<ObjectTypeID, std::unique_ptr<ITypeReflection>>& ObjectRegist
     static std::unordered_map<ObjectTypeID, std::unique_ptr<ITypeReflection>> typeReflections;
     return typeReflections;
 }
+
+void ObjectTypeInfo::GetVariable(Object& obj, const std::string& name, void*& ptr) const
+{
+    auto parent = parentTypeInfo;
+    auto activeTypeReflection = typeReflection;
+
+    while (activeTypeReflection != nullptr)
+    {
+        const auto& variables = activeTypeReflection->GetVariables();
+        auto iter = variables.find(name);
+        if (iter != variables.end())
+        {
+            const auto& metadata = iter->second;
+            metadata.getter((void*)&obj, ptr);
+            return;
+        }
+
+        if (parent != nullptr)
+        {
+            activeTypeReflection = parent->GetTypeReflection();
+            parent = parent->GetParentTypeInfo();
+        }
+        else
+        {
+            activeTypeReflection = nullptr;
+        }
+    }
+}

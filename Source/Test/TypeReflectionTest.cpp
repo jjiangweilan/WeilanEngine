@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Core/Object.hpp"
 
 // Test class with various member types
-class TestClass
+class TestClass : public Object
 {
+    DECLARE_OBJECT();
 public:
     int intValue = 42;
     float floatValue = 3.14f;
@@ -37,9 +39,12 @@ public:
     }
 };
 
+DEFINE_OBJECT(Object, TestClass, "30000000-0000-0000-0000-000000000001");
+
 // Another test class to verify isolation between types
-class AnotherTestClass
+class AnotherTestClass : public Object
 {
+    DECLARE_OBJECT();
 public:
     double doubleValue = 2.71;
 
@@ -48,6 +53,8 @@ public:
         return a * b;
     }
 };
+
+DEFINE_OBJECT(Object, AnotherTestClass, "30000000-0000-0000-0000-000000000002");
 
 // Test fixture for TypeReflection tests
 class TypeReflectionTest : public ::testing::Test
@@ -284,8 +291,9 @@ TEST_F(TypeReflectionTest, MultipleFunctionsRegistered)
 }
 
 // Test class for macro-based registration
-class MacroTestClass
+class MacroTestClass : public Object
 {
+    DECLARE_OBJECT();
 public:
     int x = 10;
     int y = 20;
@@ -294,6 +302,8 @@ public:
     int Sum() { return x + y; }
     void Reset() { x = 0; y = 0; }
 };
+
+DEFINE_OBJECT(Object, MacroTestClass, "30000000-0000-0000-0000-000000000003");
 
 TYPE_REFLECTION_MEMBER_VARIABLES(MacroTestClass,
     TYPE_REFLECTION_MEM(MacroTestClass, x),

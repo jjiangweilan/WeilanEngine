@@ -5,6 +5,7 @@
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "SafeReferenceable.hpp"
+#include <iterator>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
 
@@ -13,8 +14,14 @@ class Component;
 // forward declared for type reflection
 namespace TypeReflectionNS
 {
-bool RegisterMemberVariables();
-}
+template <class DUMMY_REGISTER_TYPE>
+bool RegisterMemberVariables()
+{}
+
+template <class DUMMY_REGISTER_TYPE>
+bool RegisterMemberFunctions()
+{}
+} // namespace TypeReflectionNS
 
 class ObjectTypeInfo
 {
@@ -23,6 +30,119 @@ public:
     const std::string& GetTypeName() const { return typeName; }
     const UUID& GetTypeID() const { return typeID; }
     const ITypeReflection* GetTypeReflection() const { return typeReflection; }
+    template<class T>
+    T* GetVariable(Object& obj, const std::string& name) const
+    {
+        void* ptr = nullptr;
+        GetVariable(obj, name, ptr);
+        return static_cast<T*>(ptr);
+    }
+
+    void GetVariable(Object& obj, const std::string& name, void*& ptr) const;
+
+    class PropertyIterator
+    {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = std::pair<const std::string, PropertyMetadata>;
+        using pointer = const value_type*;
+        using reference = const value_type&;
+        using map_iterator = std::unordered_map<std::string, PropertyMetadata>::const_iterator;
+
+        PropertyIterator(const ObjectTypeInfo* typeInfo) : currentTypeInfo(typeInfo)
+        {
+            if (currentTypeInfo)
+            {
+                auto* reflection = currentTypeInfo->GetTypeReflection();
+                if (reflection)
+                {
+                    currentIter = reflection->GetVariables().begin();
+                    ValidateAndAdvance();
+                }
+                else
+                {
+                    currentTypeInfo = nullptr;
+                }
+            }
+        }
+
+        PropertyIterator() : currentTypeInfo(nullptr) {}
+
+        bool operator!=(const PropertyIterator& other) const
+        {
+            if (currentTypeInfo != other.currentTypeInfo)
+                return true;
+            if (currentTypeInfo == nullptr)
+                return false;
+            return currentIter != other.currentIter;
+        }
+
+        bool operator==(const PropertyIterator& other) const
+        {
+            return !(*this != other);
+        }
+
+        reference operator*() const
+        {
+            return *currentIter;
+        }
+
+        pointer operator->() const
+        {
+            return &(*currentIter);
+        }
+
+        PropertyIterator& operator++()
+        {
+            if (!currentTypeInfo)
+                return *this;
+
+            ++currentIter;
+            ValidateAndAdvance();
+            return *this;
+        }
+
+        PropertyIterator operator++(int)
+        {
+            PropertyIterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+    private:
+        void ValidateAndAdvance()
+        {
+            while (currentTypeInfo)
+            {
+                auto* reflection = currentTypeInfo->GetTypeReflection();
+                if (reflection)
+                {
+                    const auto& vars = reflection->GetVariables();
+                    if (currentIter != vars.end())
+                    {
+                        return;
+                    }
+                }
+
+                currentTypeInfo = currentTypeInfo->GetParentTypeInfo();
+                if (currentTypeInfo)
+                {
+                    auto* parentReflection = currentTypeInfo->GetTypeReflection();
+                    if (parentReflection)
+                    {
+                        currentIter = parentReflection->GetVariables().begin();
+                    }
+                }
+            }
+        }
+
+        const ObjectTypeInfo* currentTypeInfo;
+        map_iterator currentIter;
+    };
+
+    PropertyIterator GetFieldIterator() const { return PropertyIterator(this); }
+    PropertyIterator FieldEnd() const { return PropertyIterator(); }
+
     std::unique_ptr<Object> CreateInstance() const
     {
         if (creator)
@@ -49,7 +169,10 @@ public:
     static const std::string& StaticGetTypeName();
     virtual const UUID& GetObjectTypeID() const;
     virtual const std::string& GetTypeName() const;
+    template <class DUMMY_REGISTER_TYPE>
     friend bool TypeReflectionNS::RegisterMemberVariables();
+    template <class DUMMY_REGISTER_TYPE>
+    friend bool TypeReflectionNS::RegisterMemberFunctions();
 
 private:
     static const char _objectRegister;
@@ -199,8 +322,10 @@ public:                                                      \
     const std::string& GetTypeName() const override;         \
     const ObjectTypeID& GetObjectTypeID() const override;    \
     const ObjectTypeInfo* GetTypeInfo() const override;      \
-                                                             \
+    template <class DUMMY_REGISTER_TYPE>                     \
     friend bool TypeReflectionNS::RegisterMemberVariables(); \
+    template <class DUMMY_REGISTER_TYPE>                     \
+    friend bool TypeReflectionNS::RegisterMemberFunctions(); \
                                                              \
 private:                                                     \
     static const char _objectRegister;
