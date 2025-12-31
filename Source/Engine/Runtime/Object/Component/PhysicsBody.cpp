@@ -3,12 +3,25 @@
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
 
 using namespace JPH;
 using namespace JPH::literals;
 
 DEFINE_OBJECT(Component, PhysicsBody, "670E10EF-2532-4977-A356-63C9B07C6F5D");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    PhysicsBody,
+    TYPE_REFLECTION_MEM(PhysicsBody, bodyScale),
+    TYPE_REFLECTION_MEM(PhysicsBody, bodyOffset),
+    TYPE_REFLECTION_MEM(PhysicsBody, layer),
+    TYPE_REFLECTION_MEM(PhysicsBody, gravityFactor),
+    TYPE_REFLECTION_MEM(PhysicsBody, motionType),
+    TYPE_REFLECTION_MEM(PhysicsBody, shapeType),
+    TYPE_REFLECTION_MEM(PhysicsBody, isSensor),
+    TYPE_REFLECTION_MEM(PhysicsBody, kinematicGenerateContactPointsWithNonDynamic)
+);
 PhysicsBody::PhysicsBody() : Component(nullptr) {}
 
 PhysicsBody::PhysicsBody(GameObject* gameObject) : Component(gameObject) {}

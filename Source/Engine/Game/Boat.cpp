@@ -5,6 +5,7 @@
 #include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 
 #define GERSTNERWAVE_CPU_SIDE
 namespace GPUResources
@@ -17,6 +18,12 @@ namespace Game
 DEFINE_COMPONENT_CONSTRUCT(Boat, "76B5D7F8-997D-4662-A158-728D09FA5160")
 {
 }
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    Game::Boat,
+    TYPE_REFLECTION_MEM(Game::Boat, oceanComponent),
+    TYPE_REFLECTION_MEM(Game::Boat, initDistance)
+);
 
 DEFINE_SERIALIZATION(
     Boat,

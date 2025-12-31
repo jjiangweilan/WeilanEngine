@@ -190,9 +190,9 @@ public:
     virtual const UUID& GetObjectTypeID() const;
     virtual const std::string& GetTypeName() const;
     template <class DUMMY_REGISTER_TYPE>
-    friend bool TypeReflectionNS::RegisterMemberVariables();
+    friend bool ::TypeReflectionNS::RegisterMemberVariables();
     template <class DUMMY_REGISTER_TYPE>
-    friend bool TypeReflectionNS::RegisterMemberFunctions();
+    friend bool ::TypeReflectionNS::RegisterMemberFunctions();
 
 private:
     static const char _objectRegister;

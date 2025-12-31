@@ -140,13 +140,15 @@ void Scene::DestroyGameObject(GameObject* obj)
         parent->RemoveChild(obj);
     }
 
-    auto rootIter = std::find_if(roots.begin(), roots.end(), [&](ObjPtr<GameObject>& f) { return f.Get() == obj; });
+    auto rootIter = std::find_if(roots.begin(), roots.end(), [&](ObjPtr<GameObject>& f)
+                                 { return f.Get() == obj; });
     if (rootIter != roots.end())
     {
         roots.erase(rootIter);
     }
 
-    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
+    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o)
+                             { return o.get() == obj; });
     if (iter != gameObjects.end())
         gameObjects.erase(iter);
 }
@@ -163,7 +165,8 @@ void Scene::DestroyGameObjectNestedCall(GameObject* obj)
 
     obj->SetEnable(false);
 
-    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
+    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o)
+                             { return o.get() == obj; });
     if (iter != gameObjects.end())
         gameObjects.erase(iter);
 }
@@ -243,10 +246,9 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
 
 void Scene::Serialize(Serializer* s) const
 {
-    s->Serialize<std::unique_ptr<GameObject>>(
+    s->Serialize(
         "gameObjects",
-        gameObjects,
-        [](const std::unique_ptr<GameObject>& go) { return true; }
+        gameObjects
     );
     s->Serialize("roots", roots);
     s->Serialize("camera", camera);

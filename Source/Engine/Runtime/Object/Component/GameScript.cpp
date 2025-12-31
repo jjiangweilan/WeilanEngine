@@ -4,10 +4,16 @@
 #include "Engine/ThirdParty/lua/lauxlib.h"
 #include "Engine/ThirdParty/lua/lua.h"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Component, GameScript, "8584BFED-B936-44D3-9011-9D492118A17C");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    GameScript,
+    TYPE_REFLECTION_MEM(GameScript, luaScript)
+);
 
 GameScript::GameScript() : Component(nullptr) {}
 GameScript::GameScript(GameObject* gameObject) : Component(gameObject) {}

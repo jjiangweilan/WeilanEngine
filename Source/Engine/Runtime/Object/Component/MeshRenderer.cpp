@@ -2,6 +2,7 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Component, MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
@@ -12,6 +13,12 @@ MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material)
 MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, nullptr) {}
 
 MeshRenderer::MeshRenderer() : Component(nullptr), meshes(), materials() {};
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    MeshRenderer,
+    TYPE_REFLECTION_MEM(MeshRenderer, meshes),
+    TYPE_REFLECTION_MEM(MeshRenderer, materials)
+);
 
 DEFINE_SERIALIZATION(
     MeshRenderer,

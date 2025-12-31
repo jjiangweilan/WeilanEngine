@@ -1,5 +1,13 @@
 #include "Object.hpp"
 #include "Engine/Library/Serialization/Serializer.hpp"
+#include "Engine/Library/TypeReflection.hpp"
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    Object,
+    TYPE_REFLECTION_MEM(Object, uuid),
+    TYPE_REFLECTION_MEM(Object, name)
+);
+
 Object::EngineObjectMap Object::GetAllEngineObjects()
 {
     Object::EngineObjectMap map;

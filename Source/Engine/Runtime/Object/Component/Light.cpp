@@ -1,8 +1,23 @@
 #include "Light.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Component, Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    Light,
+    TYPE_REFLECTION_MEM(Light, ambientScale),
+    TYPE_REFLECTION_MEM(Light, ambient),
+    TYPE_REFLECTION_MEM(Light, range),
+    TYPE_REFLECTION_MEM(Light, intensity),
+    TYPE_REFLECTION_MEM(Light, pointLightTerm1),
+    TYPE_REFLECTION_MEM(Light, pointLightTerm2),
+    TYPE_REFLECTION_MEM(Light, lightType),
+    TYPE_REFLECTION_MEM(Light, shadowDistance),
+    TYPE_REFLECTION_MEM(Light, depthBias),
+    TYPE_REFLECTION_MEM(Light, depthSlopeBias)
+);
 Light::Light() : Component(nullptr) {}
 
 Light::Light(GameObject* gameObject) : Component(gameObject) {}

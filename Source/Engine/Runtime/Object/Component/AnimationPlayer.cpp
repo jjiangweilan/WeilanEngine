@@ -1,8 +1,16 @@
 #include "AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Core/Time.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 
 DEFINE_OBJECT(Component, AnimationPlayer, "F1093426-DC3A-45F6-9C3B-B7CFA098285A");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    AnimationPlayer,
+    TYPE_REFLECTION_MEM(AnimationPlayer, animation),
+    TYPE_REFLECTION_MEM(AnimationPlayer, speed),
+    TYPE_REFLECTION_MEM(AnimationPlayer, rootName)
+);
 
 AnimationPlayer::AnimationPlayer() : Component(nullptr) {};
 AnimationPlayer::AnimationPlayer(GameObject* gameObject) : Component(gameObject) {};

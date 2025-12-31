@@ -2,8 +2,15 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 
 DEFINE_OBJECT(Component, ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    ReflectionProbe,
+    TYPE_REFLECTION_MEM(ReflectionProbe, updateType),
+    TYPE_REFLECTION_MEM(ReflectionProbe, sourceType)
+);
 
 ReflectionProbe::ReflectionProbe() : RenderingComponent() {}
 ReflectionProbe::ReflectionProbe(GameObject* go) : RenderingComponent(go) {}

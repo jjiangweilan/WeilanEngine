@@ -2,9 +2,18 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Component, Camera, "7BDC1BC9-A96E-4ABC-AE76-DD6AB8C69A19");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    Camera,
+    TYPE_REFLECTION_MEM(Camera, projectionMatrix),
+    TYPE_REFLECTION_MEM(Camera, viewMatrix),
+    TYPE_REFLECTION_MEM(Camera, diffuseEnv),
+    TYPE_REFLECTION_MEM(Camera, specularEnv)
+);
 Camera::Camera(GameObject* gameObject) : Component(gameObject), projectionMatrix(), viewMatrix()
 {
     if (mainCamera == nullptr)

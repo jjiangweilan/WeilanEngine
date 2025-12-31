@@ -3,9 +3,24 @@
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
+
 DEFINE_OBJECT(Object, GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
+
+TYPE_REFLECTION_MEMBER_VARIABLES(
+    GameObject,
+    TYPE_REFLECTION_MEM(GameObject, components),
+    TYPE_REFLECTION_MEM(GameObject, prefabComponents),
+    TYPE_REFLECTION_MEM(GameObject, rotation),
+    TYPE_REFLECTION_MEM(GameObject, position),
+    TYPE_REFLECTION_MEM(GameObject, scale),
+    TYPE_REFLECTION_MEM(GameObject, parent),
+    TYPE_REFLECTION_MEM(GameObject, children),
+    TYPE_REFLECTION_MEM(GameObject, enabled),
+    TYPE_REFLECTION_MEM(GameObject, prefab)
+);
 
 GameObject::GameObject() : gameScene(nullptr)
 {
