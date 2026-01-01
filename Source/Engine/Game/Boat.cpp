@@ -20,9 +20,9 @@ DEFINE_COMPONENT_CONSTRUCT(Boat, "76B5D7F8-997D-4662-A158-728D09FA5160")
 }
 
 TYPE_REFLECTION_MEMBER_VARIABLES(
-    Game::Boat,
-    TYPE_REFLECTION_MEM(Game::Boat, oceanComponent),
-    TYPE_REFLECTION_MEM(Game::Boat, initDistance)
+    Boat,
+    TYPE_REFLECTION_MEM(Boat, oceanComponent),
+    TYPE_REFLECTION_MEM(Boat, initDistance)
 );
 
 DEFINE_SERIALIZATION(

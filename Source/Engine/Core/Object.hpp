@@ -11,18 +11,6 @@
 
 class Component;
 class Serializer;
-// forward declared for type reflection
-namespace TypeReflectionNS
-{
-template <class DUMMY_REGISTER_TYPE>
-bool RegisterMemberVariables()
-{}
-
-template <class DUMMY_REGISTER_TYPE>
-bool RegisterMemberFunctions()
-{}
-} // namespace TypeReflectionNS
-
 class ObjectTypeInfo
 {
 public:
@@ -189,10 +177,8 @@ public:
     static const std::string& StaticGetTypeName();
     virtual const UUID& GetObjectTypeID() const;
     virtual const std::string& GetTypeName() const;
-    template <class DUMMY_REGISTER_TYPE>
-    friend bool ::TypeReflectionNS::RegisterMemberVariables();
-    template <class DUMMY_REGISTER_TYPE>
-    friend bool ::TypeReflectionNS::RegisterMemberFunctions();
+    static bool _RegisterMemberVariables();
+    static bool _RegisterMemberFunctions();
 
 private:
     static const char _objectRegister;
@@ -337,20 +323,18 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
     return std::unique_ptr<T>(ptr);
 }
 
-#define DECLARE_OBJECT()                                     \
-                                                             \
-public:                                                      \
-    static const ObjectTypeID& StaticGetObjectTypeID();      \
-    static const std::string& StaticGetTypeName();           \
-    const std::string& GetTypeName() const override;         \
-    const ObjectTypeID& GetObjectTypeID() const override;    \
-    const ObjectTypeInfo* GetTypeInfo() const override;      \
-    template <class DUMMY_REGISTER_TYPE>                     \
-    friend bool TypeReflectionNS::RegisterMemberVariables(); \
-    template <class DUMMY_REGISTER_TYPE>                     \
-    friend bool TypeReflectionNS::RegisterMemberFunctions(); \
-                                                             \
-private:                                                     \
+#define DECLARE_OBJECT()                                  \
+                                                          \
+public:                                                   \
+    static const ObjectTypeID& StaticGetObjectTypeID();   \
+    static const std::string& StaticGetTypeName();        \
+    const std::string& GetTypeName() const override;      \
+    const ObjectTypeID& GetObjectTypeID() const override; \
+    const ObjectTypeInfo* GetTypeInfo() const override;   \
+    static bool _RegisterMemberVariables();               \
+    static bool _RegisterMemberFunctions();               \
+                                                          \
+private:                                                  \
     static const char _objectRegister;
 
 #define DEFINE_OBJECT(Parent, Type, ObjectID)                                                           \

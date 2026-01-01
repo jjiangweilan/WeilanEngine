@@ -10,7 +10,7 @@
 #include <vector>
 
 template <class T, class SerializerType>
-concept IsBaseSerializationType = requires(T a, SerializerType * s) {
+concept IsBaseSerializationType = requires(T a, SerializerType* s) {
     s->Serialize("", a);
     s->Deserialize("", a);
 };
@@ -53,6 +53,32 @@ public:
         size_t argCount
     ) const = 0;
 };
+
+template <class T>
+concept IsCopyable = requires(T a, T b)
+{
+    a = b;
+};
+
+// Define the concept
+template <typename T>
+struct is_vector_helper : std::false_type {};
+
+template <typename T, typename A>
+struct is_vector_helper<std::vector<T, A>> : std::true_type {};
+
+template <typename T>
+concept IsVector = is_vector_helper<T>::value;
+
+// Define unordered_map concept
+template <typename T>
+struct is_unordered_map_helper : std::false_type {};
+
+template <typename K, typename V, typename H, typename E, typename A>
+struct is_unordered_map_helper<std::unordered_map<K, V, H, E, A>> : std::true_type {};
+
+template <typename T>
+concept IsUnorderedMap = is_unordered_map_helper<T>::value;
 
 template <class T>
 class TypeReflection : public ITypeReflection
@@ -125,28 +151,71 @@ public:
         ASSERT(GetVariablesPrivate().find(name) == GetVariablesPrivate().end());
 
         GetVariablesPrivate()[name] = {
-            name,
-            &typeid(MemType),
-            [memPtr](void* obj, void*& val)
+            .name = name,
+            .typeInfo = &typeid(MemType),
+            .getter = [memPtr](void* obj, void*& val)
             { val = &(static_cast<T*>((Object*)obj)->*memPtr); },
-            [memPtr](void* src, void* dst)
-            { *((MemType*)dst) = *((MemType*)src); },
-            [memPtr](std::string_view name, void* obj, SerializerType* s)
+            .copyOperator = [memPtr](void* src, void* dst)
+            { 
+                auto copyItem = [](auto& srcItem, auto& dstItem)
+                {
+                    if constexpr (std::is_pointer_v<decltype(srcItem)>)
+                    {
+                        dstItem = srcItem; // For pointers, just copy the pointer
+                    }
+                    else if constexpr (std::is_copy_assignable_v<decltype(srcItem)>)
+                    {
+                        dstItem = srcItem; // For copy-assignable types, use assignment
+                    }
+                    // TODO: Handle Object using clone
+                };
+
+                if constexpr (IsVector<MemType>)
+                {
+                    // For vector, we need to copy each element
+                    auto& srcVec = *((MemType*)src);
+                    auto& dstVec = *((MemType*)dst);
+                    dstVec.clear();
+                    dstVec.resize(srcVec.size());
+                    for (int i = 0; i < srcVec.size(); ++i)
+                    {
+                        copyItem(srcVec[i], dstVec[i]);
+                    }
+                }
+                else if constexpr (IsUnorderedMap<MemType>)
+                {
+                    // For unordered_map, we need to copy each element
+                    auto& srcMap = *((MemType*)src);
+                    auto& dstMap = *((MemType*)dst);
+                    dstMap.clear();
+                    for (const auto& [key, value] : srcMap)
+                    {
+                        dstMap[key] = value;
+                    }
+                }
+                else if constexpr (std::is_pointer_v<MemType>)
+                {
+                    *((MemType*)dst) = *((MemType*)src);
+                }
+                else if constexpr (std::is_copy_assignable_v<MemType>)
+                {
+                    *((MemType*)dst) = *((MemType*)src);
+                }
+            },
+            .serialize = [memPtr](std::string_view name, void* obj, SerializerType* s)
             {
                 if constexpr (IsSerializable<MemType> || IsBaseSerializationType<MemType, SerializerType>)
                 {
                     MemType* val = &(static_cast<T*>((Object*)obj)->*memPtr);
                     s->Serialize(name, *val);
-                }
-            },
-            [memPtr](std::string_view name, void* obj, SerializerType* s)
+                } },
+            .deserialize = [memPtr](std::string_view name, void* obj, SerializerType* s)
             {
                 if constexpr (IsSerializable<MemType> || IsBaseSerializationType<MemType, SerializerType>)
                 {
                     MemType* val = &(static_cast<T*>((Object*)obj)->*memPtr);
                     s->Deserialize(name, *val);
-                }
-            }
+                } }
         };
     }
 
@@ -303,17 +372,13 @@ struct TypeReflectionPack
 #define TYPE_REFLECTION_GET_MACRO(_1, _2, name, ...) name
 #define TYPE_REFLECTION_MEM(Type, ...) TYPE_REFLECTION_MEM_EXPAND(TYPE_REFLECTION_GET_MACRO(__VA_ARGS__, TYPE_REFLECTION_MEM2, TYPE_REFLECTION_MEM1)(Type, __VA_ARGS__))
 #define TYPE_REFLECTION_MEMBER_VARIABLES(Type, ...)                                                                                          \
-    namespace TypeReflectionNS                                                                                                               \
-    {                                                                                                                                        \
-    template <>                                                                                                                              \
-    bool RegisterMemberVariables<Type>()                                                                                                     \
+    bool Type::_RegisterMemberVariables()                                                                                                    \
     {                                                                                                                                        \
         [](auto&&... fields)                                                                                                                 \
         { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberVariable(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
         return true;                                                                                                                         \
     }                                                                                                                                        \
-    static bool registered_##Type = RegisterMemberVariables<Type>();                                                                         \
-    }
+    static bool registered_##Type = Type::_RegisterMemberVariables();
 
 #define REGISTER_TYPE_REFLECTION_MEMBER_FUNCTION(Type, funcName) \
     TypeReflection<Type>::RegisterMemberFunction(#funcName, &Type::funcName)
@@ -324,14 +389,10 @@ struct TypeReflectionPack
 #define TYPE_REFLECTION_FUNC_GET_MACRO(_1, _2, name, ...) name
 #define TYPE_REFLECTION_FUNC(Type, ...) TYPE_REFLECTION_FUNC_EXPAND(TYPE_REFLECTION_FUNC_GET_MACRO(__VA_ARGS__, TYPE_REFLECTION_FUNC2, TYPE_REFLECTION_FUNC1)(Type, __VA_ARGS__))
 #define TYPE_REFLECTION_MEMBER_FUNCTIONS(Type, ...)                                                                                          \
-    namespace TypeReflectionNS                                                                                                               \
-    {                                                                                                                                        \
-    template <>                                                                                                                              \
-    static bool RegisterMemberFunctions<Type>()                                                                                              \
+    bool Type::_RegisterMemberFunctions()                                                                                                    \
     {                                                                                                                                        \
         [](auto&&... fields)                                                                                                                 \
         { for_each_argument([](auto&& arg) { TypeReflection<Type>::RegisterMemberFunction(arg.name, arg.val); }, fields...); }(__VA_ARGS__); \
         return true;                                                                                                                         \
     }                                                                                                                                        \
-    static bool registeredFuncs_##Type = RegisterMemberFunctions<Type>();                                                                    \
-    }
+    static bool registeredFuncs_##Type = Type::_RegisterMemberFunctions();\
