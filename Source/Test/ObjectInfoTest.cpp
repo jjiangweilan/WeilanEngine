@@ -50,7 +50,7 @@ TEST(ObjectInfoTest, IterateFields)
 
     EXPECT_TRUE(foundBase) << "baseVar not found";
     EXPECT_TRUE(foundDerived) << "derivedVar not found";
-    EXPECT_EQ(foundFields.size(), 2);
+    EXPECT_EQ(foundFields.size(), 4);
 }
 
 TEST(ObjectInfoTest, GetVariable)

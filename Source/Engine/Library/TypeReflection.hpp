@@ -31,6 +31,12 @@ struct PropertyMetadata
     std::string name;
     const std::type_info* typeInfo;
 
+    template <class T>
+    bool IsType()
+    {
+        return *typeInfo == typeid(T);
+    }
+
     std::function<void(void*, void*&)> getter;
     std::function<void(void*, void*)> copyOperator;
     std::function<void(std::string_view, void*, Serializer*)> serialize;
@@ -55,27 +61,30 @@ public:
 };
 
 template <class T>
-concept IsCopyable = requires(T a, T b)
-{
+concept IsCopyable = requires(T a, T b) {
     a = b;
 };
 
 // Define the concept
 template <typename T>
-struct is_vector_helper : std::false_type {};
+struct is_vector_helper : std::false_type
+{};
 
 template <typename T, typename A>
-struct is_vector_helper<std::vector<T, A>> : std::true_type {};
+struct is_vector_helper<std::vector<T, A>> : std::true_type
+{};
 
 template <typename T>
 concept IsVector = is_vector_helper<T>::value;
 
 // Define unordered_map concept
 template <typename T>
-struct is_unordered_map_helper : std::false_type {};
+struct is_unordered_map_helper : std::false_type
+{};
 
 template <typename K, typename V, typename H, typename E, typename A>
-struct is_unordered_map_helper<std::unordered_map<K, V, H, E, A>> : std::true_type {};
+struct is_unordered_map_helper<std::unordered_map<K, V, H, E, A>> : std::true_type
+{};
 
 template <typename T>
 concept IsUnorderedMap = is_unordered_map_helper<T>::value;
@@ -200,8 +209,7 @@ public:
                 else if constexpr (std::is_copy_assignable_v<MemType>)
                 {
                     *((MemType*)dst) = *((MemType*)src);
-                }
-            },
+                } },
             .serialize = [memPtr](std::string_view name, void* obj, SerializerType* s)
             {
                 if constexpr (IsSerializable<MemType> || IsBaseSerializationType<MemType, SerializerType>)

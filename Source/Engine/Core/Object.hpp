@@ -14,7 +14,7 @@ class Serializer;
 class ObjectTypeInfo
 {
 public:
-    class PropertyIterator
+class PropertyIterator
     {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -86,6 +86,16 @@ public:
         operator bool const()
         {
             return currentTypeInfo != nullptr;
+        }
+
+        PropertyIterator begin() const
+        {
+            return *this;
+        }
+
+        PropertyIterator end() const
+        {
+            return PropertyIterator();
         }
 
     private:
