@@ -376,6 +376,32 @@ target_compile_definitions(
     GLM_ENABLE_EXPERIMENTAL
     )
 
+find_package(Python3 REQUIRED)
+
+execute_process(
+    COMMAND Python3::Interpreter -c "import tree_sitter; import tree_sitter_cpp"
+    RESULT_VARIABLE TREE_SITTER_AVAILABLE
+    ERROR_QUIET
+)
+
+if (NOT TREE_SITTER_AVAILABLE EQUAL 0)
+    message(FATAL_ERROR "Python module 'tree_sitter' or 'tree_sitter_cpp' not found. Please install it via 'pip install tree-sitter tree-sitter-cpp'")
+endif()
+
+add_custom_target(GenerateTypeReflection
+    COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/Source/Scripts/TypeReflection.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating Type Reflection Code"
+)
+
+add_custom_target(GenerateLuaBindings
+    COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaBindings.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating Lua Bindings"
+)
+
+add_dependencies(WeilanEngine GenerateTypeReflection GenerateLuaBindings)
+
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/EditorLauncher.cpp)
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
