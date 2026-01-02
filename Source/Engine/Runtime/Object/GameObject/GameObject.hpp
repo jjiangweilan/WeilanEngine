@@ -38,24 +38,24 @@ class PhysicsBody;
 using PhysicsContactCallback =
     std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
 
-class [[Reflectable]] GameObject : public Object
+class [[TrClass]] GameObject : public Object
 {
     DECLARE_OBJECT();
 
     // Prefab & Flags
-    ObjPtr<Prefab> prefab = nullptr;
+    ObjPtr<Prefab> prefab [[TrProp]] = nullptr;
     GameObjectFlag flags = GameObjectFlag::None;
 
     // Transform data
-    glm::vec3 position [[Property]] = glm::vec3(0);
-    glm::vec3 scale = glm::vec3(1, 1, 1);
-    glm::quat rotation = glm::quat(1, 0, 0, 0);
+    glm::vec3 position [[TrProp]] = glm::vec3(0);
+    glm::vec3 scale [[TrProp]] = glm::vec3(1, 1, 1);
+    glm::quat rotation [[TrProp]] = glm::quat(1, 0, 0, 0);
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     mutable glm::mat4 localMatrix;
     mutable glm::mat4 worldMatrix;
 
     // State flags
-    bool enabled = false;
+    bool enabled [[TrProp]] = false;
     bool wantsToBeEnabled = false;
     mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
@@ -65,12 +65,12 @@ class [[Reflectable]] GameObject : public Object
     std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
 
     // Hierarchy & Components
-    std::vector<ObjPtr<GameObject>> children;
+    std::vector<ObjPtr<GameObject>> children [[TrProp]];
     std::vector<std::unique_ptr<GameObject>> owningChildren;
-    std::vector<std::unique_ptr<Component>> components;
+    std::vector<std::unique_ptr<Component>> components [[TrProp]];
     std::vector<std::unique_ptr<Component>> prefabComponents;
     std::vector<Component*> allComponents;
-    ObjPtr<GameObject> parent = nullptr;
+    ObjPtr<GameObject> parent [[TrProp]] = nullptr;
     ObjPtr<Scene> gameScene = nullptr;
     bool isAwaked = false;
 
@@ -94,7 +94,7 @@ public:
 
     template <class T>
     T* GetComponent();
-    ObjPtr<Component> GetComponent(const char* className) [[Fn]];
+    ObjPtr<Component> GetComponent(const char* className);
     ObjPtr<Component> GetComponentInHierachy(const char* className);
     std::span<Component*> GetComponents();
 

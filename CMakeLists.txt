@@ -363,6 +363,12 @@ target_link_libraries( WeilanEngine
 target_compile_definitions(
     WeilanEngine
     PUBLIC
+    LuaClass
+    LuaFn
+    LuaProp
+    TrClass
+    TrProp
+    TrFn
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE

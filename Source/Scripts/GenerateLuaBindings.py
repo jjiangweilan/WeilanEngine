@@ -225,5 +225,5 @@ def generate_bindings(source_dir, output_file):
 if __name__ == "__main__":
     # Adjust paths as needed
     source_root = "Source"
-    output_path = "Source/Engine/Runtime/System/ScriptingBackend/LuaBindings_Generated.cpp"
+    output_path = "Source/Engine/CodeGen/LuaBindings_Generated.cpp"
     generate_bindings(source_root, output_path)
