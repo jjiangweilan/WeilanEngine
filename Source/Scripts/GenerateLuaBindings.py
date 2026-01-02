@@ -39,25 +39,25 @@ def find_attribute(node, code_bytes, target_attr):
                 if child.type == 'attribute':
                     name_node = child.child_by_field_name('name')
                     if name_node and get_node_text(name_node, code_bytes) == target_attr:
-                        return True
-        return False
+                        return child
+        return None
 
     # Strategy 1: Check children (common for function/field definitions)
     for child in node.children:
-        if is_target_attr(child):
-            return True
+        res = is_target_attr(child)
+        if res: return res
             
     # Strategy 2: Check previous sibling (sometimes attributes are parsed as siblings)
     prev = node.prev_sibling
     while prev:
-        if is_target_attr(prev):
-            return True
+        res = is_target_attr(prev)
+        if res: return res
         # Skip comments or whitespace if they appear as nodes (depends on grammar)
         if prev.type not in ['comment', 'attribute_declaration']:
             break
         prev = prev.prev_sibling
 
-    return False
+    return None
 
 def get_full_qualified_name(node, code_bytes):
     """
@@ -93,7 +93,8 @@ def process_file(file_path):
                     'name': get_full_qualified_name(node, code_bytes),
                     'methods': [],
                     'properties': [],
-                    'static_methods': []
+                    'static_methods': [],
+                    'raw_methods': []
                 }
                 
                 # Traverse class body for members
@@ -127,7 +128,10 @@ def process_file(file_path):
                                     func_declarator = d
 
                         if is_method:
-                            if find_attribute(member, code_bytes, 'LuaFn'):
+                            lua_fn_attr = find_attribute(member, code_bytes, 'LuaFn')
+                            lua_raw_fn_attr = find_attribute(member, code_bytes, 'LuaRawFn')
+                            
+                            if lua_fn_attr:
                                 if not func_declarator: continue
 
                                 # Extract name from function_declarator
@@ -164,6 +168,32 @@ def process_file(file_path):
                                         class_info['static_methods'].append({'name': func_name, 'sig': sig})
                                     else:
                                         class_info['methods'].append({'name': func_name, 'sig': sig})
+                            
+                            elif lua_raw_fn_attr:
+                                if not func_declarator: continue
+
+                                # Extract name from function_declarator
+                                d = func_declarator.child_by_field_name('declarator')
+                                func_name = get_node_text(d, code_bytes)
+                                
+                                bind_name = func_name
+                                
+                                # Check arguments in attribute for custom name
+                                args_node = lua_raw_fn_attr.child_by_field_name('arguments')
+                                if not args_node:
+                                    for child in lua_raw_fn_attr.children:
+                                        if child.type == 'argument_list':
+                                            args_node = child
+                                            break
+
+                                if args_node:
+                                    for arg in args_node.children:
+                                        if arg.type == 'string_literal':
+                                            bind_name = get_node_text(arg, code_bytes).strip('"')
+                                            break
+                                
+                                if func_name:
+                                    class_info['raw_methods'].append({'name': func_name, 'bind_name': bind_name})
 
                         # Properties (Member variables)
                         elif member.type == 'field_declaration':
@@ -210,7 +240,7 @@ def generate_bindings(source_dir, output_file):
     out = []
     out.append("// GENERATED FILE - DO NOT EDIT")
     out.append('#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"')
-    out.append('#include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"') # Ensure we have access to helpers
+    out.append('#include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"')
     out.append("")
     
     # Includes
@@ -235,6 +265,9 @@ def generate_bindings(source_dir, output_file):
             
             for m in cls['static_methods']:
                 out.append(f"        .BindStaticFn(\"{m['name']}\", &{class_name}::{m['name']}) {m['sig']}")
+
+            for m in cls['raw_methods']:
+                out.append(f"        .BindFn(\"{m['bind_name']}\", &{class_name}::{m['name']})")
                 
             for p in cls['properties']:
                 out.append(f"        .BindProperty(\"{p['name']}\", &{class_name}::{p['name']}) {p['sig']}")
