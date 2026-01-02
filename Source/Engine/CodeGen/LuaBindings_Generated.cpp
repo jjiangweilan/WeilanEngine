@@ -9,27 +9,27 @@ void BindGeneratedClasses(lua_State* L)
 {
     LuaBinder<Gamepad> binder_Gamepad(L);
     binder_Gamepad.Begin("Gamepad")
-        .BindMemFn("IsButtonPressed", &Gamepad::IsButtonPressed)
-        .BindMemFn("IsBumperPressed", &Gamepad::IsBumperPressed)
-        .BindMemFn("GetTrigger", &Gamepad::GetTrigger)
-        .BindMemFn("GetAxis", &Gamepad::GetAxis)
+        .BindMemFn("IsButtonPressed", &Gamepad::IsButtonPressed) // bool(uint8_t idx)
+        .BindMemFn("IsBumperPressed", &Gamepad::IsBumperPressed) // bool(uint8_t idx)
+        .BindMemFn("GetTrigger", &Gamepad::GetTrigger) // float(uint8_t idx)
+        .BindMemFn("GetAxis", &Gamepad::GetAxis) // float2(uint8_t idx)
         .End();
 
     LuaBinder<Input> binder_Input(L);
     binder_Input.Begin("Input")
-        .BindStaticFn("GetGamepad", &Input::GetGamepad)
-        .BindStaticFn("GetMovementX", &Input::GetMovementX)
-        .BindStaticFn("GetMovementY", &Input::GetMovementY)
-        .BindStaticFn("IsInteractPressed", &Input::IsInteractPressed)
-        .BindStaticFn("GetLookAroundX", &Input::GetLookAroundX)
-        .BindStaticFn("GetLookAroundY", &Input::GetLookAroundY)
-        .BindStaticFn("Jump", &Input::Jump)
+        .BindStaticFn("GetGamepad", &Input::GetGamepad) // Gamepad()
+        .BindStaticFn("GetMovementX", &Input::GetMovementX) // float()
+        .BindStaticFn("GetMovementY", &Input::GetMovementY) // float()
+        .BindStaticFn("IsInteractPressed", &Input::IsInteractPressed) // bool()
+        .BindStaticFn("GetLookAroundX", &Input::GetLookAroundX) // float()
+        .BindStaticFn("GetLookAroundY", &Input::GetLookAroundY) // float()
+        .BindStaticFn("Jump", &Input::Jump) // bool()
         .End();
 
     LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
     binder_AnimationPlayer.Begin("AnimationPlayer")
-        .BindMemFn("SetClip", &AnimationPlayer::SetClip)
-        .BindMemFn("Play", &AnimationPlayer::Play)
+        .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
+        .BindMemFn("Play", &AnimationPlayer::Play) // void()
         .End();
 
 }

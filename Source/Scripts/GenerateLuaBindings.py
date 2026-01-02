@@ -11,6 +11,16 @@ parser = Parser(CPP_LANGUAGE)
 def get_node_text(node, code_bytes):
     return code_bytes[node.start_byte:node.end_byte].decode('utf-8')
 
+def get_type_name(node, code_bytes):
+    """
+    Extracts a simplified type name from a type node.
+    """
+    if not node: return "void"
+    text = get_node_text(node, code_bytes)
+    # Simplify common C++ types for Lua
+    text = text.replace("const", "").replace("&", "").replace("*", "").strip()
+    return text
+
 def find_attribute(node, code_bytes, target_attr):
     """
     Checks if a node has a specific attribute (e.g., [[LuaClass]]).
@@ -73,8 +83,6 @@ def process_file(file_path):
         code_bytes = f.read()
     
     tree = parser.parse(code_bytes)
-    cursor = tree.walk()
-    
     classes_to_bind = []
 
     # Simple recursive traversal
@@ -96,22 +104,22 @@ def process_file(file_path):
                         # Determine if this node represents a function or a property
                         is_method = False
                         func_declarator = None
+                        ret_type_node = None
                         
                         if member.type == 'function_definition':
                             is_method = True
                             func_declarator = member.child_by_field_name('declarator')
+                            ret_type_node = member.child_by_field_name('type')
                         elif member.type in ['field_declaration', 'declaration']:
+                            ret_type_node = member.child_by_field_name('type')
                             # Check if it has a function_declarator child
-                            # In field_declaration, the declarator is usually a child, but not always named 'declarator' 
-                            # (e.g. if there are storage specifiers).
-                            # We iterate to find function_declarator
                             for child in member.children:
                                 if child.type == 'function_declarator':
                                     is_method = True
                                     func_declarator = child
                                     break
                             
-                            # Fallback: check 'declarator' field if no direct child found (unlikely for field_declaration but good for safety)
+                            # Fallback
                             if not is_method:
                                 d = member.child_by_field_name('declarator')
                                 if d and d.type == 'function_declarator':
@@ -123,8 +131,6 @@ def process_file(file_path):
                                 if not func_declarator: continue
 
                                 # Extract name from function_declarator
-                                # function_declarator -> declarator (identifier)
-                                # but sometimes nested (pointer, reference, etc, though less common for method names themselves)
                                 d = func_declarator.child_by_field_name('declarator')
                                 func_name = get_node_text(d, code_bytes)
                                 
@@ -135,17 +141,37 @@ def process_file(file_path):
                                         is_static = True
                                         break
                                 
+                                # Extract return type
+                                ret_type = get_type_name(ret_type_node, code_bytes)
+
+                                # Extract parameters
+                                params = []
+                                parameters_node = func_declarator.child_by_field_name('parameters')
+                                if parameters_node:
+                                    for param in parameters_node.children:
+                                        if param.type == 'parameter_declaration':
+                                            p_type_node = param.child_by_field_name('type')
+                                            p_name_node = param.child_by_field_name('declarator')
+                                            
+                                            p_type = get_type_name(p_type_node, code_bytes)
+                                            p_name = get_node_text(p_name_node, code_bytes) if p_name_node else "arg"
+                                            params.append(f"{p_type} {p_name}")
+
+                                sig = f"// {ret_type}({', '.join(params)})"
+
                                 if func_name:
                                     if is_static:
-                                        class_info['static_methods'].append(func_name)
+                                        class_info['static_methods'].append({'name': func_name, 'sig': sig})
                                     else:
-                                        class_info['methods'].append(func_name)
+                                        class_info['methods'].append({'name': func_name, 'sig': sig})
 
                         # Properties (Member variables)
                         elif member.type == 'field_declaration':
                             if find_attribute(member, code_bytes, 'LuaProp'):
                                 # It's a property if it wasn't a method
                                 declarator = member.child_by_field_name('declarator')
+                                prop_type_node = member.child_by_field_name('type')
+                                
                                 # Sometimes it's a field_identifier directly or inside
                                 if not declarator:
                                     # Try finding field_identifier in children
@@ -156,7 +182,8 @@ def process_file(file_path):
                                 
                                 if declarator:
                                     prop_name = get_node_text(declarator, code_bytes)
-                                    class_info['properties'].append(prop_name)
+                                    prop_type = get_type_name(prop_type_node, code_bytes)
+                                    class_info['properties'].append({'name': prop_name, 'sig': f"// {prop_type}"})
 
                 classes_to_bind.append(class_info)
         
@@ -204,13 +231,13 @@ def generate_bindings(source_dir, output_file):
             out.append(f"    binder_{lua_name}.Begin(\"{lua_name}\")")
             
             for m in cls['methods']:
-                out.append(f"        .BindMemFn(\"{m}\", &{class_name}::{m})")
+                out.append(f"        .BindMemFn(\"{m['name']}\", &{class_name}::{m['name']}) {m['sig']}")
             
             for m in cls['static_methods']:
-                out.append(f"        .BindStaticFn(\"{m}\", &{class_name}::{m})")
+                out.append(f"        .BindStaticFn(\"{m['name']}\", &{class_name}::{m['name']}) {m['sig']}")
                 
             for p in cls['properties']:
-                out.append(f"        .BindProperty(\"{p}\", &{class_name}::{p})")
+                out.append(f"        .BindProperty(\"{p['name']}\", &{class_name}::{p['name']}) {p['sig']}")
                 
             out.append("        .End();")
             out.append("")

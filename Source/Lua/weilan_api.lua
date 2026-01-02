@@ -8,26 +8,43 @@ wl = {}
 ---@class wl.Gamepad
 wl.Gamepad = {}
 
-function wl.Gamepad:IsButtonPressed(...) end
-function wl.Gamepad:IsBumperPressed(...) end
-function wl.Gamepad:GetTrigger(...) end
-function wl.Gamepad:GetAxis(...) end
+---@param idx number
+---@return boolean
+function wl.Gamepad:IsButtonPressed(idx) end
+---@param idx number
+---@return boolean
+function wl.Gamepad:IsBumperPressed(idx) end
+---@param idx number
+---@return number
+function wl.Gamepad:GetTrigger(idx) end
+---@param idx number
+---@return wl.Float2
+function wl.Gamepad:GetAxis(idx) end
 
 ---@class wl.Input
 wl.Input = {}
 
+---@return wl.Gamepad
 function wl.Input.GetGamepad(...) end
+---@return number
 function wl.Input.GetMovementX(...) end
+---@return number
 function wl.Input.GetMovementY(...) end
+---@return boolean
 function wl.Input.IsInteractPressed(...) end
+---@return number
 function wl.Input.GetLookAroundX(...) end
+---@return number
 function wl.Input.GetLookAroundY(...) end
+---@return boolean
 function wl.Input.Jump(...) end
 
 ---@class wl.AnimationPlayer
 wl.AnimationPlayer = {}
 
-function wl.AnimationPlayer:SetClip(...) end
+---@param animationName string
+---@return boolean
+function wl.AnimationPlayer:SetClip(animationName) end
 function wl.AnimationPlayer:Play(...) end
 
 ---@class wl.GameScript

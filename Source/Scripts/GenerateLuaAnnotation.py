@@ -8,12 +8,88 @@ INPUT_FILES = [
     os.path.join("Source", "Engine", "Runtime", "System", "ScriptingBackend", "LuaBindings.cpp")
 ]
 
-def strip_comments(content):
-    # Remove single line comments
-    content = re.sub(r'//.*', '', content)
-    # Remove multi-line comments
-    content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+def strip_comments_but_keep_lines(content):
+    # We want to keep the single line comments at the end of lines if they contain type info
+    # But we want to strip block comments or other noise?
+    # Actually, the regexes below will handle finding the comment at the end of the line.
+    # So we don't need to strip everything blindly.
     return content
+
+def cpp_type_to_lua(cpp_type):
+    cpp_type = cpp_type.strip()
+    if cpp_type == "void": return None
+    if cpp_type in ["float", "double", "int", "unsigned int", "size_t", "long", "short", "uint8_t", "int32_t", "uint32_t"]: return "number"
+    if cpp_type == "bool": return "boolean"
+    if cpp_type in ["std::string", "const char*", "string", "std::string &", "const std::string &"]: return "string"
+    
+    # Check for vectors
+    if cpp_type in ["glm::vec2", "float2", "const float2&", "const glm::vec2&"]: return "wl.Float2"
+    if cpp_type in ["glm::vec3", "float3", "const float3&", "const glm::vec3&"]: return "wl.Float3"
+    if cpp_type in ["glm::vec4", "float4", "const float4&", "const glm::vec4&", "wl.vec4&"]: return "wl.Float4"
+    
+    # Generic object pointer handling
+    # ObjPtr<ClassName> -> wl.ClassName
+    match = re.match(r'ObjPtr<(\w+)>', cpp_type)
+    if match:
+        return f"wl.{match.group(1)}"
+
+    # Default to assuming it's a class we bound or 'any'
+    # Remove namespace for simplicity if it looks like Engine::Object
+    if "::" in cpp_type:
+        parts = cpp_type.split("::")
+        return f"wl.{parts[-1]}"
+    
+    # If it's a simple name like 'GameObject', assume wl.GameObject
+    # But skip 'any' or other primitives
+    if cpp_type and cpp_type[0].isupper():
+        return f"wl.{cpp_type}"
+
+    return "any"
+
+def parse_signature(sig_comment):
+    """
+    Parses '// RetType(ParamType p1, ParamType2 p2)'
+    Returns {'ret': 'lua_type', 'params': [{'name': 'p1', 'type': 'lua_type'}, ...]}
+    """
+    if not sig_comment:
+        return {'ret': None, 'params': []}
+    
+    # Remove '// '
+    content = sig_comment.replace('//', '').strip()
+    
+    # Check if it's a property type (no parenthesis)
+    if '(' not in content:
+        return {'type': cpp_type_to_lua(content)}
+
+    # Function signature
+    # Split into RetType and Params part
+    match = re.match(r'(.+?)\((.*)\)', content)
+    if not match:
+        return {'ret': None, 'params': []}
+    
+    ret_cpp = match.group(1).strip()
+    params_content = match.group(2).strip()
+    
+    ret_lua = cpp_type_to_lua(ret_cpp)
+    
+    params = []
+    if params_content:
+        # Split by comma, but careful about templates? For now assume simple types
+        # A robust split would track brackets.
+        param_list = [p.strip() for p in params_content.split(',')]
+        for p in param_list:
+            # Last word is name, rest is type
+            parts = p.rsplit(' ', 1)
+            if len(parts) == 2:
+                p_type_cpp = parts[0]
+                p_name = parts[1]
+                params.append({'name': p_name, 'type': cpp_type_to_lua(p_type_cpp)})
+            else:
+                # Just type? or Just name? Assume just type?
+                # The generator produces "Type Name", but if name missing "Type arg"
+                pass 
+                
+    return {'ret': ret_lua, 'params': params}
 
 def parse_file(file_path):
     if not os.path.exists(file_path):
@@ -23,21 +99,25 @@ def parse_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    content = strip_comments(content)
+    # We do NOT strip comments here because we rely on them for types
+    
     classes = {}
 
-    # Find all .Begin("ClassName") blocks
-    # We iterate through matches and scan forward until .End()
-    
-    # Regex to find the start of a binding block
-    # Matches: .Begin("ClassName"
+    # Regex patterns
+    # Matches: .Begin("ClassName")
     begin_pattern = re.compile(r'\.Begin\s*\(\s*"(\w+)"')
     
-    # Regex for bindings inside the block
-    bind_mem_fn = re.compile(r'\.BindMemFn\s*\(\s*"(\w+)"')
-    bind_static_fn = re.compile(r'\.BindStaticFn\s*\(\s*"(\w+)"')
-    bind_fn = re.compile(r'\.BindFn\s*\(\s*"(\w+)"')
-    bind_prop = re.compile(r'\.BindProperty\s*\(\s*"(\w+)"')
+    # Matches: .BindMemFn("Name", &Class::Fn) // Ret(Args...)
+    # We capture: Name, Comment
+    bind_mem_fn = re.compile(r'\.BindMemFn\s*\(\s*"(\w+)"[^)]+\)(.*)')
+    bind_static_fn = re.compile(r'\.BindStaticFn\s*\(\s*"(\w+)"[^)]+\)(.*)')
+    
+    # BindFn usually doesn't have generated comments easily unless we manually added them 
+    # for lambdas in manual bindings. For now, capture if present.
+    bind_fn = re.compile(r'\.BindFn\s*\(\s*"(\w+)"[^)]+\)(.*)')
+    
+    # Properties
+    bind_prop = re.compile(r'\.BindProperty\s*\(\s*"(\w+)"[^)]+\)(.*)')
     
     end_pattern = re.compile(r'\.End\s*\(\s*\)')
 
@@ -45,16 +125,10 @@ def parse_file(file_path):
     starts = [(m.group(1), m.end()) for m in begin_pattern.finditer(content)]
     
     for i, (class_name, start_idx) in enumerate(starts):
-        # Determine the search area for this block.
-        # It goes until the next .Begin or the end of file, 
-        # but logically it ends at the first .End() found.
-        
-        # We search for the first .End() after start_idx
         search_area = content[start_idx:]
         end_match = end_pattern.search(search_area)
         
         if not end_match:
-            print(f"Warning: Could not find .End() for class {class_name}")
             continue
             
         block_content = search_area[:end_match.start()]
@@ -64,22 +138,27 @@ def parse_file(file_path):
         
         # Parse Member Functions
         for m in bind_mem_fn.finditer(block_content):
-            methods.append({'name': m.group(1), 'type': 'instance'})
+            sig = parse_signature(m.group(2))
+            methods.append({'name': m.group(1), 'type': 'instance', 'sig': sig})
             
         # Parse Static Functions
         for m in bind_static_fn.finditer(block_content):
-            methods.append({'name': m.group(1), 'type': 'static'})
+            sig = parse_signature(m.group(2))
+            methods.append({'name': m.group(1), 'type': 'static', 'sig': sig})
             
         # Parse Generic Functions (BindFn)
         for m in bind_fn.finditer(block_content):
             fn_name = m.group(1)
-            # Heuristic: 'New' is static, others are instance
             fn_type = 'static' if fn_name == 'New' else 'instance'
-            methods.append({'name': fn_name, 'type': fn_type})
+            # BindFn comments might be missing or manual.
+            sig = parse_signature(m.group(2))
+            methods.append({'name': fn_name, 'type': fn_type, 'sig': sig})
             
         # Parse Properties
         for m in bind_prop.finditer(block_content):
-            properties.append(m.group(1))
+            sig = parse_signature(m.group(2)) # Returns {'type': ...}
+            prop_type = sig.get('type', 'any')
+            properties.append({'name': m.group(1), 'type': prop_type})
             
         classes[class_name] = {
             'methods': methods,
@@ -102,7 +181,8 @@ def generate_lua(classes):
         # Define the class type
         lines.append(f"---@class wl.{class_name}")
         for prop in data['properties']:
-            lines.append(f"---@field {prop} any")
+            # prop is dict {'name':..., 'type':...}
+            lines.append(f"---@field {prop['name']} {prop['type']}")
         lines.append(f"wl.{class_name} = {{}}")
         lines.append("")
         
@@ -110,14 +190,25 @@ def generate_lua(classes):
         for method in data['methods']:
             m_name = method['name']
             m_type = method['type']
+            m_sig = method.get('sig', {})
             
-            # Simple heuristic for return types could be added if we had more info.
-            # For now, we use (...) and assume any return.
+            # Param annotations
+            params_str = "..."
+            if m_sig and m_sig.get('params'):
+                p_list = []
+                for p in m_sig['params']:
+                    lines.append(f"---@param {p['name']} {p['type']}")
+                    p_list.append(p['name'])
+                params_str = ", ".join(p_list)
+            
+            # Return annotation
+            if m_sig and m_sig.get('ret'):
+                lines.append(f"---@return {m_sig['ret']}")
             
             if m_type == 'static':
-                lines.append(f"function {full_class_name}.{m_name}(...) end")
+                lines.append(f"function {full_class_name}.{m_name}({params_str}) end")
             else:
-                lines.append(f"function {full_class_name}:{m_name}(...) end")
+                lines.append(f"function {full_class_name}:{m_name}({params_str}) end")
         lines.append("")
         
     return "\n".join(lines)
