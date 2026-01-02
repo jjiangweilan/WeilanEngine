@@ -1,8 +1,8 @@
 #include "Gizmo.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Editor/Gizmos/MeshGizmo.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include <glm/glm.hpp>
 
@@ -28,9 +28,13 @@ public:
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
         cmd.BindResource(0, perScene);
+
+        std::vector<Gfx::DynamicBinding> dynamicBindings = {
+            Gfx::DynamicBinding("mainTex", *GetLightTexture()->GetGfxImage())
+        };
         cmd.BindResource(
-            GetMaterial()->GetSet(Gfx::DescriptorSetSemantics::Material),
-            GetMaterial()->GetShaderResource()
+            1,
+            dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
@@ -54,23 +58,10 @@ private:
         if (lightTex == nullptr)
         {
             lightTex =
-                static_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Editor/Gizmos/Light.ktx")
-                );
+                static_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Editor/Gizmos/Light.ktx"));
         }
 
         return lightTex;
-    }
-    static std::unique_ptr<Material>& GetMaterial()
-    {
-        static std::unique_ptr<Material> mat;
-        if (mat == nullptr)
-        {
-            mat = std::make_unique<Material>();
-            mat->SetShader(GetBillboardShader());
-            mat->SetTexture("mainTex", GetLightTexture());
-        }
-
-        return mat;
     }
 
     friend class Gizmos;
@@ -89,9 +80,12 @@ public:
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
         cmd.BindResource(0, perScene);
+        std::vector<Gfx::DynamicBinding> dynamicBindings = {
+            Gfx::DynamicBinding("mainTex", *GetCameraIcon()->GetGfxImage())
+        };
         cmd.BindResource(
-            GetMaterial()->GetSet(Gfx::DescriptorSetSemantics::Material),
-            GetMaterial()->GetShaderResource()
+            1,
+            dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
@@ -115,23 +109,10 @@ private:
         if (lightTex == nullptr)
         {
             lightTex =
-                static_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Editor/Gizmos/camera.png")
-                );
+                static_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Editor/Gizmos/camera.png"));
         }
 
         return lightTex;
-    }
-    static std::unique_ptr<Material>& GetMaterial()
-    {
-        static std::unique_ptr<Material> mat;
-        if (mat == nullptr)
-        {
-            mat = std::make_unique<Material>();
-            mat->SetShader(GetBillboardShader());
-            mat->SetTexture("mainTex", GetCameraIcon());
-        }
-
-        return mat;
     }
 
     friend class Gizmos;
@@ -140,19 +121,25 @@ private:
 class GizmoDrawIcon : public GizmoBase
 {
 public:
-    GizmoDrawIcon() : position(0) {};
-    GizmoDrawIcon(Texture* icon, const glm::vec3& position) {};
+    GizmoDrawIcon() : icon(nullptr), position(0) {};
+    GizmoDrawIcon(Texture* icon, const glm::vec3& position) : icon(icon), position(position) {};
     void Draw(Gfx::CommandBuffer& cmd) override
     {
+        if (icon == nullptr)
+            return;
+
         ObjPtr<Shader> shader = GizmoBase::GetBillboardShader();
 
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
         cmd.BindResource(0, perScene);
+        std::vector<Gfx::DynamicBinding> dynamicBindings = {
+            Gfx::DynamicBinding("mainTex", *icon->GetGfxImage())
+        };
         cmd.BindResource(
-            GetMaterial()->GetSet(Gfx::DescriptorSetSemantics::Material),
-            GetMaterial()->GetShaderResource()
+            1,
+            dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
@@ -170,31 +157,6 @@ private:
     glm::vec3 position;
     const glm::vec3 scale = glm::vec3(0.7f);
     AABB GetAABB() { return AABB(position, scale, AABB::PosConstruct{}); }
-    static Texture* GetLightTexture()
-    {
-        static Texture* lightTex = nullptr;
-        if (lightTex == nullptr)
-        {
-            lightTex =
-                static_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Editor/Gizmos/Light.ktx")
-                );
-        }
-
-        return lightTex;
-    }
-
-    static std::unique_ptr<Material>& GetMaterial()
-    {
-        static std::unique_ptr<Material> mat;
-        if (mat == nullptr)
-        {
-            mat = std::make_unique<Material>();
-            mat->SetShader(GetBillboardShader());
-            mat->SetTexture("mainTex", GetLightTexture());
-        }
-
-        return mat;
-    }
 
     friend class Gizmos;
 };
@@ -331,11 +293,6 @@ GizmoBase* Gizmos::DrawInteractiveBox(InteractiveBox& box, const float3& positio
     auto t = g.get();
     GetSingleton().gizmos.push_back(std::move(g));
     return t;
-}
-
-void Gizmos::ResourceCleanup()
-{
-    GizmoDrawLight::GetMaterial() = nullptr;
 }
 
 // namespace Gizmos

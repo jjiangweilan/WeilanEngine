@@ -38,8 +38,6 @@ public:
 
     void Clear() { gizmos.clear(); }
 
-    static void ResourceCleanup();
-
 private:
     static Gizmos& GetSingleton();
     std::vector<std::unique_ptr<GizmoBase>> gizmos;

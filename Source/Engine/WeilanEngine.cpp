@@ -28,8 +28,6 @@ WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
-    Gizmos::ResourceCleanup();
-
     event->Deinit();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
