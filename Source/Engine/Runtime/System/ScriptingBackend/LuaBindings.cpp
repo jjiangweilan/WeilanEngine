@@ -53,42 +53,6 @@ void LuaBindings::BindClasses(lua_State* L)
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
             .End();
 
-        LuaBinder<GameObject> gameObject(L);
-        gameObject
-            .Begin("GameObject")
-            .BindMemFn("GetPosition", &GameObject::GetPosition)
-            .BindMemFn("SetPosition", &GameObject::SetPosition)
-            .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy)
-            .BindMemFn("LookAt", &GameObject::LookAt)
-            .BindFn("GetComponent", [](lua_State* L) -> int {
-                    GameObject* go = GetLuaUserDataPackValue<GameObject>(L, 1);
-                    const char* className = luaL_checkstring(L, 2);
-
-                    if (go == nullptr || className == nullptr)
-                        return 0;
-                    
-                    auto v = go->GetComponent(className);
-                    if (v != nullptr)
-                    {
-                        LuaBinder<GameObject>::ProcessRtn(L, std::move(v));
-                        return 1;
-                    }
-
-                    // failed to get Engine Component, try Lua Script
-                    auto gameScript = go->GetComponent<GameScript>();
-                    if(gameScript != nullptr)
-                    {
-                        auto& luaClassName = gameScript->GetLuaClassName();
-                        if (luaClassName == className)
-                        {
-                            return gameScript->LuaPushReferenceToStack();
-                        }
-                    }
-
-                    return 0;
-                })
-            .End();
-
         LuaBinder<Time> time(L);
         time
             .Begin("Time")

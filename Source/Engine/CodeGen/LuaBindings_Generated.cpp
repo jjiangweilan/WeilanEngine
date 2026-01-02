@@ -4,6 +4,7 @@
 
 #include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 void BindGeneratedClasses(lua_State* L)
 {
@@ -30,6 +31,15 @@ void BindGeneratedClasses(lua_State* L)
     binder_AnimationPlayer.Begin("AnimationPlayer")
         .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
         .BindMemFn("Play", &AnimationPlayer::Play) // void()
+        .End();
+
+    LuaBinder<GameObject> binder_GameObject(L);
+    binder_GameObject.Begin("GameObject")
+        .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy) // ObjPtr<Component>(char * className)
+        .BindMemFn("GetPosition", &GameObject::GetPosition) // glm::vec3()
+        .BindMemFn("SetPosition", &GameObject::SetPosition) // void(glm::vec3 & position)
+        .BindMemFn("LookAt", &GameObject::LookAt) // void(glm::vec3 & to)
+        .BindFn("GetComponent", &GameObject::LuaGetComponent)
         .End();
 
 }

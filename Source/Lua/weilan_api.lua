@@ -47,20 +47,25 @@ wl.AnimationPlayer = {}
 function wl.AnimationPlayer:SetClip(animationName) end
 function wl.AnimationPlayer:Play(...) end
 
+---@class wl.GameObject
+wl.GameObject = {}
+
+---@param className any
+---@return wl.Component
+function wl.GameObject:GetComponentInHierachy(className) end
+---@return wl.Float3
+function wl.GameObject:GetPosition(...) end
+---@param position wl.vec3 &
+function wl.GameObject:SetPosition(position) end
+---@param to wl.vec3 &
+function wl.GameObject:LookAt(to) end
+function wl.GameObject:GetComponent(...) end
+
 ---@class wl.GameScript
 wl.GameScript = {}
 
 function wl.GameScript:GetGameObject(...) end
 function wl.GameScript.New(...) end
-
----@class wl.GameObject
-wl.GameObject = {}
-
-function wl.GameObject:GetPosition(...) end
-function wl.GameObject:SetPosition(...) end
-function wl.GameObject:GetComponentInHierachy(...) end
-function wl.GameObject:LookAt(...) end
-function wl.GameObject:GetComponent(...) end
 
 ---@class wl.Time
 wl.Time = {}
@@ -160,7 +165,9 @@ function wl.Material:SetTexture(...) end
 function wl.Material:SetShader(...) end
 function wl.Material:GetTexture(...) end
 function wl.Material:GetShader(...) end
+---@return wl.string&, float)>
 function wl.Material:SetFloat(...) end
+---@return wl.vec4&)>
 function wl.Material:SetVector(...) end
 function wl.Material:SetName(...) end
 function wl.Material:GetName(...) end

@@ -19,6 +19,7 @@
 
 class Scene;
 
+struct lua_State;
 enum class RotationCoordinate
 {
     Self,
@@ -38,7 +39,7 @@ class PhysicsBody;
 using PhysicsContactCallback =
     std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
 
-class [[TrClass]] GameObject : public Object
+class [[TrClass, LuaClass]] GameObject : public Object
 {
     DECLARE_OBJECT();
 
@@ -95,7 +96,7 @@ public:
     template <class T>
     T* GetComponent();
     ObjPtr<Component> GetComponent(const char* className);
-    ObjPtr<Component> GetComponentInHierachy(const char* className);
+    [[LuaFn]] ObjPtr<Component> GetComponentInHierachy(const char* className);
     std::span<Component*> GetComponents();
 
     template <class T>
@@ -130,9 +131,9 @@ public:
     bool GetWantsTobeEnabledStateAndReset();
 
     // Transform - Position
-    glm::vec3 GetPosition() const;
+    [[LuaFn]] glm::vec3 GetPosition() const;
     glm::vec3 GetLocalPosition() const { return position; }
-    void SetPosition(const glm::vec3& position);
+    [[LuaFn]] void SetPosition(const glm::vec3& position);
     void SetLocalPosition(const glm::vec3& localPosition);
     void Translate(const glm::vec3& translate);
 
@@ -146,7 +147,7 @@ public:
     void Rotate(const glm::vec3& axis, float angle, RotationCoordinate coord = RotationCoordinate::Self);
     void Rotate(glm::quat quaternion);
     void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle);
-    void LookAt(const glm::vec3& to);
+    [[LuaFn]] void LookAt(const glm::vec3& to);
 
     // Transform - Scale
     glm::vec3 GetScale() const;
@@ -191,6 +192,9 @@ public:
     void OnStart();
     void OnAwake();
     void OnStop();
+
+    [[LuaRawFn("GetComponent")]]
+    static int LuaGetComponent(lua_State* L);
 
 private:
     GameObject* FindInternal(GameObject* go, std::string_view name);

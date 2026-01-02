@@ -1,9 +1,10 @@
 #include "GameObject.hpp"
 #include "Engine/Library/Math.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
 
@@ -900,4 +901,33 @@ void GameObject::ApplyPrefabComponents()
             prefabComponents.push_back(comp->Clone(*this));
         }
     }
+}
+
+int GameObject::LuaGetComponent(lua_State* L)
+{
+    GameObject* go = GetLuaUserDataPackValue<GameObject>(L, 1);
+    const char* className = luaL_checkstring(L, 2);
+
+    if (go == nullptr || className == nullptr)
+        return 0;
+
+    auto v = go->GetComponent(className);
+    if (v != nullptr)
+    {
+        LuaBinder<GameObject>::ProcessRtn(L, std::move(v));
+        return 1;
+    }
+
+    // failed to get Engine Component, try Lua Script
+    auto gameScript = go->GetComponent<GameScript>();
+    if (gameScript != nullptr)
+    {
+        auto& luaClassName = gameScript->GetLuaClassName();
+        if (luaClassName == className)
+        {
+            return gameScript->LuaPushReferenceToStack();
+        }
+    }
+
+    return 0;
 }

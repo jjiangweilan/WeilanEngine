@@ -3,6 +3,14 @@
 #include "Engine/Library/Math.hpp"
 #include <SDL.h>
 
+enum class GamepadButtons
+{
+    X = 0,
+    Y = 1,
+    A = 2,
+    B = 3,
+};
+
 struct [[LuaClass]] Gamepad
 {
     Gamepad(int idx) : gamepadID(idx) {}
