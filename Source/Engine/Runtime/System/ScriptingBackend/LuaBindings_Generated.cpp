@@ -3,6 +3,7 @@
 #include "LuaBindings_Private.hpp"
 
 #include "Engine/Game/Input.hpp"
+#include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 
 void BindGeneratedClasses(lua_State* L)
 {
@@ -23,6 +24,12 @@ void BindGeneratedClasses(lua_State* L)
         .BindStaticFn("GetLookAroundX", &Input::GetLookAroundX)
         .BindStaticFn("GetLookAroundY", &Input::GetLookAroundY)
         .BindStaticFn("Jump", &Input::Jump)
+        .End();
+
+    LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
+    binder_AnimationPlayer.Begin("AnimationPlayer")
+        .BindMemFn("SetClip", &AnimationPlayer::SetClip)
+        .BindMemFn("Play", &AnimationPlayer::Play)
         .End();
 
 }

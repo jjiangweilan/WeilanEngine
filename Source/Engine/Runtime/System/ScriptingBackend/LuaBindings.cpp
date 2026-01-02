@@ -158,12 +158,6 @@ void LuaBindings::BindClasses(lua_State* L)
             .End();
             
         // Components
-        LuaBinder<AnimationPlayer> animationPlayer(L);
-        animationPlayer
-            .Begin("AnimationPlayer")
-            .BindMemFn("SetClip", &AnimationPlayer::SetClip)
-            .BindMemFn("Play", &AnimationPlayer::Play)
-            .End();
 
         LuaBinder<Camera> camera(L);
         camera
@@ -208,12 +202,6 @@ void LuaBindings::BindClasses(lua_State* L)
                     return 1;
             })
             .BindStaticFn("IsValid", [](ObjPtr<Object> val) { return val != nullptr; })
-            .End();
-
-        // Objects
-        LuaBinder<Animation> animation(L);
-            animation
-            .Begin("Animation")
             .End();
 
         // Assets

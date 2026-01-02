@@ -38,7 +38,7 @@ class PhysicsBody;
 using PhysicsContactCallback =
     std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
 
-class GameObject : public Object
+class [[Reflectable]] GameObject : public Object
 {
     DECLARE_OBJECT();
 
@@ -47,7 +47,7 @@ class GameObject : public Object
     GameObjectFlag flags = GameObjectFlag::None;
 
     // Transform data
-    glm::vec3 position = glm::vec3(0);
+    glm::vec3 position [[Property]] = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
@@ -94,7 +94,7 @@ public:
 
     template <class T>
     T* GetComponent();
-    ObjPtr<Component> GetComponent(const char* className);
+    ObjPtr<Component> GetComponent(const char* className) [[Fn]];
     ObjPtr<Component> GetComponentInHierachy(const char* className);
     std::span<Component*> GetComponents();
 

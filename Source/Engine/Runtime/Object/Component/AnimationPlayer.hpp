@@ -3,7 +3,7 @@
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 
-class AnimationPlayer : public Component
+class [[LuaClass]] AnimationPlayer : public Component
 {
     DECLARE_OBJECT();
 
@@ -27,6 +27,7 @@ public:
     void SetSpeed(float speed) { this->speed = speed; }
     void SetBlendClipFactor(float blendClipFactor) { this->blendClipFactor = blendClipFactor; }
     bool SetBlendClip(const std::string& animationName);
+    [[LuaFn]]
     bool SetClip(const std::string& animationName);
     void SetRootMotionEnabled(bool enabled) { this->rootMotion = enabled; }
     void SetRoot(std::string_view rootName);
@@ -40,6 +41,7 @@ public:
     const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
     const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
     const glm::vec3& GetRootMotionDelta() const { return rootMotionDelta; }
+    [[LuaFn]]
     void Play();
     void Stop();
     void TickAnimation();
