@@ -6,6 +6,7 @@
 #include "../Runtime/Object/GameObject/GameObject.hpp"
 
 TYPE_REFLECTION_MEMBER_VARIABLES(GameObject,
+    TYPE_REFLECTION_MEM(GameObject, prefab),
     TYPE_REFLECTION_MEM(GameObject, position),
     TYPE_REFLECTION_MEM(GameObject, scale),
     TYPE_REFLECTION_MEM(GameObject, rotation),
