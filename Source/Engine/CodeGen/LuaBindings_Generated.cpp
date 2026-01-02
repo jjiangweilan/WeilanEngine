@@ -1,6 +1,6 @@
 // GENERATED FILE - DO NOT EDIT
-#include "LuaBindings.hpp"
-#include "LuaBindings_Private.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"
 
 #include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"

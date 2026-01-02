@@ -363,12 +363,6 @@ target_link_libraries( WeilanEngine
 target_compile_definitions(
     WeilanEngine
     PUBLIC
-    LuaClass
-    LuaFn
-    LuaProp
-    TrClass
-    TrProp
-    TrFn
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -379,7 +373,7 @@ target_compile_definitions(
 find_package(Python3 REQUIRED)
 
 execute_process(
-    COMMAND Python3::Interpreter -c "import tree_sitter; import tree_sitter_cpp"
+    COMMAND "${Python3_EXECUTABLE}" -c "import tree_sitter; import tree_sitter_cpp"
     RESULT_VARIABLE TREE_SITTER_AVAILABLE
     ERROR_QUIET
 )
@@ -389,13 +383,13 @@ if (NOT TREE_SITTER_AVAILABLE EQUAL 0)
 endif()
 
 add_custom_target(GenerateTypeReflection
-    COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/Source/Scripts/TypeReflection.py"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateTypeReflection.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating Type Reflection Code"
 )
 
 add_custom_target(GenerateLuaBindings
-    COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaBindings.py"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaBindings.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating Lua Bindings"
 )

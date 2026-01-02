@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Library/CppUtility.hpp"
 #include "Engine/Library/Serialization/Serializable.hpp" // for IsSerializable.
+#include "Engine/Library/Assert.hpp"
 
 #include <functional>
 #include <span>

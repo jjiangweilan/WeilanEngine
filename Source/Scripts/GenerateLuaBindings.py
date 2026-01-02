@@ -182,8 +182,8 @@ def generate_bindings(source_dir, output_file):
     # Generate content
     out = []
     out.append("// GENERATED FILE - DO NOT EDIT")
-    out.append('#include "LuaBindings.hpp"')
-    out.append('#include "LuaBindings_Private.hpp"') # Ensure we have access to helpers
+    out.append('#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"')
+    out.append('#include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"') # Ensure we have access to helpers
     out.append("")
     
     # Includes
