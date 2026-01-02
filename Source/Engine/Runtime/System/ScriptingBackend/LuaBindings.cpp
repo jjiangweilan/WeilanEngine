@@ -157,27 +157,6 @@ void LuaBindings::BindClasses(lua_State* L)
             .BindFn("SetW", [](glm::vec4& val, float v) {val[3] = v; })
             .End();
             
-        LuaBinder<Input> input(L);
-        input
-            .Begin("Input")
-            .BindStaticFn("GetMovementX", Input::GetMovementX)
-            .BindStaticFn("GetMovementY", Input::GetMovementY)
-            .BindStaticFn("GetLookAroundX", Input::GetLookAroundX)
-            .BindStaticFn("GetLookAroundY", Input::GetLookAroundY)
-            .BindStaticFn("IsInteractPressed", Input::IsInteractPressed)
-            .BindStaticFn("Jump", Input::Jump)
-            .BindStaticFn("GetGamepad", Input::GetGamepad)
-            .End();
-
-        LuaBinder<Gamepad> gamepad(L);
-        gamepad
-            .Begin("Gamepad")
-            .BindMemFn("IsButtonPressed", &Gamepad::IsButtonPressed)
-            .BindMemFn("IsBumperPressed", &Gamepad::IsBumperPressed)
-            .BindMemFn("GetTrigger", &Gamepad::GetTrigger)
-            .BindMemFn("GetAxis", &Gamepad::GetAxis)
-            .End();
-
         // Components
         LuaBinder<AnimationPlayer> animationPlayer(L);
         animationPlayer
@@ -255,6 +234,8 @@ void LuaBindings::BindClasses(lua_State* L)
             .BindMemFn("GetName", &Material::GetName)
             .End();
     // clang-format on
+
+    BindGeneratedClasses(L);
 
     lua_setglobal(L, "wl");
 }

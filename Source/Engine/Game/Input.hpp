@@ -3,7 +3,7 @@
 #include "Engine/Library/Math.hpp"
 #include <SDL.h>
 
-struct Gamepad
+struct [[LuaClass]] Gamepad
 {
     Gamepad(int idx) : gamepadID(idx) {}
     /**
@@ -23,28 +23,28 @@ struct Gamepad
      *
      * @param idx: 0 'X', 1 'Y', 2 'A', 3 'B'.
      */
-    bool IsButtonPressed(uint8_t idx);
+    [[LuaFn]] bool IsButtonPressed(uint8_t idx);
 
     /**
      * @brief: check if a bumper is pressed for the current frame
      *
      * @param idx 0 'left bumper', 1 'right bumper'
      */
-    bool IsBumperPressed(uint8_t idx);
+    [[LuaFn]] bool IsBumperPressed(uint8_t idx);
 
     /**
      * @brief: get trigger state for the current frame
      *
      * @return: 0.0f - 1.0f
      */
-    float GetTrigger(uint8_t idx);
+    [[LuaFn]] float GetTrigger(uint8_t idx);
 
     /**
      * @brief; get axis state
      *
      * @param idx 0 'left axis', 1 'right axis'
      */
-    float2 GetAxis(uint8_t idx);
+    [[LuaFn]] float2 GetAxis(uint8_t idx);
 
 private:
     /**
@@ -60,19 +60,20 @@ private:
  * directly query the button state. An input command queue is very command specific, so just specialize it
  *
  */
-class Input
+
+class [[LuaClass]] Input
 {
 public:
-    static Gamepad GetGamepad(int padIdx = 0);
+    [[LuaFn]] static Gamepad GetGamepad(int padIdx = 0);
     static int2 GetMousePosition();
-    static float GetMovementX();
-    static float GetMovementY();
-    static bool IsInteractPressed();
+    [[LuaFn]] static float GetMovementX();
+    [[LuaFn]] static float GetMovementY();
+    [[LuaFn]] static bool IsInteractPressed();
     static void GetMovement(float& x, float& y);
     static void GetLookAround(float& x, float& y);
-    static float GetLookAroundX();
-    static float GetLookAroundY();
-    static bool Jump();
+    [[LuaFn]] static float GetLookAroundX();
+    [[LuaFn]] static float GetLookAroundY();
+    [[LuaFn]] static bool Jump();
     static void PushEvent(SDL_Event& event);
     static void SetGameplayInput(bool enabled);
     static void Reset();

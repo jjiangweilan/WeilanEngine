@@ -9,3 +9,5 @@ public:
     void BindClasses(lua_State* L);
 };
 
+void BindGeneratedClasses(lua_State* L);
+

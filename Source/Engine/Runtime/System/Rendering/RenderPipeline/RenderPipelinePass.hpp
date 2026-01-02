@@ -2,12 +2,13 @@
 
 namespace Gfx
 {
-    class ImageIdentifier;
+class ImageIdentifier;
 }
 
 namespace Rendering
 {
 struct RenderingData;
+
 class RenderPipelinePass
 {
 public:
