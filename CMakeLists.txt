@@ -382,19 +382,13 @@ if (NOT TREE_SITTER_AVAILABLE EQUAL 0)
     message(FATAL_ERROR "Python module 'tree_sitter' or 'tree_sitter_cpp' not found. Please install it via 'pip install tree-sitter tree-sitter-cpp'")
 endif()
 
-add_custom_target(GenerateTypeReflection
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateTypeReflection.py"
+add_custom_target(CodeGeneration
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CodeGeneration.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Generating Type Reflection Code"
+    COMMENT "Code Generation"
 )
 
-add_custom_target(GenerateLuaBindings
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaBindings.py"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Generating Lua Bindings"
-)
-
-add_dependencies(WeilanEngine GenerateTypeReflection GenerateLuaBindings)
+add_dependencies(WeilanEngine CodeGeneration)
 
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/EditorLauncher.cpp)

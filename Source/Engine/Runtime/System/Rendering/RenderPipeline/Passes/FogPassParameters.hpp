@@ -1,7 +1,7 @@
 #pragma once
 #include "Engine/Library/Math.hpp"
 
-struct FogPassParameters
+struct [[SerClass]] FogPassParameters
 {
     bool enabled = true;
     float4 fogColor = float4(0.3, 0.3, 0.3, 0.3);

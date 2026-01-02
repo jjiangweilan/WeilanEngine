@@ -1,6 +1,6 @@
 #include "SceneEnvironment.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 DEFINE_OBJECT(Component, SceneEnvironment, "7E237F73-396E-455F-B227-657432A66877");
 
@@ -31,15 +31,7 @@ void SceneEnvironment::OnDisable()
     }
 }
 
-void SceneEnvironment::Serialize(Serializer* s) const
-{
-    Component::Serialize(s);
-}
-
-void SceneEnvironment::Deserialize(Serializer* s)
-{
-    Component::Deserialize(s);
-}
+DEFINE_SERIALIZATION(SceneEnvironment, Component, SER(data));
 
 void SceneEnvironment::UpdateSkyboxProbe()
 {

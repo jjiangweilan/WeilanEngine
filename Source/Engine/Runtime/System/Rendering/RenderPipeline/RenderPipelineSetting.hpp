@@ -8,13 +8,12 @@ namespace Rendering
 class RenderPipelineSetting : public Asset
 {
     DECLARE_ASSET();
+    DECLARE_SERIALIZATION()
 
 public:
     bool fxaa = true;
     bool frustumCull = true;
     bool shadowFrustumCull = true;
-
-    DECLARE_SERIALIZATION()
 
     struct PostProcess
     {

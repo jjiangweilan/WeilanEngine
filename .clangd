@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: ["-DLuaClass=", "-DLuaFn=", "-DLuaProp=", "-DTrClass=", "-DTrProp=", "-DTrFn="]
+  Add: ["-DLuaClass=", "-DLuaFn=", "-DLuaProp=", "-DTrClass=", "-DTrProp=", "-DTrFn=", "-DSerClass=", "-DSerProp=" ]

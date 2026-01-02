@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/CodeGen/Serialization_Generated.hpp"
 #include "Engine/Library/CppUtility.hpp"
 #include <concepts>
 #include <string>
@@ -24,9 +25,15 @@ concept HasSerializeFunc = requires(T a, Serializer* s) {
 };
 
 template <class T>
+concept HasFreeSerializeFunc = requires(T* a, Serializer* s) {
+    ::Serialize(s, a);
+    ::Deserialize(s, a);
+};
+
+template <class T>
 concept IsSerializable =
     IsSerializableClass<T> ||
-    HasSerializeFunc<T>; // use with CanBeSerializerParameter for full test, Serializer itself uses this only
+    HasSerializeFunc<T> || HasFreeSerializeFunc<T>; // use with CanBeSerializerParameter for full test, Serializer itself uses this only
 
 #define SERIALIZE(ser, name) ser->Serialize(#name, name)
 #define DESERIALIZE(ser, name) ser->Deserialize(#name, name)

@@ -293,8 +293,15 @@ template <IsSerializable T>
 void Serializer::Serialize(std::string_view name, const T& val)
 {
     auto s = CreateSubserializer();
-    val.Serialize(s.get());
-    if constexpr (std::is_base_of_v<Object, T>)
+    if constexpr (HasFreeSerializeFunc<T>)
+    {
+        ::Serialize(s.get(), &val);
+    }
+    else if constexpr (HasSerializeFunc<T>)
+    {
+        val.Serialize(s.get());
+    }
+    else if constexpr (std::is_base_of_v<Object, T>)
     {
         s->Serialize("_objectTypeID", val.GetObjectTypeID());
     }
@@ -308,7 +315,15 @@ void Serializer::Deserialize(std::string_view name, T& val)
     auto s = CreateSubdeserializer(name);
     if (!s->IsNull())
     {
-        val.Deserialize(s.get());
+        if constexpr (HasFreeSerializeFunc<T>)
+        {
+            ::Deserialize(s.get(), &val);
+        }
+        else if constexpr (HasSerializeFunc<T>)
+        {
+            val.Deserialize(s.get());
+        }
+
         auto subcontained = s->GetContainedObjects();
         for (auto& iter : subcontained)
         {
