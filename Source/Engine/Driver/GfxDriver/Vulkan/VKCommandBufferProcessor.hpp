@@ -192,7 +192,7 @@ private:
         int barrierCount
     );
 
-    void GetImageViewOrBuffer(DynmaicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer);
+    void GetImageViewOrBuffer(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer);
 
     int MakeBarrierForLastUsage2(VKImage* image)
     {

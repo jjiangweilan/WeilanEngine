@@ -19,6 +19,7 @@ public:
 
     void SetName(std::string_view name) override
     {
+        this->name = name;
         VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)handle, name.data());
     }
 

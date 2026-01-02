@@ -246,7 +246,7 @@ struct VKCopyBufferToImageCmd
 struct VKDynamicBindResourceCmd
 {
     uint32_t set;
-    std::vector<DynmaicBinding> bindings;
+    std::vector<DynamicBinding> bindings;
 };
 
 struct VKBlitCmd
@@ -439,7 +439,7 @@ public:
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
-    void BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings) override;
+    void BindResource(uint32_t set, const std::vector<DynamicBinding>& bindings) override;
     void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) override;

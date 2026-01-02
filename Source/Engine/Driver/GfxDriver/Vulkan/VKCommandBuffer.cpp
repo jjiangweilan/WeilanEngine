@@ -559,7 +559,7 @@ void VKCommandBuffer::BeginRenderPass(std::span<const RenderAttachment> images, 
     cmds.push_back(VKCmd{VKCmdType::DynamicBeginRenderPass, cmd});
 }
 
-void VKCommandBuffer::BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings)
+void VKCommandBuffer::BindResource(uint32_t set, const std::vector<DynamicBinding>& bindings)
 {
     VKDynamicBindResourceCmd cmd{};
     cmd.set = set;

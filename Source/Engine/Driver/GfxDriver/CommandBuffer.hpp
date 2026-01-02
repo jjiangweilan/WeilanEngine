@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
 #include "RenderGraph.hpp"
 #include "RenderPass.hpp"
-#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"
 #include "VertexBufferBinding.hpp"
@@ -68,18 +68,18 @@ struct DescriptorBinding
     Buffer* buffer;
 };
 
-struct DynmaicBinding
+struct DynamicBinding
 {
-    DynmaicBinding(std::string_view name, Gfx::Buffer* buffer) : name(name), buffer(buffer), imageIdentifier()
+    DynamicBinding(std::string_view name, Gfx::Buffer& buffer) : name(name), buffer(&buffer), imageIdentifier()
     {}
 
-    DynmaicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image)
+    DynamicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image)
     {}
 
-    DynmaicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView)
+    DynamicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView)
     {}
 
-    DynmaicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id)
+    DynamicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id)
     {}
 
     std::string name;
@@ -112,7 +112,7 @@ public:
     virtual void InsertLabel(std::string_view label, const glm::float4& color) = 0;
 
     virtual void BindResource(uint32_t set, Gfx::ShaderResource* resource) = 0;
-    virtual void BindResource(uint32_t set, const std::vector<DynmaicBinding>& bindings) = 0;
+    virtual void BindResource(uint32_t set, const std::vector<DynamicBinding>& bindings) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;

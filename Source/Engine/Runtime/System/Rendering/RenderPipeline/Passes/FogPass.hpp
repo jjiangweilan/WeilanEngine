@@ -14,7 +14,6 @@ namespace Rendering::Passes
 class FogPass : public RenderPipelinePass // Now derives from RenderPipelinePass
 {
     ObjPtr<Shader> shader;
-    std::unique_ptr<Gfx::ShaderResource> shaderInput;
     GPUBuffer<DepthBasedFogParams> fogInputBuffer;
 
 public:

@@ -141,7 +141,7 @@ void VKImage::CreateImageView()
             .imageViewType = GenerateDefaultImageViewViewType(),
             .subresourceRange = defaultSubresourceRange,
         }));
-        imageViewForShaderResource->SetName("Default ImageView");
+        imageViewForShaderResource->SetName("Depth Default ImageView");
     }
 }
 

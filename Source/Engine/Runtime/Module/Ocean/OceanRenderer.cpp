@@ -87,8 +87,8 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     cmd.BindResource(
         oceanParamsSetIndex,
         {
-            {"buffer", rendererInputUBO.GetBuffer()},
-            {"instanceData", instanceBuffer.buffer.GetBuffer()},
+            {"buffer", *rendererInputUBO.GetBuffer()},
+            {"instanceData", *instanceBuffer.buffer.GetBuffer()},
             {"depthTex", *renderingData.depthCopy},
             {"colorTex", *renderingData.colorCopy},
             {"specularCubemap", *renderingData.specularCubemap},

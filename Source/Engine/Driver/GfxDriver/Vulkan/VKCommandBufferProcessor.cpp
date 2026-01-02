@@ -2321,7 +2321,7 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
             auto& bindings = dynamicBindResourceCmd.bindings;
             auto binding = std::ranges::find_if(
                 bindings,
-                [&b](DynmaicBinding& binding)
+                [&b](DynamicBinding& binding)
                 { return binding.name == b.name; }
             );
 
@@ -2516,7 +2516,7 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
     }
 }
 
-void VKCommandBufferProcessor::GetImageViewOrBuffer(DynmaicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer)
+void VKCommandBufferProcessor::GetImageViewOrBuffer(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer)
 {
     if (binding.buffer != nullptr)
     {
@@ -2554,7 +2554,7 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
 
         auto binding = std::ranges::find_if(
             bindings,
-            [&b](DynmaicBinding& binding)
+            [&b](DynamicBinding& binding)
             { return binding.name == b.name; }
         );
 
