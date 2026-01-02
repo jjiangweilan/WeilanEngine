@@ -33,22 +33,21 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript", false)
-            .BindFn("New", [](lua_State* L){
-                    // expecting a `self` table on top of the stack
-                    // ASSERT(lua_istable(L, 1));
-                    // ASSERT(lua_isstring(L, 2));
-                    const char* className = lua_tostring(L, 2);
+            .BindStaticFn("New", [](lua_State* L){
+                    const char* className = luaL_checkstring(L, -1);
 
                     lua_newtable(L);
 
                     lua_pushstring(L, className);
-                    lua_setfield(L, 3, LuaEngineTableField::className);
+                    lua_setfield(L, -2, LuaEngineTableField::className);
 
                     lua_pushvalue(L, -1);
-                    lua_setfield(L, 3, "__index");
+                    lua_setfield(L, -2, "__index");
 
-                    lua_pushvalue(L, 1);
-                    lua_setmetatable(L, 3);
+                    lua_getglobal(L, "wl");
+                    lua_getfield(L, -1, "GameScript");
+                    lua_setmetatable(L, -3);
+                    lua_pop(L, 1); // pop wl table
                     return 1;
                     })
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
