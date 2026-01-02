@@ -6,159 +6,144 @@
 wl = {}
 
 ---@class wl.Gamepad
-local Gamepad = {}
-wl.Gamepad = Gamepad
+wl.Gamepad = {}
 
-function Gamepad:IsButtonPressed(...) end
-function Gamepad:IsBumperPressed(...) end
-function Gamepad:GetTrigger(...) end
-function Gamepad:GetAxis(...) end
+function wl.Gamepad:IsButtonPressed(...) end
+function wl.Gamepad:IsBumperPressed(...) end
+function wl.Gamepad:GetTrigger(...) end
+function wl.Gamepad:GetAxis(...) end
 
 ---@class wl.Input
-local Input = {}
-wl.Input = Input
+wl.Input = {}
 
-function Input.GetGamepad(...) end
-function Input.GetMovementX(...) end
-function Input.GetMovementY(...) end
-function Input.IsInteractPressed(...) end
-function Input.GetLookAroundX(...) end
-function Input.GetLookAroundY(...) end
-function Input.Jump(...) end
+function wl.Input.GetGamepad(...) end
+function wl.Input.GetMovementX(...) end
+function wl.Input.GetMovementY(...) end
+function wl.Input.IsInteractPressed(...) end
+function wl.Input.GetLookAroundX(...) end
+function wl.Input.GetLookAroundY(...) end
+function wl.Input.Jump(...) end
 
 ---@class wl.AnimationPlayer
-local AnimationPlayer = {}
-wl.AnimationPlayer = AnimationPlayer
+wl.AnimationPlayer = {}
 
-function AnimationPlayer:SetClip(...) end
-function AnimationPlayer:Play(...) end
+function wl.AnimationPlayer:SetClip(...) end
+function wl.AnimationPlayer:Play(...) end
 
 ---@class wl.GameScript
-local GameScript = {}
-wl.GameScript = GameScript
+wl.GameScript = {}
 
-function GameScript:GetGameObject(...) end
-function GameScript.New(...) end
+function wl.GameScript:GetGameObject(...) end
+function wl.GameScript.New(...) end
 
 ---@class wl.GameObject
-local GameObject = {}
-wl.GameObject = GameObject
+wl.GameObject = {}
 
-function GameObject:GetPosition(...) end
-function GameObject:SetPosition(...) end
-function GameObject:GetComponentInHierachy(...) end
-function GameObject:LookAt(...) end
-function GameObject:GetComponent(...) end
+function wl.GameObject:GetPosition(...) end
+function wl.GameObject:SetPosition(...) end
+function wl.GameObject:GetComponentInHierachy(...) end
+function wl.GameObject:LookAt(...) end
+function wl.GameObject:GetComponent(...) end
 
 ---@class wl.Time
-local Time = {}
-wl.Time = Time
+wl.Time = {}
 
-function Time.DeltaTime(...) end
+function wl.Time.DeltaTime(...) end
 
 ---@class wl.Float2
 ---@field x any
 ---@field y any
-local Float2 = {}
-wl.Float2 = Float2
+wl.Float2 = {}
 
-function Float2.New(...) end
-function Float2.Dot(...) end
-function Float2.__eq(...) end
-function Float2.__add(...) end
-function Float2.__sub(...) end
-function Float2.__div(...) end
-function Float2.__mul(...) end
-function Float2:GetX(...) end
-function Float2:GetY(...) end
-function Float2:SetX(...) end
-function Float2:SetY(...) end
+function wl.Float2.New(...) end
+function wl.Float2.Dot(...) end
+function wl.Float2.__eq(...) end
+function wl.Float2.__add(...) end
+function wl.Float2.__sub(...) end
+function wl.Float2.__div(...) end
+function wl.Float2.__mul(...) end
+function wl.Float2:GetX(...) end
+function wl.Float2:GetY(...) end
+function wl.Float2:SetX(...) end
+function wl.Float2:SetY(...) end
 
 ---@class wl.Float3
 ---@field x any
 ---@field y any
 ---@field z any
-local Float3 = {}
-wl.Float3 = Float3
+wl.Float3 = {}
 
-function Float3.New(...) end
-function Float3.Dot(...) end
-function Float3.__eq(...) end
-function Float3.__add(...) end
-function Float3.__sub(...) end
-function Float3.__div(...) end
-function Float3.__mul(...) end
-function Float3:GetX(...) end
-function Float3:GetY(...) end
-function Float3:GetZ(...) end
-function Float3:SetX(...) end
-function Float3:SetY(...) end
-function Float3:SetZ(...) end
+function wl.Float3.New(...) end
+function wl.Float3.Dot(...) end
+function wl.Float3.__eq(...) end
+function wl.Float3.__add(...) end
+function wl.Float3.__sub(...) end
+function wl.Float3.__div(...) end
+function wl.Float3.__mul(...) end
+function wl.Float3:GetX(...) end
+function wl.Float3:GetY(...) end
+function wl.Float3:GetZ(...) end
+function wl.Float3:SetX(...) end
+function wl.Float3:SetY(...) end
+function wl.Float3:SetZ(...) end
 
 ---@class wl.Float4
 ---@field x any
 ---@field y any
 ---@field z any
 ---@field w any
-local Float4 = {}
-wl.Float4 = Float4
+wl.Float4 = {}
 
-function Float4.New(...) end
-function Float4.Dot(...) end
-function Float4.__eq(...) end
-function Float4.__add(...) end
-function Float4.__sub(...) end
-function Float4.__div(...) end
-function Float4.__mul(...) end
-function Float4:GetX(...) end
-function Float4:GetY(...) end
-function Float4:GetZ(...) end
-function Float4:GetW(...) end
-function Float4:SetX(...) end
-function Float4:SetY(...) end
-function Float4:SetZ(...) end
-function Float4:SetW(...) end
+function wl.Float4.New(...) end
+function wl.Float4.Dot(...) end
+function wl.Float4.__eq(...) end
+function wl.Float4.__add(...) end
+function wl.Float4.__sub(...) end
+function wl.Float4.__div(...) end
+function wl.Float4.__mul(...) end
+function wl.Float4:GetX(...) end
+function wl.Float4:GetY(...) end
+function wl.Float4:GetZ(...) end
+function wl.Float4:GetW(...) end
+function wl.Float4:SetX(...) end
+function wl.Float4:SetY(...) end
+function wl.Float4:SetZ(...) end
+function wl.Float4:SetW(...) end
 
 ---@class wl.Camera
-local Camera = {}
-wl.Camera = Camera
+wl.Camera = {}
 
-function Camera:LookAt(...) end
+function wl.Camera:LookAt(...) end
 
 ---@class wl.Light
-local Light = {}
-wl.Light = Light
+wl.Light = {}
 
-function Light:GetIntensity(...) end
-function Light:SetIntensity(...) end
+function wl.Light:GetIntensity(...) end
+function wl.Light:SetIntensity(...) end
 
 ---@class wl.MeshRenderer
-local MeshRenderer = {}
-wl.MeshRenderer = MeshRenderer
+wl.MeshRenderer = {}
 
-function MeshRenderer:SetMaterial(...) end
+function wl.MeshRenderer:SetMaterial(...) end
 
 ---@class wl.ObjPtr
-local ObjPtr = {}
-wl.ObjPtr = ObjPtr
+wl.ObjPtr = {}
 
-function ObjPtr.New(...) end
-function ObjPtr.IsValid(...) end
+function wl.ObjPtr.New(...) end
+function wl.ObjPtr.IsValid(...) end
 
 ---@class wl.Texture
-local Texture = {}
-wl.Texture = Texture
+wl.Texture = {}
 
 
 ---@class wl.Material
-local Material = {}
-wl.Material = Material
+wl.Material = {}
 
-function Material:SetTexture(...) end
-function Material:SetShader(...) end
-function Material:GetTexture(...) end
-function Material:GetShader(...) end
-function Material:SetFloat(...) end
-function Material:SetVector(...) end
-function Material:SetName(...) end
-function Material:GetName(...) end
+function wl.Material:SetTexture(...) end
+function wl.Material:SetShader(...) end
+function wl.Material:GetTexture(...) end
+function wl.Material:GetShader(...) end
+function wl.Material:SetFloat(...) end
+function wl.Material:SetVector(...) end
+function wl.Material:SetName(...) end
+function wl.Material:GetName(...) end

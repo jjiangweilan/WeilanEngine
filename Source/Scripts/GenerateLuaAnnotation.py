@@ -103,10 +103,10 @@ def generate_lua(classes):
         lines.append(f"---@class wl.{class_name}")
         for prop in data['properties']:
             lines.append(f"---@field {prop} any")
-        lines.append(f"local {class_name} = {{}}")
-        lines.append(f"wl.{class_name} = {class_name}")
+        lines.append(f"wl.{class_name} = {{}}")
         lines.append("")
         
+        full_class_name = f"wl.{class_name}"
         for method in data['methods']:
             m_name = method['name']
             m_type = method['type']
@@ -115,9 +115,9 @@ def generate_lua(classes):
             # For now, we use (...) and assume any return.
             
             if m_type == 'static':
-                lines.append(f"function {class_name}.{m_name}(...) end")
+                lines.append(f"function {full_class_name}.{m_name}(...) end")
             else:
-                lines.append(f"function {class_name}:{m_name}(...) end")
+                lines.append(f"function {full_class_name}:{m_name}(...) end")
         lines.append("")
         
     return "\n".join(lines)

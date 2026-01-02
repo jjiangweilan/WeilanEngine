@@ -384,12 +384,25 @@ endif()
 
 add_custom_target(CodeGeneration
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CodeGeneration.py"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Code Generation"
 )
 
+add_custom_command(
+    OUTPUT "${CMAKE_SOURCE_DIR}/Source/Lua/weilan_api.lua"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
+    DEPENDS "${CMAKE_SOURCE_DIR}/Source/Engine/CodeGen/LuaBindings_Generated.cpp"
+            "${CMAKE_SOURCE_DIR}/Source/Engine/Runtime/System/ScriptingBackend/LuaBindings.cpp"
+            "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Generating Lua Annotations"
+)
+
+add_custom_target(LuaAnnotationGen DEPENDS "${CMAKE_SOURCE_DIR}/Source/Lua/weilan_api.lua")
+add_dependencies(LuaAnnotationGen CodeGeneration)
+
 add_dependencies(WeilanEngine CodeGeneration)
+add_dependencies(WeilanEngine LuaAnnotationGen)
 
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/EditorLauncher.cpp)
