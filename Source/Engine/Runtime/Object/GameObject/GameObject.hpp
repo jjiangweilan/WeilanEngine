@@ -217,6 +217,8 @@ T* GameObject::AddComponent(Args&&... args)
     components.push_back(std::move(p));
     temp->OnInit();
     temp->Enable();
+
+    UpdateAllComponents();
     return temp;
 }
 

@@ -616,6 +616,8 @@ Component* GameObject::AddComponent(std::string_view componentName)
     components.push_back(std::move(compPtr));
     temp->OnInit();
     temp->Enable();
+
+    UpdateAllComponents();
     return temp;
 }
 
@@ -642,6 +644,8 @@ void GameObject::RemoveComponent(void* comp)
         comp->Disable();
         components.erase(iter);
     }
+
+    UpdateAllComponents();
 }
 
 void GameObject::RemoveComponentByIndex(int componentIndex)
@@ -655,6 +659,8 @@ void GameObject::RemoveComponentByIndex(int componentIndex)
         }
         components.erase(components.begin() + componentIndex);
     }
+
+    UpdateAllComponents();
 }
 
 bool GameObject::GetWantsTobeEnabledStateAndReset()
@@ -863,6 +869,8 @@ void GameObject::MoveInComponent(Component* otherPtr)
         if (isInEnableState)
             otherPtr->Enable();
     }
+
+    UpdateAllComponents();
 }
 
 void GameObject::UpdateAllComponents()
