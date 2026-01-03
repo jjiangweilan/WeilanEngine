@@ -84,6 +84,7 @@ def process_file(file_path):
     
     tree = parser.parse(code_bytes)
     classes_to_bind = []
+    enums_to_bind = []
 
     # Simple recursive traversal
     def traverse(node):
@@ -216,12 +217,27 @@ def process_file(file_path):
                                     class_info['properties'].append({'name': prop_name, 'sig': f"// {prop_type}"})
 
                 classes_to_bind.append(class_info)
+
+        elif node.type == 'enum_specifier':
+            if find_attribute(node, code_bytes, 'LuaEnum'):
+                enum_info = {
+                    'name': get_full_qualified_name(node, code_bytes),
+                    'values': []
+                }
+                body = node.child_by_field_name('body')
+                if body:
+                    for child in body.children:
+                        if child.type == 'enumerator':
+                            name_node = child.child_by_field_name('name')
+                            if name_node:
+                                enum_info['values'].append(get_node_text(name_node, code_bytes))
+                enums_to_bind.append(enum_info)
         
         for child in node.children:
             traverse(child)
 
     traverse(tree.root_node)
-    return classes_to_bind
+    return {'classes': classes_to_bind, 'enums': enums_to_bind}
 
 def generate_bindings(source_dir, output_file):
     all_bindings = []
@@ -232,9 +248,9 @@ def generate_bindings(source_dir, output_file):
     for file_path in files:
         # relative path for #include
         rel_path = os.path.relpath(file_path, source_dir).replace('\\', '/')
-        classes = process_file(file_path)
-        if classes:
-            all_bindings.append({'file': rel_path, 'classes': classes})
+        data = process_file(file_path)
+        if data['classes'] or data['enums']:
+            all_bindings.append({'file': rel_path, 'classes': data['classes'], 'enums': data['enums']})
 
     # Generate content
     out = []
@@ -273,6 +289,28 @@ def generate_bindings(source_dir, output_file):
                 out.append(f"        .BindProperty(\"{p['name']}\", &{class_name}::{p['name']}) {p['sig']}")
                 
             out.append("        .End();")
+            out.append("")
+
+        for enum in entry['enums']:
+            enum_name = enum['name']
+            lua_name = enum_name.split('::')[-1]
+            out.append(f"    // Bind Enum {enum_name}")
+            out.append(f"    lua_newtable(L);")
+            for val in enum['values']:
+                out.append(f"    lua_pushinteger(L, static_cast<int>({enum_name}::{val}));")
+                out.append(f"    lua_setfield(L, -2, \"{val}\");")
+            
+            # Register to wl table (assuming wl table is at -4 relative to stack top BEFORE we pushed the enum table)
+            # Stack state: [..., wl, ..., enum_table]
+            # We want wl[lua_name] = enum_table.
+            # wl is at -2 relative to enum_table?
+            # No, BindGeneratedClasses starts with wl at -1.
+            # We did lua_newtable(L). Now wl is at -2, enum is at -1.
+            
+            out.append(f"    lua_pushstring(L, \"{lua_name}\");") # wl:-3, enum:-2, name:-1
+            out.append(f"    lua_pushvalue(L, -2);") # wl:-4, enum:-3, name:-2, enum_copy:-1
+            out.append(f"    lua_settable(L, -4);") # wl at -4. wl[name] = enum_copy.
+            out.append(f"    lua_pop(L, 1);") # Pop enum_table. wl is at -1.
             out.append("")
             
     out.append("}")
