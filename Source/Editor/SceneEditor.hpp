@@ -1,10 +1,10 @@
 #pragma once
-#include "Editor/Gizmos/Gizmo.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Editor/EditorContext.hpp"
+#include "Editor/Gizmos/Gizmo.hpp"
 #include "Editor/Gizmos/GizmoManager.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <list>
@@ -152,5 +152,7 @@ private:
     void FocusOnObject(Camera& camera, GameObject& gameObject);
     Camera* GetCurrentlyActiveCamera();
     void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed);
+    void RenderObjectToOutlineRT(Gfx::CommandBuffer& cmd, GameObject*& go, int colorType);
+    void DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* sceneImage, const Gfx::ImageIdentifier* gameImage, const Gfx::ImageIdentifier* gameDepthImage);
 };
 } // namespace Editor

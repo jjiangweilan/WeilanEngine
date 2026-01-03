@@ -1,17 +1,17 @@
 #pragma once
 #include "Editor/AssetBrowser.hpp"
+#include "Editor/EditorContext.hpp"
+#include "Editor/GameView.hpp"
+#include "Editor/Renderer.hpp"
+#include "Editor/Window.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Editor/EditorContext.hpp"
-#include "EngineCommandGUI.hpp"
-#include "Editor/GameView.hpp"
-#include "Engine/Core/Profiler/Profiler.hpp"
-#include "Editor/Renderer.hpp"
-#include "SceneEditor.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_internal.h"
 #include "Engine/WeilanEngine.hpp"
-#include "Editor/Window.hpp"
+#include "EngineCommandGUI.hpp"
+#include "SceneEditor.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
@@ -83,6 +83,7 @@ private:
     std::unique_ptr<AssetBrowser> assetBrowser;
     std::unique_ptr<EngineCommandGUI> engineCommandGUI;
 
+    GameObject* sceneViewHightedGameObjectCandidate = nullptr;
     GameObject* sceneTreeContextObject = nullptr;
     bool beginSceneTreeContextPopup = false;
     bool sceneTree = true;

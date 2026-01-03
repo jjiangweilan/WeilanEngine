@@ -78,12 +78,14 @@ void GameEditor::ShowSceneTree(Scene& scene)
     currentSelected = selected;
     size_t imguiTreeId = 0;
     auto selects = EditorState::GetSelectedObjects();
+    sceneViewHightedGameObjectCandidate = nullptr; // reselect highted GameObject
     for (auto root : scene.GetRootObjects())
     {
         SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand);
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
+    editorContext->HighlightGameObject(isSceneTreeWindowHovered ? sceneViewHightedGameObjectCandidate : nullptr);
     ImGui::End();
 
     // context menu of scene tree
@@ -224,6 +226,12 @@ void GameEditor::SceneTree(
     if (hasPrefab)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
+
+    if (ImGui::IsItemHovered())
+    {
+        sceneViewHightedGameObjectCandidate = go;
+    }
+
     if (hasPrefab)
         ImGui::PopStyleColor();
 

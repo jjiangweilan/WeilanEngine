@@ -5,6 +5,7 @@
 class Object;
 class Scene;
 class GameLoop;
+class GameObject;
 namespace Editor
 {
 class EditorState

@@ -17,6 +17,7 @@ depth:
 layout(push_constant) uniform Transform
 {
     mat4 model;
+    float4 color;
 } pconst;
 layout(location = 0) in vec3 i_Position;
 
@@ -36,7 +37,7 @@ void main()
 layout(location = 0) out vec4 o_Color;
 
 void main() {
-    o_Color = vec4(1,1,1,1);
+    o_Color = vec4(1,1,1, color.x);
 }
 
 #endif
