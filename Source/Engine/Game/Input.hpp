@@ -3,7 +3,7 @@
 #include "Engine/Library/Math.hpp"
 #include <SDL.h>
 
-[[LuaEnum]] enum class GamepadButtons
+enum class [[LuaEnum]] GamepadButtons
 {
     X = 0,
     Y = 1,
@@ -66,7 +66,7 @@ enum class InputKeycode
 {
 };
 
-[[LuaEnum]] enum class InputScancode
+enum class [[LuaEnum]] InputScancode
 {
     Key_UNKNOWN = SDL_SCANCODE_UNKNOWN,
 

@@ -233,6 +233,70 @@ def process_file(file_path):
                                 enum_info['values'].append(get_node_text(name_node, code_bytes))
                 enums_to_bind.append(enum_info)
         
+        elif node.type == 'declaration':
+            # Handle case where attribute is in the middle: enum class [[LuaEnum]] MyEnum { ... };
+            # Tree-sitter parses this as a declaration with enum_specifier, attribute_declaration, and init_declarator
+            enum_spec = None
+            has_lua_enum = False
+            enum_name = None
+            
+            for child in node.children:
+                if child.type == 'enum_specifier':
+                    enum_spec = child
+                elif child.type == 'attribute_declaration':
+                    # Check if it's LuaEnum
+                    for attr in child.children:
+                        if attr.type == 'attribute':
+                            name_node = attr.child_by_field_name('name')
+                            if name_node and get_node_text(name_node, code_bytes) == 'LuaEnum':
+                                has_lua_enum = True
+                elif child.type == 'init_declarator':
+                    name_node = child.child_by_field_name('declarator')
+                    if name_node:
+                        enum_name = get_node_text(name_node, code_bytes)
+
+            if has_lua_enum and enum_spec:
+                # We need to find the enumerators. They might be in the enum_spec or in the init_declarator
+                # In the case of `enum class [[LuaEnum]] TestEnum { Value1, Value2 };`
+                # Tree-sitter might put the body in the init_declarator's initializer_list if it's confused
+                # but usually enums have a body.
+                body = enum_spec.child_by_field_name('body')
+                if not body:
+                    # Check init_declarator for initializer_list (confused parser)
+                    for child in node.children:
+                        if child.type == 'init_declarator':
+                            for grandchild in child.children:
+                                if grandchild.type == 'initializer_list':
+                                    body = grandchild
+                                    break
+                
+                if body and enum_name:
+                    enum_info = {
+                        'name': enum_name, # TODO: fully qualified name?
+                        'values': []
+                    }
+                    for child in body.children:
+                        # For initializer_list, children might be identifiers or assignment_expressions
+                        # For enum_specifier body, children are enumerators
+                        if child.type == 'enumerator':
+                            v_name_node = child.child_by_field_name('name')
+                            if v_name_node:
+                                enum_info['values'].append(get_node_text(v_name_node, code_bytes))
+                        elif child.type == 'identifier':
+                            enum_info['values'].append(get_node_text(child, code_bytes))
+                        elif child.type == 'assignment_expression':
+                            # Get the left side of the assignment
+                            v_name_node = child.child_by_field_name('left')
+                            if not v_name_node:
+                                # Sometimes it's just the first identifier
+                                for grandchild in child.children:
+                                    if grandchild.type == 'identifier':
+                                        v_name_node = grandchild
+                                        break
+                            if v_name_node:
+                                enum_info['values'].append(get_node_text(v_name_node, code_bytes))
+                    enums_to_bind.append(enum_info)
+
         for child in node.children:
             traverse(child)
 
