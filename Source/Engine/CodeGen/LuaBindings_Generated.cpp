@@ -27,6 +27,21 @@ void BindGeneratedClasses(lua_State* L)
         .BindStaticFn("Jump", &Input::Jump) // bool()
         .End();
 
+    // Bind Enum GamepadButtons
+    lua_newtable(L);
+    lua_pushinteger(L, static_cast<int>(GamepadButtons::X));
+    lua_setfield(L, -2, "X");
+    lua_pushinteger(L, static_cast<int>(GamepadButtons::Y));
+    lua_setfield(L, -2, "Y");
+    lua_pushinteger(L, static_cast<int>(GamepadButtons::A));
+    lua_setfield(L, -2, "A");
+    lua_pushinteger(L, static_cast<int>(GamepadButtons::B));
+    lua_setfield(L, -2, "B");
+    lua_pushstring(L, "GamepadButtons");
+    lua_pushvalue(L, -2);
+    lua_settable(L, -4);
+    lua_pop(L, 1);
+
     // Bind Enum InputScancode
     lua_newtable(L);
     lua_pushinteger(L, static_cast<int>(InputScancode::Key_UNKNOWN));

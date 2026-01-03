@@ -3,7 +3,7 @@
 #include "Engine/Library/Math.hpp"
 #include <SDL.h>
 
-enum class GamepadButtons
+[[LuaEnum]] enum class GamepadButtons
 {
     X = 0,
     Y = 1,
