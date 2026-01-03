@@ -94,7 +94,7 @@ def parse_signature(sig_comment):
 def parse_file(file_path):
     if not os.path.exists(file_path):
         print(f"Warning: File {file_path} not found.")
-        return {}
+        return {}, {}
 
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
@@ -102,6 +102,7 @@ def parse_file(file_path):
     # We do NOT strip comments here because we rely on them for types
     
     classes = {}
+    enums = {}
 
     # Regex patterns
     # Matches: .Begin("ClassName")
@@ -120,6 +121,13 @@ def parse_file(file_path):
     bind_prop = re.compile(r'\.BindProperty\s*\(\s*"(\w+)"[^)]+\)(.*)')
     
     end_pattern = re.compile(r'\.End\s*\(\s*\)')
+
+    # Enum Pattern
+    # // Bind Enum EnumName
+    # ...
+    # lua_setfield(L, -2, "EnumName");
+    enum_start_pattern = re.compile(r'// Bind Enum (\w+)')
+    enum_field_pattern = re.compile(r'lua_setfield\(L, -2, "(\w+)"\);')
 
     # Find all starts
     starts = [(m.group(1), m.end()) for m in begin_pattern.finditer(content)]
@@ -164,10 +172,36 @@ def parse_file(file_path):
             'methods': methods,
             'properties': properties
         }
-        
-    return classes
 
-def generate_lua(classes):
+    # Parse Enums
+    # We scan for start markers, then look ahead until we find the closing setfield
+    enum_starts = [(m.group(1), m.end()) for m in enum_start_pattern.finditer(content)]
+    for enum_name, start_idx in enum_starts:
+        # We need to find where this block ends.
+        # It ends when we see `lua_setfield(L, -2, "{enum_name}");`
+        # We can scan line by line or search
+        
+        # Simple search for the closing tag
+        closing_tag = f'lua_setfield(L, -2, "{enum_name}");'
+        end_idx = content.find(closing_tag, start_idx)
+        
+        if end_idx == -1:
+            continue
+            
+        block_content = content[start_idx:end_idx]
+        
+        fields = []
+        for m in enum_field_pattern.finditer(block_content):
+            field_name = m.group(1)
+            # Avoid duplicate if any, or self-reference (shouldn't be in block content anyway)
+            if field_name != enum_name:
+                fields.append(field_name)
+        
+        enums[enum_name] = fields
+        
+    return classes, enums
+
+def generate_lua(classes, enums):
     lines = []
     lines.append("---@meta")
     lines.append("-- GENERATED FILE - DO NOT EDIT")
@@ -177,6 +211,14 @@ def generate_lua(classes):
     lines.append("wl = {}")
     lines.append("")
     
+    # Generate Enums
+    for enum_name, fields in enums.items():
+        lines.append(f"---@class wl.{enum_name}")
+        for f in fields:
+            lines.append(f"---@field {f} number")
+        lines.append(f"wl.{enum_name} = {{}}")
+        lines.append("")
+
     for class_name, data in classes.items():
         # Define the class type
         lines.append(f"---@class wl.{class_name}")
@@ -216,12 +258,14 @@ def generate_lua(classes):
 def main():
     print("Generating Lua Annotations...")
     all_classes = {}
+    all_enums = {}
     for f in INPUT_FILES:
         print(f"Parsing {f}...")
-        cls = parse_file(f)
+        cls, enums = parse_file(f)
         all_classes.update(cls)
+        all_enums.update(enums)
     
-    lua_code = generate_lua(all_classes)
+    lua_code = generate_lua(all_classes, all_enums)
     
     # Ensure output directory exists
     os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
