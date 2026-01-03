@@ -364,17 +364,12 @@ def generate_bindings(source_dir, output_file):
                 out.append(f"    lua_pushinteger(L, static_cast<int>({enum_name}::{val}));")
                 out.append(f"    lua_setfield(L, -2, \"{val}\");")
             
-            # Register to wl table (assuming wl table is at -4 relative to stack top BEFORE we pushed the enum table)
-            # Stack state: [..., wl, ..., enum_table]
+            # Register to wl table (assuming wl table is at -2 relative to stack top BEFORE we pushed the enum table)
+            # Stack state: [..., wl, enum_table]
             # We want wl[lua_name] = enum_table.
-            # wl is at -2 relative to enum_table?
-            # No, BindGeneratedClasses starts with wl at -1.
-            # We did lua_newtable(L). Now wl is at -2, enum is at -1.
+            # lua_setfield(L, -2, "name") will set wl["name"] = enum_table and pop enum_table.
             
-            out.append(f"    lua_pushstring(L, \"{lua_name}\");") # wl:-3, enum:-2, name:-1
-            out.append(f"    lua_pushvalue(L, -2);") # wl:-4, enum:-3, name:-2, enum_copy:-1
-            out.append(f"    lua_settable(L, -4);") # wl at -4. wl[name] = enum_copy.
-            out.append(f"    lua_pop(L, 1);") # Pop enum_table. wl is at -1.
+            out.append(f"    lua_setfield(L, -2, \"{lua_name}\");")
             out.append("")
             
     out.append("}")

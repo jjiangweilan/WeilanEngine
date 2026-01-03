@@ -37,10 +37,7 @@ void BindGeneratedClasses(lua_State* L)
     lua_setfield(L, -2, "A");
     lua_pushinteger(L, static_cast<int>(GamepadButtons::B));
     lua_setfield(L, -2, "B");
-    lua_pushstring(L, "GamepadButtons");
-    lua_pushvalue(L, -2);
-    lua_settable(L, -4);
-    lua_pop(L, 1);
+    lua_setfield(L, -2, "GamepadButtons");
 
     // Bind Enum InputScancode
     lua_newtable(L);
@@ -540,10 +537,7 @@ void BindGeneratedClasses(lua_State* L)
     lua_setfield(L, -2, "Key_ENDCALL");
     lua_pushinteger(L, static_cast<int>(InputScancode::SDL_NUM_SCANCODES));
     lua_setfield(L, -2, "SDL_NUM_SCANCODES");
-    lua_pushstring(L, "InputScancode");
-    lua_pushvalue(L, -2);
-    lua_settable(L, -4);
-    lua_pop(L, 1);
+    lua_setfield(L, -2, "InputScancode");
 
     LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
     binder_AnimationPlayer.Begin("AnimationPlayer")
