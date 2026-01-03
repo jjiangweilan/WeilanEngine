@@ -24,6 +24,7 @@ public:
     void LuaOnStart();
     void LuaOnStop();
     void Tick() override;
+    void PrePhysicsTick() override;
     void OnStart() override;
     void OnStop() override;
     void OnDestroy() override;
@@ -67,5 +68,4 @@ private:
     void OnContactRemoved(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&);
 
     void RemoveScript();
-
 };

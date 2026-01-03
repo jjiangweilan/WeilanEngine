@@ -305,6 +305,18 @@ wl.AnimationPlayer = {}
 function wl.AnimationPlayer:SetClip(animationName) end
 function wl.AnimationPlayer:Play(...) end
 
+---@class wl.PhysicsBody
+wl.PhysicsBody = {}
+
+---@return wl.Float3
+function wl.PhysicsBody:GetLinearVelocity(...) end
+---@param force wl.vec3 &
+function wl.PhysicsBody:AddForce(force) end
+---@param impulse wl.vec3 &
+function wl.PhysicsBody:AddImpulse(impulse) end
+---@param f number
+function wl.PhysicsBody:SetGravityFactor(f) end
+
 ---@class wl.GameObject
 wl.GameObject = {}
 

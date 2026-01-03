@@ -44,7 +44,7 @@ struct PhysicsLuaCallback : public Serializable
     void Deserialize(Serializer* s) override;
 };
 
-class PhysicsBody : public Component
+class [[LuaClass]] PhysicsBody : public Component
 {
     DECLARE_OBJECT();
 
@@ -121,10 +121,10 @@ public:
     );
 
     void SetLinearVelocity(const glm::vec3& velocity);
-    glm::vec3 GetLinearVelocity();
-    void AddForce(const glm::vec3& force);
-    void AddImpulse(const glm::vec3& impulse);
-    void SetGravityFactor(float f);
+    [[LuaFn]] glm::vec3 GetLinearVelocity();
+    [[LuaFn]] void AddForce(const glm::vec3& force);
+    [[LuaFn]] void AddImpulse(const glm::vec3& impulse);
+    [[LuaFn]] void SetGravityFactor(float f);
     void UpdateGameObject();
     JPH::Body* GetBody() { return body; }
     JPH::Ref<JPH::Shape> GetShapeRef() { return shapeRef; }

@@ -4,6 +4,7 @@
 
 #include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 void BindGeneratedClasses(lua_State* L)
@@ -543,6 +544,14 @@ void BindGeneratedClasses(lua_State* L)
     binder_AnimationPlayer.Begin("AnimationPlayer")
         .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
         .BindMemFn("Play", &AnimationPlayer::Play) // void()
+        .End();
+
+    LuaBinder<PhysicsBody> binder_PhysicsBody(L);
+    binder_PhysicsBody.Begin("PhysicsBody")
+        .BindMemFn("GetLinearVelocity", &PhysicsBody::GetLinearVelocity) // glm::vec3()
+        .BindMemFn("AddForce", &PhysicsBody::AddForce) // void(glm::vec3 & force)
+        .BindMemFn("AddImpulse", &PhysicsBody::AddImpulse) // void(glm::vec3 & impulse)
+        .BindMemFn("SetGravityFactor", &PhysicsBody::SetGravityFactor) // void(float f)
         .End();
 
     LuaBinder<GameObject> binder_GameObject(L);
