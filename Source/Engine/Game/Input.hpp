@@ -483,5 +483,4 @@ public:
     static void SetGameplayInput(bool enabled);
     static void Reset();
     static void UpdateState();
-    static bool IsScancodeDown(InputScancode keycode);
 };

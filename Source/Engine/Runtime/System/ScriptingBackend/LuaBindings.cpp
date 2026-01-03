@@ -1,14 +1,14 @@
 #include "LuaBindings.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Core/Time.hpp"
-#include "Engine/Game/Input.hpp"
-#include "LuaBindings_Private.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "LuaBindings_Private.hpp"
 
 std::unordered_map<void*, std::unique_ptr<Asset>>& GetLuaCreatedRuntimeAssets()
 {
@@ -119,7 +119,27 @@ void LuaBindings::BindClasses(lua_State* L)
             .BindFn("SetZ", [](glm::vec4& val, float v) {val[2] = v; })
             .BindFn("SetW", [](glm::vec4& val, float v) {val[3] = v; })
             .End();
-            
+
+        LuaBinder<float3x3> mat3(L);
+        mat3.Begin("Float3x3")
+            .BindStaticFn("New", []() { return glm::mat3(1.0f); })
+            .BindStaticFn("__mul", [](const float3x3& l, const float3x3& r) { return l * r; })
+            .BindStaticFn("Inverse", [](const float3x3& m) { return glm::inverse(m); })
+            .BindStaticFn("Transpose", [](const float3x3& m) { return glm::transpose(m); })
+            .BindFn("GetRow", [](float3x3& val, int i) { return glm::row(val, i); })
+            .BindFn("GetColumn", [](float3x3& val, int i) { return glm::column(val, i); })
+            .End();
+
+        LuaBinder<float4x4> mat4(L);
+        mat4.Begin("Float4x4")
+            .BindStaticFn("New", []() { return glm::mat4(1.0f); }) // float4x4()
+            .BindStaticFn("__mul", [](const float4x4& l, const float4x4& r) { return l * r; }) // float4x4(float4x4 l, float4x4 r)
+            .BindStaticFn("Inverse", [](const float4x4& m) { return glm::inverse(m); }) // float4x4(float4x4 m)
+            .BindStaticFn("Transpose", [](const float4x4& m) { return glm::transpose(m); }) // float4x4(float4x4 m)
+            .BindFn("GetRow", [](float4x4& val, int i) { return glm::row(val, i); }) // float4(float4x4 m, int i)
+            .BindFn("GetColumn", [](float4x4& val, int i) { return glm::column(val, i); }) // float4(float4x4 m, int i)
+            .End();
+
         // Components
 
         LuaBinder<Camera> camera(L);

@@ -1,7 +1,7 @@
 #pragma once
 #include "Engine/Library/Assert.hpp"
-#include "LuaBindings_Common.hpp"
 #include "Engine/Library/Serialization/Serializable.hpp"
+#include "LuaBindings_Common.hpp"
 
 #include "Engine/ThirdParty/lua/lua.hpp"
 #include <stdexcept>
@@ -224,8 +224,10 @@ public:
 
         if constexpr (CanBeSerializerParameter<T>)
         {
-            BindFn("SerializeTo", [](T& val, const char* name, Serializer* s) { s->Serialize(name, val); });
-            BindFn("DeserializeTo", [](T& val, const char* name, Serializer* s) { s->Deserialize(name, val); });
+            BindFn("SerializeTo", [](T& val, const char* name, Serializer* s)
+                   { s->Serialize(name, val); });
+            BindFn("DeserializeTo", [](T& val, const char* name, Serializer* s)
+                   { s->Deserialize(name, val); });
         }
 
         if constexpr (std::is_base_of_v<Asset, T>)
@@ -429,7 +431,8 @@ public:
     template <class R, class... Args>
     LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
     {
-        return BindStaticFn(name, std::function<R(Args...)>([f](Args... args) -> R { return f(args...); }));
+        return BindStaticFn(name, std::function<R(Args...)>([f](Args... args) -> R
+                                                            { return f(args...); }));
     }
 
     template <class F>
@@ -441,7 +444,10 @@ public:
     template <class V>
     LuaBinder<T>& BindProperty(const char* name, V T::* p)
     {
-        return BindProperty(name, [p](T& val) { return val.*p; }, [p](T& val, const V& v) { val.*p = v; });
+        return BindProperty(name, [p](T& val)
+                            { return val.*p; },
+                            [p](T& val, const V& v)
+                            { val.*p = v; });
     }
 
     template <class Getter, class Setter>
@@ -537,57 +543,90 @@ public:
         }
         else
         {
-            ASSERT(lua_isuserdata(L, argOffset + idx + 1));
-            void* mem = lua_touserdata(L, argOffset + idx + 1);
-            LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
+            int argIdx = argOffset + idx + 1;
+            if (lua_isuserdata(L, argIdx))
+            {
+                void* mem = lua_touserdata(L, argOffset + idx + 1);
+                LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
-            using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
-            if (type == LuaEngineUserDataType::RawPtr)
-            {
-                if constexpr (std::is_pointer_v<RawType>)
+                using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
+                if (type == LuaEngineUserDataType::RawPtr)
                 {
-                    return ((LuaUserDataPack<RawType>*)mem)->val;
-                }
-                else
-                {
-                    return *((LuaUserDataPack<RawType*>*)mem)->val;
-                }
-            }
-            else if (type == LuaEngineUserDataType::ObjPtr)
-            {
-                if constexpr (std::is_base_of_v<Object, Type>)
-                {
-                    // because ObjPtr actually doesn't use Object's memory layout, it's kind of ok to cast mem to ObjPtr<Object>.
-                    ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
-                    if (obj == nullptr || obj->GetObjectTypeID() != Type::StaticGetObjectTypeID())
+                    if constexpr (std::is_pointer_v<RawType>)
                     {
-                        luaL_error(L, "Invalid object type");
-                        throw InvalidObjPtrError("Valida Object Type");
+                        return ((LuaUserDataPack<RawType>*)mem)->val;
                     }
-                    return *obj;
-                }
-
-                // now falling back to Value type, this can happen in the following case
-                // T::f(const GameObject& go) <- lua: go:f(self.A_objPtr), calling above
-                // T::f(ObjPtr<GameObject> go) <- lua: go:f(self.A_objPtr), this will fall back to Value type because
-                // ObjPtr<GameObject> is not based of Object
-
-                // before falling back the Value type, we still need to do a type check
-                if constexpr (IsObjPtr<RawType>::value)
-                {
-                    ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
-                    if constexpr (!std::is_same_v<typename RawType::element_type, Object>)
+                    else
                     {
-                        if (obj == nullptr || obj->GetObjectTypeID() != RawType::element_type::StaticGetObjectTypeID())
+                        return *((LuaUserDataPack<RawType*>*)mem)->val;
+                    }
+                }
+                else if (type == LuaEngineUserDataType::ObjPtr)
+                {
+                    if constexpr (std::is_base_of_v<Object, Type>)
+                    {
+                        // because ObjPtr actually doesn't use Object's memory layout, it's kind of ok to cast mem to ObjPtr<Object>.
+                        ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
+                        if (obj == nullptr || obj->GetObjectTypeID() != Type::StaticGetObjectTypeID())
                         {
                             luaL_error(L, "Invalid object type");
                             throw InvalidObjPtrError("Valida Object Type");
                         }
+                        return *obj;
+                    }
+
+                    // now falling back to Value type, this can happen in the following case
+                    // T::f(const GameObject& go) <- lua: go:f(self.A_objPtr), calling above
+                    // T::f(ObjPtr<GameObject> go) <- lua: go:f(self.A_objPtr), this will fall back to Value type because
+                    // ObjPtr<GameObject> is not based of Object
+
+                    // before falling back the Value type, we still need to do a type check
+                    if constexpr (IsObjPtr<RawType>::value)
+                    {
+                        ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
+                        if constexpr (!std::is_same_v<typename RawType::element_type, Object>)
+                        {
+                            if (obj == nullptr || obj->GetObjectTypeID() != RawType::element_type::StaticGetObjectTypeID())
+                            {
+                                luaL_error(L, "Invalid object type");
+                                throw InvalidObjPtrError("Valida Object Type");
+                            }
+                        }
                     }
                 }
+                return ((LuaUserDataPack<RawType>*)mem)->val; // LuaEngineUserDataType::Value
             }
-
-            return ((LuaUserDataPack<RawType>*)mem)->val; // LuaEngineUserDataType::Value
+            else if (lua_isnumber(L, argIdx))
+            {
+                if constexpr (std::is_constructible_v<RawType, float>)
+                {
+                    lua_Number v = lua_tonumber(L, argIdx);
+                    return RawType(v);
+                }
+            }
+            else if (lua_isstring(L, argIdx))
+            {
+                if constexpr (std::is_constructible_v<RawType, std::string>)
+                {
+                    size_t len;
+                    const char* v = luaL_checklstring(L, argIdx, &len);
+                    return RawType(std::string(v, len));
+                }
+            }
+            else if (lua_isboolean(L, argIdx))
+            {
+                if constexpr (std::is_constructible_v<RawType, bool>)
+                {
+                    bool v = lua_toboolean(L, argIdx);
+                    return RawType(v);
+                }
+            }
+            else if (lua_isnil(L, argIdx))
+            {
+                lua_pushstring(L, "Nil cannot be converted to required type");
+                lua_error(L);
+            }
+            return RawType();
         }
     }
 

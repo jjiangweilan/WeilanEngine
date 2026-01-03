@@ -324,3 +324,4 @@ float2 Gamepad::GetAxis(uint8_t idx)
 
     return {0, 0};
 }
+

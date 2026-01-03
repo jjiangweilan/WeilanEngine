@@ -22,10 +22,11 @@ def cpp_type_to_lua(cpp_type):
     if cpp_type == "bool": return "boolean"
     if cpp_type in ["std::string", "const char*", "string", "std::string &", "const std::string &"]: return "string"
     
-    # Check for vectors
+    # Check for vectors and matrices
     if cpp_type in ["glm::vec2", "float2", "const float2&", "const glm::vec2&"]: return "wl.Float2"
     if cpp_type in ["glm::vec3", "float3", "const float3&", "const glm::vec3&"]: return "wl.Float3"
     if cpp_type in ["glm::vec4", "float4", "const float4&", "const glm::vec4&", "wl.vec4&"]: return "wl.Float4"
+    if cpp_type in ["glm::mat4", "float4x4", "const float4x4&", "const glm::mat4&"]: return "wl.Mat4"
     
     # Generic object pointer handling
     # ObjPtr<ClassName> -> wl.ClassName
@@ -54,8 +55,12 @@ def parse_signature(sig_comment):
     if not sig_comment:
         return {'ret': None, 'params': []}
     
-    # Remove '// '
-    content = sig_comment.replace('//', '').strip()
+    # Find the comment start
+    comment_idx = sig_comment.find('//')
+    if comment_idx == -1:
+        return {'ret': None, 'params': []}
+        
+    content = sig_comment[comment_idx+2:].strip()
     
     # Check if it's a property type (no parenthesis)
     if '(' not in content:
