@@ -3,6 +3,10 @@
 
 add_executable(ShaderCompilerTool
     ShaderCompilerTool.cpp
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Runtime/System/Rendering/EnumStringMapping.cpp"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Driver/GfxDriver/ShaderPipelineInfo.cpp"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Driver/GfxDriver/GfxEnums.cpp"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Driver/GfxDriver/VertexAttributes.cpp"
 )
 
 target_include_directories(ShaderCompilerTool PRIVATE

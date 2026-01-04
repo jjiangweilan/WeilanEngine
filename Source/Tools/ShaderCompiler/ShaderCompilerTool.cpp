@@ -14,6 +14,8 @@
  *   - metadata.json (pipeline info, config, features)
  */
 
+#include "Engine/Driver/GfxDriver/ShaderPipelineInfo.hpp"
+#include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include <boost/program_options.hpp>
 #include <filesystem>
 #include <fmt/format.h>
@@ -28,6 +30,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -675,6 +679,16 @@ private:
         throw std::runtime_error(message);
     }
 
+    Gfx::GfxFormat MapSlangFormat(std::string_view str)
+    {
+        if (str == "rgba8")
+        {
+            return Gfx::GfxFormat::R8G8B8A8_UNorm;
+        }
+
+        return Gfx::GfxFormat::Invalid;
+    }
+
     void CollectSets(slang::VariableLayoutReflection* scopeVarLayout, json& pipelineInfo)
     {
         auto scopeTypeLayout = scopeVarLayout->getTypeLayout();
@@ -755,23 +769,60 @@ private:
             if (!used)
                 return;
 
-            const char* semanticName = variableLayout->getSemanticName();
-            if (semanticName)
+            const char* semanticNameStr = variableLayout->getSemanticName();
+            VertexAttributeSemantics semanticName;
+            int semanticIndex = 0;
+            if (semanticNameStr)
             {
-                vertexAttribute["semanticName"] = semanticName;
-                vertexAttribute["semanticIndex"] = variableLayout->getSemanticIndex();
+                semanticName = MapVertexAttributeSemantics(semanticNameStr);
+                semanticIndex = variableLayout->getSemanticIndex();
+            }
+            else // use default semantics
+            {
+                VertexAttributeSemantics defaultSemantics[6] = {
+                    VertexAttributeSemantics::Position,
+                    VertexAttributeSemantics::Normal,
+                    VertexAttributeSemantics::Tangent,
+                    VertexAttributeSemantics::Texcoord,
+                    VertexAttributeSemantics::Color,
+                    VertexAttributeSemantics::Bone
+                };
+                semanticName = defaultSemantics[outVertexInputs.size() < 6 ? outVertexInputs.size() : 0];
+                semanticIndex = 0;
+            }
+            vertexAttribute["semanticName"] = Gfx::VertexAttributeSemanticsToString(semanticName);
+            vertexAttribute["semanticIndex"] = semanticIndex;
+
+            auto byteSizeAttribute = variableLayout->getVariable()->findAttributeByName(globalSession, "format");
+            auto elementCount = variableLayout->getType()->getElementCount();
+            Gfx::GfxFormat format = Gfx::GfxFormat::Invalid;
+
+            if (byteSizeAttribute)
+            {
+                size_t strLen = 0;
+                const char* str = byteSizeAttribute->getArgumentValueString(0, &strLen);
+                std::string_view strView(str, strLen);
+                format = MapSlangFormat(strView);
+                if (format == Gfx::GfxFormat::Invalid)
+                {
+                    std::cerr << "Warning: provided shader UnderlyingFormat type is not supported, fall back to R32G32B32A32_SFloat" << std::endl;
+                    format = Gfx::GfxFormat::R32G32B32A32_SFloat;
+                }
+            }
+            else
+            {
+                if (elementCount == 1)
+                    format = Gfx::GfxFormat::R32_SFloat;
+                else if (elementCount == 2)
+                    format = Gfx::GfxFormat::R32G32_SFloat;
+                else if (elementCount == 3)
+                    format = Gfx::GfxFormat::R32G32B32_SFloat;
+                else if (elementCount == 4)
+                    format = Gfx::GfxFormat::R32G32B32A32_SFloat;
             }
 
-            auto elementCount = variableLayout->getType()->getElementCount();
-            if (elementCount == 1)
-                vertexAttribute["format"] = "R32_SFloat";
-            else if (elementCount == 2)
-                vertexAttribute["format"] = "R32G32_SFloat";
-            else if (elementCount == 3)
-                vertexAttribute["format"] = "R32G32B32_SFloat";
-            else if (elementCount == 4)
-                vertexAttribute["format"] = "R32G32B32A32_SFloat";
-
+            vertexAttribute["format"] = Gfx::MapGfxFormatToString(format);
+            vertexAttribute["size"] = Gfx::MapGfxFormatToByteSize(format);
             outVertexInputs.push_back(vertexAttribute);
         }
     }
@@ -847,179 +898,6 @@ private:
         return yamlConfig;
     }
 
-    int MapBlendFactor(const std::string& str)
-    {
-        if (str == "zero")
-            return 0;
-        if (str == "one")
-            return 1;
-        if (str == "srcColor")
-            return 2;
-        if (str == "oneMinusSrcColor")
-            return 3;
-        if (str == "dstColor")
-            return 4;
-        if (str == "oneMinusDstColor")
-            return 5;
-        if (str == "srcAlpha")
-            return 6;
-        if (str == "oneMinusSrcAlpha")
-            return 7;
-        if (str == "dstAlpha")
-            return 8;
-        if (str == "oneMinusDstAlpha")
-            return 9;
-        if (str == "constantColor")
-            return 10;
-        if (str == "oneMinusConstantColor")
-            return 11;
-        if (str == "constantAlpha")
-            return 12;
-        if (str == "oneMinusConstantAlpha")
-            return 13;
-        if (str == "srcAlphaSaturate")
-            return 14;
-        if (str == "src1Color")
-            return 15;
-        if (str == "oneMinusSrc1Color")
-            return 16;
-        if (str == "src1Alpha")
-            return 17;
-        if (str == "oneMinusSrc1Alpha")
-            return 18;
-        return 6; // Src_Alpha
-    }
-
-    int MapCullMode(const std::string& str)
-    {
-        if (str == "none" || str == "off")
-            return 0;
-        if (str == "front")
-            return 1;
-        if (str == "back")
-            return 2;
-        if (str == "both")
-            return 3;
-        return 2; // Back
-    }
-
-    int MapBlendOp(const std::string& str)
-    {
-        if (str == "add")
-            return 0;
-        if (str == "subtract")
-            return 1;
-        if (str == "reverseSubtract")
-            return 2;
-        if (str == "min")
-            return 3;
-        if (str == "max")
-            return 4;
-        return 0; // Add
-    }
-
-    int MapCompareOp(const std::string& str)
-    {
-        if (str == "never")
-            return 0;
-        if (str == "less")
-            return 1;
-        if (str == "equal")
-            return 2;
-        if (str == "lessOrEqual")
-            return 3;
-        if (str == "greater")
-            return 4;
-        if (str == "notEqual")
-            return 5;
-        if (str == "greaterOrEqual")
-            return 6;
-        if (str == "always")
-            return 7;
-        return 7; // Always
-    }
-
-    int MapStencilOp(const std::string& str)
-    {
-        if (str == "keep")
-            return 0;
-        if (str == "zero")
-            return 1;
-        if (str == "replace")
-            return 2;
-        if (str == "incrementAndClamp")
-            return 3;
-        if (str == "decrementAndClamp")
-            return 4;
-        if (str == "invert")
-            return 5;
-        if (str == "incrementAndWrap")
-            return 6;
-        if (str == "decrementAndWrap")
-            return 7;
-        return 0; // Keep
-    }
-
-    int MapPolygonMode(const std::string& str)
-    {
-        if (str == "fill")
-            return 0;
-        if (str == "line")
-            return 1;
-        if (str == "point")
-            return 2;
-        return 0; // Fill
-    }
-
-    int MapTopology(const std::string& str)
-    {
-        if (str == "triangleList")
-            return 0;
-        if (str == "triangleStrip")
-            return 1;
-        if (str == "lineStrip")
-            return 2;
-        if (str == "lineList")
-            return 3;
-        return 0; // TriangleList
-    }
-
-    int MapColorMask(const std::string& str)
-    {
-        int mask = 0;
-        if (str.find("R") != std::string::npos)
-            mask |= 1;
-        if (str.find("G") != std::string::npos)
-            mask |= 2;
-        if (str.find("B") != std::string::npos)
-            mask |= 4;
-        if (str.find("A") != std::string::npos)
-            mask |= 8;
-        return mask;
-    }
-
-    int StringToShaderDynamicState(const std::string& str)
-    {
-        if (str == "DepthBiasEnable")
-            return 2;
-        if (str == "DepthBias")
-            return 4;
-        return 0;
-    }
-
-    std::string ShaderDynamicStateToString(int state)
-    {
-        if (state == 0)
-            return "None";
-        if (state == 2)
-            return "DepthBiasEnable";
-        if (state == 4)
-            return "DepthBias";
-        if (state == 6)
-            return "DepthBiasEnable|DepthBias";
-        return "None";
-    }
-
     json MapPipelineConfig(ryml::Tree& tree, json& info)
     {
         json config;
@@ -1050,7 +928,7 @@ private:
                 {
                     std::string str;
                     val >> str;
-                    finalVal |= StringToShaderDynamicState(str);
+                    finalVal |= (int)Gfx::StringToShaderDynamicState(str);
                 }
             }
             info["shaderDynamicStateFlags"] = finalVal;
@@ -1075,7 +953,7 @@ private:
                 std::string val;
                 root["mask"] >> val;
                 json state;
-                state["colorWriteMask"] = MapColorMask(val);
+                state["colorWriteMask"] = (int)Utils::MapColorMask(val);
                 state["blendEnable"] = false;     // Default
                 state["srcColorBlendFactor"] = 6; // SrcAlpha
                 state["dstColorBlendFactor"] = 7; // OneMinusSrcAlpha
@@ -1091,14 +969,14 @@ private:
         {
             std::string val;
             root["polygonMode"] >> val;
-            config["polygonMode"] = MapPolygonMode(val);
+            config["polygonMode"] = (int)Utils::MapPolygonMode(val);
         }
 
         if (root.has_child("topology"))
         {
             std::string val;
             root["topology"] >> val;
-            config["topology"] = MapTopology(val);
+            config["topology"] = (int)Utils::MapTopology(val);
         }
 
         if (root.has_child("blend"))
@@ -1134,16 +1012,16 @@ private:
                         if (std::regex_match(val, m, blendWithColorPattern))
                         {
                             state["blendEnable"] = true;
-                            state["srcColorBlendFactor"] = MapBlendFactor(m[1].str());
-                            state["srcAlphaBlendFactor"] = MapBlendFactor(m[2].str());
-                            state["dstColorBlendFactor"] = MapBlendFactor(m[3].str());
-                            state["dstAlphaBlendFactor"] = MapBlendFactor(m[4].str());
+                            state["srcColorBlendFactor"] = (int)Utils::MapBlendFactor(m[1].str());
+                            state["srcAlphaBlendFactor"] = (int)Utils::MapBlendFactor(m[2].str());
+                            state["dstColorBlendFactor"] = (int)Utils::MapBlendFactor(m[3].str());
+                            state["dstAlphaBlendFactor"] = (int)Utils::MapBlendFactor(m[4].str());
                         }
                         else if (std::regex_match(val, m, blendPattern))
                         {
                             state["blendEnable"] = true;
-                            int src = MapBlendFactor(m[1].str());
-                            int dst = MapBlendFactor(m[2].str());
+                            int src = (int)Utils::MapBlendFactor(m[1].str());
+                            int dst = (int)Utils::MapBlendFactor(m[2].str());
                             state["srcAlphaBlendFactor"] = src;
                             state["dstAlphaBlendFactor"] = dst;
                             state["srcColorBlendFactor"] = src;
@@ -1177,12 +1055,12 @@ private:
                     std::smatch m;
                     if (std::regex_match(val, m, withColor))
                     {
-                        config["color"]["blends"][i]["colorBlendOp"] = MapBlendOp(m[1].str());
-                        config["color"]["blends"][i]["alphaBlendOp"] = MapBlendOp(m[2].str());
+                        config["color"]["blends"][i]["colorBlendOp"] = (int)Utils::MapBlendOp(m[1].str());
+                        config["color"]["blends"][i]["alphaBlendOp"] = (int)Utils::MapBlendOp(m[2].str());
                     }
                     else if (std::regex_match(val, m, alphaOnly))
                     {
-                        int op = MapBlendOp(m[1].str());
+                        int op = (int)Utils::MapBlendOp(m[1].str());
                         config["color"]["blends"][i]["alphaBlendOp"] = op;
                         config["color"]["blends"][i]["colorBlendOp"] = op;
                     }
@@ -1197,7 +1075,7 @@ private:
             if (root["cull"].is_keyval())
             {
                 root["cull"] >> val;
-                config["cullMode"] = MapCullMode(val);
+                config["cullMode"] = (int)Utils::MapCullMode(val);
             }
         }
 
@@ -1216,7 +1094,7 @@ private:
             std::string compOp = "greaterOrEqual";
             if (depth.has_child("compOp"))
                 depth["compOp"] >> compOp;
-            config["depth"]["compOp"] = MapCompareOp(compOp);
+            config["depth"]["compOp"] = (int)Utils::MapCompareOp(compOp);
 
             bool boundTestEnable = false;
             if (depth.has_child("boundTestEnable"))
@@ -1270,10 +1148,10 @@ private:
                     stencil["compareOp"] >> compareOp;
 
                 json front, back;
-                front["failOp"] = back["failOp"] = MapStencilOp(failOp);
-                front["passOp"] = back["passOp"] = MapStencilOp(passOp);
-                front["depthFailOp"] = back["depthFailOp"] = MapStencilOp(depthFailOp);
-                front["compareOp"] = back["compareOp"] = MapCompareOp(compareOp);
+                front["failOp"] = back["failOp"] = (int)Utils::MapStencilOp(failOp);
+                front["passOp"] = back["passOp"] = (int)Utils::MapStencilOp(passOp);
+                front["depthFailOp"] = back["depthFailOp"] = (int)Utils::MapStencilOp(depthFailOp);
+                front["compareOp"] = back["compareOp"] = (int)Utils::MapCompareOp(compareOp);
 
                 int compareMask = 0, writeMask = 0, reference = 0;
                 if (stencil.has_child("compareMask"))
@@ -1300,28 +1178,28 @@ private:
                     if (src.has_child("failOp"))
                     {
                         src["failOp"] >> val;
-                        dst["failOp"] = MapStencilOp(val);
+                        dst["failOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["failOp"] = 0;
                     if (src.has_child("passOp"))
                     {
                         src["passOp"] >> val;
-                        dst["passOp"] = MapStencilOp(val);
+                        dst["passOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["passOp"] = 0;
                     if (src.has_child("depthFailOp"))
                     {
                         src["depthFailOp"] >> val;
-                        dst["depthFailOp"] = MapStencilOp(val);
+                        dst["depthFailOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["depthFailOp"] = 0;
                     if (src.has_child("compareOp"))
                     {
                         src["compareOp"] >> val;
-                        dst["compareOp"] = MapCompareOp(val);
+                        dst["compareOp"] = (int)Utils::MapCompareOp(val);
                     }
                     else
                         dst["compareOp"] = 7;
@@ -1358,28 +1236,28 @@ private:
                     if (src.has_child("failOp"))
                     {
                         src["failOp"] >> val;
-                        dst["failOp"] = MapStencilOp(val);
+                        dst["failOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["failOp"] = 0;
                     if (src.has_child("passOp"))
                     {
                         src["passOp"] >> val;
-                        dst["passOp"] = MapStencilOp(val);
+                        dst["passOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["passOp"] = 0;
                     if (src.has_child("depthFailOp"))
                     {
                         src["depthFailOp"] >> val;
-                        dst["depthFailOp"] = MapStencilOp(val);
+                        dst["depthFailOp"] = (int)Utils::MapStencilOp(val);
                     }
                     else
                         dst["depthFailOp"] = 0;
                     if (src.has_child("compareOp"))
                     {
                         src["compareOp"] >> val;
-                        dst["compareOp"] = MapCompareOp(val);
+                        dst["compareOp"] = (int)Utils::MapCompareOp(val);
                     }
                     else
                         dst["compareOp"] = 7;

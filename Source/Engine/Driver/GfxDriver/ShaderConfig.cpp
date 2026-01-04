@@ -1,5 +1,5 @@
 #include "ShaderConfig.hpp"
-
+#include "Engine/Library/Hash.hpp"
 Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
 {
     PipelineConfig_t config;
