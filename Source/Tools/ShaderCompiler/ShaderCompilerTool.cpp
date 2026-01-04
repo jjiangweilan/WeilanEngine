@@ -400,7 +400,7 @@ public:
         int depCount = session->getLoadedModuleCount(); // This might return all loaded modules including core?
         // Slang reflection doesn't easily give "imports" directly in a simple list without iterating.
         */
-        
+
         // For now, let's write what we have.
         std::ofstream metaFile(outputDir / "shader_meta.json");
         metaFile << shaderMeta.dump(2);
@@ -1482,7 +1482,7 @@ int main(int argc, char* argv[])
     {
         std::vector<std::string> enabledFeatures;
         std::string permStr = "";
-        
+
         for (size_t j = 0; j < 64; ++j)
         {
             if (j < features.size())
@@ -1502,6 +1502,8 @@ int main(int argc, char* argv[])
                 permStr += "0";
             }
         }
+
+        std::reverse(permStr.begin(), permStr.end()); // mimicing bitset.to_string()
 
         if (compiler.CompilePermutation(shaderName, permStr, enabledFeatures, outputDir))
         {

@@ -19,6 +19,6 @@ public:
 private:
     std::unique_ptr<Material> volumetricCloud = std::make_unique<Material>();
     inline static const char* volumetricCloudShader =
-        "Source/Engine/Runtime/Module/VolumetricCloud/Shaders/VolumetricCloud";
+        "VolumetricCloud/VolumetricCloud";
 };
 } // namespace Rendering::Passes

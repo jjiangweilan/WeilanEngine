@@ -39,6 +39,8 @@ Shader* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permuta
         return &library.at(name).shaders.at(permutation).shaderHandle;
     }
 
+    throw;
+
     // Fall back to runtime compilation
     asyncWorker.CompileShader(name, permutation);
     asyncWorker.WaitForAll();
