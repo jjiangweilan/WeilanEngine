@@ -499,7 +499,6 @@ public:
 
     void CollectBindings(
         slang::VariableLayoutReflection* variableLayout,
-        slang::VariableLayoutReflection* container,
         Gfx::ShaderPipelineInfo::DescriptorSet& set,
         int parentBinding,
         std::vector<Gfx::ShaderPipelineInfo::Binding>& outBindings
@@ -558,7 +557,6 @@ public:
                     {
                         CollectBindings(
                             typeLayout->getFieldByIndex(fieldIndex),
-                            nullptr,
                             set,
                             parentBinding + bindingOffset,
                             outBindings
@@ -607,7 +605,7 @@ public:
 
                         outBindings.push_back(binding);
                     }
-                    CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
+                    CollectBindings(elementVarLayout, set, parentBinding + bindingOffset, outBindings);
                     break;
                 }
             case slang::TypeReflection::Kind::Array:
@@ -651,7 +649,7 @@ public:
                 set.semantics = Gfx::DescriptorSetSemantics::Object;
             }
         }
-        CollectBindings(setLayoutReflection, nullptr, set, 0, set.bindings);
+        CollectBindings(setLayoutReflection, set, 0, set.bindings);
 
         set.name = setLayoutReflection->getName();
         pipelineInfo.descriptorSets.push_back(set);

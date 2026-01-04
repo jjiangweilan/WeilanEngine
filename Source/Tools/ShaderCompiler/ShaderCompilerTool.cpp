@@ -16,18 +16,18 @@
 
 #include <boost/program_options.hpp>
 #include <filesystem>
+#include <fmt/format.h>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <regex>
+#include <ryml.hpp>
+#include <ryml_std.hpp>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <regex>
-#include <ryml.hpp>
-#include <ryml_std.hpp>
-#include <fmt/format.h>
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -77,7 +77,8 @@ public:
             .structureSize = sizeof(slang::TargetDesc),
             .format = SlangCompileTarget::SLANG_SPIRV,
             .profile = globalSession->findProfile("spirv_1_6"),
-            .flags = 0};
+            .flags = 0
+        };
 
         const char* searchPaths[] = {shaderRoot.c_str()};
         slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
@@ -87,7 +88,8 @@ public:
         optimization.intValue0 = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE;
 
         slang::CompilerOptionEntry compileOptions[] = {
-            {slang::CompilerOptionName::Optimization, optimization}};
+            {slang::CompilerOptionName::Optimization, optimization}
+        };
 
         slang::SessionDesc sessionDesc{
             .structureSize = sizeof(slang::SessionDesc),
@@ -275,7 +277,7 @@ public:
         pipelineInfo["fragmentOutputs"] = json::array();
         pipelineInfo["descriptorSets"] = json::array();
         pipelineInfo["pushConstants"] = json::array();
-        pipelineInfo["shaderDynamicStateFlags"] = "None";
+        pipelineInfo["shaderDynamicStateFlags"] = 0;
 
         // Collect descriptor sets
         CollectSets(programLayout->getGlobalParamsVarLayout(), pipelineInfo);
@@ -293,7 +295,7 @@ public:
         }
 
         // Get pipeline config from source file
-        json pipelineConfig = GetPipelineConfig(sourceModule);
+        json pipelineConfig = GetPipelineConfig(sourceModule, pipelineInfo);
 
         // Get SPIR-V code
         if (HasVertexEntryPoint())
@@ -466,6 +468,80 @@ private:
         return members;
     }
 
+    int AddSamplerConfig(json& set, slang::TypeReflection* typeLayout, const std::string& name)
+    {
+        json config;
+        std::string lowerName = name;
+        std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
+        bool pointFilter = lowerName.find("point") != std::string::npos;
+        bool clampSampleToBorder = lowerName.find("border") != std::string::npos;
+        bool clampSample = lowerName.find("clamp") != std::string::npos;
+
+        std::string samplerTypeName = typeLayout->getName();
+        config["enableCompare"] = (samplerTypeName == "SamplerComparisonState");
+        config["anisotropic"] = false;
+
+        if (clampSampleToBorder)
+            config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "ClampToBorder";
+        else if (clampSample)
+            config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "ClampToEdge";
+        else
+            config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "Repeat";
+
+        if (pointFilter)
+        {
+            config["minFilter"] = "Nearest";
+            config["magFilter"] = "Nearest";
+        }
+        else
+        {
+            config["minFilter"] = "Linear";
+            config["magFilter"] = "Linear";
+        }
+
+        json& samplerConfigs = set["samplerConfigs"];
+        samplerConfigs.push_back(config);
+        return (int)samplerConfigs.size() - 1;
+    }
+
+    json AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, json& set, uint32_t currentBinding)
+    {
+        json binding;
+        binding["name"] = name;
+        binding["bindingNum"] = currentBinding;
+        binding["descriptorCount"] = 1;
+
+        int stages = 0;
+        if (HasComputeEntryPoint())
+            stages = 0b100;
+        else
+            stages = 0b11;
+
+        binding["stages"] = stages;
+
+        slang::BindingType rangeType = typeLayout->getBindingRangeType(0);
+        binding["descriptorType"] = MapDescriptorType(rangeType);
+
+        binding["textureType"] = "Invalid";
+        binding["isTextureArray"] = false;
+
+        std::string descType = binding["descriptorType"];
+        if (descType == "CombinedImageSampler" ||
+            descType == "SampledImage" ||
+            descType == "StorageImage")
+        {
+            binding["textureType"] = MapTextureType(typeLayout->getResourceShape());
+            binding["isTextureArray"] = IsTextureArray(typeLayout->getResourceShape());
+        }
+
+        binding["bufferMembers"] = json::array();
+        binding["byteSize"] = 0;
+        binding["samplerIndex"] = AddSamplerConfig(set, typeLayout->getType(), name);
+
+        return binding;
+    }
+
     void CollectBindings(
         slang::VariableLayoutReflection* variableLayout,
         json& set,
@@ -481,102 +557,87 @@ private:
         switch (kind)
         {
             case slang::TypeReflection::Kind::SamplerState:
-            case slang::TypeReflection::Kind::Resource:
-            {
-                json binding;
-                binding["name"] = variableLayout->getName();
-                binding["bindingNum"] = currentBinding;
-                binding["descriptorCount"] = 1;
-                binding["stages"] = "All";
-                
-                if (typeLayout->getBindingRangeCount() > 0)
-                {
-                    binding["descriptorType"] = MapDescriptorType(typeLayout->getBindingRangeType(0));
-                }
-                else
-                {
-                    binding["descriptorType"] = "Invalid";
-                }
-                
-                binding["textureType"] = MapTextureType(typeLayout->getResourceShape());
-                binding["isTextureArray"] = IsTextureArray(typeLayout->getResourceShape());
-                binding["bufferMembers"] = json::array();
-                binding["byteSize"] = 0;
-                binding["samplerIndex"] = -1;
-                outBindings.push_back(binding);
-                break;
-            }
-            case slang::TypeReflection::Kind::Struct:
-            {
-                auto fieldCount = typeLayout->getFieldCount();
-                for (unsigned fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
-                {
-                    CollectBindings(typeLayout->getFieldByIndex(fieldIndex), set, parentBinding + bindingOffset, outBindings);
-                }
-                break;
-            }
-            case slang::TypeReflection::Kind::ConstantBuffer:
-            case slang::TypeReflection::Kind::ShaderStorageBuffer:
-            case slang::TypeReflection::Kind::ParameterBlock:
-            {
-                auto elementVarLayout = typeLayout->getElementVarLayout();
-                int size = elementVarLayout->getTypeLayout()->getStride();
-                if (size != 0)
                 {
                     json binding;
                     binding["name"] = variableLayout->getName();
                     binding["bindingNum"] = currentBinding;
                     binding["descriptorCount"] = 1;
-                    binding["stages"] = "All";
-                    
-                    if (typeLayout->getBindingRangeCount() > 0)
-                    {
-                        binding["descriptorType"] = MapDescriptorType(typeLayout->getBindingRangeType(0));
-                    }
+
+                    if (HasComputeEntryPoint())
+                        binding["stages"] = 0b100;
                     else
-                    {
-                        binding["descriptorType"] = "UniformBuffer";
-                    }
-                    
-                    binding["textureType"] = "Invalid";
-                    binding["isTextureArray"] = false;
-                    binding["bufferMembers"] = CollectBufferMembers(elementVarLayout);
-                    binding["byteSize"] = size;
-                    binding["samplerIndex"] = -1;
-                    outBindings.push_back(binding);
-                }
-                CollectBindings(elementVarLayout, set, parentBinding + bindingOffset, outBindings);
-                break;
-            }
-            case slang::TypeReflection::Kind::Array:
-            {
-                if (variableLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
-                {
-                    auto elementTypeLayout = typeLayout->getElementTypeLayout();
-                    json binding;
-                    binding["name"] = variableLayout->getName();
-                    binding["bindingNum"] = currentBinding;
-                    binding["descriptorCount"] = typeLayout->getElementCount();
-                    binding["stages"] = "All";
-                    
-                    if (elementTypeLayout->getBindingRangeCount() > 0)
-                    {
-                        binding["descriptorType"] = MapDescriptorType(elementTypeLayout->getBindingRangeType(0));
-                    }
-                    else
-                    {
-                        binding["descriptorType"] = "Invalid";
-                    }
-                    
-                    binding["textureType"] = MapTextureType(elementTypeLayout->getResourceShape());
-                    binding["isTextureArray"] = IsTextureArray(elementTypeLayout->getResourceShape());
+                        binding["stages"] = 0b11;
+
+                    binding["descriptorType"] = MapDescriptorType(typeLayout->getBindingRangeType(0));
+                    binding["textureType"] = MapTextureType(typeLayout->getResourceShape());
+                    binding["isTextureArray"] = IsTextureArray(typeLayout->getResourceShape());
                     binding["bufferMembers"] = json::array();
                     binding["byteSize"] = 0;
-                    binding["samplerIndex"] = -1;
+                    binding["samplerIndex"] = AddSamplerConfig(set, variableLayout->getType(), binding["name"]);
+
                     outBindings.push_back(binding);
+                    break;
                 }
-                break;
-            }
+            case slang::TypeReflection::Kind::Resource:
+                {
+                    outBindings.push_back(AddBindingAsResource(variableLayout->getName(), variableLayout->getTypeLayout(), set, currentBinding));
+                    break;
+                }
+            case slang::TypeReflection::Kind::Struct:
+                {
+                    auto fieldCount = typeLayout->getFieldCount();
+                    for (unsigned fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                    {
+                        CollectBindings(
+                            typeLayout->getFieldByIndex(fieldIndex),
+                            set,
+                            parentBinding + bindingOffset,
+                            outBindings
+                        );
+                    }
+                    break;
+                }
+            case slang::TypeReflection::Kind::ConstantBuffer:
+            case slang::TypeReflection::Kind::ShaderStorageBuffer:
+            case slang::TypeReflection::Kind::ParameterBlock:
+                {
+                    auto elementVarLayout = typeLayout->getElementVarLayout();
+                    int size = elementVarLayout->getTypeLayout()->getStride();
+                    if (size != 0)
+                    {
+                        json binding;
+                        binding["name"] = variableLayout->getName();
+                        binding["bindingNum"] = currentBinding;
+                        binding["descriptorCount"] = 1;
+
+                        if (HasComputeEntryPoint())
+                            binding["stages"] = 0b100;
+                        else
+                            binding["stages"] = 0b11;
+
+                        binding["descriptorType"] = MapDescriptorType(variableLayout->getTypeLayout()->getBindingRangeType(0));
+
+                        binding["textureType"] = "Invalid";
+                        binding["bufferMembers"] = CollectBufferMembers(elementVarLayout);
+                        binding["byteSize"] = size;
+                        binding["samplerIndex"] = -1;
+
+                        outBindings.push_back(binding);
+                    }
+                    CollectBindings(elementVarLayout, set, parentBinding + bindingOffset, outBindings);
+                    break;
+                }
+            case slang::TypeReflection::Kind::Array:
+                {
+                    if (variableLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
+                    {
+                        auto elementTypeLayout = variableLayout->getTypeLayout()->getElementTypeLayout();
+                        auto binding = AddBindingAsResource(variableLayout->getName(), elementTypeLayout, set, currentBinding);
+                        binding["descriptorCount"] = variableLayout->getTypeLayout()->getElementCount();
+                        outBindings.push_back(binding);
+                    }
+                    break;
+                }
             default:
                 break;
         }
@@ -609,6 +670,11 @@ private:
         pipelineInfo["descriptorSets"].push_back(set);
     }
 
+    void ErrorReport(const char* message)
+    {
+        throw std::runtime_error(message);
+    }
+
     void CollectSets(slang::VariableLayoutReflection* scopeVarLayout, json& pipelineInfo)
     {
         auto scopeTypeLayout = scopeVarLayout->getTypeLayout();
@@ -632,12 +698,13 @@ private:
                         if (param->getCategory() == slang::ParameterCategory::PushConstantBuffer)
                         {
                             json pushConstant;
-                            pushConstant["stages"] = "All";
+                            pushConstant["stages"] = 0b111; // https://github.com/shader-slang/slang/issues/5685
                             pushConstant["size"] = param->getTypeLayout()->getElementTypeLayout()->getSize();
                             pipelineInfo["pushConstants"].push_back(pushConstant);
                         }
                         break;
                     default:
+                        ErrorReport("Not handled parameter kind in CollectSets");
                         break;
                 }
             }
@@ -680,7 +747,10 @@ private:
 
             bool used = false;
             metadataForEntryPoints[vertexEntryPointIndex]->isParameterLocationUsed(
-                SLANG_PARAMETER_CATEGORY_VERTEX_INPUT, 0, vertexAttribute["location"].get<int>(), used
+                SLANG_PARAMETER_CATEGORY_VERTEX_INPUT,
+                0,
+                vertexAttribute["location"].get<int>(),
+                used
             );
             if (!used)
                 return;
@@ -759,7 +829,7 @@ private:
         std::regex end("\\s*#endif\\s*");
         f.seekg(0, std::ios::beg);
         while (f.getline(line, MAX_LENGTH))
-        {
+        { // find #if|ifdef CONFIG
             if (std::regex_match(line, begin))
             {
                 while (f.getline(line, MAX_LENGTH))
@@ -769,41 +839,583 @@ private:
                         yamlConfig << line << '\n';
                     }
                     else
-                    {
-                        delete[] line;
-                        return yamlConfig;
-                    }
+                        goto yamlEnd;
                 }
             }
         }
-        delete[] line;
+    yamlEnd:
         return yamlConfig;
     }
 
-    json GetPipelineConfig(slang::IModule* module)
+    int MapBlendFactor(const std::string& str)
+    {
+        if (str == "zero")
+            return 0;
+        if (str == "one")
+            return 1;
+        if (str == "srcColor")
+            return 2;
+        if (str == "oneMinusSrcColor")
+            return 3;
+        if (str == "dstColor")
+            return 4;
+        if (str == "oneMinusDstColor")
+            return 5;
+        if (str == "srcAlpha")
+            return 6;
+        if (str == "oneMinusSrcAlpha")
+            return 7;
+        if (str == "dstAlpha")
+            return 8;
+        if (str == "oneMinusDstAlpha")
+            return 9;
+        if (str == "constantColor")
+            return 10;
+        if (str == "oneMinusConstantColor")
+            return 11;
+        if (str == "constantAlpha")
+            return 12;
+        if (str == "oneMinusConstantAlpha")
+            return 13;
+        if (str == "srcAlphaSaturate")
+            return 14;
+        if (str == "src1Color")
+            return 15;
+        if (str == "oneMinusSrc1Color")
+            return 16;
+        if (str == "src1Alpha")
+            return 17;
+        if (str == "oneMinusSrc1Alpha")
+            return 18;
+        return 6; // Src_Alpha
+    }
+
+    int MapCullMode(const std::string& str)
+    {
+        if (str == "none" || str == "off")
+            return 0;
+        if (str == "front")
+            return 1;
+        if (str == "back")
+            return 2;
+        if (str == "both")
+            return 3;
+        return 2; // Back
+    }
+
+    int MapBlendOp(const std::string& str)
+    {
+        if (str == "add")
+            return 0;
+        if (str == "subtract")
+            return 1;
+        if (str == "reverseSubtract")
+            return 2;
+        if (str == "min")
+            return 3;
+        if (str == "max")
+            return 4;
+        return 0; // Add
+    }
+
+    int MapCompareOp(const std::string& str)
+    {
+        if (str == "never")
+            return 0;
+        if (str == "less")
+            return 1;
+        if (str == "equal")
+            return 2;
+        if (str == "lessOrEqual")
+            return 3;
+        if (str == "greater")
+            return 4;
+        if (str == "notEqual")
+            return 5;
+        if (str == "greaterOrEqual")
+            return 6;
+        if (str == "always")
+            return 7;
+        return 7; // Always
+    }
+
+    int MapStencilOp(const std::string& str)
+    {
+        if (str == "keep")
+            return 0;
+        if (str == "zero")
+            return 1;
+        if (str == "replace")
+            return 2;
+        if (str == "incrementAndClamp")
+            return 3;
+        if (str == "decrementAndClamp")
+            return 4;
+        if (str == "invert")
+            return 5;
+        if (str == "incrementAndWrap")
+            return 6;
+        if (str == "decrementAndWrap")
+            return 7;
+        return 0; // Keep
+    }
+
+    int MapPolygonMode(const std::string& str)
+    {
+        if (str == "fill")
+            return 0;
+        if (str == "line")
+            return 1;
+        if (str == "point")
+            return 2;
+        return 0; // Fill
+    }
+
+    int MapTopology(const std::string& str)
+    {
+        if (str == "triangleList")
+            return 0;
+        if (str == "triangleStrip")
+            return 1;
+        if (str == "lineStrip")
+            return 2;
+        if (str == "lineList")
+            return 3;
+        return 0; // TriangleList
+    }
+
+    int MapColorMask(const std::string& str)
+    {
+        int mask = 0;
+        if (str.find("R") != std::string::npos)
+            mask |= 1;
+        if (str.find("G") != std::string::npos)
+            mask |= 2;
+        if (str.find("B") != std::string::npos)
+            mask |= 4;
+        if (str.find("A") != std::string::npos)
+            mask |= 8;
+        return mask;
+    }
+
+    int StringToShaderDynamicState(const std::string& str)
+    {
+        if (str == "DepthBiasEnable")
+            return 2;
+        if (str == "DepthBias")
+            return 4;
+        return 0;
+    }
+
+    std::string ShaderDynamicStateToString(int state)
+    {
+        if (state == 0)
+            return "None";
+        if (state == 2)
+            return "DepthBiasEnable";
+        if (state == 4)
+            return "DepthBias";
+        if (state == 6)
+            return "DepthBiasEnable|DepthBias";
+        return "None";
+    }
+
+    json MapPipelineConfig(ryml::Tree& tree, json& info)
     {
         json config;
-        config["cullMode"] = 2;  // Back
-        config["topology"] = 0;  // TriangleList
-        config["polygonMode"] = 0;  // Fill
-        config["depth"] = {
-            {"writeEnable", true},
-            {"testEnable", true},
-            {"compOp", 6},  // Greater_Or_Equal
-            {"boundTestEnable", false},
-            {"minBounds", 0.0},
-            {"maxBounds", 1.0}
-        };
-        config["stencil"] = {
-            {"testEnable", false},
-            {"front", {{"failOp", 0}, {"passOp", 0}, {"depthFailOp", 0}, {"compareOp", 7}, {"compareMask", 0}, {"writeMask", 0}, {"reference", 0}}},
-            {"back", {{"failOp", 0}, {"passOp", 0}, {"depthFailOp", 0}, {"compareOp", 7}, {"compareMask", 0}, {"writeMask", 0}, {"reference", 0}}}
-        };
         config["color"] = {
             {"blends", json::array()},
             {"blendConstants", {1.0, 1.0, 1.0, 1.0}}
         };
+        config["depth"] = {
+            {"boundTestEnable", false}
+        };
 
+        ryml::NodeRef root = tree.rootref();
+        if (root.empty())
+            return config;
+
+        bool isVertexInterleaved = false;
+        if (root.has_child("interleaved"))
+            root["interleaved"] >> isVertexInterleaved;
+        info["isVertexInterleaved"] = isVertexInterleaved;
+
+        if (root.has_child("dynamicState"))
+        {
+            const auto& dynamicStateArray = root["dynamicState"];
+            int finalVal = 0;
+            if (dynamicStateArray.is_seq())
+            {
+                for (const ryml::ConstNodeRef& val : dynamicStateArray)
+                {
+                    std::string str;
+                    val >> str;
+                    finalVal |= StringToShaderDynamicState(str);
+                }
+            }
+            info["shaderDynamicStateFlags"] = finalVal;
+        }
+
+        if (root.has_child("input"))
+        {
+            if (root["input"].is_map())
+            {
+                // Not used in config, just parsing
+            }
+        }
+
+        if (root.has_child("mask"))
+        {
+            if (root["mask"].is_seq())
+            {
+                throw std::runtime_error("Multiple render target mask not implemented");
+            }
+            else
+            {
+                std::string val;
+                root["mask"] >> val;
+                json state;
+                state["colorWriteMask"] = MapColorMask(val);
+                state["blendEnable"] = false;     // Default
+                state["srcColorBlendFactor"] = 6; // SrcAlpha
+                state["dstColorBlendFactor"] = 7; // OneMinusSrcAlpha
+                state["colorBlendOp"] = 0;        // Add
+                state["srcAlphaBlendFactor"] = 6;
+                state["dstAlphaBlendFactor"] = 7;
+                state["alphaBlendOp"] = 0;
+                config["color"]["blends"].push_back(state);
+            }
+        }
+
+        if (root.has_child("polygonMode"))
+        {
+            std::string val;
+            root["polygonMode"] >> val;
+            config["polygonMode"] = MapPolygonMode(val);
+        }
+
+        if (root.has_child("topology"))
+        {
+            std::string val;
+            root["topology"] >> val;
+            config["topology"] = MapTopology(val);
+        }
+
+        if (root.has_child("blend"))
+        {
+            if (root["blend"].is_seq())
+            {
+                int i = 0;
+                for (const ryml::NodeRef& iter : root["blend"])
+                {
+                    if (iter.is_val())
+                    {
+                        if (i >= config["color"]["blends"].size())
+                        {
+                            json state;
+                            state["blendEnable"] = false;
+                            state["colorWriteMask"] = 15; // All
+                            state["srcColorBlendFactor"] = 6;
+                            state["dstColorBlendFactor"] = 7;
+                            state["colorBlendOp"] = 0;
+                            state["srcAlphaBlendFactor"] = 6;
+                            state["dstAlphaBlendFactor"] = 7;
+                            state["alphaBlendOp"] = 0;
+                            config["color"]["blends"].push_back(state);
+                        }
+
+                        json& state = config["color"]["blends"][i];
+                        std::string val;
+                        iter >> val;
+
+                        std::regex blendWithColorPattern("(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)");
+                        std::regex blendPattern("(\\w+)\\s+(\\w+)");
+                        std::smatch m;
+                        if (std::regex_match(val, m, blendWithColorPattern))
+                        {
+                            state["blendEnable"] = true;
+                            state["srcColorBlendFactor"] = MapBlendFactor(m[1].str());
+                            state["srcAlphaBlendFactor"] = MapBlendFactor(m[2].str());
+                            state["dstColorBlendFactor"] = MapBlendFactor(m[3].str());
+                            state["dstAlphaBlendFactor"] = MapBlendFactor(m[4].str());
+                        }
+                        else if (std::regex_match(val, m, blendPattern))
+                        {
+                            state["blendEnable"] = true;
+                            int src = MapBlendFactor(m[1].str());
+                            int dst = MapBlendFactor(m[2].str());
+                            state["srcAlphaBlendFactor"] = src;
+                            state["dstAlphaBlendFactor"] = dst;
+                            state["srcColorBlendFactor"] = src;
+                            state["dstColorBlendFactor"] = dst;
+
+                            if (src == 1 && dst == 0) // One, Zero
+                                state["blendEnable"] = false;
+                        }
+                    }
+                    i++;
+                }
+            }
+        }
+
+        if (root.has_child("blendOp"))
+        {
+            if (root["blendOp"].is_seq())
+            {
+                int i = 0;
+                for (const ryml::NodeRef& iter : root["blendOp"])
+                {
+                    if (i >= config["color"]["blends"].size())
+                        break;
+
+                    std::regex alphaOnly("(\\w+)");
+                    std::regex withColor("(\\w+)\\s+(\\w+)");
+
+                    std::string val;
+                    iter >> val;
+
+                    std::smatch m;
+                    if (std::regex_match(val, m, withColor))
+                    {
+                        config["color"]["blends"][i]["colorBlendOp"] = MapBlendOp(m[1].str());
+                        config["color"]["blends"][i]["alphaBlendOp"] = MapBlendOp(m[2].str());
+                    }
+                    else if (std::regex_match(val, m, alphaOnly))
+                    {
+                        int op = MapBlendOp(m[1].str());
+                        config["color"]["blends"][i]["alphaBlendOp"] = op;
+                        config["color"]["blends"][i]["colorBlendOp"] = op;
+                    }
+                    i++;
+                }
+            }
+        }
+
+        if (root.has_child("cull"))
+        {
+            std::string val;
+            if (root["cull"].is_keyval())
+            {
+                root["cull"] >> val;
+                config["cullMode"] = MapCullMode(val);
+            }
+        }
+
+        if (root.has_child("depth"))
+        {
+            auto depth = root["depth"];
+            bool testEnable = true;
+            bool writeEnable = true;
+            if (depth.has_child("testEnable"))
+                depth["testEnable"] >> testEnable;
+            if (depth.has_child("writeEnable"))
+                depth["writeEnable"] >> writeEnable;
+            config["depth"]["testEnable"] = testEnable;
+            config["depth"]["writeEnable"] = writeEnable;
+
+            std::string compOp = "greaterOrEqual";
+            if (depth.has_child("compOp"))
+                depth["compOp"] >> compOp;
+            config["depth"]["compOp"] = MapCompareOp(compOp);
+
+            bool boundTestEnable = false;
+            if (depth.has_child("boundTestEnable"))
+                depth["boundTestEnable"] >> boundTestEnable;
+            config["depth"]["boundTestEnable"] = boundTestEnable;
+
+            if (depth.has_child("minBounds"))
+            {
+                float val;
+                depth["minBounds"] >> val;
+                config["depth"]["minBounds"] = val;
+            }
+            if (depth.has_child("maxBounds"))
+            {
+                float val;
+                depth["maxBounds"] >> val;
+                config["depth"]["maxBounds"] = val;
+            }
+            if (depth.has_child("depthBias"))
+            {
+                float val;
+                depth["depthBias"] >> val;
+                config["depth"]["depthBias"] = val;
+            }
+            if (depth.has_child("depthSlopBias"))
+            {
+                float val;
+                depth["depthSlopBias"] >> val;
+                config["depth"]["depthSlopBias"] = val;
+            }
+        }
+
+        if (root.has_child("stencil"))
+        {
+            auto stencil = root["stencil"];
+            bool testEnable = false;
+            if (stencil.has_child("testEnable"))
+                stencil["testEnable"] >> testEnable;
+            config["stencil"]["testEnable"] = testEnable;
+
+            if (!stencil.has_child("front") && !stencil.has_child("back"))
+            {
+                std::string failOp = "keep", passOp = "keep", depthFailOp = "keep", compareOp = "never";
+                if (stencil.has_child("failOp"))
+                    stencil["failOp"] >> failOp;
+                if (stencil.has_child("passOp"))
+                    stencil["passOp"] >> passOp;
+                if (stencil.has_child("depthFailOp"))
+                    stencil["depthFailOp"] >> depthFailOp;
+                if (stencil.has_child("compareOp"))
+                    stencil["compareOp"] >> compareOp;
+
+                json front, back;
+                front["failOp"] = back["failOp"] = MapStencilOp(failOp);
+                front["passOp"] = back["passOp"] = MapStencilOp(passOp);
+                front["depthFailOp"] = back["depthFailOp"] = MapStencilOp(depthFailOp);
+                front["compareOp"] = back["compareOp"] = MapCompareOp(compareOp);
+
+                int compareMask = 0, writeMask = 0, reference = 0;
+                if (stencil.has_child("compareMask"))
+                    stencil["compareMask"] >> compareMask;
+                if (stencil.has_child("writeMask"))
+                    stencil["writeMask"] >> writeMask;
+                if (stencil.has_child("reference"))
+                    stencil["reference"] >> reference;
+
+                front["compareMask"] = back["compareMask"] = compareMask;
+                front["writeMask"] = back["writeMask"] = writeMask;
+                front["reference"] = back["reference"] = reference;
+
+                config["stencil"]["front"] = front;
+                config["stencil"]["back"] = back;
+            }
+            else
+            {
+                if (stencil.has_child("front"))
+                {
+                    auto src = stencil["front"];
+                    json dst;
+                    std::string val;
+                    if (src.has_child("failOp"))
+                    {
+                        src["failOp"] >> val;
+                        dst["failOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["failOp"] = 0;
+                    if (src.has_child("passOp"))
+                    {
+                        src["passOp"] >> val;
+                        dst["passOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["passOp"] = 0;
+                    if (src.has_child("depthFailOp"))
+                    {
+                        src["depthFailOp"] >> val;
+                        dst["depthFailOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["depthFailOp"] = 0;
+                    if (src.has_child("compareOp"))
+                    {
+                        src["compareOp"] >> val;
+                        dst["compareOp"] = MapCompareOp(val);
+                    }
+                    else
+                        dst["compareOp"] = 7;
+
+                    int iVal;
+                    if (src.has_child("compareMask"))
+                    {
+                        src["compareMask"] >> iVal;
+                        dst["compareMask"] = iVal;
+                    }
+                    else
+                        dst["compareMask"] = 0;
+                    if (src.has_child("writeMask"))
+                    {
+                        src["writeMask"] >> iVal;
+                        dst["writeMask"] = iVal;
+                    }
+                    else
+                        dst["writeMask"] = 0;
+                    if (src.has_child("reference"))
+                    {
+                        src["reference"] >> iVal;
+                        dst["reference"] = iVal;
+                    }
+                    else
+                        dst["reference"] = 0;
+                    config["stencil"]["front"] = dst;
+                }
+                if (stencil.has_child("back"))
+                {
+                    auto src = stencil["back"];
+                    json dst;
+                    std::string val;
+                    if (src.has_child("failOp"))
+                    {
+                        src["failOp"] >> val;
+                        dst["failOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["failOp"] = 0;
+                    if (src.has_child("passOp"))
+                    {
+                        src["passOp"] >> val;
+                        dst["passOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["passOp"] = 0;
+                    if (src.has_child("depthFailOp"))
+                    {
+                        src["depthFailOp"] >> val;
+                        dst["depthFailOp"] = MapStencilOp(val);
+                    }
+                    else
+                        dst["depthFailOp"] = 0;
+                    if (src.has_child("compareOp"))
+                    {
+                        src["compareOp"] >> val;
+                        dst["compareOp"] = MapCompareOp(val);
+                    }
+                    else
+                        dst["compareOp"] = 7;
+
+                    int iVal;
+                    if (src.has_child("compareMask"))
+                    {
+                        src["compareMask"] >> iVal;
+                        dst["compareMask"] = iVal;
+                    }
+                    else
+                        dst["compareMask"] = 0;
+                    if (src.has_child("writeMask"))
+                    {
+                        src["writeMask"] >> iVal;
+                        dst["writeMask"] = iVal;
+                    }
+                    else
+                        dst["writeMask"] = 0;
+                    if (src.has_child("reference"))
+                    {
+                        src["reference"] >> iVal;
+                        dst["reference"] = iVal;
+                    }
+                    else
+                        dst["reference"] = 0;
+                    config["stencil"]["back"] = dst;
+                }
+            }
+        }
+
+        return config;
+    }
+
+    json GetPipelineConfig(slang::IModule* module, json& pipelineInfo)
+    {
         // Try to parse YAML config from shader file
         auto filePath = module->getFilePath();
         std::ifstream file(filePath);
@@ -818,64 +1430,37 @@ private:
                 try
                 {
                     ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlStr));
-                    ryml::NodeRef root = tree.rootref();
-                    if (!root.empty())
-                    {
-                        // Parse cull mode
-                        if (root.has_child("cull"))
-                        {
-                            std::string val;
-                            root["cull"] >> val;
-                            if (val == "none" || val == "off")
-                                config["cullMode"] = 0;
-                            else if (val == "front")
-                                config["cullMode"] = 1;
-                            else if (val == "back")
-                                config["cullMode"] = 2;
-                        }
-
-                        // Parse depth
-                        if (root.has_child("depth"))
-                        {
-                            auto depth = root["depth"];
-                            bool testEnable = true, writeEnable = true;
-                            depth.get_if("testEnable", &testEnable);
-                            depth.get_if("writeEnable", &writeEnable);
-                            config["depth"]["testEnable"] = testEnable;
-                            config["depth"]["writeEnable"] = writeEnable;
-                        }
-
-                        // Parse blend
-                        if (root.has_child("blend"))
-                        {
-                            // Simplified blend parsing
-                            config["color"]["blends"] = json::array();
-                            if (root["blend"].is_seq())
-                            {
-                                for (const ryml::NodeRef& iter : root["blend"])
-                                {
-                                    json blendState;
-                                    blendState["blendEnable"] = true;
-                                    blendState["srcColorBlendFactor"] = 6;  // SrcAlpha
-                                    blendState["dstColorBlendFactor"] = 7;  // OneMinusSrcAlpha
-                                    blendState["colorBlendOp"] = 0;
-                                    blendState["srcAlphaBlendFactor"] = 6;
-                                    blendState["dstAlphaBlendFactor"] = 7;
-                                    blendState["alphaBlendOp"] = 0;
-                                    blendState["colorWriteMask"] = 15;
-                                    config["color"]["blends"].push_back(blendState);
-                                }
-                            }
-                        }
-                    }
+                    return MapPipelineConfig(tree, pipelineInfo);
                 }
-                catch (...)
+                catch (const std::exception& e)
                 {
-                    // Keep default config on parse error
+                    std::cerr << "Error parsing YAML config: " << e.what() << std::endl;
                 }
             }
         }
 
+        // Return default config if no YAML found or error
+        json config;
+        config["cullMode"] = 2;    // Back
+        config["topology"] = 0;    // TriangleList
+        config["polygonMode"] = 0; // Fill
+        config["depth"] = {
+            {"writeEnable", true},
+            {"testEnable", true},
+            {"compOp", 6},
+            {"boundTestEnable", false},
+            {"minBounds", 0.0},
+            {"maxBounds", 1.0}
+        };
+        config["stencil"] = {
+            {"testEnable", false},
+            {"front", {{"failOp", 0}, {"passOp", 0}, {"depthFailOp", 0}, {"compareOp", 7}, {"compareMask", 0}, {"writeMask", 0}, {"reference", 0}}},
+            {"back", {{"failOp", 0}, {"passOp", 0}, {"depthFailOp", 0}, {"compareOp", 7}, {"compareMask", 0}, {"writeMask", 0}, {"reference", 0}}}
+        };
+        config["color"] = {
+            {"blends", json::array()},
+            {"blendConstants", {1.0, 1.0, 1.0, 1.0}}
+        };
         return config;
     }
 };
@@ -883,12 +1468,7 @@ private:
 int main(int argc, char* argv[])
 {
     po::options_description desc("Shader Compiler Tool Options");
-    desc.add_options()
-        ("help,h", "Show help message")
-        ("shader,s", po::value<std::string>(), "Shader name (module name, not file path)")
-        ("output,o", po::value<std::string>(), "Output directory for compiled files")
-        ("shader-root,r", po::value<std::string>(), "Root directory for shader sources")
-        ("features,f", po::value<std::string>()->default_value(""), "Comma-separated list of enabled features");
+    desc.add_options()("help,h", "Show help message")("shader,s", po::value<std::string>(), "Shader name (module name, not file path)")("output,o", po::value<std::string>(), "Output directory for compiled files")("shader-root,r", po::value<std::string>(), "Root directory for shader sources")("features,f", po::value<std::string>()->default_value(""), "Comma-separated list of enabled features");
 
     po::variables_map vm;
     try

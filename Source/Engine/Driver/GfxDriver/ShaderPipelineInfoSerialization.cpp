@@ -160,7 +160,7 @@ void from_json(const nlohmann::json& j, ShaderPipelineInfo::DescriptorSet& set)
 {
     set.name = j.value("name", "");
     set.setNum = j.value("setNum", 0);
-    set.semantics = static_cast<DescriptorSetSemantics>(j.value("semantics", static_cast<int>(DescriptorSetSemantics::Global)));
+    set.semantics = StringToDescriptorSetSemantics(j.value("semantics", std::string("Global")));
     if (j.contains("bindings"))
         set.bindings = j["bindings"].get<std::vector<ShaderPipelineInfo::Binding>>();
     if (j.contains("samplerConfigs"))
