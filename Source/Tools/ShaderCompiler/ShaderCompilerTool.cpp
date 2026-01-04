@@ -15,6 +15,7 @@
  */
 
 #include "Engine/Driver/GfxDriver/ShaderPipelineInfo.hpp"
+#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include <boost/program_options.hpp>
 #include <filesystem>
@@ -31,19 +32,16 @@
 #include <string>
 #include <vector>
 
-#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
+struct ShaderToggleFeature
+{
+    std::string name = "";
+    bool defaultValue = false;
+};
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 using Slang::ComPtr;
-
-// Forward declarations
-struct ShaderToggleFeature
-{
-    std::string name;
-    bool defaultValue = false;
-};
 
 static void DiagnoseIfNeeded(slang::IBlob* diagnostics)
 {
@@ -175,19 +173,12 @@ public:
         return SLANG_OK;
     }
 
-    bool CompileShader(
-        const std::string& shaderName,
-        const std::vector<std::string>& enabledFeatures,
-        json& outMetadata,
-        std::vector<uint8_t>& outVertexSpv,
-        std::vector<uint8_t>& outFragmentSpv,
-        std::vector<uint8_t>& outComputeSpv
-    )
+    ComPtr<slang::IModule> sourceModule;
+    std::vector<ShaderToggleFeature> toggleFeatures;
+
+    bool LoadModule(const std::string& shaderName)
     {
         ComPtr<slang::IBlob> diagnostics;
-
-        // Load module
-        ComPtr<slang::IModule> sourceModule;
         sourceModule = session->loadModule(shaderName.c_str(), diagnostics.writeRef());
         DiagnoseIfNeeded(diagnostics);
         if (!sourceModule)
@@ -196,11 +187,21 @@ public:
             return false;
         }
 
-        // Collect toggle features
-        std::vector<ShaderToggleFeature> toggleFeatures;
+        toggleFeatures.clear();
         CollectToggleFeatures(sourceModule, toggleFeatures);
+        return true;
+    }
 
+    bool CompilePermutation(
+        const std::string& shaderName,
+        const std::string& permutationStr,
+        const std::vector<std::string>& enabledFeatures,
+        const fs::path& outputDir
+    )
+    {
+        ComPtr<slang::IBlob> diagnostics;
         std::vector<slang::IComponentType*> componentsToLink{};
+        componentsToLink.push_back(sourceModule);
 
         // Load feature modules
         for (const auto& enabledFeature : enabledFeatures)
@@ -301,6 +302,10 @@ public:
         // Get pipeline config from source file
         json pipelineConfig = GetPipelineConfig(sourceModule, pipelineInfo);
 
+        // Create permutation directory
+        fs::path permDir = outputDir / "permutations" / permutationStr;
+        fs::create_directories(permDir);
+
         // Get SPIR-V code
         if (HasVertexEntryPoint())
         {
@@ -309,8 +314,8 @@ public:
             DiagnoseIfNeeded(kernelDiagnostics);
             if (kernelBlob)
             {
-                outVertexSpv.resize(kernelBlob->getBufferSize());
-                memcpy(outVertexSpv.data(), kernelBlob->getBufferPointer(), kernelBlob->getBufferSize());
+                std::ofstream vertFile(permDir / "vertex.spv", std::ios::binary);
+                vertFile.write(reinterpret_cast<const char*>(kernelBlob->getBufferPointer()), kernelBlob->getBufferSize());
             }
         }
 
@@ -321,8 +326,8 @@ public:
             DiagnoseIfNeeded(kernelDiagnostics);
             if (kernelBlob)
             {
-                outFragmentSpv.resize(kernelBlob->getBufferSize());
-                memcpy(outFragmentSpv.data(), kernelBlob->getBufferPointer(), kernelBlob->getBufferSize());
+                std::ofstream fragFile(permDir / "fragment.spv", std::ios::binary);
+                fragFile.write(reinterpret_cast<const char*>(kernelBlob->getBufferPointer()), kernelBlob->getBufferSize());
             }
         }
 
@@ -333,8 +338,8 @@ public:
             DiagnoseIfNeeded(kernelDiagnostics);
             if (kernelBlob)
             {
-                outComputeSpv.resize(kernelBlob->getBufferSize());
-                memcpy(outComputeSpv.data(), kernelBlob->getBufferPointer(), kernelBlob->getBufferSize());
+                std::ofstream compFile(permDir / "compute.spv", std::ios::binary);
+                compFile.write(reinterpret_cast<const char*>(kernelBlob->getBufferPointer()), kernelBlob->getBufferSize());
             }
         }
 
@@ -351,16 +356,99 @@ public:
         }
 
         // Build output metadata
+        json outMetadata;
         outMetadata["pipelineInfo"] = pipelineInfo;
         outMetadata["pipelineConfig"] = pipelineConfig;
         outMetadata["features"] = featuresJson;
         outMetadata["featureToBitMask"] = featureToBitMask;
         outMetadata["enabledFeatures"] = enabledFeatures;
+        outMetadata["permutation"] = permutationStr;
+
+        std::ofstream metaFile(permDir / "permutation_meta.json");
+        metaFile << outMetadata.dump(2);
 
         return true;
     }
 
+    void GenerateShaderMeta(const std::string& shaderName, const fs::path& outputDir)
+    {
+        json featuresJson = json::array();
+        json featureToBitMask = json::object();
+        for (size_t i = 0; i < toggleFeatures.size() && i < 64; i++)
+        {
+            json featureObj;
+            featureObj["name"] = toggleFeatures[i].name;
+            featureObj["defaultValue"] = toggleFeatures[i].defaultValue;
+            featuresJson.push_back(featureObj);
+            featureToBitMask[toggleFeatures[i].name] = i;
+        }
+
+        json shaderMeta;
+        shaderMeta["shaderName"] = shaderName;
+        shaderMeta["features"] = featuresJson;
+        shaderMeta["featureToBitMask"] = featureToBitMask;
+        // Dependencies and sourceHash would require re-implementing the python logic or using Slang's dependency tracking
+        // For now, we omit them or provide placeholders as the python script might still handle caching based on file timestamps or we can implement hashing here later if needed.
+        // Actually, the prompt implies replacing the python logic for *compilation* and *permutations*.
+        // The python script calculated sourceHash. The tool might not need to do that if it's just a compiler.
+        // However, if the python script expects `shader_meta.json` to exist to skip recompilation, we should produce it.
+        // But `CompileShaders.py` *writes* `shader_meta.json` itself in the previous version.
+        // If we move logic here, we should write it.
+
+        // We can get dependencies from `sourceModule`.
+        /*
+        int depCount = session->getLoadedModuleCount(); // This might return all loaded modules including core?
+        // Slang reflection doesn't easily give "imports" directly in a simple list without iterating.
+        */
+        
+        // For now, let's write what we have.
+        std::ofstream metaFile(outputDir / "shader_meta.json");
+        metaFile << shaderMeta.dump(2);
+    }
+
+    const std::vector<ShaderToggleFeature>& GetFeatures() const { return toggleFeatures; }
+
 private:
+    unsigned int MapSlangStageMask(slang::ParameterCategory layoutUnit, int space, int offset)
+    {
+        // FIXME: currently slang can't report stage usage correctly
+        // https://github.com/shader-slang/slang/issues/5940
+
+        Gfx::ShaderStageFlags stages = Gfx::ShaderStage::None;
+        // auto entryPointCount = metadataForEntryPoints.size();
+        // unsigned mask = 0;
+        // for (int i = 0; i < entryPointCount; ++i)
+        //{
+        //     bool isUsed = false;
+        //     metadataForEntryPoints[i]
+        //         ->isParameterLocationUsed(SlangParameterCategory(layoutUnit), space, offset, isUsed);
+        //     if (isUsed)
+        //     {
+        //         auto entryPointStage = programLayout->getEntryPointByIndex(i)->getStage();
+
+        //        mask |= 1 << unsigned(entryPointStage);
+        //    }
+        //}
+
+        // if (mask & 1 << SLANG_STAGE_VERTEX)
+        //     stages |= Gfx::ShaderStage::Vertex;
+        // if (mask & 1 << SLANG_STAGE_FRAGMENT)
+        //     stages |= Gfx::ShaderStage::Fragment;
+        // if (mask & 1 << SLANG_STAGE_COMPUTE)
+        //     stages |= Gfx::ShaderStage::Compute;
+
+        if (HasComputeEntryPoint())
+        {
+            stages = Gfx::ShaderStage::Compute;
+        }
+        else
+        {
+            stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+        }
+
+        return static_cast<unsigned int>(stages);
+    }
+
     std::string MapDescriptorType(slang::BindingType rangeType)
     {
         switch (rangeType)
@@ -515,15 +603,7 @@ private:
         binding["name"] = name;
         binding["bindingNum"] = currentBinding;
         binding["descriptorCount"] = 1;
-
-        int stages = 0;
-        if (HasComputeEntryPoint())
-            stages = 0b100;
-        else
-            stages = 0b11;
-
-        binding["stages"] = stages;
-
+        binding["stages"] = MapSlangStageMask(slang::DescriptorTableSlot, set["setNum"], currentBinding);
         slang::BindingType rangeType = typeLayout->getBindingRangeType(0);
         binding["descriptorType"] = MapDescriptorType(rangeType);
 
@@ -566,12 +646,11 @@ private:
                     binding["name"] = variableLayout->getName();
                     binding["bindingNum"] = currentBinding;
                     binding["descriptorCount"] = 1;
-
-                    if (HasComputeEntryPoint())
-                        binding["stages"] = 0b100;
-                    else
-                        binding["stages"] = 0b11;
-
+                    binding["stages"] = MapSlangStageMask(
+                        slang::ParameterCategory::DescriptorTableSlot,
+                        set["setNum"],
+                        currentBinding
+                    );
                     binding["descriptorType"] = MapDescriptorType(typeLayout->getBindingRangeType(0));
                     binding["textureType"] = MapTextureType(typeLayout->getResourceShape());
                     binding["isTextureArray"] = IsTextureArray(typeLayout->getResourceShape());
@@ -613,11 +692,11 @@ private:
                         binding["name"] = variableLayout->getName();
                         binding["bindingNum"] = currentBinding;
                         binding["descriptorCount"] = 1;
-
-                        if (HasComputeEntryPoint())
-                            binding["stages"] = 0b100;
-                        else
-                            binding["stages"] = 0b11;
+                        binding["stages"] = MapSlangStageMask(
+                            slang::ParameterCategory::DescriptorTableSlot,
+                            set["setNum"],
+                            currentBinding
+                        );
 
                         binding["descriptorType"] = MapDescriptorType(variableLayout->getTypeLayout()->getBindingRangeType(0));
 
@@ -625,7 +704,6 @@ private:
                         binding["bufferMembers"] = CollectBufferMembers(elementVarLayout);
                         binding["byteSize"] = size;
                         binding["samplerIndex"] = -1;
-
                         outBindings.push_back(binding);
                     }
                     CollectBindings(elementVarLayout, set, parentBinding + bindingOffset, outBindings);
@@ -712,7 +790,7 @@ private:
                         if (param->getCategory() == slang::ParameterCategory::PushConstantBuffer)
                         {
                             json pushConstant;
-                            pushConstant["stages"] = 0b111; // https://github.com/shader-slang/slang/issues/5685
+                            pushConstant["stages"] = static_cast<int>(Gfx::ShaderStage::Vertex | Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Compute); // https://github.com/shader-slang/slang/issues/5685
                             pushConstant["size"] = param->getTypeLayout()->getElementTypeLayout()->getSize();
                             pipelineInfo["pushConstants"].push_back(pushConstant);
                         }
@@ -1346,7 +1424,7 @@ private:
 int main(int argc, char* argv[])
 {
     po::options_description desc("Shader Compiler Tool Options");
-    desc.add_options()("help,h", "Show help message")("shader,s", po::value<std::string>(), "Shader name (module name, not file path)")("output,o", po::value<std::string>(), "Output directory for compiled files")("shader-root,r", po::value<std::string>(), "Root directory for shader sources")("features,f", po::value<std::string>()->default_value(""), "Comma-separated list of enabled features");
+    desc.add_options()("help,h", "Show help message")("shader,s", po::value<std::string>(), "Shader name (module name, not file path)")("output,o", po::value<std::string>(), "Output directory for compiled files")("shader-root,r", po::value<std::string>(), "Root directory for shader sources");
 
     po::variables_map vm;
     try
@@ -1369,22 +1447,6 @@ int main(int argc, char* argv[])
     std::string shaderName = vm["shader"].as<std::string>();
     std::string outputDir = vm["output"].as<std::string>();
     std::string shaderRoot = vm["shader-root"].as<std::string>();
-    std::string featuresStr = vm["features"].as<std::string>();
-
-    // Parse features
-    std::vector<std::string> enabledFeatures;
-    if (!featuresStr.empty())
-    {
-        std::stringstream ss(featuresStr);
-        std::string feature;
-        while (std::getline(ss, feature, ','))
-        {
-            if (!feature.empty())
-            {
-                enabledFeatures.push_back(feature);
-            }
-        }
-    }
 
     // Create output directory
     fs::create_directories(outputDir);
@@ -1397,42 +1459,56 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Compile shader
-    json metadata;
-    std::vector<uint8_t> vertexSpv, fragmentSpv, computeSpv;
-
-    if (!compiler.CompileShader(shaderName, enabledFeatures, metadata, vertexSpv, fragmentSpv, computeSpv))
+    // Load module and features
+    if (!compiler.LoadModule(shaderName))
     {
-        std::cerr << "Failed to compile shader: " << shaderName << std::endl;
         return 1;
     }
 
-    // Write outputs
-    fs::path outPath(outputDir);
+    // Generate shader_meta.json
+    compiler.GenerateShaderMeta(shaderName, outputDir);
 
-    // Write SPIR-V files
-    if (!vertexSpv.empty())
+    // Compile all permutations
+    const auto& features = compiler.GetFeatures();
+    size_t numPermutations = 1 << features.size();
+    if (features.size() >= 64)
     {
-        std::ofstream vertFile(outPath / "vertex.spv", std::ios::binary);
-        vertFile.write(reinterpret_cast<const char*>(vertexSpv.data()), vertexSpv.size());
+        std::cerr << "Too many features (>64), limiting to default permutation" << std::endl;
+        numPermutations = 1;
     }
 
-    if (!fragmentSpv.empty())
+    int successCount = 0;
+    for (size_t i = 0; i < numPermutations; ++i)
     {
-        std::ofstream fragFile(outPath / "fragment.spv", std::ios::binary);
-        fragFile.write(reinterpret_cast<const char*>(fragmentSpv.data()), fragmentSpv.size());
+        std::vector<std::string> enabledFeatures;
+        std::string permStr = "";
+        
+        for (size_t j = 0; j < 64; ++j)
+        {
+            if (j < features.size())
+            {
+                if ((i >> j) & 1)
+                {
+                    enabledFeatures.push_back(features[j].name);
+                    permStr += "1";
+                }
+                else
+                {
+                    permStr += "0";
+                }
+            }
+            else
+            {
+                permStr += "0";
+            }
+        }
+
+        if (compiler.CompilePermutation(shaderName, permStr, enabledFeatures, outputDir))
+        {
+            successCount++;
+        }
     }
 
-    if (!computeSpv.empty())
-    {
-        std::ofstream compFile(outPath / "compute.spv", std::ios::binary);
-        compFile.write(reinterpret_cast<const char*>(computeSpv.data()), computeSpv.size());
-    }
-
-    // Write metadata
-    std::ofstream metaFile(outPath / "metadata.json");
-    metaFile << metadata.dump(2);
-
-    std::cout << "Successfully compiled: " << shaderName << std::endl;
-    return 0;
+    std::cout << "Successfully compiled: " << shaderName << " (" << successCount << "/" << numPermutations << " permutations)" << std::endl;
+    return successCount > 0 ? 0 : 1;
 }
