@@ -5,6 +5,7 @@
 #include "ShaderLibraryAsyncWorker.hpp"
 #include <spdlog/spdlog.h>
 #include <unordered_map>
+#include <optional>
 
 #define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),             \
                          Do(SceneLitSkinned, "SceneLitSkinned"), Do(PlaneGrid, "PlaneGrid"),                 \
@@ -115,6 +116,9 @@ public:
 
     static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
 
+    // Trigger shader recompilation via Python script
+    static bool TriggerShaderRecompilation() { return Singleton().TriggerShaderRecompilationImpl(); }
+
     void RemoveAllShaders()
     {
         // calling .clear() may not actually clear the members
@@ -140,4 +144,8 @@ private:
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
     void CompileSingleShader();
     void CompileAllDefaultShadersImpl();
+    bool TriggerShaderRecompilationImpl();
+
+    // Try to load shader from compiled cache, returns true if successful
+    bool TryLoadFromCache(const char* name, ShaderPermutation permutation);
 };

@@ -3,7 +3,7 @@ import Library.Random;
 #define PI 3.14159265359
 #define NUM_SAMPLES 100
 
-float3 EvaluateSH(float3 normal, float4 shCoefficients[9])
+float3 EvaluateSH(float3 normal, float3 shCoefficients[9])
 {
     // SH basis functions for second-order
     float x = normal.x;

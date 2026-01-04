@@ -9,8 +9,8 @@ VertexOutput VertexMain(VertexInput input)
     return SceneLitVertex(input);
 }
 
-[shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+[shader("fragment")]
+FragmentOutput FragmentMain(VertexOutput input)
 {
-    return SceneLitVertex(input);
+    return SceneLitFragment(input);
 }

@@ -1,4 +1,5 @@
 #include "ShaderLibrary.hpp"
+#include "CompiledShaderLoader.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Utils.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
@@ -32,6 +33,13 @@ Shader* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permuta
         }
     }
 
+    // Try to load from compiled cache first
+    if (TryLoadFromCache(name, permutation))
+    {
+        return &library.at(name).shaders.at(permutation).shaderHandle;
+    }
+
+    // Fall back to runtime compilation
     asyncWorker.CompileShader(name, permutation);
     asyncWorker.WaitForAll();
     while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
@@ -97,7 +105,17 @@ void ShaderLibrary::CompileAllDefaultShadersImpl()
 
     for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
     {
-        asyncWorker.CompileShader(ShaderLibrary::ShaderNameMap[i], 0);
+        const char* shaderName = ShaderLibrary::ShaderNameMap[i];
+        ShaderPermutation defaultPerm{};
+
+        // Try cache first
+        if (TryLoadFromCache(shaderName, defaultPerm))
+        {
+            continue;
+        }
+
+        // Fall back to runtime compilation
+        asyncWorker.CompileShader(shaderName, defaultPerm);
     }
 
     asyncWorker.WaitForAll();
@@ -110,4 +128,44 @@ void ShaderLibrary::CompileAllDefaultShadersImpl()
         );
         library[compiled->name].features = compiled->shaderFeature;
     }
+}
+
+bool ShaderLibrary::TryLoadFromCache(const char* name, ShaderPermutation permutation)
+{
+    auto& loader = CompiledShaderLoader::Instance();
+
+    auto compiledData = loader.LoadCompiledShader(name, permutation);
+    if (!compiledData)
+    {
+        return false;
+    }
+
+    // Create shader program from cached SPV
+    Gfx::PipelineCreateInfo createInfo{};
+    createInfo.pipelineInfo = compiledData->pipelineInfo;
+    createInfo.defaultConfig = compiledData->pipelineConfig;
+    createInfo.vertSpv = std::move(compiledData->vertexSpv);
+    createInfo.fragSpv = std::move(compiledData->fragmentSpv);
+    createInfo.computeSpv = std::move(compiledData->computeSpv);
+
+    auto shaderProgram = GetGfxDriver()->CreateShaderProgram(createInfo);
+    if (!shaderProgram)
+    {
+        spdlog::warn("Failed to create shader program from cache for {}", name);
+        return false;
+    }
+
+    // Store in library
+    library[name].shaders.emplace(
+        permutation,
+        CompiledShader(std::move(shaderProgram), permutation)
+    );
+    library[name].features = compiledData->features;
+
+    return true;
+}
+
+bool ShaderLibrary::TriggerShaderRecompilationImpl()
+{
+    return CompiledShaderLoader::Instance().TriggerRecompilation();
 }

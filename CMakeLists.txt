@@ -401,8 +401,30 @@ add_custom_command(
 add_custom_target(LuaAnnotationGen DEPENDS "${CMAKE_SOURCE_DIR}/Source/Lua/weilan_api.lua")
 add_dependencies(LuaAnnotationGen CodeGeneration)
 
+# Shader Compilation
+file(GLOB_RECURSE SHADER_SOURCES 
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Shaders/*.slang"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Shaders/*.hlsl"
+)
+
+add_custom_command(
+    OUTPUT "${CMAKE_SOURCE_DIR}/Source/CompiledShader/shader_manifest.json"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
+    DEPENDS ${SHADER_SOURCES}
+            "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Compiling Shaders"
+)
+
+# ShaderCompilerTool - standalone shader compiler
+add_subdirectory(Source/Tools/ShaderCompiler)
+
+add_custom_target(CompileShaders DEPENDS "${CMAKE_SOURCE_DIR}/Source/CompiledShader/shader_manifest.json")
+add_dependencies(CompileShaders ShaderCompilerTool)  # Ensure ShaderCompilerTool is built first
+
 add_dependencies(WeilanEngine CodeGeneration)
 add_dependencies(WeilanEngine LuaAnnotationGen)
+add_dependencies(WeilanEngine CompileShaders)
 
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/EditorLauncher.cpp)

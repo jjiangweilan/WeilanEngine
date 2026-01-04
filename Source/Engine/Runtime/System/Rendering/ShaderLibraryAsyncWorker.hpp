@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/ShaderProgram.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderCompiler.hpp"
 #include "Shader.hpp"
 #include <bitset>
 #include <memory>
@@ -9,12 +10,6 @@
 
 #define MAX_SHADER_FEATURE_COUNT 64
 using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
-
-struct ShaderToggleFeature
-{
-    std::string name = "";
-    bool defaultValue = false;
-};
 
 struct ShaderFeatures
 {

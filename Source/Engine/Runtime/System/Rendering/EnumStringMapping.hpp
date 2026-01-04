@@ -1,7 +1,44 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Driver/GfxDriver/GfxEnums.hpp"
+#include "Engine/Driver/GfxDriver/ShaderPipelineInfo.hpp"
+#include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 
 #include <string>
+namespace Gfx
+{
+// Enum to string mappings
+const char* DescriptorTypeToString(DescriptorType type);
+DescriptorType StringToDescriptorType(const std::string& str);
+
+const char* TextureTypeToString(TextureType type);
+TextureType StringToTextureType(const std::string& str);
+
+const char* ShaderStageToString(ShaderStageFlags stages);
+ShaderStageFlags StringToShaderStage(const std::string& str);
+
+const char* SamplerAddressModeToString(SamplerAddressMode mode);
+SamplerAddressMode StringToSamplerAddressMode(const std::string& str);
+
+const char* SamplerMipmapModeToString(SamplerMipmapMode mode);
+SamplerMipmapMode StringToSamplerMipmapMode(const std::string& str);
+
+const char* FilterModeToString(FilterMode mode);
+FilterMode StringToFilterMode(const std::string& str);
+
+const char* DescriptorSetSemanticsToString(DescriptorSetSemantics semantics);
+DescriptorSetSemantics StringToDescriptorSetSemantics(const std::string& str);
+
+const char* MemberDataTypeToString(ShaderPipelineInfo::MemberDataType type);
+ShaderPipelineInfo::MemberDataType StringToMemberDataType(const std::string& str);
+
+const char* VertexAttributeSemanticsToString(VertexAttributeSemantics semantics);
+VertexAttributeSemantics StringToVertexAttributeSemantics(const std::string& str);
+
+const char* ShaderDynamicStateToString(ShaderDynamicStateFlags state);
+// StringToShaderDynamicState already exists in ShaderPipelineInfo.hpp
+}
+
 namespace Utils
 {
 Gfx::PolygonMode MapPolygonMode(const std::string& str);

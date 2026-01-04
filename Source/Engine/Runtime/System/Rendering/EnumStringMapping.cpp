@@ -1,5 +1,219 @@
 #include "EnumStringMapping.hpp"
 
+namespace Gfx
+{
+
+const char* DescriptorTypeToString(DescriptorType type)
+{
+    switch (type)
+    {
+        case DescriptorType::Sampler: return "Sampler";
+        case DescriptorType::CombinedImageSampler: return "CombinedImageSampler";
+        case DescriptorType::SampledImage: return "SampledImage";
+        case DescriptorType::StorageImage: return "StorageImage";
+        case DescriptorType::UniformTexelBuffer: return "UniformTexelBuffer";
+        case DescriptorType::StorageTexelBuffer: return "StorageTexelBuffer";
+        case DescriptorType::UniformBuffer: return "UniformBuffer";
+        case DescriptorType::StorageBuffer: return "StorageBuffer";
+        case DescriptorType::UniformBufferDynamic: return "UniformBufferDynamic";
+        case DescriptorType::StorageBufferDynamic: return "StorageBufferDynamic";
+        case DescriptorType::InputAttachment: return "InputAttachment";
+        case DescriptorType::Invalid: return "Invalid";
+    }
+    return "Invalid";
+}
+
+DescriptorType StringToDescriptorType(const std::string& str)
+{
+    if (str == "Sampler") return DescriptorType::Sampler;
+    if (str == "CombinedImageSampler") return DescriptorType::CombinedImageSampler;
+    if (str == "SampledImage") return DescriptorType::SampledImage;
+    if (str == "StorageImage") return DescriptorType::StorageImage;
+    if (str == "UniformTexelBuffer") return DescriptorType::UniformTexelBuffer;
+    if (str == "StorageTexelBuffer") return DescriptorType::StorageTexelBuffer;
+    if (str == "UniformBuffer") return DescriptorType::UniformBuffer;
+    if (str == "StorageBuffer") return DescriptorType::StorageBuffer;
+    if (str == "UniformBufferDynamic") return DescriptorType::UniformBufferDynamic;
+    if (str == "StorageBufferDynamic") return DescriptorType::StorageBufferDynamic;
+    if (str == "InputAttachment") return DescriptorType::InputAttachment;
+    return DescriptorType::Invalid;
+}
+
+const char* TextureTypeToString(TextureType type)
+{
+    switch (type)
+    {
+        case TextureType::Tex2D: return "Tex2D";
+        case TextureType::Tex3D: return "Tex3D";
+        case TextureType::TexCube: return "TexCube";
+        case TextureType::Invalid: return "Invalid";
+    }
+    return "Invalid";
+}
+
+TextureType StringToTextureType(const std::string& str)
+{
+    if (str == "Tex2D") return TextureType::Tex2D;
+    if (str == "Tex3D") return TextureType::Tex3D;
+    if (str == "TexCube") return TextureType::TexCube;
+    return TextureType::Invalid;
+}
+
+const char* ShaderStageToString(ShaderStageFlags stages)
+{
+    // Handle common combinations
+    if (stages == ShaderStage::None) return "None";
+    if (stages == ShaderStage::Vertex) return "Vertex";
+    if (stages == ShaderStage::Fragment) return "Fragment";
+    if (stages == ShaderStage::Compute) return "Compute";
+    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment)) return "VertexFragment";
+    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute)) return "All";
+    return "Unknown";
+}
+
+ShaderStageFlags StringToShaderStage(const std::string& str)
+{
+    if (str == "None") return ShaderStage::None;
+    if (str == "Vertex") return ShaderStage::Vertex;
+    if (str == "Fragment") return ShaderStage::Fragment;
+    if (str == "Compute") return ShaderStage::Compute;
+    if (str == "VertexFragment") return ShaderStage::Vertex | ShaderStage::Fragment;
+    if (str == "All") return ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute;
+    return ShaderStage::None;
+}
+
+const char* SamplerAddressModeToString(SamplerAddressMode mode)
+{
+    switch (mode)
+    {
+        case SamplerAddressMode::Repeat: return "Repeat";
+        case SamplerAddressMode::MirroredRepeat: return "MirroredRepeat";
+        case SamplerAddressMode::ClampToEdge: return "ClampToEdge";
+        case SamplerAddressMode::ClampToBorder: return "ClampToBorder";
+        case SamplerAddressMode::MirrorClampToEdge: return "MirrorClampToEdge";
+    }
+    return "Repeat";
+}
+
+SamplerAddressMode StringToSamplerAddressMode(const std::string& str)
+{
+    if (str == "Repeat") return SamplerAddressMode::Repeat;
+    if (str == "MirroredRepeat") return SamplerAddressMode::MirroredRepeat;
+    if (str == "ClampToEdge") return SamplerAddressMode::ClampToEdge;
+    if (str == "ClampToBorder") return SamplerAddressMode::ClampToBorder;
+    if (str == "MirrorClampToEdge") return SamplerAddressMode::MirrorClampToEdge;
+    return SamplerAddressMode::Repeat;
+}
+
+const char* SamplerMipmapModeToString(SamplerMipmapMode mode)
+{
+    switch (mode)
+    {
+        case SamplerMipmapMode::Nearest: return "Nearest";
+        case SamplerMipmapMode::Linear: return "Linear";
+    }
+    return "Nearest";
+}
+
+SamplerMipmapMode StringToSamplerMipmapMode(const std::string& str)
+{
+    if (str == "Linear") return SamplerMipmapMode::Linear;
+    return SamplerMipmapMode::Nearest;
+}
+
+const char* FilterModeToString(FilterMode mode)
+{
+    switch (mode)
+    {
+        case FilterMode::Nearest: return "Nearest";
+        case FilterMode::Linear: return "Linear";
+    }
+    return "Nearest";
+}
+
+FilterMode StringToFilterMode(const std::string& str)
+{
+    if (str == "Linear") return FilterMode::Linear;
+    return FilterMode::Nearest;
+}
+
+const char* DescriptorSetSemanticsToString(DescriptorSetSemantics semantics)
+{
+    switch (semantics)
+    {
+        case DescriptorSetSemantics::Global: return "Global";
+        case DescriptorSetSemantics::Material: return "Material";
+        case DescriptorSetSemantics::Object: return "Object";
+    }
+    return "Global";
+}
+
+DescriptorSetSemantics StringToDescriptorSetSemantics(const std::string& str)
+{
+    if (str == "Material") return DescriptorSetSemantics::Material;
+    if (str == "Object") return DescriptorSetSemantics::Object;
+    return DescriptorSetSemantics::Global;
+}
+
+const char* MemberDataTypeToString(ShaderPipelineInfo::MemberDataType type)
+{
+    switch (type)
+    {
+        case ShaderPipelineInfo::MemberDataType::Bool: return "Bool";
+        case ShaderPipelineInfo::MemberDataType::Float: return "Float";
+        case ShaderPipelineInfo::MemberDataType::UInt: return "UInt";
+        case ShaderPipelineInfo::MemberDataType::Int: return "Int";
+        case ShaderPipelineInfo::MemberDataType::Structure: return "Structure";
+    }
+    return "Float";
+}
+
+ShaderPipelineInfo::MemberDataType StringToMemberDataType(const std::string& str)
+{
+    if (str == "Bool") return ShaderPipelineInfo::MemberDataType::Bool;
+    if (str == "Float") return ShaderPipelineInfo::MemberDataType::Float;
+    if (str == "UInt") return ShaderPipelineInfo::MemberDataType::UInt;
+    if (str == "Int") return ShaderPipelineInfo::MemberDataType::Int;
+    if (str == "Structure") return ShaderPipelineInfo::MemberDataType::Structure;
+    return ShaderPipelineInfo::MemberDataType::Float;
+}
+
+const char* VertexAttributeSemanticsToString(VertexAttributeSemantics semantics)
+{
+    switch (semantics)
+    {
+        case VertexAttributeSemantics::Position: return "Position";
+        case VertexAttributeSemantics::Normal: return "Normal";
+        case VertexAttributeSemantics::Tangent: return "Tangent";
+        case VertexAttributeSemantics::Texcoord: return "Texcoord";
+        case VertexAttributeSemantics::Color: return "Color";
+        case VertexAttributeSemantics::Bone: return "Bone";
+    }
+    return "Position";
+}
+
+VertexAttributeSemantics StringToVertexAttributeSemantics(const std::string& str)
+{
+    if (str == "Position") return VertexAttributeSemantics::Position;
+    if (str == "Normal") return VertexAttributeSemantics::Normal;
+    if (str == "Tangent") return VertexAttributeSemantics::Tangent;
+    if (str == "Texcoord") return VertexAttributeSemantics::Texcoord;
+    if (str == "Color") return VertexAttributeSemantics::Color;
+    if (str == "Bone") return VertexAttributeSemantics::Bone;
+    return VertexAttributeSemantics::Position;
+}
+
+const char* ShaderDynamicStateToString(ShaderDynamicStateFlags state)
+{
+    if (state == ShaderDynamicState::None) return "None";
+    if (state == ShaderDynamicState::DepthBiasEnable) return "DepthBiasEnable";
+    if (state == ShaderDynamicState::DepthBias) return "DepthBias";
+    if (state == (ShaderDynamicState::DepthBiasEnable | ShaderDynamicState::DepthBias)) return "DepthBiasEnable|DepthBias";
+    return "None";
+}
+
+} // namespace Gfx
+
 namespace Utils
 {
 Gfx::ColorComponentBits MapColorMask(const std::string& str)
