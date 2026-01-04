@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "Engine/Library/DynamicArray.hpp"
+#include <vector>
 
 struct VertexBinding
 {
@@ -34,7 +34,8 @@ public:
 
     bool HasAttribute(std::string_view name)
     {
-        auto iter = std::find_if(attributes.begin(), attributes.end(), [name](Attribute& v) { return v.name == name; });
+        auto iter = std::find_if(attributes.begin(), attributes.end(), [name](Attribute& v)
+                                 { return v.name == name; });
         return iter != attributes.end();
     }
 

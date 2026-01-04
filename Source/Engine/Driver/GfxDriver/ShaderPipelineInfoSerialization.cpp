@@ -179,7 +179,7 @@ void to_json(nlohmann::json& j, const ShaderPipelineInfo::PushConstant& pc)
 void from_json(const nlohmann::json& j, ShaderPipelineInfo::PushConstant& pc)
 {
     pc.size = j.value("size", 0u);
-    pc.stages = StringToShaderStage(j.value("stages", std::string("None")));
+    pc.stages = static_cast<Gfx::ShaderStageFlags>(j.value("stages", 0));
 }
 
 void to_json(nlohmann::json& j, const ShaderPipelineInfo& info)
