@@ -13,6 +13,7 @@ neovim.json
 .luarc.json
 Source/Test/Library
 imgui.ini
+**/__pycache__
 
 docs/.obsidian/*
 docs/.obsidian/workspace/*

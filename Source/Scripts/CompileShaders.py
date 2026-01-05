@@ -15,6 +15,7 @@ import re
 import subprocess
 import shutil
 import itertools
+import concurrent.futures
 from pathlib import Path
 from typing import Optional
 
@@ -563,9 +564,9 @@ def main():
     
     # Compile each shader
     success = 0
-    for shader_path in shaders:
-        if compile_shader(shader_path):
-            success += 1
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(compile_shader, shaders))
+    success = sum(results)
     
     # Generate manifest
     generate_manifest()
