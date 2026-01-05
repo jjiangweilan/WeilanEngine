@@ -96,7 +96,7 @@ public:
     template <class T>
     T* GetComponent();
     ObjPtr<Component> GetComponent(const char* className);
-    [[LuaFn]] ObjPtr<Component> GetComponentInHierachy(const char* className);
+    [[LuaFn]] ObjPtr<Component> GetComponentInHierarchy(const char* className);
     std::span<Component*> GetComponents();
 
     template <class T>

@@ -556,7 +556,7 @@ void BindGeneratedClasses(lua_State* L)
 
     LuaBinder<GameObject> binder_GameObject(L);
     binder_GameObject.Begin("GameObject")
-        .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy) // ObjPtr<Component>(char * className)
+        .BindMemFn("GetComponentInHierarchy", &GameObject::GetComponentInHierarchy) // ObjPtr<Component>(char * className)
         .BindMemFn("GetPosition", &GameObject::GetPosition) // glm::vec3()
         .BindMemFn("SetPosition", &GameObject::SetPosition) // void(glm::vec3 & position)
         .BindMemFn("LookAt", &GameObject::LookAt) // void(glm::vec3 & to)

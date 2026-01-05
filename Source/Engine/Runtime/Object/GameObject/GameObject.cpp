@@ -540,7 +540,7 @@ void GameObject::ResetToPrefab()
     }
 }
 
-ObjPtr<Component> GameObject::GetComponentInHierachy(const char* className)
+ObjPtr<Component> GameObject::GetComponentInHierarchy(const char* className)
 {
     Component* found = GetComponent(className);
 
@@ -549,7 +549,7 @@ ObjPtr<Component> GameObject::GetComponentInHierachy(const char* className)
 
     for (auto& c : children)
     {
-        found = c->GetComponentInHierachy(className);
+        found = c->GetComponentInHierarchy(className);
         if (found)
             return found;
     }

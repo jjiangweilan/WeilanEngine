@@ -146,8 +146,14 @@ struct PushEngineUserDataHelper
             }
             else if constexpr (IsObjPtr<RawType>::value)
             {
+                auto ptr = v.Get();
+                if (ptr == nullptr)
+                {
+                    luaL_error(L, "pushing a null ObjPtr to lua is not supported");
+                    throw InvalidObjPtrError("pushing a null ObjPtr to lua is not supported");
+                }
                 new (m) LuaUserDataPack<R>(LuaEngineUserDataType::ObjPtr, std::move(v));
-                PushTypeMetatable(L, v->GetTypeName().c_str());
+                PushTypeMetatable(L, ptr->GetTypeName().c_str());
             }
             else // value type
             {
@@ -795,6 +801,11 @@ private:
     template <class Tuple, class R, size_t... I>
     static R CallbackDispatch(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
     {
+        if (v == nullptr)
+        {
+            luaL_error(L, "calling function on null pointer");
+            throw InvalidObjPtrError("calling function on null pointer");
+        }
         return f(*v, ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }
 
@@ -803,16 +814,8 @@ private:
     {
         if (v == nullptr)
         {
-            spdlog::error("calling function on null pointer");
-            if constexpr (std::is_null_pointer_v<R>)
-                return;
-            else if constexpr (std::is_void_v<R>)
-                return;
-            else
-            {
-                static R tmp{};
-                return tmp;
-            }
+            luaL_error(L, "calling function on null pointer");
+            throw InvalidObjPtrError("calling function on null pointer");
         }
         return (v->*f)(ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }

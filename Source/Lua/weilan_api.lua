@@ -322,7 +322,7 @@ wl.GameObject = {}
 
 ---@param className any
 ---@return wl.Component
-function wl.GameObject:GetComponentInHierachy(className) end
+function wl.GameObject:GetComponentInHierarchy(className) end
 ---@return wl.Float3
 function wl.GameObject:GetPosition(...) end
 ---@param position wl.vec3 &
