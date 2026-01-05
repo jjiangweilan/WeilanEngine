@@ -18,7 +18,6 @@
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
-#include <slang.h>
 #include <span>
 #include "Engine/Library/DynamicArray.hpp"
 #include <vulkan/vulkan.h>

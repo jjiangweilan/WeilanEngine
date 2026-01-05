@@ -1,11 +1,12 @@
 #pragma once
-#include "Engine/Library/DynamicArray.hpp"
-#include "Engine/Library/Hash.hpp"
 #include "Shader.hpp"
-#include "ShaderLibraryAsyncWorker.hpp"
-#include <spdlog/spdlog.h>
-#include <unordered_map>
+#include "ShaderFeatureToggle.hpp"
+#include <bitset>
+#include <filesystem>
 #include <optional>
+#include <spdlog/spdlog.h>
+#include <string>
+#include <unordered_map>
 
 #define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),             \
                          Do(SceneLitSkinned, "SceneLitSkinned"), Do(PlaneGrid, "PlaneGrid"),                 \
@@ -37,10 +38,101 @@
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y
 
+#define MAX_SHADER_FEATURE_COUNT 64
+using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
+struct ShaderFeatures
+{
+    template <class Iterable>
+    ShaderPermutation GetPermutation(const Iterable& names) const
+    {
+        ShaderPermutation perm{};
+        for (const std::string& name : names)
+        {
+            uint32_t bitIndex = 0;
+            auto iter = featureToBitMask.find(name);
+            if (iter != featureToBitMask.end())
+            {
+                bitIndex = iter->second;
+                perm.set(bitIndex, true);
+            }
+        }
+
+        return perm;
+    }
+
+    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation) const
+    {
+        std::vector<std::string> result{};
+        for (int bit = 0; bit < permutation.size(); ++bit)
+        {
+            if (permutation.test(bit))
+            {
+                result.push_back(bitMaskToFeature.at(bit));
+            }
+        }
+
+        return result;
+    }
+
+    std::unordered_map<uint32_t, std::string> bitMaskToFeature{};
+    std::unordered_map<std::string, uint32_t> featureToBitMask{};
+    std::vector<ShaderToggleFeature> toggleFeatures{};
+};
+
 enum class Shaders : int
 {
     SHADER_ENUMS(_SHADER_ENUMS_PICK_FIRST)
         MAX_COUNT
+};
+
+struct CompiledShaderData
+{
+    std::string shaderName;
+    ShaderPermutation permutation;
+    ShaderFeatures features;
+    Gfx::ShaderPipelineInfo pipelineInfo;
+    Gfx::PipelineConfig pipelineConfig;
+    std::vector<uint8_t> vertexSpv;
+    std::vector<uint8_t> fragmentSpv;
+    std::vector<uint8_t> computeSpv;
+};
+
+class CompiledShaderLoader
+{
+public:
+    static CompiledShaderLoader& Instance();
+
+    // Try to load a compiled shader from cache
+    std::optional<CompiledShaderData> LoadCompiledShader(
+        const std::string& shaderName,
+        ShaderPermutation permutation
+    );
+
+    // Load shader features without loading full shader data
+    std::optional<ShaderFeatures> LoadShaderFeatures(const std::string& shaderName);
+
+    // Check if a compiled shader exists
+    bool HasCompiledShader(const std::string& shaderName, ShaderPermutation permutation);
+
+    // Trigger shader recompilation (runs Python script)
+    bool TriggerRecompilation();
+
+    // Get the compiled shader root path
+    static std::filesystem::path GetCompiledShaderRoot();
+
+private:
+    CompiledShaderLoader() = default;
+
+    std::filesystem::path GetShaderDir(const std::string& shaderName);
+    std::filesystem::path GetPermutationDir(const std::string& shaderName, ShaderPermutation permutation);
+    std::string PermutationToString(ShaderPermutation permutation);
+
+    std::optional<nlohmann::json> LoadShaderMeta(const std::string& shaderName);
+    std::optional<nlohmann::json> LoadPermutationMeta(
+        const std::string& shaderName,
+        ShaderPermutation permutation
+    );
+    std::vector<uint8_t> LoadSpvFile(const std::filesystem::path& path);
 };
 
 class ShaderLibrary
@@ -69,7 +161,6 @@ class ShaderLibrary
 
     std::unordered_map<std::string, ShaderCached> library;
     const char* shaderRootPath = GetShaderRootPath();
-    ShaderLibraryAsyncWorker asyncWorker;
 
     // TODO: shader compilation can be trigger in multithreading when loading resources like Material, a proper method is needed to handle this case
     std::mutex syncAccess;
@@ -133,7 +224,7 @@ private:
     ShaderLibrary();
 
     void LoadSession();
-    void WaitForAllImpl() { asyncWorker.WaitForAll(); }
+    void WaitForAllImpl() {}
     Shader* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
     void ReloadAllShadersImpl();

@@ -17,6 +17,7 @@
 #include "Engine/Driver/GfxDriver/ShaderPipelineInfo.hpp"
 #include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderFeatureToggle.hpp"
 #include <boost/program_options.hpp>
 #include <filesystem>
 #include <fmt/format.h>
@@ -31,12 +32,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-struct ShaderToggleFeature
-{
-    std::string name = "";
-    bool defaultValue = false;
-};
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;

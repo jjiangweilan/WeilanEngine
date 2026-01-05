@@ -1,4 +1,4 @@
-#include "CompiledShaderLoader.hpp"
+#include "ShaderLibrary.hpp"
 #include "Engine/Driver/GfxDriver/ShaderPipelineInfoSerialization.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>

@@ -349,7 +349,6 @@ target_link_libraries( WeilanEngine
     fmt
     ktx
     glm
-    slang
     Jolt
     Boost::unordered
     Boost::lockfree

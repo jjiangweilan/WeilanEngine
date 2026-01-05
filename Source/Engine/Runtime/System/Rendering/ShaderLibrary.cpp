@@ -1,9 +1,9 @@
 #include "ShaderLibrary.hpp"
-#include "CompiledShaderLoader.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/Assert.hpp"
 #include "Engine/Library/Utils.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
-#include "Engine/Library/Assert.hpp"
+
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>
@@ -39,53 +39,54 @@ Shader* ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permuta
         return &library.at(name).shaders.at(permutation).shaderHandle;
     }
 
-    throw;
-
-    // Fall back to runtime compilation
-    asyncWorker.CompileShader(name, permutation);
-    asyncWorker.WaitForAll();
-    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
-    {
-        library[name].shaders.emplace(
-            compiled->permutation,
-            CompiledShader(std::move(compiled->shader), compiled->permutation)
-        );
-        library[name].features = compiled->shaderFeature;
-    }
-
-    return &library.at(name).shaders.at(permutation).shaderHandle;
+    return nullptr;
 }
 
 const ShaderFeatures& ShaderLibrary::QueryShaderFeaturesImpl(const char* name)
 {
-    return asyncWorker.RetriveShaderFeatures(name);
+    std::scoped_lock lk(syncAccess);
+
+    auto shaderIter = library.find(name);
+    if (shaderIter != library.end())
+    {
+        return shaderIter->second.features;
+    }
+
+    // Try to load from compiled cache first
+    if (TryLoadFromCache(name, ShaderPermutation())) // use default
+    {
+        return library.at(name).features;
+    }
+
+    static ShaderFeatures emptyFeatures{};
+    return emptyFeatures;
 }
 
 void ShaderLibrary::ReloadAllShadersImpl()
 {
-    asyncWorker.ReloadAllShaders();
-    asyncWorker.WaitForAll();
+    // asyncWorker.ReloadAllShaders();
+    // asyncWorker.WaitForAll();
 
     // TODO: removed shader is not handled, they remains in this process session
-    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
-    {
-        auto& compiledCache = library[compiled->name];
-        auto& shaders = compiledCache.shaders;
-        auto iter = shaders.find(compiled->permutation);
-        if (iter != shaders.end())
-        {
-            iter->second.ReplaceShader(std::move(compiled->shader));
-        }
-        else
-        {
-            shaders.emplace(
-                compiled->permutation,
-                CompiledShader(std::move(compiled->shader), compiled->permutation)
-            );
-        }
+    // while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
+    // {
+    //     auto& compiledCache = library[compiled->name];
+    //     auto& shaders = compiledCache.shaders;
+    //     auto iter = shaders.find(compiled->permutation);
+    //     if (iter != shaders.end())
+    //     {
+    //         iter->second.ReplaceShader(std::move(compiled->shader));
+    //     }
+    //     else
+    //     {
+    //         shaders.emplace(
+    //             compiled->permutation,
+    //             CompiledShader(std::move(compiled->shader), compiled->permutation)
+    //         );
+    //     }
 
-        compiledCache.features = compiled->shaderFeature;
-    }
+    //     compiledCache.features = compiled->shaderFeature;
+    // }
 }
 
 void ShaderLibrary::CompiledShader::ReplaceShader(std::unique_ptr<Gfx::ShaderProgram>&& newShader)
@@ -104,32 +105,6 @@ void ShaderLibrary::DestoryShaderLibrary()
 
 void ShaderLibrary::CompileAllDefaultShadersImpl()
 {
-
-    for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
-    {
-        const char* shaderName = ShaderLibrary::ShaderNameMap[i];
-        ShaderPermutation defaultPerm{};
-
-        // Try cache first
-        if (TryLoadFromCache(shaderName, defaultPerm))
-        {
-            continue;
-        }
-
-        // Fall back to runtime compilation
-        asyncWorker.CompileShader(shaderName, defaultPerm);
-    }
-
-    asyncWorker.WaitForAll();
-
-    while (std::optional<AsyncCompiledData> compiled = asyncWorker.PollCompiled())
-    {
-        library[compiled->name].shaders.emplace(
-            compiled->permutation,
-            CompiledShader(std::move(compiled->shader), compiled->permutation)
-        );
-        library[compiled->name].features = compiled->shaderFeature;
-    }
 }
 
 bool ShaderLibrary::TryLoadFromCache(const char* name, ShaderPermutation permutation)
