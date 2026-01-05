@@ -34,11 +34,12 @@ struct GameView::PlayTheGame
             auto& scene = *SceneManager::GetActiveScene();
 
             AssetDatabase::Singleton()->SaveAsset(scene);
+            UUID sceneUUID = scene.GetUUID();
             originalScenePath = AssetDatabase::Singleton()->GetAssetPath(scene.GetUUID());
             AssetDatabase::Singleton()->UnloadAsset(scene);
 
             GameEditor::instance->GetEngine()->ReloadScripts();
-            sceneCopy = AssetDatabase::Singleton()->LoadAsset(originalScenePath);
+            sceneCopy = AssetDatabase::Singleton()->LoadScene(sceneUUID);
             sceneCopy->SetName("scene copy");
             sceneCopy->SetFlags(AssetState::DontSave);
 
