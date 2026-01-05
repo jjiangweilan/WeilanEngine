@@ -95,7 +95,7 @@ struct ShaderPipelineInfo
         FilterMode minFilter;
         FilterMode magFilter;
         bool anisotropic;
-        bool enbaleCompare;
+        bool enableCompare;
     };
 
     struct DescriptorSet

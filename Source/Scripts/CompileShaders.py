@@ -130,20 +130,15 @@ def compute_content_hash(filepath: Path, dependencies: list[str]) -> str:
     """Compute hash of preprocessed shader content (includes all dependencies)."""
     sha256 = hashlib.sha256()
     
-    # Use preprocessed content if available - this includes all imports/includes
-    preprocessed = preprocess_shader(filepath)
-    if preprocessed:
-        sha256.update(preprocessed.encode('utf-8'))
-    else:
-        # Fall back to hashing main file and dependencies separately
-        with open(filepath, 'rb') as f:
-            sha256.update(f.read())
-        
-        for dep in sorted(dependencies):
-            dep_path = resolve_import_path(dep)
-            if dep_path and dep_path.exists():
-                with open(dep_path, 'rb') as f:
-                    sha256.update(f.read())
+    # we can't rely on preprocessed content here, because preprocessed content doesn't handle import modules, so hash raw file and all dependencies
+    with open(filepath, 'rb') as f:
+        sha256.update(f.read())
+    
+    for dep in sorted(dependencies):
+        dep_path = resolve_import_path(dep)
+        if dep_path and dep_path.exists():
+            with open(dep_path, 'rb') as f:
+                sha256.update(f.read())
     
     return sha256.hexdigest()
 
@@ -431,14 +426,15 @@ def get_shader_name(filepath: Path) -> str:
 def compile_shader(shader_path: Path) -> bool:
     """Compile a shader with all its permutations."""
     shader_name = get_shader_name(shader_path)
-    print(f"Compiling: {shader_name}")
+    message = f"Compiling: {shader_name}\n"
     
     output_dir = OUTPUT_ROOT / shader_name.replace('/', os.sep)
     
     # Extract shader information
     entry_points = extract_entry_points(shader_path)
     if not entry_points:
-        print(f"  No entry points found, skipping")
+        message += f"  No entry points found, skipping"
+        print(message)
         return False
     
     dependencies = collect_dependencies(shader_path)
@@ -452,11 +448,12 @@ def compile_shader(shader_path: Path) -> bool:
             with open(shader_meta_path, 'r') as f:
                 existing_meta = json.load(f)
             if existing_meta.get("sourceHash") == source_hash:
-                print(f"  Up to date (hash match)")
+                message += f"  Up to date (hash match)"
+                print(message)
                 return True
         except Exception:
             pass
-    
+   
     # Clean output directory
     if output_dir.exists():
         shutil.rmtree(output_dir)
@@ -473,20 +470,23 @@ def compile_shader(shader_path: Path) -> bool:
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
         if result.returncode != 0:
-            print(f"  Error compiling {shader_name}:")
-            print(f"    {result.stderr.strip()}")
-            # print(f"    {result.stdout.strip()}")
+            message += f"  Error compiling {shader_name}:\n"
+            message += f"    {result.stderr.strip()}"
+            print(message)
             return False
     except subprocess.TimeoutExpired:
-        print(f"  Timeout compiling {shader_name}")
+        message += f"  Timeout compiling {shader_name}"
+        print(message)
         return False
     except Exception as e:
-        print(f"  Exception compiling {shader_name}: {e}")
+        message += f"  Exception compiling {shader_name}: {e}"
+        print(message)
         return False
     
     # Update shader metadata with Python-extracted info
     if not shader_meta_path.exists():
-        print(f"  Error: shader_meta.json not generated for {shader_name}")
+        message += f"  Error: shader_meta.json not generated for {shader_name}"
+        print(message)
         return False
         
     try:
@@ -502,10 +502,12 @@ def compile_shader(shader_path: Path) -> bool:
             json.dump(shader_meta, f, indent=2)
             
     except Exception as e:
-        print(f"  Error updating metadata for {shader_name}: {e}")
+        message += f"  Error updating metadata for {shader_name}: {e}"
+        print(message)
         return False
     
-    print(f"  Compiled successfully")
+    message += f"  Compiled successfully"
+    print(message)
     return True
 
 
@@ -566,7 +568,7 @@ def main():
     success = 0
     with concurrent.futures.ThreadPoolExecutor() as executor:
         results = list(executor.map(compile_shader, shaders))
-    success = sum(results)
+    success = sum(results) 
     
     # Generate manifest
     generate_manifest()

@@ -78,18 +78,33 @@ public:
         slang::TargetDesc targetDesc{
             .structureSize = sizeof(slang::TargetDesc),
             .format = SlangCompileTarget::SLANG_SPIRV,
-            .profile = globalSession->findProfile("spirv_1_6"),
+            .profile = globalSession->findProfile("spirv_1_5"), // to use 1.6 read this https://github.com/shader-slang/slang/issues/3943. It's about using discard in shader
             .flags = 0
         };
 
         const char* searchPaths[] = {shaderRoot.c_str()};
         slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
 
+        bool debug = true;
+
+        slang::CompilerOptionValue debugLevel{};
+        debugLevel.kind = slang::CompilerOptionValueKind::Int;
+        debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_MAXIMAL : SLANG_DEBUG_INFO_LEVEL_NONE;
+
+        slang::CompilerOptionValue debugFormat{};
+        debugFormat.kind = slang::CompilerOptionValueKind::Int;
+        debugFormat.intValue0 = SlangDebugInfoFormat::SLANG_DEBUG_INFO_FORMAT_DEFAULT;
+
+        // https://github.com/KhronosGroup/SPIRV-Tools/issues/5959 we need this being fixed, til then we can safely
+        // debug an optimized shader
         slang::CompilerOptionValue optimization{};
         optimization.kind = slang::CompilerOptionValueKind::Int;
-        optimization.intValue0 = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE;
+        optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
+                                       : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
 
         slang::CompilerOptionEntry compileOptions[] = {
+            {slang::CompilerOptionName::DebugInformation, debugLevel},
+            {slang::CompilerOptionName::DebugInformationFormat, debugFormat},
             {slang::CompilerOptionName::Optimization, optimization}
         };
 

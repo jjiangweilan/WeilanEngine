@@ -359,9 +359,9 @@ public:
 
         std::string samplerTypeName = typeLayout->getName();
         if (samplerTypeName == "SamplerComparisonState")
-            config.enbaleCompare = true;
+            config.enableCompare = true;
         else
-            config.enbaleCompare = false;
+            config.enableCompare = false;
         config.anisotropic = false;
 
         if (clampSampleToBorder)

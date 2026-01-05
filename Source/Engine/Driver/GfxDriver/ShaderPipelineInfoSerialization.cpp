@@ -129,7 +129,7 @@ void to_json(nlohmann::json& j, const ShaderPipelineInfo::SamplerConfig& config)
         {"minFilter", FilterModeToString(config.minFilter)},
         {"magFilter", FilterModeToString(config.magFilter)},
         {"anisotropic", config.anisotropic},
-        {"enbaleCompare", config.enbaleCompare}
+        {"enableCompare", config.enableCompare}
     };
 }
 
@@ -142,7 +142,7 @@ void from_json(const nlohmann::json& j, ShaderPipelineInfo::SamplerConfig& confi
     config.minFilter = StringToFilterMode(j.value("minFilter", std::string("Nearest")));
     config.magFilter = StringToFilterMode(j.value("magFilter", std::string("Nearest")));
     config.anisotropic = j.value("anisotropic", false);
-    config.enbaleCompare = j.value("enbaleCompare", false);
+    config.enableCompare = j.value("enableCompare", false);
 }
 
 void to_json(nlohmann::json& j, const ShaderPipelineInfo::DescriptorSet& set)
