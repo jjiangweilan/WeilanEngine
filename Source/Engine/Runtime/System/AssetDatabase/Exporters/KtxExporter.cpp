@@ -73,14 +73,14 @@ void KtxExporter::Export(
 
     if (enableCompression)
     {
-        // ktxBasisParams params = {0};
-        // params.structSize = sizeof(params);
+        ktxBasisParams params = {0};
+        params.structSize = sizeof(params);
         //// For BasisLZ/ETC1S
         // params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
         //// For UASTC
-        // params.uastc = KTX_TRUE;
+        params.uastc = KTX_TRUE;
         //// Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
-        result = ktxTexture2_CompressBasis(texture, 200);
+        result = ktxTexture2_CompressBasisEx(texture, &params);
         if (result != KTX_SUCCESS)
         {
             spdlog::error(ktxErrorString(result));

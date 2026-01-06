@@ -1,7 +1,7 @@
 #include "ModelLoader.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <assimp/GltfMaterial.h>
@@ -311,10 +311,7 @@ private:
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
 
             auto tex = AssetDatabase::Singleton()->LoadAssetAsync_Experimental(
-                std::filesystem::relative(
-                    absoluteAssetPath.parent_path() / texName.C_Str(),
-                    AssetDatabase::Singleton()->GetAssetDirectory()
-                )
+                absoluteAssetPath.parent_path() / texName.C_Str()
             );
 
             mat->RawSetTexture(bindingName, ObjPtr<Texture>(std::move(tex)));
@@ -355,7 +352,7 @@ private:
         std::vector<std::filesystem::path> texturePathsAsVec(texturePaths.begin(), texturePaths.end());
         for (const auto& p : texturePathsAsVec)
         {
-            AssetDatabase::Singleton()->LoadAsset(p);
+            AssetDatabase::Singleton()->LoadAssetAsync_Experimental(p);
         }
 
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)

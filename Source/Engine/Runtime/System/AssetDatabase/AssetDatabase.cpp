@@ -1,7 +1,7 @@
 #include "AssetDatabase.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers/AssetImporter.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
-#include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include <future>
@@ -345,6 +345,10 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 
 ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path path, bool forceReimport)
 {
+    if (path.is_absolute())
+    {
+        path = AbsolutePathToAssetPath(path);
+    }
     auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
 
     return loaded;

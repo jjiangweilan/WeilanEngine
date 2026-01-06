@@ -229,7 +229,8 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                 mipLevels,
                 false,
                 isCubemap,
-                format
+                format,
+                true
             );
 
             delete[] loaded;
