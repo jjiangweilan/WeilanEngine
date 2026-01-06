@@ -17,10 +17,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 add_compile_options(/Zc:__cplusplus /MP)
 
-if (ENABLE_ASAN)
-add_compile_options("/fsanitize=address")
-endif()
-
 endif()
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
@@ -304,6 +300,12 @@ add_executable(WeilanEngineEditor)
 add_library(WeilanEngine SHARED)
 target_link_libraries(WeilanEngineEditor PRIVATE WeilanEngine)
 target_include_directories(WeilanEngineEditor PRIVATE "Source/")
+
+if (MSVC)
+if (ENABLE_ASAN)
+    target_compile_options(WeilanEngine PUBLIC "/fsanitize=address")
+endif(ENABLE_ASAN)
+endif(MSVC)
 
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
