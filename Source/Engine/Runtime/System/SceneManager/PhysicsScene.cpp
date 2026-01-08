@@ -1,10 +1,31 @@
 #include "PhysicsScene.hpp"
-#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
-#include "Engine/MiddleLayer/DebugOptions.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Library/Assert.hpp"
+#include "Engine/MiddleLayer/DebugOptions.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <mutex>
+
+const char* MapBroadPhaseLayerToString(BroadPhaseLayer layer)
+{
+    if (layer == BroadPhaseLayers::Static)
+    {
+        return "Static";
+    }
+    if (layer == BroadPhaseLayers::Dynamic)
+    {
+        return "Dynamic";
+    }
+    if (layer == BroadPhaseLayers::Sprite)
+    {
+        return "Sprite";
+    }
+    if (layer == BroadPhaseLayers::Sensor)
+    {
+        return "Sensor";
+    }
+    return "Unknown";
+}
 
 PhysicsScene::PhysicsScene(Scene* scene)
     : scene(scene), physicsUpdateDeltaAccumulation(0.0f), temp_allocator(10 * 1024 * 1024),
@@ -34,15 +55,41 @@ PhysicsScene::PhysicsScene(Scene* scene)
     // the order of 10240.
     const JPH::uint cMaxContactConstraints = 10240;
 
+    objectLayerPairFilter = std::make_unique<JPH::ObjectLayerPairFilterTable>(static_cast<JPH::uint>(PhysicsObjectLayers::NUM_LAYERS));
+    objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Dynamic, PhysicsObjectLayers::Static);
+    objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Dynamic, PhysicsObjectLayers::Dynamic);
+    objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Dynamic, PhysicsObjectLayers::Sprite);
+    objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Dynamic, PhysicsObjectLayers::Sensor);
+    objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Sprite, PhysicsObjectLayers::Static);
+
+    broadPhaseLayerInterfaceTable = std::make_unique<JPH::BroadPhaseLayerInterfaceTable>(static_cast<JPH::uint>(PhysicsObjectLayers::NUM_LAYERS), BroadPhaseLayers::NUM_LAYERS);
+    objectVsBroadPhaseLayerFilterTable = std::make_unique<JPH::ObjectVsBroadPhaseLayerFilterTable>(
+        *broadPhaseLayerInterfaceTable,
+        broadPhaseLayerInterfaceTable->GetNumBroadPhaseLayers(),
+        *objectLayerPairFilter,
+        objectLayerPairFilter->GetNumObjectLayers()
+    );
+    for (int layerIdx = 0; layerIdx < static_cast<int>(PhysicsObjectLayers::NUM_LAYERS); layerIdx++)
+    {
+        broadPhaseLayerInterfaceTable->SetBroadPhaseLayerName(
+            static_cast<JPH::BroadPhaseLayer>(layerIdx),
+            MapBroadPhaseLayerToString(static_cast<BroadPhaseLayer>(layerIdx))
+        );
+    }
+    broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Static, BroadPhaseLayers::Static);
+    broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Dynamic, BroadPhaseLayers::Dynamic);
+    broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Sprite, BroadPhaseLayers::Sprite);
+    broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Sensor, BroadPhaseLayers::Sensor);
+
     // Now we can create the actual physics system.
     physicsSystem.Init(
         cMaxBodies,
         cNumBodyMutexes,
         cMaxBodyPairs,
         cMaxContactConstraints,
-        broad_phase_layer_interface,
-        object_vs_broadphase_layer_filter,
-        object_vs_object_layer_filter
+        *broadPhaseLayerInterfaceTable,
+        *objectVsBroadPhaseLayerFilterTable,
+        *objectLayerPairFilter
     );
 
     physicsSystem.SetBodyActivationListener(&body_activation_listener);

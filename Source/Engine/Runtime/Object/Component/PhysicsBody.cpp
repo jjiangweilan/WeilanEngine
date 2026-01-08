@@ -50,7 +50,7 @@ void PhysicsBody::Deserialize(Serializer* s)
     s->Deserialize("bodyOffset", bodyOffset);
     int layer = 0;
     s->Deserialize("layer", layer);
-    this->layer = static_cast<PhysicsLayer>(layer);
+    this->layer = static_cast<PhysicsObjectLayer>(layer);
     s->Deserialize("gravityFactor", gravityFactor);
     int motionType = 0;
     s->Deserialize("motionType", motionType);
@@ -118,7 +118,7 @@ void PhysicsBody::OnDisable()
     physicsScene.RemovePhysicsBody(*this);
 }
 
-void PhysicsBody::SetLayer(PhysicsLayer layer)
+void PhysicsBody::SetLayer(PhysicsObjectLayer layer)
 {
     if (auto interface = GetBodyInterface())
     {
@@ -154,7 +154,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
                         body->GetID(),
                         result.Get(),
                         false,
-                        (static_cast<int>(layer) & static_cast<int>(PhysicsLayer::Moving)) == 1
+                        (static_cast<int>(layer) & static_cast<int>(PhysicsObjectLayers::Dynamic)) == 1
                             ? EActivation::Activate
                             : EActivation::DontActivate
                     );

@@ -253,8 +253,8 @@ void PlayerController::UpdateCharacter()
         pscene.GetDeltaTime(),
         physicsSystem.GetGravity() * gravityScale,
         update_settings,
-        physicsSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
-        physicsSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        physicsSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsObjectLayers::Dynamic)),
+        physicsSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsObjectLayers::Dynamic)),
         {},
         {},
         tempAllocator
@@ -357,8 +357,8 @@ void PlayerController::SetCharacterCapsuleShapeInternal()
     physicalCharacter->SetShape(
         standingShape,
         1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
-        bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
-        bSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsObjectLayers::Dynamic)),
+        bSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsObjectLayers::Dynamic)),
         {},
         {},
         tempAllocator

@@ -56,7 +56,7 @@ public:
     PhysicsScene* GetPhysicsScene();
     void SetShape(PhysicsBodyShapes shape);
     PhysicsBodyShapes GetShape() { return shapeType; }
-    void SetLayer(PhysicsLayer layer);
+    void SetLayer(PhysicsObjectLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
 
     void SetCapsuleShape(float halfHeight, float radius)
@@ -98,7 +98,7 @@ public:
         return kinematicGenerateContactPointsWithNonDynamic;
     }
     void SetKinematicCollideWithNonDynamic(bool shouldCollide);
-    PhysicsLayer GetLayer() const { return layer; }
+    PhysicsObjectLayer GetLayer() const { return layer; }
 
     float GetGravityFactory() const { return gravityFactor; }
 
@@ -168,7 +168,7 @@ private:
 
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 1.0};
     glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
-    PhysicsLayer layer = PhysicsLayer::Scene;
+    PhysicsObjectLayer layer = PhysicsObjectLayers::Static;
     float gravityFactor = 0.0f;
     bool isSensor = false;
     bool kinematicGenerateContactPointsWithNonDynamic = false;

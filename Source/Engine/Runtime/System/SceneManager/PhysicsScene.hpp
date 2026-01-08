@@ -11,6 +11,9 @@
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
+#include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/PhysicsSettings.h>
@@ -24,97 +27,17 @@ class PhysicsBody;
 class PhysicsScene;
 class Scene;
 
-// Each broadphase layer results in a separate bounding volume tree in the broad phase. You at least want to have
-// a layer for non-moving and moving objects to avoid having to update a tree full of static objects every frame.
-// You can have a 1-on-1 mapping between object layers and broadphase layers (like in this case) but if you have
-// many object layers you'll be creating many broad phase trees, which is not efficient. If you want to fine tune
-// your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
 namespace BroadPhaseLayers
 {
-static constexpr JPH::BroadPhaseLayer Scene(0);
-static constexpr JPH::BroadPhaseLayer Moving(1);
-static constexpr JPH::BroadPhaseLayer Interactable(2);
-static constexpr JPH::uint NUM_LAYERS(3);
+static constexpr JPH::BroadPhaseLayer Static(0);  // static object
+static constexpr JPH::BroadPhaseLayer Dynamic(1); // interactable with all other objects
+static constexpr JPH::BroadPhaseLayer Sprite(2);  // moving and interact with the static scene
+static constexpr JPH::BroadPhaseLayer Sensor(3);  // no actual collision, only trigger events
+static constexpr JPH::uint NUM_LAYERS(4);
 }; // namespace BroadPhaseLayers
-
-// BroadPhaseLayerInterface implementation
-// This defines a mapping between object and broadphase layers.
-class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
-{
-public:
-    BPLayerInterfaceImpl()
-    {
-        // Create a mapping table from object to broad phase layer
-        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Scene)] = BroadPhaseLayers::Scene;
-        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Moving)] = BroadPhaseLayers::Moving;
-        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Interactable)] = BroadPhaseLayers::Interactable;
-    }
-
-    virtual JPH::uint GetNumBroadPhaseLayers() const override { return BroadPhaseLayers::NUM_LAYERS; }
-
-    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
-    {
-        JPH_ASSERT(inLayer < static_cast<JPH::ObjectLayer>(PhysicsLayer::NUM_LAYERS));
-        return mObjectToBroadPhase[inLayer];
-    }
-
-    static const char* GetBroadPhaseLayerNameImpl(JPH::BroadPhaseLayer inLayer)
-    {
-        switch ((JPH::BroadPhaseLayer::Type)inLayer)
-        {
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Moving: return "Moving";
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Scene: return "Scene";
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Interactable: return "Interactable";
-            default: JPH_ASSERT(false); return "INVALID";
-        }
-    }
-
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
-    {
-        return GetBroadPhaseLayerNameImpl(inLayer);
-    }
-#endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
-
-private:
-    JPH::BroadPhaseLayer mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NUM_LAYERS)];
-};
-
-/// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
-{
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
-    {
-        switch (static_cast<PhysicsLayer>(inObject1))
-        {
-            case PhysicsLayer::Scene:
-                return static_cast<PhysicsLayer>(inObject2) == PhysicsLayer::Moving ||
-                       static_cast<PhysicsLayer>(inObject2) ==
-                           PhysicsLayer::Interactable;    // Non moving only collides with moving
-            case PhysicsLayer::Moving: return true;       // Moving collides with everything
-            case PhysicsLayer::Interactable: return true; // Moving collides with everything
-            default: JPH_ASSERT(false); return false;
-        }
-    }
-};
-
-/// Class that determines if an object layer can collide with a broadphase layer
-class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
-{
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
-    {
-        switch (inLayer1)
-        {
-            case static_cast<int>(PhysicsLayer::Scene):
-                return inLayer2 == BroadPhaseLayers::Moving || inLayer2 == BroadPhaseLayers::Interactable;
-            case static_cast<int>(PhysicsLayer::Moving): return true;
-            case static_cast<int>(PhysicsLayer::Interactable): return true;
-            default: JPH_ASSERT(false); return false;
-        }
-    }
-};
+using BroadPhaseLayer = JPH::BroadPhaseLayer;
+//
+const char* MapBroadPhaseLayerToString(BroadPhaseLayer layer);
 
 class PhysicsContactListener : public JPH::ContactListener
 {
@@ -224,10 +147,10 @@ private:
 
     } bodyDrawFilter;
 
-    BPLayerInterfaceImpl broad_phase_layer_interface;
+    std::unique_ptr<JPH::ObjectLayerPairFilterTable> objectLayerPairFilter;
+    std::unique_ptr<JPH::BroadPhaseLayerInterfaceTable> broadPhaseLayerInterfaceTable;
+    std::unique_ptr<JPH::ObjectVsBroadPhaseLayerFilterTable> objectVsBroadPhaseLayerFilterTable;
 
-    ObjectVsBroadPhaseLayerFilterImpl object_vs_broadphase_layer_filter;
-    ObjectLayerPairFilterImpl object_vs_object_layer_filter;
     JPH::TempAllocatorImpl temp_allocator;
     JPH::JobSystemThreadPool job_system;
     PhysicsContactListener contact_listener;

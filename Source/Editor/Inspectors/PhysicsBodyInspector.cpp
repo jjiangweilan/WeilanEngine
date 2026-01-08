@@ -20,16 +20,18 @@ public:
             target->SetSensor(isSensor);
         }
 
-        const char* items[] = {"Scene", "Moving", "Interactable"}; // defined in PhysicsLayer.hpp
+        const char* items[] = {"Static", "Dynamic", "Sprite", "Sensor"}; // defined in PhysicsLayer.hpp
         int currentItenIndex = static_cast<int>(target->GetLayer());
         if (EditorGUI::ComboLabeled("Layer", &currentItenIndex, items, IM_ARRAYSIZE(items)))
         {
             if (currentItenIndex == 0)
-                target->SetLayer(PhysicsLayer::Scene);
+                target->SetLayer(PhysicsObjectLayers::Static);
             else if (currentItenIndex == 1)
-                target->SetLayer(PhysicsLayer::Moving);
-            else if (currentItenIndex)
-                target->SetLayer(PhysicsLayer::Interactable);
+                target->SetLayer(PhysicsObjectLayers::Dynamic);
+            else if (currentItenIndex == 2)
+                target->SetLayer(PhysicsObjectLayers::Sprite);
+            else if (currentItenIndex == 3)
+                target->SetLayer(PhysicsObjectLayers::Sensor);
         }
 
         /** Shape **/
@@ -161,7 +163,7 @@ public:
             EditorGUI::Text("Is Sensor", body->IsSensor() ? "True" : "False");
             EditorGUI::Text("Can Be Kinematic or Dynamic", body->CanBeKinematicOrDynamic() ? "True" : "False");
             EditorGUI::Text("Use Manifold Reduction", body->GetUseManifoldReduction() ? "True" : "False");
-            EditorGUI::Text("Broad Phase Layer", BPLayerInterfaceImpl::GetBroadPhaseLayerNameImpl(body->GetBroadPhaseLayer()));
+            EditorGUI::Text("Broad Phase Layer", MapBroadPhaseLayerToString(body->GetBroadPhaseLayer()));
             EditorGUI::TextFormatted("Object Layer", "%d", body->GetObjectLayer());
             EditorGUI::TextFormatted("Friction", "%.2f", body->GetFriction());
             EditorGUI::TextFormatted("Restitution", "%.2f", body->GetRestitution());
