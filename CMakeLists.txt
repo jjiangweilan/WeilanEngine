@@ -12,15 +12,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 # Enable folder organization in Visual Studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
+option(ENABLE_ASAN "" OFF)
+
 if (MSVC)
+if (ENABLE_ASAN)
+    add_compile_options("/fsanitize=address")
+endif(ENABLE_ASAN)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 add_compile_options(/Zc:__cplusplus /MP)
-
-endif()
-
-option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
-option(ENABLE_ASAN "" OFF)
+endif(MSVC)
 
 include(CheckIPOSupported)
 include(FetchContent)
@@ -125,16 +127,14 @@ set(SLANG_ENABLE_OPTIX OFF)
 set(SLANG_ENABLE_NVAPI OFF)
 set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
-set(SLANG_ENABLE_SLANG_GLSLANG ON)
+set(SLANG_ENABLE_SLANG_GLSLANG OFF)
 set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
-if(ENABLE_ASAN)
-    set(SLANG_ENABLE_ASAN ON)
-endif()
+set(SLANG_ENABLE_ASAN ${ENABLE_ASAN})
 FetchContent_MakeAvailable(Slang)
 
-add_dependencies(slang
-slang-glslang
-)
+# add_dependencies(slang
+# slang-glslang
+# )
 
 FetchContent_Declare(SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -243,6 +243,7 @@ if(NOT assimp_POPULATED)
     set(ASSIMP_BUILD_TESTS OFF)
     set(ASSIMP_INSTALL OFF)
     set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
+    set(ASSIMP_ASAN ${ENABLE_ASAN})
     add_subdirectory(${assimp_SOURCE_DIR})
 endif()
 
@@ -300,12 +301,6 @@ add_executable(WeilanEngineEditor)
 add_library(WeilanEngine SHARED)
 target_link_libraries(WeilanEngineEditor PRIVATE WeilanEngine)
 target_include_directories(WeilanEngineEditor PRIVATE "Source/")
-
-if (MSVC)
-if (ENABLE_ASAN)
-    target_compile_options(WeilanEngine PUBLIC "/fsanitize=address")
-endif(ENABLE_ASAN)
-endif(MSVC)
 
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
