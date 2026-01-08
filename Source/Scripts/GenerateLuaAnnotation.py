@@ -27,6 +27,7 @@ def cpp_type_to_lua(cpp_type):
     if cpp_type in ["glm::vec3", "float3", "const float3&", "const glm::vec3&"]: return "wl.Float3"
     if cpp_type in ["glm::vec4", "float4", "const float4&", "const glm::vec4&", "wl.vec4&"]: return "wl.Float4"
     if cpp_type in ["glm::mat4", "float4x4", "const float4x4&", "const glm::mat4&"]: return "wl.Mat4"
+    if cpp_type in ["glm::quat", "quat", "const quat&", "const glm::quat&"]: return "wl.Quaternion"
     
     # Generic object pointer handling
     # ObjPtr<ClassName> -> wl.ClassName

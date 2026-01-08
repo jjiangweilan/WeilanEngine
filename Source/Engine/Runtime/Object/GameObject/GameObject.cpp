@@ -33,10 +33,10 @@ GameObject::GameObject(Scene* gameScene) : gameScene(gameScene)
 
 void GameObject::ResetTransform()
 {
-    position = glm::vec3(0);
-    scale = glm::vec3(1);
+    position = float3(0);
+    scale = float3(1);
     rotation = glm::identity<glm::quat>();
-    eulerAngles = glm::vec3(0, 0, 0);
+    eulerAngles = float3(0, 0, 0);
 }
 
 void GameObject::Copy(const GameObject& other)
@@ -136,14 +136,14 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("prefab", prefab);
 }
 
-void GameObject::SetWorldMatrix(const glm::mat4& matrix)
+void GameObject::SetWorldMatrix(const float4x4& matrix)
 {
     auto localMatrix = matrix;
     if (parent)
         localMatrix = glm::inverse(parent->GetWorldMatrix()) * matrix;
 
-    glm::vec3 position{};
-    glm::vec3 scale{};
+    float3 position{};
+    float3 scale{};
     glm::quat rotation{};
 
     Math::DecomposeMatrix(localMatrix, position, scale, rotation);
@@ -232,16 +232,16 @@ void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
     // fix local transforms
     if (keepWorldSpacePostion)
     {
-        glm::mat4 parentWorld = glm::mat4(1);
+        float4x4 parentWorld = glm::mat4(1);
         if (newParent != nullptr)
         {
             parentWorld = newParent->GetWorldMatrix();
         }
-        glm::mat4 currentWorld = GetWorldMatrix();
+        float4x4 currentWorld = GetWorldMatrix();
 
-        glm::mat4 local = glm::inverse(parentWorld) * currentWorld;
+        float4x4 local = glm::inverse(parentWorld) * currentWorld;
 
-        glm::vec3 newPosition, newScale;
+        float3 newPosition, newScale;
         glm::quat newRotation;
         Math::DecomposeMatrix(local, newPosition, newScale, newRotation);
         SetLocalPosition(newPosition);
@@ -330,24 +330,24 @@ void GameObject::SetEnable(bool isEnabled)
     enabled = isEnabled;
 }
 
-void GameObject::SetScale(const glm::vec3& s)
+void GameObject::SetScale(const float3& s)
 {
     SetLocalScale(s);
 }
 
-const glm::mat4& GameObject::GetLocalMatrix() const
+const float4x4& GameObject::GetLocalMatrix() const
 {
     if (updateLocalMatrix)
     {
         localMatrix =
-            glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+            glm::translate(float4x4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
         updateLocalMatrix = false;
     }
 
     return localMatrix;
 }
 
-glm::mat4 GameObject::GetWorldMatrix() const
+float4x4 GameObject::GetWorldMatrix() const
 {
     auto& localMatrix = GetLocalMatrix();
 
@@ -382,9 +382,9 @@ glm::quat GameObject::GetRotation() const
     return r;
 }
 
-void GameObject::SetPosition(const glm::vec3& position)
+void GameObject::SetPosition(const float3& position)
 {
-    glm::vec3 pos = position;
+    float3 pos = position;
     if (parent != nullptr)
     {
         pos = position - parent->GetPosition();
@@ -429,7 +429,7 @@ void GameObject::SetRotation(const glm::quat& rotation)
     SetLocalRotation(rot);
 }
 
-void GameObject::SetLocalPosition(const glm::vec3& localPosition)
+void GameObject::SetLocalPosition(const float3& localPosition)
 {
     if (position == localPosition)
     {
@@ -441,7 +441,7 @@ void GameObject::SetLocalPosition(const glm::vec3& localPosition)
     TransformChanged();
 }
 
-void GameObject::SetLocalScale(const glm::vec3& scale)
+void GameObject::SetLocalScale(const float3& scale)
 {
     if (this->scale == scale)
     {
@@ -730,33 +730,33 @@ void GameObject::OnStop()
     }
 }
 
-glm::vec3 GameObject::GetPosition() const
+float3 GameObject::GetPosition() const
 {
     return GetWorldMatrix()[3];
 }
 
-glm::vec3 GameObject::GetScale() const
+float3 GameObject::GetScale() const
 {
     auto m = GetWorldMatrix();
-    return {glm::length(glm::vec3(m[0])), glm::length(glm::vec3(m[1])), glm::length(glm::vec3(m[2]))};
+    return {glm::length(float3(m[0])), glm::length(float3(m[1])), glm::length(float3(m[2]))};
 }
 
-glm::vec3 GameObject::GetForward() const
+float3 GameObject::GetForward() const
 {
     return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2]));
 }
 
-glm::vec3 GameObject::GetUp() const
+float3 GameObject::GetUp() const
 {
     return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1]));
 }
 
-glm::vec3 GameObject::GetRight() const
+float3 GameObject::GetRight() const
 {
     return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0]));
 }
 
-void GameObject::SetEulerAngles(const glm::vec3& eulerAngles)
+void GameObject::SetEulerAngles(const float3& eulerAngles)
 {
     if (this->eulerAngles == eulerAngles)
         return;
@@ -771,7 +771,7 @@ void GameObject::SetEulerAngles(const glm::vec3& eulerAngles)
     TransformChanged();
 }
 
-void GameObject::Rotate(const glm::vec3& axis, float angle, RotationCoordinate coord)
+void GameObject::Rotate(const float3& axis, float angle, RotationCoordinate coord)
 {
     if (angle == 0)
         return;
@@ -788,7 +788,7 @@ void GameObject::Rotate(const glm::vec3& axis, float angle, RotationCoordinate c
     else if (coord == RotationCoordinate::World)
     {
         // rotate around world
-        glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetWorldMatrix();
+        float4x4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetWorldMatrix();
         SetWorldMatrix(trs);
     }
 
@@ -800,39 +800,39 @@ void GameObject::Rotate(glm::quat quaternion)
     SetLocalRotation(quaternion * rotation);
 }
 
-void GameObject::RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle)
+void GameObject::RotateAround(const float3& point, const float3& axis, float angle)
 {
-    glm::mat4 trs = glm::translate(glm::mat4(1), point) * glm::rotate(glm::mat4(1), angle, axis) *
-                    glm::translate(glm::mat4(1), -point) * GetWorldMatrix();
+    float4x4 trs = glm::translate(float4x4(1), point) * glm::rotate(float4x4(1), angle, axis) *
+                   glm::translate(float4x4(1), -point) * GetWorldMatrix();
     SetWorldMatrix(trs);
 }
 
-void GameObject::LookAt(const glm::vec3& to)
+void GameObject::LookAt(const float3& to)
 {
     if (glm::length(to) < compareEpsilon)
         return;
 
-    glm::vec3 forward = glm::normalize(to);
-    glm::vec3 up = glm::vec3(0, 1, 0);
+    float3 forward = glm::normalize(to);
+    float3 up = float3(0, 1, 0);
 
     // Handle case where forward is parallel to up vector
     if (glm::abs(glm::dot(forward, up)) > 0.99f)
     {
-        up = glm::vec3(1, 0, 0);
+        up = float3(1, 0, 0);
     }
 
-    glm::vec3 right = glm::normalize(glm::cross(forward, up));
+    float3 right = glm::normalize(glm::cross(forward, up));
     up = glm::cross(right, forward);
 
-    glm::mat3 rotationMatrix = glm::mat3(right, up, -forward);
+    float3x3 rotationMatrix = float3x3(right, up, -forward);
     glm::quat newRotation = glm::quat_cast(rotationMatrix);
 
     SetRotation(newRotation);
 }
 
-void GameObject::Translate(const glm::vec3& translate)
+void GameObject::Translate(const float3& translate)
 {
-    if (translate == glm::vec3{0, 0, 0})
+    if (translate == float3{0, 0, 0})
         return;
 
     updateLocalMatrix = true;

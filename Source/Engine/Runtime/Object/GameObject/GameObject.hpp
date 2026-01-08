@@ -48,12 +48,12 @@ class [[TrClass, LuaClass]] GameObject : public Object
     GameObjectFlag flags = GameObjectFlag::None;
 
     // Transform data
-    glm::vec3 position [[TrProp]] = glm::vec3(0);
-    glm::vec3 scale [[TrProp]] = glm::vec3(1, 1, 1);
+    float3 position [[TrProp]] = float3(0);
+    float3 scale [[TrProp]] = float3(1, 1, 1);
     glm::quat rotation [[TrProp]] = glm::quat(1, 0, 0, 0);
-    glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
-    mutable glm::mat4 localMatrix;
-    mutable glm::mat4 worldMatrix;
+    float3 eulerAngles = float3(0, 0, 0);
+    mutable float4x4 localMatrix;
+    mutable float4x4 worldMatrix;
 
     // State flags
     bool enabled [[TrProp]] = false;
@@ -124,46 +124,46 @@ public:
     GameObject* Find(std::string_view name);
 
     // Enable/Disable State
-    bool IsEnabled() { return enabled; }
-    bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
-    void SetEnable(bool isEnabled);
+    [[LuaFn]] bool IsEnabled() { return enabled; }
+    [[LuaFn]] bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
+    [[LuaFn]] void SetEnable(bool isEnabled);
     void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
     bool GetWantsTobeEnabledStateAndReset();
 
     // Transform - Position
-    [[LuaFn]] glm::vec3 GetPosition() const;
-    glm::vec3 GetLocalPosition() const { return position; }
-    [[LuaFn]] void SetPosition(const glm::vec3& position);
-    void SetLocalPosition(const glm::vec3& localPosition);
-    void Translate(const glm::vec3& translate);
+    [[LuaFn]] float3 GetPosition() const;
+    [[LuaFn]] float3 GetLocalPosition() const { return position; }
+    [[LuaFn]] void SetPosition(const float3& position);
+    [[LuaFn]] void SetLocalPosition(const float3& localPosition);
+    void Translate(const float3& translate);
 
     // Transform - Rotation
-    glm::quat GetRotation() const;
-    glm::quat GetLocalRotation() const { return rotation; }
-    void SetRotation(const glm::quat& rotation);
-    void SetLocalRotation(const glm::quat& rotation);
-    glm::vec3 GetEuluerAngles() const { return eulerAngles; }
-    void SetEulerAngles(const glm::vec3& eulerAngles);
-    void Rotate(const glm::vec3& axis, float angle, RotationCoordinate coord = RotationCoordinate::Self);
+    [[LuaFn]] glm::quat GetRotation() const;
+    [[LuaFn]] glm::quat GetLocalRotation() const { return rotation; }
+    [[LuaFn]] void SetRotation(const glm::quat& rotation);
+    [[LuaFn]] void SetLocalRotation(const glm::quat& rotation);
+    [[LuaFn]] float3 GetEuluerAngles() const { return eulerAngles; }
+    [[LuaFn]] void SetEulerAngles(const float3& eulerAngles);
+    void Rotate(const float3& axis, float angle, RotationCoordinate coord = RotationCoordinate::Self);
     void Rotate(glm::quat quaternion);
-    void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle);
-    [[LuaFn]] void LookAt(const glm::vec3& to);
+    void RotateAround(const float3& point, const float3& axis, float angle);
+    [[LuaFn]] void LookAt(const float3& to);
 
     // Transform - Scale
-    glm::vec3 GetScale() const;
-    glm::vec3 GetLocalScale() const { return scale; }
-    void SetScale(const glm::vec3& scale);
-    void SetLocalScale(const glm::vec3& scale);
+    [[LuaFn]] float3 GetScale() const;
+    [[LuaFn]] float3 GetLocalScale() const { return scale; }
+    [[LuaFn]] void SetScale(const float3& scale);
+    [[LuaFn]] void SetLocalScale(const float3& scale);
 
     // Transform - Direction Vectors
-    glm::vec3 GetForward() const;
-    glm::vec3 GetUp() const;
-    glm::vec3 GetRight() const;
+    [[LuaFn]] float3 GetForward() const;
+    [[LuaFn]] float3 GetUp() const;
+    [[LuaFn]] float3 GetRight() const;
 
     // Transform - Matrices
-    glm::mat4 GetWorldMatrix() const;
-    const glm::mat4& GetLocalMatrix() const;
-    void SetWorldMatrix(const glm::mat4& model);
+    [[LuaFn]] float4x4 GetWorldMatrix() const;
+    [[LuaFn]] const float4x4& GetLocalMatrix() const;
+    [[LuaFn]] void SetWorldMatrix(const float4x4& model);
     void ResetTransform();
 
     // Prefab
@@ -199,7 +199,7 @@ public:
 private:
     GameObject* FindInternal(GameObject* go, std::string_view name);
 
-    inline bool EqualZero(const glm::vec3& v)
+    inline bool EqualZero(const float3& v)
     {
         return glm::abs(v.x) < compareEpsilon && glm::abs(v.y) < compareEpsilon && glm::abs(v.z) < compareEpsilon;
     }

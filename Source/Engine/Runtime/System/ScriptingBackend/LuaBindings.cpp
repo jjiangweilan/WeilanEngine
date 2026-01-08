@@ -9,6 +9,7 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "LuaBindings_Private.hpp"
+#include <glm/gtx/quaternion.hpp>
 
 std::unordered_map<void*, std::unique_ptr<Asset>>& GetLuaCreatedRuntimeAssets()
 {
@@ -57,6 +58,28 @@ void LuaBindings::BindClasses(lua_State* L)
         time
             .Begin("Time")
             .BindStaticFn("DeltaTime", Time::DeltaTime)
+            .End();
+
+        LuaBinder<glm::quat> quat(L);
+        quat
+            .Begin("Quaternion")
+            .BindStaticFn("New", [](float w, float x, float y, float z){ return glm::quat{w, x, y, z}; }) // glm::quat(float w, float x, float y, float z)
+            .BindStaticFn("FromEuler", [](const float3& euler){ return glm::quat{euler}; }) // glm::quat(float3 euler)
+            .BindStaticFn("AngleAxis", [](float angle, const float3& axis){ return glm::angleAxis(angle, axis); }) // glm::quat(float angle, float3 axis)
+            .BindStaticFn("Identity", [](){ return glm::quat{1.0f, 0.0f, 0.0f, 0.0f}; }) // glm::quat()
+            .BindStaticFn("Slerp", [](const glm::quat& a, const glm::quat& b, float t){ return glm::slerp(a, b, t); }) // glm::quat(glm::quat a, glm::quat b, float t)
+            .BindStaticFn("Dot", [](const glm::quat& a, const glm::quat& b){ return glm::dot(a, b); }) // float(glm::quat a, glm::quat b)
+            .BindStaticFn("Inverse", [](const glm::quat& q){ return glm::inverse(q); }) // glm::quat(glm::quat q)
+            .BindStaticFn("Normalize", [](const glm::quat& q){ return glm::normalize(q); }) // glm::quat(glm::quat q)
+            .BindStaticFn("ToEulerAngles", [](const glm::quat& q){ return glm::eulerAngles(q); }) // float3(glm::quat q)
+            .BindStaticFn("FromTo", [](const float3& from, const float3& to){ return glm::rotation(from, to); }) // glm::quat(float3 from, float3 to)
+            .BindStaticFn("RotateVec", [](const glm::quat& q, const float3& v){ return q * v; }) // float3(glm::quat q, float3 v)
+            .BindStaticFn("__eq", [](const glm::quat& l, const glm::quat& r){return l == r;}) // bool(glm::quat l, glm::quat r)
+            .BindStaticFn("__mul", [](const glm::quat& l, const glm::quat& r){return l * r;}) // glm::quat(glm::quat l, glm::quat r)
+            .BindProperty("x", &glm::quat::x) // float
+            .BindProperty("y", &glm::quat::y) // float
+            .BindProperty("z", &glm::quat::z) // float
+            .BindProperty("w", &glm::quat::w) // float
             .End();
 
         LuaBinder<float2> vec2(L);

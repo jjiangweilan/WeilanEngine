@@ -323,12 +323,52 @@ wl.GameObject = {}
 ---@param className any
 ---@return wl.Component
 function wl.GameObject:GetComponentInHierarchy(className) end
+---@return boolean
+function wl.GameObject:IsEnabled(...) end
+---@return boolean
+function wl.GameObject:IsActiveInScene(...) end
+---@param isEnabled boolean
+function wl.GameObject:SetEnable(isEnabled) end
 ---@return wl.Float3
 function wl.GameObject:GetPosition(...) end
----@param position wl.vec3 &
+---@return wl.Float3
+function wl.GameObject:GetLocalPosition(...) end
+---@param position any
 function wl.GameObject:SetPosition(position) end
----@param to wl.vec3 &
+---@param localPosition any
+function wl.GameObject:SetLocalPosition(localPosition) end
+---@return wl.Quaternion
+function wl.GameObject:GetRotation(...) end
+---@return wl.Quaternion
+function wl.GameObject:GetLocalRotation(...) end
+---@param rotation wl.quat &
+function wl.GameObject:SetRotation(rotation) end
+---@param rotation wl.quat &
+function wl.GameObject:SetLocalRotation(rotation) end
+---@return wl.Float3
+function wl.GameObject:GetEuluerAngles(...) end
+---@param eulerAngles any
+function wl.GameObject:SetEulerAngles(eulerAngles) end
+---@param to any
 function wl.GameObject:LookAt(to) end
+---@return wl.Float3
+function wl.GameObject:GetScale(...) end
+---@return wl.Float3
+function wl.GameObject:GetLocalScale(...) end
+---@param scale any
+function wl.GameObject:SetScale(scale) end
+---@param scale any
+function wl.GameObject:SetLocalScale(scale) end
+---@return wl.Float3
+function wl.GameObject:GetForward(...) end
+---@return wl.Float3
+function wl.GameObject:GetUp(...) end
+---@return wl.Float3
+function wl.GameObject:GetRight(...) end
+---@return wl.Mat4
+function wl.GameObject:GetWorldMatrix(...) end
+---@param model any
+function wl.GameObject:SetWorldMatrix(model) end
 function wl.GameObject:GetComponent(...) end
 
 ---@class wl.GameScript
@@ -341,6 +381,63 @@ function wl.GameScript.New(...) end
 wl.Time = {}
 
 function wl.Time.DeltaTime(...) end
+
+---@class wl.Quaternion
+---@field x number
+---@field y number
+---@field z number
+---@field w number
+wl.Quaternion = {}
+
+---@param w number
+---@param x number
+---@param y number
+---@param z number
+---@return wl.Quaternion
+function wl.Quaternion.New(w, x, y, z) end
+---@param euler wl.Float3
+---@return wl.Quaternion
+function wl.Quaternion.FromEuler(euler) end
+---@param angle number
+---@param axis wl.Float3
+---@return wl.Quaternion
+function wl.Quaternion.AngleAxis(angle, axis) end
+---@return wl.Quaternion
+function wl.Quaternion.Identity(...) end
+---@param a wl.Quaternion
+---@param b wl.Quaternion
+---@param t number
+---@return wl.Quaternion
+function wl.Quaternion.Slerp(a, b, t) end
+---@param a wl.Quaternion
+---@param b wl.Quaternion
+---@return number
+function wl.Quaternion.Dot(a, b) end
+---@param q wl.Quaternion
+---@return wl.Quaternion
+function wl.Quaternion.Inverse(q) end
+---@param q wl.Quaternion
+---@return wl.Quaternion
+function wl.Quaternion.Normalize(q) end
+---@param q wl.Quaternion
+---@return wl.Float3
+function wl.Quaternion.ToEulerAngles(q) end
+---@param from wl.Float3
+---@param to wl.Float3
+---@return wl.Quaternion
+function wl.Quaternion.FromTo(from, to) end
+---@param q wl.Quaternion
+---@param v wl.Float3
+---@return wl.Float3
+function wl.Quaternion.RotateVec(q, v) end
+---@param l wl.Quaternion
+---@param r wl.Quaternion
+---@return boolean
+function wl.Quaternion.__eq(l, r) end
+---@param l wl.Quaternion
+---@param r wl.Quaternion
+---@return wl.Quaternion
+function wl.Quaternion.__mul(l, r) end
 
 ---@class wl.Float2
 ---@field x any
