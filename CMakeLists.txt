@@ -250,7 +250,7 @@ endif()
 FetchContent_Declare(
         JoltPhysics
         GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
-        GIT_TAG "v5.2.0"
+        GIT_TAG "v5.5.0"
         UPDATE_DISCONNECTED TRUE
         SOURCE_SUBDIR "Jolt"
 )
