@@ -42,7 +42,7 @@ public:
     static IProfiler& GetSingleton();
 
 private:
-    mutable bool paused = false;
+    mutable bool paused = true;
     bool actuallyPaused = false;
     bool inProfiling = false;
     std::stack<ProfileScope*> activeScopes;

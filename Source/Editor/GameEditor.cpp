@@ -197,6 +197,13 @@ void GameEditor::ShowGameProfiler(IProfiler& cpuProfiler)
     // auto& gpuProfiles = GetGfxDriver()->GetFrameProfiles();
     ImGui::Begin("Profiler Module");
 
+    if (!ImGui::IsWindowAppearing())
+    {
+        cpuProfiler.Pause();
+        GetGfxDriver()->GetGPUProfiler().Pause();
+        GetGfxDriver()->SetGPUProfilerEnabled(false);
+    }
+
     ImGui::Text("Frame Profiler:");
 
     static int selectedFrame = 0;
