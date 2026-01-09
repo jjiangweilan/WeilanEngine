@@ -36,16 +36,21 @@ public:
 private:
     ObjPtr<Shader> shader;
 
-    struct PassResource
+    struct Mip
     {
         Gfx::ImageIdentifier texture;
         Gfx::RenderImageDescriptor desc;
-        PipelineGPUBuffer bloomInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("Bloom", PipelineGPUBufferUsage::Uniform);
         int width;
         int height;
     };
-    std::vector<PassResource> mipChain;
-    PassResource composite;
+
+    struct PassResource
+    {
+        PipelineGPUBuffer bloomInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("Bloom", PipelineGPUBufferUsage::Uniform);
+    };
+
+    std::vector<Mip> mipChain;
+    std::vector<PassResource> passResources;
     Gfx::ImageIdentifier finalOutput;
 
     const int kMaxMips = 6;

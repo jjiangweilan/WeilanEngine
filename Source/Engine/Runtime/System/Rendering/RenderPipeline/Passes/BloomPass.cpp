@@ -46,7 +46,7 @@ void BloomPass::Execute(
             if (w < 2 || h < 2)
                 break;
 
-            PassResource mip;
+            Mip mip;
             mip.width = w;
             mip.height = h;
             mip.texture = "Bloom_Mip_" + std::to_string(i);
@@ -90,12 +90,17 @@ void BloomPass::Execute(
         cmd.Dispatch((w + 7) / 8, (h + 7) / 8, 1);
     };
 
+    if (passResources.size() < mipChain.size() * 2)
+        passResources.resize(mipChain.size() * 2);
+
+    int passIndex = 0;
+
     // 2. Prefilter (srcColor -> Mip0)
     // Mode 0
     {
         int w = mipChain[0].width;
         int h = mipChain[0].height;
-        Dispatch(w, h, 0.0f, srcColor, mipChain[0].texture, mipChain[0].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
+        Dispatch(w, h, 0.0f, srcColor, mipChain[0].texture, passResources[passIndex++].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
     }
 
     // 3. Downsample Chain
@@ -103,7 +108,7 @@ void BloomPass::Execute(
     {
         int w = mipChain[i + 1].width;
         int h = mipChain[i + 1].height;
-        Dispatch(w, h, 1.0f, mipChain[i].texture, mipChain[i + 1].texture, mipChain[i + 1].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
+        Dispatch(w, h, 1.0f, mipChain[i].texture, mipChain[i + 1].texture, passResources[passIndex++].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
     }
 
     // 4. Upsample Chain
@@ -112,7 +117,7 @@ void BloomPass::Execute(
         int w = mipChain[i].width;
         int h = mipChain[i].height;
         // dst = Mip i (High Res), src = Mip i+1 (Low Res)
-        Dispatch(w, h, 2.0f, mipChain[i + 1].texture, mipChain[i].texture, mipChain[i + 1].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
+        Dispatch(w, h, 2.0f, mipChain[i + 1].texture, mipChain[i].texture, passResources[passIndex++].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
     }
 
     // 5. Composite
@@ -120,7 +125,7 @@ void BloomPass::Execute(
         int w = srcDesc.GetWidth();
         int h = srcDesc.GetHeight();
         // dst = srcColor (Main), src = Mip0
-        Dispatch(w, h, 3.0f, mipChain[0].texture, srcColor, composite.bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
+        Dispatch(w, h, 3.0f, mipChain[0].texture, srcColor, passResources[passIndex++].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
     }
 
     cmd.EndLabel();
