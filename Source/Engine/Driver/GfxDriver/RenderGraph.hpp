@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Image.hpp"
-#include "ImageView.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include "Engine/Library/Hash.hpp"
 #include "Engine/Library/UUID.hpp"
-#include "ResourceHandle.hpp"
 #include "Engine/ThirdParty/xxHash/xxhash.h"
+#include "Image.hpp"
+#include "ImageView.hpp"
+#include "ResourceHandle.hpp"
 #include <optional>
 
 namespace Gfx
@@ -98,6 +98,7 @@ struct ImageIdentifier
     ImageIdentifier(const ImageIdentifier& other) = default;
     ImageIdentifier() : type(Type::Handle), rtHandle(UUID()) {}
     ImageIdentifier(const char* name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
+    ImageIdentifier(const std::string& name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(std::string_view name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(Image& image) : type(Type::Image), image(&image) {}
     ImageIdentifier(ImageView& imageView) : type(Type::ImageView), imageView(&imageView) {}
