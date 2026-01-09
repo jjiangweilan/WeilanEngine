@@ -46,7 +46,7 @@ void BloomPass::Execute(
             if (w < 2 || h < 2)
                 break;
 
-            MipLevel mip;
+            PassResource mip;
             mip.width = w;
             mip.height = h;
             mip.texture = "Bloom_Mip_" + std::to_string(i);
@@ -120,7 +120,7 @@ void BloomPass::Execute(
         int w = srcDesc.GetWidth();
         int h = srcDesc.GetHeight();
         // dst = srcColor (Main), src = Mip0
-        Dispatch(w, h, 3.0f, mipChain[0].texture, srcColor, mipChain[0].bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
+        Dispatch(w, h, 3.0f, mipChain[0].texture, srcColor, composite.bloomInputBuffer, glm::vec4(1.0f / w, 1.0f / h, w, h));
     }
 
     cmd.EndLabel();
