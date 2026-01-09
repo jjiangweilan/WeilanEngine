@@ -4,11 +4,16 @@ name: PostProcess/Bloom
 
 import WeilanEngine;
 
-struct Input
+struct RenderData
 {
     float4 texelSize; // x, y = 1/width, 1/height, z, w = width, height
     float4 params;    // x = threshold, y = intensity, z = knee, w = scatter
     float mode;       // 0 = Prefilter, 1 = Downsample, 2 = Upsample, 3 = Composite
+}
+
+struct Input
+{
+    ConstantBuffer<RenderData> buffer;
 
     Texture2D src;
     [format("rgba16f")]
@@ -27,10 +32,10 @@ float3 SafeColor(float3 c)
 float3 Prefilter(float3 c)
 {
     float brightness = max(c.r, max(c.g, c.b));
-    float soft = brightness - input.params.x + input.params.z;
-    soft = clamp(soft, 0.0, 2.0 * input.params.z);
-    soft = soft * soft / (4.0 * input.params.z + 0.00001);
-    float contribution = max(soft, brightness - input.params.x);
+    float soft = brightness - input.buffer.params.x + input.buffer.params.z;
+    soft = clamp(soft, 0.0, 2.0 * input.buffer.params.z);
+    soft = soft * soft / (4.0 * input.buffer.params.z + 0.00001);
+    float contribution = max(soft, brightness - input.buffer.params.x);
     contribution /= max(brightness, 0.00001);
     return c * contribution;
 }
@@ -85,14 +90,14 @@ float3 UpsampleTent(Texture2D tex, SamplerState s, float2 uv, float2 texelSize, 
 [numthreads(8, 8, 1)]
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    if (dispatchThreadID.x >= input.texelSize.z || dispatchThreadID.y >= input.texelSize.w)
+    if (dispatchThreadID.x >= input.buffer.texelSize.z || dispatchThreadID.y >= input.buffer.texelSize.w)
         return;
 
-    float2 uv = (float2(dispatchThreadID.xy) + 0.5) * input.texelSize.xy;
+    float2 uv = (float2(dispatchThreadID.xy) + 0.5) * input.buffer.texelSize.xy;
     
     float3 result = float3(0, 0, 0);
 
-    if (input.mode < 0.5) // Prefilter (0)
+    if (input.buffer.mode < 0.5) // Prefilter (0)
     {
         // Downsample + Threshold
         // Using a simple box filter or just bilinear sample from source? 
@@ -100,22 +105,22 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         // We will sample 13-tap from source and apply threshold.
         // NOTE: input.src is the full resolution image.
         
-        float3 color = DownsampleBox13Tap(input.src, input.sampler_linear_clamp, uv, input.texelSize.xy * 2.0); // *2.0 because we are writing to half res
+        float3 color = DownsampleBox13Tap(input.src, input.sampler_linear_clamp, uv, input.buffer.texelSize.xy * 2.0); // *2.0 because we are writing to half res
         result = Prefilter(SafeColor(color));
     }
-    else if (input.mode < 1.5) // Downsample (1)
+    else if (input.buffer.mode < 1.5) // Downsample (1)
     {
-        result = DownsampleBox13Tap(input.src, input.sampler_linear_clamp, uv, input.texelSize.xy * 2.0); // Source is higher res
+        result = DownsampleBox13Tap(input.src, input.sampler_linear_clamp, uv, input.buffer.texelSize.xy * 2.0); // Source is higher res
         result = SafeColor(result);
     }
-    else if (input.mode < 2.5) // Upsample (2)
+    else if (input.buffer.mode < 2.5) // Upsample (2)
     {
         // dst = High Res (Target)
         // src = Low Res (Source)
         float3 highRes = input.dst[dispatchThreadID.xy].rgb;
-        float3 lowRes = UpsampleTent(input.src, input.sampler_linear_clamp, uv, input.texelSize.xy, float4(1.0, 1.0, 1.0, 1.0)); // Source is lower res
+        float3 lowRes = UpsampleTent(input.src, input.sampler_linear_clamp, uv, input.buffer.texelSize.xy, float4(1.0, 1.0, 1.0, 1.0)); // Source is lower res
         
-        result = highRes + lowRes * input.params.w; // scatter
+        result = highRes + lowRes * input.buffer.params.w; // scatter
     }
     else // Composite (3)
     {
@@ -123,9 +128,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         // input.dst = Main Color (Target)
         
         float3 mainColor = input.dst[dispatchThreadID.xy].rgb;
-        float3 bloom = UpsampleTent(input.src, input.sampler_linear_clamp, uv, input.texelSize.xy, float4(1.0, 1.0, 1.0, 1.0));
+        float3 bloom = UpsampleTent(input.src, input.sampler_linear_clamp, uv, input.buffer.texelSize.xy, float4(1.0, 1.0, 1.0, 1.0));
         
-        result = mainColor + bloom * input.params.y; // intensity
+        result = mainColor + bloom * input.buffer.params.y; // intensity
     }
 
     input.dst[dispatchThreadID.xy] = float4(result, 1.0);

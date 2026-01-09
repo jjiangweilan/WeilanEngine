@@ -287,7 +287,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     if (setting->postProcess.bloom.enabled)
     {
-        bloomPass->Execute(*cmd, mainColor, mainColorDescription, setting->postProcess.bloom);
+        bloomPass->Execute(*cmd, mainColor, mainColorDescription, setting->postProcess.bloom, renderingData);
     }
 
     // start post procesing
