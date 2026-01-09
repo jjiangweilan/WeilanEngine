@@ -214,7 +214,7 @@ void VKShaderProgram::GeneratePipelineLayout()
     std::vector<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
     std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
                                                                                                                          // memory address as hashing input
-    const int MaxImmutableSamplerBindings = 512;
+    const int MaxImmutableSamplerBindings = 32;
     VkSampler immutableSamplers[MaxImmutableSamplerBindings] = {};
     int immutableSamplerIndex = 0;
 

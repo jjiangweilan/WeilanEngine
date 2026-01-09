@@ -1560,9 +1560,10 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Dispatch");
                     auto& args = std::get<VKDispatchCmd>(cmd.args);
+                    const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(vkcmd, pipeineBindingPoint);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1579,9 +1580,10 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DispatchIndirect");
                     auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
+                    const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(vkcmd, pipeineBindingPoint);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
