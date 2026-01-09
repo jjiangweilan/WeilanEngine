@@ -32,6 +32,7 @@ RenderPipeline::RenderPipeline()
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
+    bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
@@ -283,6 +284,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Fog
     fogPass->Execute(*cmd, mainColor, depthCopy, renderingScene.GetSceneEnvironmentData().fogPassParameters);
+
+    if (setting->postProcess.bloom.enabled)
+    {
+        bloomPass->Execute(*cmd, mainColor, mainColorDescription, setting->postProcess.bloom);
+    }
 
     // start post procesing
     finalColor = mainColor;

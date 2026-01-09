@@ -9,6 +9,7 @@
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/SSAO.hpp"
+#include "Passes/BloomPass.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "PerScene.hpp"
@@ -81,6 +82,7 @@ class RenderPipeline
     Passes::FXAAPass* fxaaPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
     Passes::SSAO* ssaoPass;
+    Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;

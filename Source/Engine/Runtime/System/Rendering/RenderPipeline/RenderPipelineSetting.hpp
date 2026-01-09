@@ -18,9 +18,26 @@ public:
     struct PostProcess
     {
         bool colorGrading = true;
+        struct Bloom
+        {
+            bool enabled = true;
+            float threshold = 1.0f;
+            float intensity = 1.0f;
+            float knee = 0.1f;
+            float scatter = 0.7f;
+
+            INLINE_DEFINE_SERIALIZABLE(
+                SER(enabled),
+                SER(threshold),
+                SER(intensity),
+                SER(knee),
+                SER(scatter)
+            )
+        } bloom;
 
         INLINE_DEFINE_SERIALIZABLE(
-            SER(colorGrading)
+            SER(colorGrading),
+            SER(bloom)
         );
     } postProcess;
 
