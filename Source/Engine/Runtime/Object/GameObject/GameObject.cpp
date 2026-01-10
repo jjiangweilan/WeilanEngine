@@ -529,6 +529,14 @@ void GameObject::LinkPrefab(Prefab* prefab)
     this->prefab = prefab;
 }
 
+void GameObject::ApplyToPrefab()
+{
+    if (prefab)
+    {
+        prefab->SetGameObject(this);
+    }
+}
+
 void GameObject::ResetToPrefab()
 {
     auto prefabInstance = prefab->GetGameObject();

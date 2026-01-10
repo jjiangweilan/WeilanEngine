@@ -15,6 +15,17 @@ Prefab::Prefab(GameObject* gameObject)
     {
         this->gameObject = std::make_unique<GameObject>(*gameObject);
         this->gameObject->LinkPrefab(this);
+        SetDirty(true);
+    }
+}
+
+void Prefab::SetGameObject(GameObject* gameObject)
+{
+    if (gameObject)
+    {
+        this->gameObject = std::make_unique<GameObject>(*gameObject);
+        this->gameObject->LinkPrefab(this);
+        SetDirty(true);
     }
 }
 

@@ -176,6 +176,7 @@ public:
     bool HasPrefab() const { return prefab != nullptr; }
     auto GetPrefab() const { return prefab; }
     void ResetToPrefab();
+    void ApplyToPrefab();
 
     // Flags
     void SetFlags(GameObjectFlag f) { this->flags = f; }

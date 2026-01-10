@@ -93,6 +93,11 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         {
             target->ResetToPrefab();
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Apply To Prefab"))
+        {
+            target->ApplyToPrefab();
+        }
     }
 
     ImGui::SeparatorText("Components");
