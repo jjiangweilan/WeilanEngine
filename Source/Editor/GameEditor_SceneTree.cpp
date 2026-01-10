@@ -59,7 +59,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
         if (Prefab* prefab = dynamic_cast<Prefab*>(asset))
         {
-            scene.AddGameObject(prefab->Instantiate());
+            scene.SpawnPrefab(prefab);
         }
     }
 

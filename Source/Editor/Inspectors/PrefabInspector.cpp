@@ -1,7 +1,8 @@
-#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Editor/EditorGUI.hpp"
-#include "GameObjectInspector.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "GameObjectInspector.hpp"
 
 namespace Editor
 {
@@ -22,7 +23,18 @@ public:
 
         if (goTarget)
         {
+            JsonSerializer s;
+            goTarget->Serialize(&s);
+
             gameObjectInspector.DrawInspector(editor);
+
+            JsonSerializer ss;
+            goTarget->Serialize(&ss);
+
+            if (s.GetJson() != ss.GetJson())
+            {
+                target->SetDirty(true);
+            }
         }
     }
 

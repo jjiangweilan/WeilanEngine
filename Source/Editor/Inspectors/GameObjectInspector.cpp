@@ -1,7 +1,7 @@
 #include "GameObjectInspector.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Engine/Runtime/Object/Component/Component.hpp"
 #include "Editor/EditorState.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -52,7 +52,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     auto& name = target->GetName();
     char cname[1024];
     strcpy(cname, name.data());
-    bool enabled = target->IsEnabled();
+    bool enabled = target->IsEnabled() || target->WantsTobeEnabled(); // wants to be enabled is used for prefab inspector
     if (ImGui::Checkbox("##Enable Box", &enabled))
     {
         target->SetEnable(enabled);
@@ -99,7 +99,8 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     int enableCheckBoxID = 0;
     bool popupTriggered = false;
     int currentComponentIdx = 0;
-    for (auto& co : target->GetComponents())
+    GameObject* targetGO = target;
+    for (auto& co : targetGO->GetComponents())
     {
         ImGui::PushID(enableCheckBoxID++);
         if (co)
