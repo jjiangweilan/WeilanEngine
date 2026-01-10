@@ -63,12 +63,6 @@ PhysicsScene::PhysicsScene(Scene* scene)
     objectLayerPairFilter->EnableCollision(PhysicsObjectLayers::Sprite, PhysicsObjectLayers::Static);
 
     broadPhaseLayerInterfaceTable = std::make_unique<JPH::BroadPhaseLayerInterfaceTable>(static_cast<JPH::uint>(PhysicsObjectLayers::NUM_LAYERS), BroadPhaseLayers::NUM_LAYERS);
-    objectVsBroadPhaseLayerFilterTable = std::make_unique<JPH::ObjectVsBroadPhaseLayerFilterTable>(
-        *broadPhaseLayerInterfaceTable,
-        broadPhaseLayerInterfaceTable->GetNumBroadPhaseLayers(),
-        *objectLayerPairFilter,
-        objectLayerPairFilter->GetNumObjectLayers()
-    );
     for (int layerIdx = 0; layerIdx < static_cast<int>(PhysicsObjectLayers::NUM_LAYERS); layerIdx++)
     {
         broadPhaseLayerInterfaceTable->SetBroadPhaseLayerName(
@@ -80,6 +74,13 @@ PhysicsScene::PhysicsScene(Scene* scene)
     broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Dynamic, BroadPhaseLayers::Dynamic);
     broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Sprite, BroadPhaseLayers::Sprite);
     broadPhaseLayerInterfaceTable->MapObjectToBroadPhaseLayer(PhysicsObjectLayers::Sensor, BroadPhaseLayers::Sensor);
+
+    objectVsBroadPhaseLayerFilterTable = std::make_unique<JPH::ObjectVsBroadPhaseLayerFilterTable>(
+        *broadPhaseLayerInterfaceTable,
+        broadPhaseLayerInterfaceTable->GetNumBroadPhaseLayers(),
+        *objectLayerPairFilter,
+        objectLayerPairFilter->GetNumObjectLayers()
+    );
 
     // Now we can create the actual physics system.
     physicsSystem.Init(
