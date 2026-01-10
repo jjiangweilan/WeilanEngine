@@ -13,7 +13,8 @@ neovim.json
 .luarc.json
 Source/Test/Library
 imgui.ini
-**/__pycache__
+Source/Scripts/__pycache__/
+Source/Scripts/__pycache__/**
 Source/CompiledShader
 Source/CompiledShader/**
 
