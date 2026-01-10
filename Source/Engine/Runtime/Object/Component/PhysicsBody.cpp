@@ -120,9 +120,10 @@ void PhysicsBody::OnDisable()
 
 void PhysicsBody::SetLayer(PhysicsObjectLayer layer)
 {
+    this->layer = layer;
+
     if (auto interface = GetBodyInterface())
     {
-        this->layer = layer;
         interface->SetObjectLayer(body->GetID(), static_cast<JPH::ObjectLayer>(layer));
     }
 }
@@ -467,13 +468,17 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
 void PhysicsBody::SetShape(PhysicsBodyShapes shape)
 {
     this->shapeType = shape;
-    switch (shape)
+
+    if (GetScene() != nullptr && GetBody() != nullptr)
     {
-        case PhysicsBodyShapes::Box: SetAsBox(); break;
-        case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
-        case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
-        case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
-        case PhysicsBodyShapes::Compound: SetAsCompound(); break;
+        switch (shape)
+        {
+            case PhysicsBodyShapes::Box: SetAsBox(); break;
+            case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
+            case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
+            case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
+            case PhysicsBodyShapes::Compound: SetAsCompound(); break;
+        }
     }
 }
 
@@ -513,7 +518,8 @@ void PhysicsBody::SetSensor(bool isSensor)
 
     if (oldVal != this->isSensor)
     {
-        body->SetIsSensor(this->isSensor);
+        if (body)
+            body->SetIsSensor(this->isSensor);
     }
 }
 
