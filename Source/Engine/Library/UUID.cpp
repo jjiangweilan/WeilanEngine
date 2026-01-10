@@ -1,8 +1,13 @@
 #include "UUID.hpp"
 #include "Assert.hpp"
 #include <random>
+#include "Engine/Library/SpinLock.hpp"
+
+static Spinlock uuidLock;
+
 UUID::UUID()
 {
+    ScopedSpinLock lk{ uuidLock };
     id = uuids::uuid_random_generator{generator}();
 }
 
