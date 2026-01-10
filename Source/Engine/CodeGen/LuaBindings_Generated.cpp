@@ -6,6 +6,7 @@
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 void BindGeneratedClasses(lua_State* L)
@@ -557,6 +558,7 @@ void BindGeneratedClasses(lua_State* L)
 
     LuaBinder<GameObject> binder_GameObject(L);
     binder_GameObject.Begin("GameObject")
+        .BindMemFn("AddComponent", &GameObject::Lua_AddComponent) // Component*(char * componentName)
         .BindMemFn("GetComponentInHierarchy", &GameObject::GetComponentInHierarchy) // ObjPtr<Component>(char * className)
         .BindMemFn("SetName", &GameObject::Lua_SetName) // void(char * name)
         .BindMemFn("GetName", &GameObject::Lua_GetName) // std::string()
@@ -587,9 +589,14 @@ void BindGeneratedClasses(lua_State* L)
         .BindFn("GetComponent", &GameObject::LuaGetComponent)
         .End();
 
+    LuaBinder<Prefab> binder_Prefab(L);
+    binder_Prefab.Begin("Prefab")
+        .End();
+
     LuaBinder<Scene> binder_Scene(L);
     binder_Scene.Begin("Scene")
         .BindMemFn("CreateGameObject", &Scene::Lua_CreateGameObject) // ObjPtr<GameObject>()
+        .BindMemFn("SpawnPrefab", &Scene::SpawnPrefab) // ObjPtr<GameObject>(ObjPtr<Prefab> & prefab)
         .BindMemFn("DestroyGameObject", &Scene::DestroyGameObject) // void(GameObject * obj)
         .End();
 

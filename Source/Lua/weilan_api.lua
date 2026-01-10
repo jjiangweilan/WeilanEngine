@@ -320,6 +320,9 @@ function wl.PhysicsBody:SetGravityFactor(f) end
 ---@class wl.GameObject
 wl.GameObject = {}
 
+---@param componentName any
+---@return wl.Component*
+function wl.GameObject:AddComponent(componentName) end
 ---@param className any
 ---@return wl.Component
 function wl.GameObject:GetComponentInHierarchy(className) end
@@ -377,11 +380,18 @@ function wl.GameObject:GetWorldMatrix(...) end
 function wl.GameObject:SetWorldMatrix(model) end
 function wl.GameObject:GetComponent(...) end
 
+---@class wl.Prefab
+wl.Prefab = {}
+
+
 ---@class wl.Scene
 wl.Scene = {}
 
 ---@return wl.GameObject
 function wl.Scene:CreateGameObject(...) end
+---@param prefab wl.Prefab
+---@return wl.GameObject
+function wl.Scene:SpawnPrefab(prefab) end
 ---@param obj wl.GameObject *
 function wl.Scene:DestroyGameObject(obj) end
 

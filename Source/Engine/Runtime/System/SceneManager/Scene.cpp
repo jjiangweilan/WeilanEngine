@@ -27,6 +27,17 @@ GameObject* Scene::CreateGameObject()
     return refObj;
 }
 
+ObjPtr<GameObject> Scene::SpawnPrefab(const ObjPtr<Prefab>& prefab)
+{
+    if (prefab == nullptr || prefab->GetGameObject() == nullptr)
+        return nullptr;
+
+    std::unique_ptr<GameObject> newObj = prefab->Instantiate();
+    GameObject* refObj = AddGameObject(std::move(newObj));
+    refObj->SetEnable(refObj->WantsTobeEnabled());
+    return refObj;
+}
+
 GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
 {
     GameObject* temp = newGameObject.get();

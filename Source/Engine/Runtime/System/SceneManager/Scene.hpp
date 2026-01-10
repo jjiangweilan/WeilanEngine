@@ -33,6 +33,7 @@ public:
 
     void MoveGameObjectToRoot(GameObject* obj);
     void RemoveGameObjectFromRoot(GameObject* obj);
+    [[LuaFn]] ObjPtr<GameObject> SpawnPrefab(const ObjPtr<Prefab>& prefab);
     [[LuaFn]] void DestroyGameObject(GameObject* obj);
     std::unique_ptr<GameObject> RetrieveGameObject(GameObject* obj);
 
