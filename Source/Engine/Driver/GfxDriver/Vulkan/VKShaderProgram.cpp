@@ -483,7 +483,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     pipelineRasterizationStateCreateInfo.depthBiasEnable = defaultPipelineConfig->depth.depthBias != 0;
     pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = defaultPipelineConfig->depth.depthBias;
-    pipelineRasterizationStateCreateInfo.depthBiasClamp = defaultPipelineConfig->depth.depthSlopBias != 0;
+    pipelineRasterizationStateCreateInfo.depthBiasClamp = false;
     pipelineRasterizationStateCreateInfo.depthBiasSlopeFactor = defaultPipelineConfig->depth.depthSlopBias;
     pipelineRasterizationStateCreateInfo.lineWidth = 1;
     createInfo.pRasterizationState = &pipelineRasterizationStateCreateInfo;

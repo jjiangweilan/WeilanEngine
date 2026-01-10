@@ -259,42 +259,21 @@ private:
     std::unordered_map<UUID, AllocatedImage> images;
     std::unordered_map<RenderPass, AllocatedRenderPass> renderPasses;
 
-    template <class T>
-    void UpdateResources(std::unordered_map<UUID, T>& resources)
+    template <class Key, class T>
+    void UpdateResources(std::unordered_map<Key, T>& resources)
     {
         int removeCount = 0;
-        const UUID* readyToRemove[8];
-        for (auto& iter : resources)
+        for (auto iter = resources.begin(); iter != resources.end();)
         {
-            if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
+            if (iter->second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
             {
-                readyToRemove[removeCount++] = &iter.first;
+                iter = resources.erase(iter);
             }
-            iter.second.frameCountFromLastRequest += 1;
-        }
-
-        for (int i = 0; i < removeCount; ++i)
-        {
-            resources.erase(*readyToRemove[i]);
-        }
-    }
-
-    void UpdateResources(std::unordered_map<RenderPass, AllocatedRenderPass>& resources)
-    {
-        int removeCount = 0;
-        const RenderPass* readyToRemove[8];
-        for (auto& iter : resources)
-        {
-            if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
+            else
             {
-                readyToRemove[removeCount++] = &iter.first;
+                iter->second.frameCountFromLastRequest += 1;
+                ++iter;
             }
-            iter.second.frameCountFromLastRequest += 1;
-        }
-
-        for (int i = 0; i < removeCount; ++i)
-        {
-            resources.erase(*readyToRemove[i]);
         }
     }
 };

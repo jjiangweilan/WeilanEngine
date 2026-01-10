@@ -350,6 +350,7 @@ public:
             }
 
             this->hash = hash;
+            rehash = false;
         }
 
         return hash;
@@ -394,7 +395,7 @@ public:
     }
 
 private:
-    bool rehash = false;
+    mutable bool rehash = false;
     mutable uint64_t hash = 0;
     std::string name = "";
     std::vector<ImageIdentifier> attachments = {};

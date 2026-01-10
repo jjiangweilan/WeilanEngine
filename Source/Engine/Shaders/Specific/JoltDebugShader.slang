@@ -5,8 +5,8 @@ polygonMode : line
 depth :
     testEnable : True
     compareOp : greaterOrEqual
-    depthBias: 5
-    depthSlopBias: 5
+    depthBias: 20
+    depthSlopBias: 20
 #endif
 
 struct Transform

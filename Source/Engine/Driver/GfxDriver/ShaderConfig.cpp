@@ -20,6 +20,8 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
         config.depth.boundTestEnable = depthJson.value("boundTestEnable", false);
         config.depth.minBounds = depthJson.value("minBounds", 0.0f);
         config.depth.maxBounds = depthJson.value("maxBounds", 1.0f);
+        config.depth.depthBias = depthJson.value("depthBias", 1.0f);
+        config.depth.depthSlopBias = depthJson.value("depthSlopBias", 1.0f);
     }
 
     // Stencil settings
@@ -108,6 +110,8 @@ nlohmann::json Gfx::PipelineConfig::ToJson() const
     j["depth"]["boundTestEnable"] = v->depth.boundTestEnable;
     j["depth"]["minBounds"] = v->depth.minBounds;
     j["depth"]["maxBounds"] = v->depth.maxBounds;
+    j["depth"]["depthBias"] = v->depth.depthBias;
+    j["depth"]["depthSlopBias"] = v->depth.depthSlopBias;
 
     // Stencil settings
     j["stencil"] = nlohmann::json::object_t();
@@ -171,5 +175,3 @@ void Gfx::PipelineConfig::Rehash()
     Hash64(seed, v->color.blendConstants[3]);
     hash = seed;
 }
-
-
