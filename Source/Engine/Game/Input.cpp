@@ -177,15 +177,16 @@ struct Input
                     pad->axis[0].y = pressing ? -1 : 0;
                 }
             }
-            else if (event.type == SDL_CONTROLLERDEVICEADDED)
-            {
-                auto pad = GetGamepad(event.jbutton.which);
-                spdlog::info("Game Controller Added");
-            }
-            else if (event.type == SDL_CONTROLLERDEVICEREMOVED)
-            {
-                // If a gamepad is removed, there is no need to do anything
-            }
+        }
+
+        if (event.type == SDL_CONTROLLERDEVICEADDED)
+        {
+            auto pad = GetGamepad(event.jbutton.which);
+            spdlog::info("Game Controller Added");
+        }
+        else if (event.type == SDL_CONTROLLERDEVICEREMOVED)
+        {
+            // If a gamepad is removed, there is no need to do anything
         }
     }
 
@@ -324,4 +325,3 @@ float2 Gamepad::GetAxis(uint8_t idx)
 
     return {0, 0};
 }
-
