@@ -282,7 +282,10 @@ void MeshRenderer::OnDrawGizmos() {}
 void MeshRenderer::TransformChanged()
 {
     aabbPositionNeedUpdate = true;
-    GetScene()->GetRenderingScene().RebuildBVH();
+    if (auto scene = GetScene())
+    {
+        scene->GetRenderingScene().RebuildBVH();
+    }
 }
 
 void MeshRenderer::CheckSkeleton()
