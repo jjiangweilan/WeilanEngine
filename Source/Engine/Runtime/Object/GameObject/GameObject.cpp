@@ -47,7 +47,7 @@ void GameObject::Copy(const GameObject& other)
     scale = other.scale;
     rotation = other.rotation;
     eulerAngles = other.eulerAngles;
-    wantsToBeEnabled = other.enabled;
+    wantsToBeEnabled = other.enabled || other.wantsToBeEnabled;
     gameScene = nullptr;
     enabled = false;
 
@@ -134,6 +134,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("children", children);
     s->Serialize("enabled", enabled);
     s->Serialize("prefab", prefab);
+    s->Serialize("wantsToBeEnabled", wantsToBeEnabled);
 }
 
 void GameObject::SetWorldMatrix(const float4x4& matrix)
@@ -162,14 +163,16 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("scale", scale);
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
-    eulerAngles = glm::eulerAngles(rotation);
     s->Deserialize("components", components);
     s->Deserialize("prefab", prefab);
+    s->Deserialize("wantsToBeEnabled", wantsToBeEnabled);
     // gameScene is set by Scene when it's deserializing
 }
 
 void GameObject::OnLoaded()
 {
+    eulerAngles = glm::eulerAngles(rotation);
+
     ApplyPrefabComponents();
     UpdateAllComponents();
 
@@ -284,6 +287,8 @@ void GameObject::SetScene(Scene* scene)
 
 void GameObject::SetEnable(bool isEnabled)
 {
+    wantsToBeEnabled = isEnabled;
+
     if (enabled == isEnabled || gameScene == nullptr)
         return;
 

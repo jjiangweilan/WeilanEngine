@@ -2,7 +2,7 @@
 #include "Engine/Core/Asset.hpp"
 #include <memory>
 class GameObject;
-class Prefab : public Asset
+class [[LuaClass]] Prefab : public Asset
 {
     DECLARE_ASSET()
 
@@ -16,6 +16,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
+    void OnLoaded() override;
 private:
     std::unique_ptr<GameObject> gameObject;
 };

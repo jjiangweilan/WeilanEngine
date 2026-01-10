@@ -89,6 +89,7 @@ public:
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
     Component* AddComponent(std::string_view componentName);
+    [[LuaNamedFn("AddComponent")]] Component* Lua_AddComponent(const char* componentName) { return AddComponent(std::string_view(componentName)); }
     void RemoveComponent(void* comp);
     void MoveInComponent(Component* source);
     void RemoveComponentByIndex(int componentIndex);
@@ -132,6 +133,7 @@ public:
     [[LuaFn]] void SetEnable(bool isEnabled);
     void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
     bool GetWantsTobeEnabledStateAndReset();
+    bool WantsTobeEnabled() { return wantsToBeEnabled; }
 
     // Transform - Position
     [[LuaFn]] float3 GetPosition() const;

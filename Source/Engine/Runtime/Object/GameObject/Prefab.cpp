@@ -1,6 +1,6 @@
 #include "Prefab.hpp"
-#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 DEFINE_ASSET(Prefab, "E7A241A8-D2F2-494C-BEB9-4934B4D2C2F9", "prefab")
 
@@ -35,4 +35,12 @@ void Prefab::Deserialize(Serializer* s)
 
     Asset::Deserialize(s);
     s->Deserialize("gameObject", gameObject);
+}
+
+void Prefab::OnLoaded()
+{
+    if (gameObject)
+    {
+        gameObject->OnLoaded();
+    }
 }
