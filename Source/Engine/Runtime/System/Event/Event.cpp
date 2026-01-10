@@ -7,11 +7,11 @@
 
 void Event::Init()
 {
-    gameController = SDL_GameControllerOpen(0);
+    Input::Init();
 }
 void Event::Deinit()
 {
-    SDL_GameControllerClose(gameController);
+    Input::Destroy();
 }
 
 void Event::Reset()

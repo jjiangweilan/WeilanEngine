@@ -126,50 +126,50 @@ enum class [[LuaEnum]] InputScancode
     Key_LEFTBRACKET = SDL_SCANCODE_LEFTBRACKET,
     Key_RIGHTBRACKET = SDL_SCANCODE_RIGHTBRACKET,
     Key_BACKSLASH = SDL_SCANCODE_BACKSLASH, /**< Located at the lower left of the return
-                                  *   key on ISO keyboards and at the right end
-                                  *   of the QWERTY row on ANSI keyboards.
-                                  *   Produces REVERSE SOLIDUS (backslash) and
-                                  *   VERTICAL LINE in a US layout, REVERSE
-                                  *   SOLIDUS and VERTICAL LINE in a UK Mac
-                                  *   layout, NUMBER SIGN and TILDE in a UK
-                                  *   Windows layout, DOLLAR SIGN and POUND SIGN
-                                  *   in a Swiss German layout, NUMBER SIGN and
-                                  *   APOSTROPHE in a German layout, GRAVE
-                                  *   ACCENT and POUND SIGN in a French Mac
-                                  *   layout, and ASTERISK and MICRO SIGN in a
-                                  *   French Windows layout.
-                                  */
+                                             *   key on ISO keyboards and at the right end
+                                             *   of the QWERTY row on ANSI keyboards.
+                                             *   Produces REVERSE SOLIDUS (backslash) and
+                                             *   VERTICAL LINE in a US layout, REVERSE
+                                             *   SOLIDUS and VERTICAL LINE in a UK Mac
+                                             *   layout, NUMBER SIGN and TILDE in a UK
+                                             *   Windows layout, DOLLAR SIGN and POUND SIGN
+                                             *   in a Swiss German layout, NUMBER SIGN and
+                                             *   APOSTROPHE in a German layout, GRAVE
+                                             *   ACCENT and POUND SIGN in a French Mac
+                                             *   layout, and ASTERISK and MICRO SIGN in a
+                                             *   French Windows layout.
+                                             */
     Key_NONUSHASH = SDL_SCANCODE_NONUSHASH, /**< ISO USB keyboards actually use this code
-                                  *   instead of 49 for the same key, but all
-                                  *   OSes I've seen treat the two codes
-                                  *   identically. So, as an implementor, unless
-                                  *   your keyboard generates both of those
-                                  *   codes and your OS treats them differently,
-                                  *   you should generate Key_BACKSLASH = SDL_SCANCODE_BACKSLASH
-                                  *   instead of this code. As a user, you
-                                  *   should not rely on this code because SDL
-                                  *   will never generate it with most (all?)
-                                  *   keyboards.
-                                  */
+                                             *   instead of 49 for the same key, but all
+                                             *   OSes I've seen treat the two codes
+                                             *   identically. So, as an implementor, unless
+                                             *   your keyboard generates both of those
+                                             *   codes and your OS treats them differently,
+                                             *   you should generate Key_BACKSLASH = SDL_SCANCODE_BACKSLASH
+                                             *   instead of this code. As a user, you
+                                             *   should not rely on this code because SDL
+                                             *   will never generate it with most (all?)
+                                             *   keyboards.
+                                             */
     Key_SEMICOLON = SDL_SCANCODE_SEMICOLON,
     Key_APOSTROPHE = SDL_SCANCODE_APOSTROPHE,
     Key_GRAVE = SDL_SCANCODE_GRAVE, /**< Located in the top left corner (on both ANSI
-                              *   and ISO keyboards). Produces GRAVE ACCENT and
-                              *   TILDE in a US Windows layout and in US and UK
-                              *   Mac layouts on ANSI keyboards, GRAVE ACCENT
-                              *   and NOT SIGN in a UK Windows layout, SECTION
-                              *   SIGN and PLUS-MINUS SIGN in US and UK Mac
-                              *   layouts on ISO keyboards, SECTION SIGN and
-                              *   DEGREE SIGN in a Swiss German layout (Mac:
-                              *   only on ISO keyboards), CIRCUMFLEX ACCENT and
-                              *   DEGREE SIGN in a German layout (Mac: only on
-                              *   ISO keyboards), SUPERSCRIPT TWO and TILDE in a
-                              *   French Windows layout, COMMERCIAL AT and
-                              *   NUMBER SIGN in a French Mac layout on ISO
-                              *   keyboards, and LESS-THAN SIGN and GREATER-THAN
-                              *   SIGN in a Swiss German, German, or French Mac
-                              *   layout on ANSI keyboards.
-                              */
+                                     *   and ISO keyboards). Produces GRAVE ACCENT and
+                                     *   TILDE in a US Windows layout and in US and UK
+                                     *   Mac layouts on ANSI keyboards, GRAVE ACCENT
+                                     *   and NOT SIGN in a UK Windows layout, SECTION
+                                     *   SIGN and PLUS-MINUS SIGN in US and UK Mac
+                                     *   layouts on ISO keyboards, SECTION SIGN and
+                                     *   DEGREE SIGN in a Swiss German layout (Mac:
+                                     *   only on ISO keyboards), CIRCUMFLEX ACCENT and
+                                     *   DEGREE SIGN in a German layout (Mac: only on
+                                     *   ISO keyboards), SUPERSCRIPT TWO and TILDE in a
+                                     *   French Windows layout, COMMERCIAL AT and
+                                     *   NUMBER SIGN in a French Mac layout on ISO
+                                     *   keyboards, and LESS-THAN SIGN and GREATER-THAN
+                                     *   SIGN in a Swiss German, German, or French Mac
+                                     *   layout on ANSI keyboards.
+                                     */
     Key_COMMA = SDL_SCANCODE_COMMA,
     Key_PERIOD = SDL_SCANCODE_PERIOD,
     Key_SLASH = SDL_SCANCODE_SLASH,
@@ -205,7 +205,7 @@ enum class [[LuaEnum]] InputScancode
     Key_UP = SDL_SCANCODE_UP,
 
     Key_NUMLOCKCLEAR = SDL_SCANCODE_NUMLOCKCLEAR, /**< num lock on PC, clear on Mac keyboards
-                                     */
+                                                   */
     Key_KP_DIVIDE = SDL_SCANCODE_KP_DIVIDE,
     Key_KP_MULTIPLY = SDL_SCANCODE_KP_MULTIPLY,
     Key_KP_MINUS = SDL_SCANCODE_KP_MINUS,
@@ -224,19 +224,19 @@ enum class [[LuaEnum]] InputScancode
     Key_KP_PERIOD = SDL_SCANCODE_KP_PERIOD,
 
     Key_NONUSBACKSLASH = SDL_SCANCODE_NONUSBACKSLASH, /**< This is the additional key that ISO
-                                        *   keyboards have over ANSI ones,
-                                        *   located between left shift and Y.
-                                        *   Produces GRAVE ACCENT and TILDE in a
-                                        *   US or UK Mac layout, REVERSE SOLIDUS
-                                        *   (backslash) and VERTICAL LINE in a
-                                        *   US or UK Windows layout, and
-                                        *   LESS-THAN SIGN and GREATER-THAN SIGN
-                                        *   in a Swiss German, German, or French
-                                        *   layout. */
-    Key_APPLICATION = SDL_SCANCODE_APPLICATION,    /**< windows contextual menu, compose */
-    Key_POWER = SDL_SCANCODE_POWER,          /**< The USB document says this is a status flag,
-                                        *   not a physical key - but some Mac keyboards
-                                        *   do have a power key. */
+                                                       *   keyboards have over ANSI ones,
+                                                       *   located between left shift and Y.
+                                                       *   Produces GRAVE ACCENT and TILDE in a
+                                                       *   US or UK Mac layout, REVERSE SOLIDUS
+                                                       *   (backslash) and VERTICAL LINE in a
+                                                       *   US or UK Windows layout, and
+                                                       *   LESS-THAN SIGN and GREATER-THAN SIGN
+                                                       *   in a Swiss German, German, or French
+                                                       *   layout. */
+    Key_APPLICATION = SDL_SCANCODE_APPLICATION,       /**< windows contextual menu, compose */
+    Key_POWER = SDL_SCANCODE_POWER,                   /**< The USB document says this is a status flag,
+                                                       *   not a physical key - but some Mac keyboards
+                                                       *   do have a power key. */
     Key_KP_EQUALS = SDL_SCANCODE_KP_EQUALS,
     Key_F13 = SDL_SCANCODE_F13,
     Key_F14 = SDL_SCANCODE_F14,
@@ -254,13 +254,13 @@ enum class [[LuaEnum]] InputScancode
     Key_HELP = SDL_SCANCODE_HELP, /**< AL Integrated Help Center */
     Key_MENU = SDL_SCANCODE_MENU, /**< Menu (show menu) */
     Key_SELECT = SDL_SCANCODE_SELECT,
-    Key_STOP = SDL_SCANCODE_STOP,  /**< AC Stop */
+    Key_STOP = SDL_SCANCODE_STOP,   /**< AC Stop */
     Key_AGAIN = SDL_SCANCODE_AGAIN, /**< AC Redo/Repeat */
-    Key_UNDO = SDL_SCANCODE_UNDO,  /**< AC Undo */
-    Key_CUT = SDL_SCANCODE_CUT,   /**< AC Cut */
-    Key_COPY = SDL_SCANCODE_COPY,  /**< AC Copy */
+    Key_UNDO = SDL_SCANCODE_UNDO,   /**< AC Undo */
+    Key_CUT = SDL_SCANCODE_CUT,     /**< AC Cut */
+    Key_COPY = SDL_SCANCODE_COPY,   /**< AC Copy */
     Key_PASTE = SDL_SCANCODE_PASTE, /**< AC Paste */
-    Key_FIND = SDL_SCANCODE_FIND,  /**< AC Find */
+    Key_FIND = SDL_SCANCODE_FIND,   /**< AC Find */
     Key_MUTE = SDL_SCANCODE_MUTE,
     Key_VOLUMEUP = SDL_SCANCODE_VOLUMEUP,
     Key_VOLUMEDOWN = SDL_SCANCODE_VOLUMEDOWN,
@@ -361,9 +361,9 @@ enum class [[LuaEnum]] InputScancode
     Key_RGUI = SDL_SCANCODE_RGUI, /**< windows, command (apple), meta */
 
     Key_MODE = SDL_SCANCODE_MODE, /**< I'm not sure if this is really not covered
-                              *   by any of the above, but since there's a
-                              *   special KMOD_MODE for it I'm adding it here
-                              */
+                                   *   by any of the above, but since there's a
+                                   *   special KMOD_MODE for it I'm adding it here
+                                   */
 
     /* @} */ /* Usage page 0x07 */
 
@@ -389,12 +389,12 @@ enum class [[LuaEnum]] InputScancode
     Key_MAIL = SDL_SCANCODE_MAIL,
     Key_CALCULATOR = SDL_SCANCODE_CALCULATOR, /**< AL Calculator */
     Key_COMPUTER = SDL_SCANCODE_COMPUTER,
-    Key_AC_SEARCH = SDL_SCANCODE_AC_SEARCH,    /**< AC Search */
-    Key_AC_HOME = SDL_SCANCODE_AC_HOME,      /**< AC Home */
-    Key_AC_BACK = SDL_SCANCODE_AC_BACK,      /**< AC Back */
-    Key_AC_FORWARD = SDL_SCANCODE_AC_FORWARD,   /**< AC Forward */
-    Key_AC_STOP = SDL_SCANCODE_AC_STOP,      /**< AC Stop */
-    Key_AC_REFRESH = SDL_SCANCODE_AC_REFRESH,   /**< AC Refresh */
+    Key_AC_SEARCH = SDL_SCANCODE_AC_SEARCH,       /**< AC Search */
+    Key_AC_HOME = SDL_SCANCODE_AC_HOME,           /**< AC Home */
+    Key_AC_BACK = SDL_SCANCODE_AC_BACK,           /**< AC Back */
+    Key_AC_FORWARD = SDL_SCANCODE_AC_FORWARD,     /**< AC Forward */
+    Key_AC_STOP = SDL_SCANCODE_AC_STOP,           /**< AC Stop */
+    Key_AC_REFRESH = SDL_SCANCODE_AC_REFRESH,     /**< AC Refresh */
     Key_AC_BOOKMARKS = SDL_SCANCODE_AC_BOOKMARKS, /**< AC Bookmarks */
 
     /* @} */ /* Usage page 0x0C */
@@ -440,16 +440,16 @@ enum class [[LuaEnum]] InputScancode
      */
     /* @{ */
 
-    Key_SOFTLEFT = SDL_SCANCODE_SOFTLEFT,  /**< Usually situated below the display on phones and
-                                       used as a multi-function feature key for selecting
-                                       a software defined function shown on the bottom left
-                                       of the display. */
+    Key_SOFTLEFT = SDL_SCANCODE_SOFTLEFT,   /**< Usually situated below the display on phones and
+                                        used as a multi-function feature key for selecting
+                                        a software defined function shown on the bottom left
+                                        of the display. */
     Key_SOFTRIGHT = SDL_SCANCODE_SOFTRIGHT, /**< Usually situated below the display on phones and
                                        used as a multi-function feature key for selecting
                                        a software defined function shown on the bottom right
                                        of the display. */
-    Key_CALL = SDL_SCANCODE_CALL,      /**< Used for accepting phone calls. */
-    Key_ENDCALL = SDL_SCANCODE_ENDCALL,   /**< Used for rejecting phone calls. */
+    Key_CALL = SDL_SCANCODE_CALL,           /**< Used for accepting phone calls. */
+    Key_ENDCALL = SDL_SCANCODE_ENDCALL,     /**< Used for rejecting phone calls. */
 
     /* @} */ /* Mobile keys */
 
@@ -483,4 +483,6 @@ public:
     static void SetGameplayInput(bool enabled);
     static void Reset();
     static void UpdateState();
+    static void Init();
+    static void Destroy();
 };

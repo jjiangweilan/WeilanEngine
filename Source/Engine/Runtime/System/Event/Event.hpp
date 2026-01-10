@@ -48,7 +48,5 @@ private:
     WindowClose windowClose;
     SwapchainRecreated swapchainRecreated;
 
-    SDL_GameController* gameController;
-
     friend class WeilanEngine;
 };
