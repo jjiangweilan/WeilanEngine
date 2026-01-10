@@ -31,7 +31,8 @@ void Prefab::SetGameObject(GameObject* gameObject)
 
 std::unique_ptr<GameObject> Prefab::Instantiate()
 {
-    auto go = std::make_unique<GameObject>(*gameObject);
+    auto go = std::make_unique<GameObject>();
+    go->Copy(*gameObject, false);
     go->LinkPrefab(this);
     return std::move(go);
 }

@@ -39,7 +39,7 @@ void GameObject::ResetTransform()
     eulerAngles = float3(0, 0, 0);
 }
 
-void GameObject::Copy(const GameObject& other)
+void GameObject::Copy(const GameObject& other, bool withComponent)
 {
     SetName(other.GetName());
     prefab = other.prefab;
@@ -51,14 +51,19 @@ void GameObject::Copy(const GameObject& other)
     gameScene = nullptr;
     enabled = false;
 
-    for (auto& c : other.components)
+    if (withComponent)
     {
-        components.push_back(c->Clone(*this));
+        for (auto& c : other.components)
+        {
+            components.push_back(c->Clone(*this));
+        }
     }
 
     for (GameObject* child : other.children)
     {
-        owningChildren.push_back(std::make_unique<GameObject>(*child));
+        auto childCopy = std::make_unique<GameObject>();
+        childCopy->Copy(*child, withComponent);
+        owningChildren.push_back(std::move(childCopy));
         owningChildren.back()->SetParent(this, false);
     }
 

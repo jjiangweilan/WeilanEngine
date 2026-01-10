@@ -202,6 +202,7 @@ public:
     [[LuaRawFn("GetComponent")]]
     static int LuaGetComponent(lua_State* L);
 
+    void Copy(const GameObject& other, bool withComponent = true);
 private:
     GameObject* FindInternal(GameObject* go, std::string_view name);
 
@@ -211,7 +212,6 @@ private:
     }
 
     void TransformChanged();
-    void Copy(const GameObject& other);
 
     void UpdateAllComponents();
     void ApplyPrefabComponents();
