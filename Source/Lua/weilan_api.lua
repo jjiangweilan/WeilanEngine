@@ -323,6 +323,12 @@ wl.GameObject = {}
 ---@param className any
 ---@return wl.Component
 function wl.GameObject:GetComponentInHierarchy(className) end
+---@param name any
+function wl.GameObject:SetName(name) end
+---@return string
+function wl.GameObject:GetName(...) end
+---@return wl.Scene*
+function wl.GameObject:GetScene(...) end
 ---@return boolean
 function wl.GameObject:IsEnabled(...) end
 ---@return boolean
@@ -370,6 +376,14 @@ function wl.GameObject:GetWorldMatrix(...) end
 ---@param model any
 function wl.GameObject:SetWorldMatrix(model) end
 function wl.GameObject:GetComponent(...) end
+
+---@class wl.Scene
+wl.Scene = {}
+
+---@return wl.GameObject
+function wl.Scene:CreateGameObject(...) end
+---@param obj wl.GameObject *
+function wl.Scene:DestroyGameObject(obj) end
 
 ---@class wl.GameScript
 wl.GameScript = {}

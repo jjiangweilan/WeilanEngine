@@ -12,6 +12,11 @@ Scene::~Scene()
     gameObjects.clear();
 }
 
+ObjPtr<GameObject> Scene::Lua_CreateGameObject()
+{
+    return CreateGameObject();
+}
+
 GameObject* Scene::CreateGameObject()
 {
     std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);

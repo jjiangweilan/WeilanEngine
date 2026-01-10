@@ -6,6 +6,7 @@
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 void BindGeneratedClasses(lua_State* L)
 {
@@ -557,6 +558,9 @@ void BindGeneratedClasses(lua_State* L)
     LuaBinder<GameObject> binder_GameObject(L);
     binder_GameObject.Begin("GameObject")
         .BindMemFn("GetComponentInHierarchy", &GameObject::GetComponentInHierarchy) // ObjPtr<Component>(char * className)
+        .BindMemFn("SetName", &GameObject::Lua_SetName) // void(char * name)
+        .BindMemFn("GetName", &GameObject::Lua_GetName) // std::string()
+        .BindMemFn("GetScene", &GameObject::GetScene) // Scene*()
         .BindMemFn("IsEnabled", &GameObject::IsEnabled) // bool()
         .BindMemFn("IsActiveInScene", &GameObject::IsActiveInScene) // bool()
         .BindMemFn("SetEnable", &GameObject::SetEnable) // void(bool isEnabled)
@@ -581,6 +585,12 @@ void BindGeneratedClasses(lua_State* L)
         .BindMemFn("GetWorldMatrix", &GameObject::GetWorldMatrix) // float4x4()
         .BindMemFn("SetWorldMatrix", &GameObject::SetWorldMatrix) // void(float4x4 & model)
         .BindFn("GetComponent", &GameObject::LuaGetComponent)
+        .End();
+
+    LuaBinder<Scene> binder_Scene(L);
+    binder_Scene.Begin("Scene")
+        .BindMemFn("CreateGameObject", &Scene::Lua_CreateGameObject) // ObjPtr<GameObject>()
+        .BindMemFn("DestroyGameObject", &Scene::DestroyGameObject) // void(GameObject * obj)
         .End();
 
 }

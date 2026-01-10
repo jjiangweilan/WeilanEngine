@@ -102,9 +102,12 @@ public:
     template <class T>
     std::vector<T*> GetComponentsInChildren();
 
+    [[LuaNamedFn("SetName")]] void Lua_SetName(const char* name) { SetName(name); }
+    [[LuaNamedFn("GetName")]] std::string Lua_GetName() const { return GetName(); }
+
     // Scene & Lifecycle
     void SetScene(Scene* scene);
-    Scene* GetScene();
+    [[LuaFn]] Scene* GetScene();
     void Tick();
     void IdleTick();
     void PrePhysicsTick();

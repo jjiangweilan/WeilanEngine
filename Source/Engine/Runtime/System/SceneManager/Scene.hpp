@@ -1,17 +1,17 @@
 #pragma once
 
-#include "Engine/Core/Ptr.hpp"
 #include "Engine/Core/Asset.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
-#include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
+#include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
 
-class Scene : public Asset
+class [[LuaClass]] Scene : public Asset
 {
     DECLARE_ASSET();
 
@@ -23,6 +23,8 @@ public:
     void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
 
+    [[LuaNamedFn("CreateGameObject")]] ObjPtr<GameObject> Lua_CreateGameObject();
+
     const std::vector<ObjPtr<GameObject>>& GetRootObjects();
 
     void Tick();
@@ -31,7 +33,7 @@ public:
 
     void MoveGameObjectToRoot(GameObject* obj);
     void RemoveGameObjectFromRoot(GameObject* obj);
-    void DestroyGameObject(GameObject* obj);
+    [[LuaFn]] void DestroyGameObject(GameObject* obj);
     std::unique_ptr<GameObject> RetrieveGameObject(GameObject* obj);
 
     [[deprecated("we can't actually clone a scene, the internal reference is hard to resolve. Use "
