@@ -11,7 +11,7 @@ parser = Parser(CPP_LANGUAGE)
 def get_node_text(node, code_bytes):
     return code_bytes[node.start_byte:node.end_byte].decode('utf-8')
 
-def get_type_name(node, code_bytes):
+def get_type_name(node, code_bytes, pointer_depth=0, is_reference=False):
     """
     Extracts a simplified type name from a type node.
     """
@@ -19,7 +19,31 @@ def get_type_name(node, code_bytes):
     text = get_node_text(node, code_bytes)
     # Simplify common C++ types for Lua
     text = text.replace("const", "").replace("&", "").replace("*", "").strip()
+    # Add back pointer/reference modifiers
+    text = text + "*" * pointer_depth
+    if is_reference:
+        text = text + "&"
     return text
+
+def unwrap_declarator(declarator):
+    """
+    Unwraps pointer_declarator and reference_declarator nodes to get the inner declarator.
+    Returns (inner_declarator, pointer_depth, is_reference).
+    """
+    pointer_depth = 0
+    is_reference = False
+    
+    while declarator:
+        if declarator.type == 'pointer_declarator':
+            pointer_depth += 1
+            declarator = declarator.child_by_field_name('declarator')
+        elif declarator.type == 'reference_declarator':
+            is_reference = True
+            declarator = declarator.child_by_field_name('declarator')
+        else:
+            break
+    
+    return declarator, pointer_depth, is_reference
 
 def find_attribute(node, code_bytes, target_attr):
     """
@@ -107,10 +131,13 @@ def process_file(file_path):
                         is_method = False
                         func_declarator = None
                         ret_type_node = None
+                        ret_pointer_depth = 0
+                        ret_is_reference = False
                         
                         if member.type == 'function_definition':
                             is_method = True
-                            func_declarator = member.child_by_field_name('declarator')
+                            raw_declarator = member.child_by_field_name('declarator')
+                            func_declarator, ret_pointer_depth, ret_is_reference = unwrap_declarator(raw_declarator)
                             ret_type_node = member.child_by_field_name('type')
                         elif member.type in ['field_declaration', 'declaration']:
                             ret_type_node = member.child_by_field_name('type')
@@ -120,19 +147,33 @@ def process_file(file_path):
                                     is_method = True
                                     func_declarator = child
                                     break
+                                elif child.type in ['pointer_declarator', 'reference_declarator']:
+                                    # Unwrap to check if it contains a function_declarator
+                                    unwrapped, pd, ir = unwrap_declarator(child)
+                                    if unwrapped and unwrapped.type == 'function_declarator':
+                                        is_method = True
+                                        func_declarator = unwrapped
+                                        ret_pointer_depth = pd
+                                        ret_is_reference = ir
+                                        break
                             
                             # Fallback
                             if not is_method:
                                 d = member.child_by_field_name('declarator')
-                                if d and d.type == 'function_declarator':
-                                    is_method = True
-                                    func_declarator = d
+                                if d:
+                                    unwrapped, pd, ir = unwrap_declarator(d)
+                                    if unwrapped and unwrapped.type == 'function_declarator':
+                                        is_method = True
+                                        func_declarator = unwrapped
+                                        ret_pointer_depth = pd
+                                        ret_is_reference = ir
 
                         if is_method:
                             lua_fn_attr = find_attribute(member, code_bytes, 'LuaFn')
+                            lua_named_fn_attr = find_attribute(member, code_bytes, 'LuaNamedFn')
                             lua_raw_fn_attr = find_attribute(member, code_bytes, 'LuaRawFn')
                             
-                            if lua_fn_attr:
+                            if lua_fn_attr or lua_named_fn_attr:
                                 if not func_declarator: continue
 
                                 # Extract name from function_declarator
@@ -146,8 +187,8 @@ def process_file(file_path):
                                         is_static = True
                                         break
                                 
-                                # Extract return type
-                                ret_type = get_type_name(ret_type_node, code_bytes)
+                                # Extract return type (including pointer/reference modifiers)
+                                ret_type = get_type_name(ret_type_node, code_bytes, ret_pointer_depth, ret_is_reference)
 
                                 # Extract parameters
                                 params = []
@@ -163,12 +204,27 @@ def process_file(file_path):
                                             params.append(f"{p_type} {p_name}")
 
                                 sig = f"// {ret_type}({', '.join(params)})"
+                                
+                                bind_name = func_name
+                                if lua_named_fn_attr:
+                                    # Extract binding name from arguments
+                                    args_node = lua_named_fn_attr.child_by_field_name('arguments')
+                                    if not args_node:
+                                        for child in lua_named_fn_attr.children:
+                                            if child.type == 'argument_list':
+                                                args_node = child
+                                                break
+                                    if args_node:
+                                        for arg in args_node.children:
+                                            if arg.type == 'string_literal':
+                                                bind_name = get_node_text(arg, code_bytes).strip('"')
+                                                break
 
                                 if func_name:
                                     if is_static:
-                                        class_info['static_methods'].append({'name': func_name, 'sig': sig})
+                                        class_info['static_methods'].append({'name': func_name, 'bind_name': bind_name, 'sig': sig})
                                     else:
-                                        class_info['methods'].append({'name': func_name, 'sig': sig})
+                                        class_info['methods'].append({'name': func_name, 'bind_name': bind_name, 'sig': sig})
                             
                             elif lua_raw_fn_attr:
                                 if not func_declarator: continue
@@ -341,10 +397,10 @@ def generate_bindings(source_dir, output_file):
             out.append(f"    binder_{lua_name}.Begin(\"{lua_name}\")")
             
             for m in cls['methods']:
-                out.append(f"        .BindMemFn(\"{m['name']}\", &{class_name}::{m['name']}) {m['sig']}")
+                out.append(f"        .BindMemFn(\"{m['bind_name']}\", &{class_name}::{m['name']}) {m['sig']}")
             
             for m in cls['static_methods']:
-                out.append(f"        .BindStaticFn(\"{m['name']}\", &{class_name}::{m['name']}) {m['sig']}")
+                out.append(f"        .BindStaticFn(\"{m['bind_name']}\", &{class_name}::{m['name']}) {m['sig']}")
 
             for m in cls['raw_methods']:
                 out.append(f"        .BindFn(\"{m['bind_name']}\", &{class_name}::{m['name']})")
