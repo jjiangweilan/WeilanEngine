@@ -451,6 +451,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
         }
     }
 
+    asyncLoadProcessor.SyncLoad(); // sync internally triggered async loading by this LoadAsset calls
     asset->OnLoaded();
     return asset;
 }
