@@ -9,6 +9,8 @@ class Image;
 }
 class Scene;
 class Camera;
+
+// note: there should be only a single game loop because isPlaying is a static variable
 class GameLoop
 {
 public:
@@ -18,7 +20,7 @@ public:
 
     void Play();
     void Stop();
-    inline bool IsPlaying() { return isPlaying; }
+    static bool IsPlaying() { return isPlaying; }
 
     // I think we better render into outputImage (Like we render directly into a swapchain when we are in release
     // mode?), currently I just use it to pass some information about the screen (size)
@@ -32,7 +34,7 @@ public:
     const Rendering::RenderPipeline& GetRenderPipeline() const { return *renderPipeline; }
 
 private:
-    bool isPlaying = false;
+    static bool isPlaying;
 
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;

@@ -1,7 +1,7 @@
 #include "GameLoop.hpp"
-#include "Engine/MiddleLayer/DebugOptions.hpp"
-#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/MiddleLayer/DebugOptions.hpp"
 #include "Engine/Runtime/System/SceneManager/RenderingScene.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
@@ -166,3 +166,5 @@ void GameLoop::Stop()
 }
 
 void GameLoop::RenderScene() {}
+
+bool GameLoop::isPlaying = false;

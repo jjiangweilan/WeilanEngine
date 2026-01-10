@@ -1,9 +1,10 @@
 #include "PhysicsBody.hpp"
+#include "Engine/Core/GameLoop.hpp"
+#include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Library/TypeReflection.hpp"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
 
 using namespace JPH;
@@ -316,6 +317,15 @@ bool PhysicsBody::SetAsCapsule()
 
 void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
 {
+    if (GameLoop::IsPlaying())
+    {
+        if (this->motionType == JPH::EMotionType::Static && motionType != JPH::EMotionType::Static)
+        {
+            spdlog::warn("Changing motion type from Static to non-Static at runtime is prohibited."); // TODO: we can add mAllowDynamicOrKinematic(Jolt physics)
+            return;
+        }
+    }
+
     this->motionType = motionType;
     if (auto interface = GetBodyInterface())
     {
@@ -335,8 +345,8 @@ void PhysicsBody::TransformChanged()
             auto rot = gameObject->GetRotation();
             i->SetPositionAndRotation(
                 body->GetID(),
-                { pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z },
-                { rot.x, rot.y, rot.z, rot.w },
+                {pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z},
+                {rot.x, rot.y, rot.z, rot.w},
                 EActivation::DontActivate
             );
         }
