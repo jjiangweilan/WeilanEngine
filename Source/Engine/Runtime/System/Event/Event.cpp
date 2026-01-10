@@ -7,11 +7,9 @@
 
 void Event::Init()
 {
-    Input::Init();
 }
 void Event::Deinit()
 {
-    Input::Destroy();
 }
 
 void Event::Reset()

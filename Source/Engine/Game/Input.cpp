@@ -6,20 +6,6 @@ namespace Details
 {
 struct Input
 {
-    void Init()
-    {
-        gameController = SDL_GameControllerOpen(0);
-    }
-
-    void Destroy()
-    {
-        if (gameController)
-        {
-            SDL_GameControllerClose(gameController);
-            gameController = nullptr;
-        }
-    }
-
     SDL_GameController* gameController = nullptr;
 
     int2 mousePosition;
@@ -197,21 +183,23 @@ struct Input
 
         if (event.type == SDL_CONTROLLERDEVICEADDED)
         {
-            if (SDL_IsGameController(event.cdevice.which) && gameController)
+            if (SDL_IsGameController(event.cdevice.which) && gameController == nullptr)
             {
                 gameController = SDL_GameControllerOpen(event.cdevice.which);
                 if (gameController)
                 {
-                    spdlog::info("Controller connected: %s\n", SDL_GameControllerName(gameController));
+                    spdlog::info("Controller connected: {}\n", SDL_GameControllerName(gameController));
                 }
             }
             auto pad = GetGamepad(event.jbutton.which);
-            spdlog::info("Game Controller Added");
         }
         else if (event.type == SDL_CONTROLLERDEVICEREMOVED)
         {
-            printf("Controller disconnected!\n");
-            SDL_GameControllerClose(gameController);
+            if (gameController != nullptr)
+            {
+                spdlog::info("Controller disconnected {}!\n", SDL_GameControllerName(gameController));
+                SDL_GameControllerClose(gameController);
+            }
         }
     }
 
@@ -238,15 +226,6 @@ private:
    //
 
 static Details::Input input;
-
-void Input::Init()
-{
-    input.Init();
-}
-void Input::Destroy()
-{
-    input.Destroy();
-}
 
 void Input::PushEvent(SDL_Event& event)
 {

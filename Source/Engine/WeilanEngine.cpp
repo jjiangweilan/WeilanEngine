@@ -219,7 +219,7 @@ void WeilanEngine::DeinitJoltPhysics()
 
 void WeilanEngine::InitSDL()
 {
-    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
+    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER);
 
     SDL_DisplayMode displayMode;
     // MacOS return points not pixels
