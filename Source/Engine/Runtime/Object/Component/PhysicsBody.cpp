@@ -77,9 +77,13 @@ std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
     auto clone = std::make_unique<PhysicsBody>(&owner);
     clone->enabled = enabled;
     clone->bodyScale = bodyScale;
+    clone->bodyOffset = bodyOffset;
     clone->layer = layer;
     clone->gravityFactor = gravityFactor;
     clone->motionType = motionType;
+    clone->shapeType = shapeType;
+    clone->isSensor = isSensor;
+    clone->kinematicGenerateContactPointsWithNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
 
     // we don't know which scene the body will be attached to, so we don't Init here
     clone->body = nullptr;
@@ -445,31 +449,34 @@ bool PhysicsBody::SetAsMeshRenderer()
 bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& triangles)
 {
     bool createFromMeshRenderer = false;
-    auto meshRenderer = gameObject->GetComponent<MeshRenderer>();
-    auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
-    auto scale = GetGameObject()->GetLocalScale();
-    if (mesh)
+    auto meshRenderers = gameObject->GetComponentsInChildren<MeshRenderer>();
+    for (auto meshRenderer : meshRenderers)
     {
-        auto& submeshes = mesh->GetSubmeshes();
-        for (auto& submesh : submeshes)
+        auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
+        auto scale = GetGameObject()->GetLocalScale();
+        if (mesh)
         {
-            auto& indices = submesh.GetIndices();
-            auto& vertexPositions = submesh.GetPositions();
-            for (int i = 0; i < indices.size(); i += 3)
+            auto& submeshes = mesh->GetSubmeshes();
+            for (auto& submesh : submeshes)
             {
-                const int i0 = indices[i];
-                const int i1 = indices[i + 1];
-                const int i2 = indices[i + 2];
-                const JPH::Vec3 v0 =
-                    {vertexPositions[i0].x * scale.x, vertexPositions[i0].y * scale.y, vertexPositions[i0].z * scale.z};
-                const JPH::Vec3 v1 =
-                    {vertexPositions[i1].x * scale.x, vertexPositions[i1].y * scale.y, vertexPositions[i1].z * scale.z};
-                const JPH::Vec3 v2 =
-                    {vertexPositions[i2].x * scale.x, vertexPositions[i2].y * scale.y, vertexPositions[i2].z * scale.z};
-                triangles.push_back({v0, v1, v2});
+                auto& indices = submesh.GetIndices();
+                auto& vertexPositions = submesh.GetPositions();
+                for (int i = 0; i < indices.size(); i += 3)
+                {
+                    const int i0 = indices[i];
+                    const int i1 = indices[i + 1];
+                    const int i2 = indices[i + 2];
+                    const JPH::Vec3 v0 =
+                        {vertexPositions[i0].x * scale.x, vertexPositions[i0].y * scale.y, vertexPositions[i0].z * scale.z};
+                    const JPH::Vec3 v1 =
+                        {vertexPositions[i1].x * scale.x, vertexPositions[i1].y * scale.y, vertexPositions[i1].z * scale.z};
+                    const JPH::Vec3 v2 =
+                        {vertexPositions[i2].x * scale.x, vertexPositions[i2].y * scale.y, vertexPositions[i2].z * scale.z};
+                    triangles.push_back({v0, v1, v2});
+                }
             }
+            createFromMeshRenderer = !triangles.empty();
         }
-        createFromMeshRenderer = !triangles.empty();
     }
 
     return createFromMeshRenderer;
