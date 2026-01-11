@@ -30,7 +30,8 @@ static void TickGameObjectDebugDraw(const std::vector<ObjPtr<GameObject>>& rootO
 
     for (auto go : rootObjects)
     {
-        f(go);
+        if (go)
+            f(go);
     }
 }
 
@@ -70,7 +71,7 @@ const void GameLoop::Tick(
     if (scene == nullptr)
         return;
 
-    auto& rootObjects = scene->GetRootObjects();
+    auto rootObjects = scene->GetRootObjects();
     if (isPlaying)
     {
         ENGINE_BEGIN_PROFILE("Physics Tick")
@@ -80,7 +81,10 @@ const void GameLoop::Tick(
         // tick game objects
         for (auto go : rootObjects)
         {
-            TickGameObject(go);
+            if (go)
+            {
+                TickGameObject(go);
+            }
         }
 
         ENGINE_END_PROFILE
