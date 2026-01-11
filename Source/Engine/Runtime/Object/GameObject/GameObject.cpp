@@ -644,7 +644,7 @@ void GameObject::TransformChanged()
 {
     transformChanged = true;
 
-    for (auto& c : components)
+    for (auto& c : allComponents)
         c->TransformChanged();
 
     for (auto child : children)

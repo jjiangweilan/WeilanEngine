@@ -235,9 +235,9 @@ T* GameObject::AddComponent(Args&&... args)
 template <class T>
 T* GameObject::GetComponent()
 {
-    for (auto& p : components)
+    for (auto& p : allComponents)
     {
-        T* cast = dynamic_cast<T*>(p.get());
+        T* cast = dynamic_cast<T*>(p);
         if (cast != nullptr)
             return cast;
     }
