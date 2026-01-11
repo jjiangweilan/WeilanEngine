@@ -1,8 +1,8 @@
 #include "MeshRenderer.hpp"
-#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Component, MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
@@ -284,7 +284,7 @@ void MeshRenderer::TransformChanged()
     aabbPositionNeedUpdate = true;
     if (auto scene = GetScene())
     {
-        scene->GetRenderingScene().RebuildBVH();
+        scene->GetRenderingScene().UpdateRenderer(*this);
     }
 }
 

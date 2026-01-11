@@ -1,11 +1,11 @@
 #include "RenderingScene.hpp"
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
-#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
+#include "Engine/Library/Math.hpp"
 #include "Engine/MiddleLayer/EngineDebug.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Library/Math.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 #include "Engine/ThirdParty/imgui/imgui.h"
 
@@ -24,6 +24,9 @@ void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount,
     nodes.clear();
     objects.clear();
     objectCenters.clear();
+    objectMap.clear();
+    objectToLeafIndex.clear();
+    objectToLeafIndex.resize(objectsCount, -1);
 
     int totalNodes = (glm::pow(2, maxNodeLevel) - 1);
     this->nodes.resize(totalNodes);
@@ -35,11 +38,72 @@ void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount,
         nodes[rootNodeIndex].objectIndices.push_back(objectIndex);
         objects.push_back(bvhObjects[objectIndex]);
         objectCenters.push_back(bvhObjects[objectIndex]->GetAABB().GetCenter());
+        objectMap[bvhObjects[objectIndex]] = objectIndex;
     }
 
     for (int i = 0; i < nodes.size(); i++)
     {
         UpdateNode(i);
+    }
+
+    for (int i = 0; i < nodes.size(); ++i)
+    {
+        if (nodes[i].IsLeaf() && !nodes[i].IsEmpty())
+        {
+            for (int objIdx : nodes[i].objectIndices)
+            {
+                objectToLeafIndex[objIdx] = i;
+            }
+        }
+    }
+}
+
+void BoundingVolumeHierarchy::AppendRefitObject(MeshRenderer* object)
+{
+    auto it = objectMap.find(object);
+    if (it != objectMap.end())
+    {
+        int objIdx = it->second;
+        if (objIdx < objectToLeafIndex.size())
+        {
+            int leafIdx = objectToLeafIndex[objIdx];
+            if (leafIdx != -1)
+            {
+                pendingRefit.insert(leafIdx);
+            }
+        }
+    }
+}
+
+void BoundingVolumeHierarchy::Refit(int nodeIndex)
+{
+    int curr = nodeIndex;
+    while (curr != -1)
+    {
+        Node& node = nodes[curr];
+        if (node.IsLeaf())
+        {
+            UpdateNodeBounds(curr);
+        }
+        else
+        {
+            node.aabb.min = glm::float3(std::numeric_limits<float>::max());
+            node.aabb.max = glm::float3(std::numeric_limits<float>::lowest());
+
+            if (node.HasLeftChild())
+            {
+                const auto& childAABB = nodes[node.childNodeLeft].aabb;
+                node.aabb.min = glm::min(node.aabb.min, childAABB.min);
+                node.aabb.max = glm::max(node.aabb.max, childAABB.max);
+            }
+            if (node.HasRightChild())
+            {
+                const auto& childAABB = nodes[node.childNodeRight].aabb;
+                node.aabb.min = glm::min(node.aabb.min, childAABB.min);
+                node.aabb.max = glm::max(node.aabb.max, childAABB.max);
+            }
+        }
+        curr = node.parentIndex;
     }
 }
 
@@ -137,7 +201,17 @@ void BoundingVolumeHierarchy::UpdateNode(int nodeIndex)
             objectCenters[objIdx][longestAxis] < separationPlane ? node.childNodeLeft : node.childNodeRight;
         ASSERT(childIndex < nodes.size());
         nodes[childIndex].objectIndices.push_back(objIdx);
+        nodes[childIndex].parentIndex = nodeIndex;
     }
+}
+
+void BoundingVolumeHierarchy::Refit()
+{
+    for (auto nodeIdx : pendingRefit)
+    {
+        Refit(nodeIdx);
+    }
+    pendingRefit.clear();
 }
 
 void RenderingScene::Tick()
@@ -152,6 +226,8 @@ void RenderingScene::Tick()
         rendererNodeHierarchy.Build(meshRenderers.data(), meshRenderers.size(), 12);
         updateRendererNodeHierarchy = false;
     }
+
+    rendererNodeHierarchy.Refit();
 
     // BVH Debug
     if (EngineDebugVars::SceneBVH())

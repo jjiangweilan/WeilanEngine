@@ -1,17 +1,19 @@
 #pragma once
 #include "Engine/Core/Ptr.hpp"
-#include "Engine/Runtime/System/SceneManager/RenderingObject.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/SceneEnvironmentData.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Runtime/System/SceneManager/RenderingObject.hpp"
 #include "RenderingObjectList.hpp"
 
 #include "Engine/Library/DynamicArray.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
+#include <set>
 #include <span>
+#include <unordered_map>
 
 class MeshRenderer;
 class SceneEnvironment;
@@ -41,6 +43,7 @@ public:
     {
         AABB aabb{};
 
+        int parentIndex = -1;
         int childNodeLeft = -1;
         int childNodeRight = -1;
         bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1; }
@@ -68,10 +71,18 @@ public:
     void UpdateNodeBounds(int nodeIndex);
     void UpdateNode(int nodeIndex);
 
+    void AppendRefitObject(MeshRenderer* object);
+    void Refit();
+
 private:
     void QueryNodesInFrustum(
         const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
     );
+
+    void Refit(int nodeIndex);
+    std::unordered_map<MeshRenderer*, int> objectMap;
+    std::vector<int> objectToLeafIndex;
+    std::set<int> pendingRefit;
 };
 
 class RenderingScene
@@ -161,6 +172,11 @@ public:
             meshRenderers.pop_back();
         }
         updateRendererNodeHierarchy = true;
+    }
+
+    void UpdateRenderer(MeshRenderer& renderingObject)
+    {
+        rendererNodeHierarchy.AppendRefitObject(&renderingObject);
     }
 
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
