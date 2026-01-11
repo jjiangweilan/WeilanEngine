@@ -16,9 +16,6 @@ option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk too
 option(ENABLE_ASAN "" OFF)
 
 if (MSVC)
-if (ENABLE_ASAN)
-    add_compile_options("/fsanitize=address")
-endif(ENABLE_ASAN)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 add_compile_options(/Zc:__cplusplus /MP)
@@ -129,7 +126,7 @@ set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 set(SLANG_ENABLE_SLANG_GLSLANG OFF)
 set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
-set(SLANG_ENABLE_ASAN ${ENABLE_ASAN})
+# Slang don't need to do ASAN
 FetchContent_MakeAvailable(Slang)
 
 # add_dependencies(slang
@@ -492,3 +489,56 @@ SetDependencyFolder(nlohmann_json nlohmann_json)
 SetDependencyFolder(VulkanMemoryAllocator VulkanMemoryAllocator)
 SetDependencyFolder(assimp assimp)
 SetDependencyFolder(Jolt JoltPhysics)
+
+
+if (MSVC AND ENABLE_ASAN)
+    function(ApplyASANToTarget target)
+        if(TARGET ${target})
+            # Check for exclusions (Slang)
+            if ("${target}" MATCHES "Slang" OR "${target}" MATCHES "slang")
+                return()
+            endif()
+
+            # Prevent double application
+            get_target_property(asan_applied ${target} ASAN_APPLIED)
+            if(asan_applied)
+                return()
+            endif()
+            
+            get_target_property(target_type ${target} TYPE)
+            if(target_type STREQUAL "INTERFACE_LIBRARY")
+                set_target_properties(${target} PROPERTIES ASAN_APPLIED TRUE)
+                return()
+            endif()
+
+            get_target_property(is_imported ${target} IMPORTED)
+            if(NOT is_imported)
+                target_compile_options(${target} PUBLIC "/fsanitize=address")
+                set_target_properties(${target} PROPERTIES ASAN_APPLIED TRUE)
+            endif()
+        endif()
+    endfunction()
+
+    function(ApplyASANRecursive target)
+        GetTargetDependencies(${target} deps)
+        foreach(dep ${deps})
+            ApplyASANToTarget(${dep})
+        endforeach()
+    endfunction()
+
+    # Collect roots
+    set(ASAN_ROOTS)
+    if(TARGET WeilanEngine)
+        list(APPEND ASAN_ROOTS WeilanEngine)
+    endif()
+    if(TARGET WeilanEngineEditor)
+        list(APPEND ASAN_ROOTS WeilanEngineEditor)
+    endif()
+    if(TARGET WeilanEngineTest)
+        list(APPEND ASAN_ROOTS WeilanEngineTest)
+    endif()
+    
+    foreach(root ${ASAN_ROOTS})
+        ApplyASANRecursive(${root})
+    endforeach()
+endif()
