@@ -855,6 +855,9 @@ void SceneEditor::RenderObjectToOutlineRT(Gfx::CommandBuffer& cmd, GameObject*& 
             {
                 float4x4 model;
                 float4 color;
+                float4 padding0;
+                float4 padding1;
+                float4 padding2;
             } ps;
             memcpy(&ps.model, draw.GetPushConstant().data(), sizeof(float4x4));
             ps.color = float4(colorType);
