@@ -108,9 +108,8 @@ void PhysicsBody::OnEnable()
         physicsScene.AddPhysicsBody(*this);
         physicsScene.GetBodyInterface().ActivateBody(body->GetID());
     }
-
-    // TransformChanged();
 }
+
 void PhysicsBody::OnDisable()
 {
     Scene* scene = GetScene();
