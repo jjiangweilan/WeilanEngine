@@ -26,6 +26,11 @@ Submesh::Submesh(
     }
 
     // create vertex buffer
+    Gfx::Buffer::CreateInfo bufCreateInfo;
+    bufCreateInfo.size = vertexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
+    bufCreateInfo.debugName = name.data();
+    gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
     RenderCore& rc = RenderCore::Singleton();
     meshHandle = rc.CreateMesh(vertexBufferSize, indexCount, indexBufferType == Gfx::IndexBufferType::UInt16);
 
