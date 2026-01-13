@@ -4,6 +4,7 @@
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 #include "Engine/Driver/GfxDriver/VertexBufferBinding.hpp"
+#include "Engine/Runtime/System/Rendering/RenderCore.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -47,6 +48,7 @@ public:
     std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
 private:
+    MeshHandle meshHandle;
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt32;

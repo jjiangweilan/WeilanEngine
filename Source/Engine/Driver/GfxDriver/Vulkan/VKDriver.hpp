@@ -80,7 +80,6 @@ public:
     void CaptureFrameRenderDoc() override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) override;
-    std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
     void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) override;
 

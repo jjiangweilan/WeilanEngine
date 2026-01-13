@@ -354,11 +354,6 @@ void VKDriver::QueueSubmit(
     CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence));
 }
 
-std::unique_ptr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::CreateInfo& createInfo)
-{
-    return std::make_unique<VKCommandPool>(createInfo);
-}
-
 void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, uint64_t timeout)
 {
     std::vector<VkFence> vkFences;

@@ -5,21 +5,21 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "CompiledSpv.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/EnumFlags.hpp"
+#include "Engine/ThirdParty/renderdoc/renderdoc_app.h"
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
-#include "Engine/Library/EnumFlags.hpp"
-#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Semaphore.hpp"
-#include "Engine/ThirdParty/renderdoc/renderdoc_app.h"
 #include "Window.hpp"
 
+#include "Engine/Library/DynamicArray.hpp"
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>
-#include "Engine/Library/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -37,6 +37,11 @@ struct GPUFeatures
     bool textureCompressionASTC4x4 = false;
 
     bool timestampPeriod = false;
+};
+
+struct GPUProperties
+{
+    int vertexBindingAlignment;
 };
 
 enum class AcquireNextSwapChainImageResult
@@ -77,6 +82,7 @@ public:
     virtual const IProfiler& GetGPUProfiler() = 0;
     virtual bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
+    virtual const GPUProperties& GetGPUProperties() = 0;
     virtual Image* GetSwapChainImage() = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;
@@ -87,7 +93,7 @@ public:
 
     // return true if swapchain recreated
     virtual bool EndFrame() = 0;
-    virtual std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
+
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ShaderResource> CreateShaderResource() = 0;

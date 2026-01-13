@@ -35,8 +35,9 @@ void ShadingPass::Execute(
     Gfx::ImageView* shadowMap,
     Gfx::ImageIdentifier* ssaoTex,
     Gfx::ImageIdentifier* contactShadowMap,
+    Gfx::ImageIdentifier* ssgiTex,
     Gfx::ImageView* diffuseCube,
-    Gfx::ImageView* specularCube,
+
     RenderingData& renderingData
 )
 {
@@ -49,6 +50,7 @@ void ShadingPass::Execute(
     gpuResource->SetImage("depthTex"_shaderBinding, depthImageView);
     gpuResource->SetImage("shadowMap"_shaderBinding, shadowMap);
     gpuResource->SetImage("ambientOcclusion"_shaderBinding, *ssaoTex);
+    gpuResource->SetImage("ssgiTex"_shaderBinding, *ssgiTex);
     if (diffuseCube)
         gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube);
     if (specularCube)

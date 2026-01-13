@@ -26,18 +26,9 @@ Submesh::Submesh(
     }
 
     // create vertex buffer
-    Gfx::Buffer::CreateInfo bufCreateInfo;
-    bufCreateInfo.size = vertexBufferSize;
-    bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.data();
-    gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    RenderCore& rc = RenderCore::Singleton();
+    meshHandle = rc.CreateMesh(vertexBufferSize, indexCount, indexBufferType == Gfx::IndexBufferType::UInt16);
 
-    // calculate index buffer size
-    std::size_t indexBufferSize = indexCount * (indexBufferType == Gfx::IndexBufferType::UInt16 ? 2 : 4);
-    bufCreateInfo.size = indexBufferSize;
-    bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.data();
-    gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
     //
     // bufCreateInfo.size = indexBufferSize + vertexBufferSize;
     // bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
