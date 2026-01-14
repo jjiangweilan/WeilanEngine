@@ -6,10 +6,6 @@
 #include <utility>
 #include <vector>
 
-struct CmdTable
-{
-};
-
 using CommandStreamFn = void (*)(void*);
 
 class CommandStream
