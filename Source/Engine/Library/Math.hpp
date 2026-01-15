@@ -59,11 +59,11 @@ typedef mat<4, 4, bool, highp>
     bool4x4; //!< \brief boolean matrix with 4 x 4 components. (From GLM_GTX_compatibility extension)
              //
 
-typedef int int1;                //!< \brief integer vector with 1 component. (From GLM_GTX_compatibility extension)
-typedef vec<2, int, highp> int2; //!< \brief integer vector with 2 components. (From GLM_GTX_compatibility extension)
-typedef vec<3, int, highp> int3; //!< \brief integer vector with 3 components. (From GLM_GTX_compatibility extension)
-typedef vec<4, int, highp> int4; //!< \brief integer vector with 4 components. (From GLM_GTX_compatibility extension)
-                                 //
+typedef int int1;                  //!< \brief integer vector with 1 component. (From GLM_GTX_compatibility extension)
+typedef vec<2, int, highp> int2;   //!< \brief integer vector with 2 components. (From GLM_GTX_compatibility extension)
+typedef vec<3, int, highp> int3;   //!< \brief integer vector with 3 components. (From GLM_GTX_compatibility extension)
+typedef vec<4, int, highp> int4;   //!< \brief integer vector with 4 components. (From GLM_GTX_compatibility extension)
+                                   //
 typedef vec<2, uint, highp> uint2; //!< \brief integer vector with 2 components. (From GLM_GTX_compatibility extension)
 typedef vec<3, uint, highp> uint3; //!< \brief integer vector with 3 components. (From GLM_GTX_compatibility extension)
 typedef vec<4, uint, highp> uint4; //!< \brief integer vector with 4 components. (From GLM_GTX_compatibility extension)
@@ -98,8 +98,8 @@ typedef vec<3, float, highp>
 typedef vec<4, float, highp>
     float4; //!< \brief single-qualifier floating-point vector with 4 components. (From GLM_GTX_compatibility extension)
 
-typedef float float1x1; //!< \brief single-qualifier floating-point matrix with 1 component. (From GLM_GTX_compatibility
-                        //!< extension)
+typedef float float1x1;                   //!< \brief single-qualifier floating-point matrix with 1 component. (From GLM_GTX_compatibility
+                                          //!< extension)
 typedef mat<2, 2, float, highp> float2x2; //!< \brief single-qualifier floating-point matrix with 2 x 2 components.
                                           //!< (From GLM_GTX_compatibility extension)
 typedef mat<2, 3, float, highp> float2x3; //!< \brief single-qualifier floating-point matrix with 2 x 3 components.
@@ -122,7 +122,7 @@ typedef mat<4, 4, float, highp> float4x4; //!< \brief single-qualifier floating-
                                           //!< (From GLM_GTX_compatibility extension)
 
 typedef double
-    double1; //!< \brief double-qualifier floating-point vector with 1 component. (From GLM_GTX_compatibility extension)
+    double1;                           //!< \brief double-qualifier floating-point vector with 1 component. (From GLM_GTX_compatibility extension)
 typedef vec<2, double, highp> double2; //!< \brief double-qualifier floating-point vector with 2 components. (From
                                        //!< GLM_GTX_compatibility extension)
 typedef vec<3, double, highp> double3; //!< \brief double-qualifier floating-point vector with 3 components. (From
@@ -184,6 +184,12 @@ template <std::unsigned_integral T>
 T RoundToAlignmentPoT(T address, T alignment)
 {
     return ((address + (alignment - 1)) & ~(alignment - 1));
+}
+
+template <std::unsigned_integral T>
+T AlignMemory(T offset, T alignment)
+{
+    return (offset + alignment - 1) & ~(alignment - 1);
 }
 
 } // namespace Math

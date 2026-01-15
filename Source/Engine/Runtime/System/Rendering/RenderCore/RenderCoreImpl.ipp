@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/CommandStream.hpp"
 #include "Engine/Library/SpinLock.hpp"
 #include "RenderCoreData.hpp"
 #include <span>
@@ -8,6 +9,25 @@
 class Scene;
 class Camera;
 class RenderCoreImpl;
+
+using RC_CM = CommandStream;
+
+class RC_CMC : public CommandStreamContext
+{};
+
+struct UploadMeshDataCmd
+{
+    MeshHandle handle;
+    uint8_t* vertexData;
+    uint8_t* indexData;
+
+    static void Execute(CommandStreamContext* context, void* ptr)
+    {
+        RC_CMC* rcContext = static_cast<RC_CMC*>(context);
+        UploadMeshDataCmd* cmd = (UploadMeshDataCmd*)ptr;
+
+    }
+};
 
 class RenderCoreImpl
 {
@@ -25,6 +45,20 @@ public:
     void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData)
     {
         meshManager.UploadMeshData(handle, vertexData, indexData);
+
+        void* rawData = nullptr;
+        UploadMeshDataCmd* cmd = cm.Push(
+            &UploadMeshDataCmd::Execute,
+            UploadMeshDataCmd{handle},
+            &rawData,
+            vertexData.size() + indexData.size()
+        );
+
+        cmd->vertexData = (uint8_t*)rawData;
+        memcpy(cmd->vertexData, vertexData.data(), vertexData.size());
+
+        cmd->indexData = cmd->vertexData + vertexData.size();
+        memcpy(cmd->indexData, indexData.data(), indexData.size());
     }
 
     void RenderScene(Scene* scene, std::span<Camera*> camera);
@@ -99,5 +133,6 @@ private:
         RenderCoreImpl* rc;
     };
 
+    RC_CM cm;
     MeshManager meshManager;
 };
