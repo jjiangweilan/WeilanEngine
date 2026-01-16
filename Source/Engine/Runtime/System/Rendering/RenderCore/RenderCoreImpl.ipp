@@ -11,22 +11,23 @@ class Camera;
 class RenderCoreImpl;
 
 using RC_CM = CommandStream;
+class RenderCoreImpl;
 
 class RC_CMC : public CommandStreamContext
-{};
+{
+public:
+    RenderCoreImpl* rc;
+};
 
 struct UploadMeshDataCmd
 {
     MeshHandle handle;
     uint8_t* vertexData;
     uint8_t* indexData;
+    uint32_t vertexDataSize;
+    uint32_t indexDataSize;
 
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        RC_CMC* rcContext = static_cast<RC_CMC*>(context);
-        UploadMeshDataCmd* cmd = (UploadMeshDataCmd*)ptr;
-
-    }
+    static void Execute(CommandStreamContext* context, void* ptr);
 };
 
 class RenderCoreImpl
@@ -55,13 +56,22 @@ public:
         );
 
         cmd->vertexData = (uint8_t*)rawData;
+        cmd->vertexDataSize = static_cast<uint32_t>(vertexData.size());
         memcpy(cmd->vertexData, vertexData.data(), vertexData.size());
 
         cmd->indexData = cmd->vertexData + vertexData.size();
+        cmd->indexDataSize = static_cast<uint32_t>(indexData.size());
         memcpy(cmd->indexData, indexData.data(), indexData.size());
     }
 
+    void FlushCommands()
+    {
+        cm.Execute();
+    }
+
     void RenderScene(Scene* scene, std::span<Camera*> camera);
+
+    Gfx::Buffer* GetMeshBuffer() { return meshManager.GetMeshBuffer(); }
 
 private:
     struct MeshManager
@@ -127,6 +137,8 @@ private:
             vmaVirtualFree(meshBufferBlock, handle.vertexHandle);
         }
 
+        Gfx::Buffer* GetMeshBuffer() { return meshBuffer.get(); }
+
         Spinlock vmaLock;
         VmaVirtualBlock meshBufferBlock;
         std::unique_ptr<Gfx::Buffer> meshBuffer;
@@ -136,3 +148,16 @@ private:
     RC_CM cm;
     MeshManager meshManager;
 };
+
+void UploadMeshDataCmd::Execute(CommandStreamContext* context, void* ptr)
+{
+    RC_CMC* rcContext = static_cast<RC_CMC*>(context);
+    RenderCoreImpl* rc = rcContext->rc;
+    UploadMeshDataCmd* cmd = (UploadMeshDataCmd*)ptr;
+    Gfx::Buffer* meshBuffer = rc->GetMeshBuffer();
+
+    MeshHandle& handle = cmd->handle;
+
+    GetGfxDriver()->UploadBuffer(*meshBuffer, cmd->indexData, cmd->indexDataSize, handle.indexOffset);
+    GetGfxDriver()->UploadBuffer(*meshBuffer, cmd->vertexData, cmd->vertexDataSize, handle.vertexOffset);
+}
