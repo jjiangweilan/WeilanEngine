@@ -43,33 +43,17 @@ public:
         meshManager.DestroyMesh(handle);
     }
 
-    void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData)
-    {
-        meshManager.UploadMeshData(handle, vertexData, indexData);
+    void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
 
-        void* rawData = nullptr;
-        UploadMeshDataCmd* cmd = cm.Push(
-            &UploadMeshDataCmd::Execute,
-            UploadMeshDataCmd{handle},
-            &rawData,
-            vertexData.size() + indexData.size()
-        );
-
-        cmd->vertexData = (uint8_t*)rawData;
-        cmd->vertexDataSize = static_cast<uint32_t>(vertexData.size());
-        memcpy(cmd->vertexData, vertexData.data(), vertexData.size());
-
-        cmd->indexData = cmd->vertexData + vertexData.size();
-        cmd->indexDataSize = static_cast<uint32_t>(indexData.size());
-        memcpy(cmd->indexData, indexData.data(), indexData.size());
-    }
+    void AllocateTempImage(const RenderImageDescriptor& desc, Gfx::ImageIdentifier& id);
+    void SetRenderPass(std::span<const RenderAttachment> images);
+    void SetClearValues(std::span<Gfx::ClearValue> clearValues);
+    void DrawMesh(const MeshHandle& meshHandle, Gfx::ShaderProgram* shaderProgram, const Gfx::PipelineConfig& pipelineConfig);
 
     void FlushCommands()
     {
         cm.Execute();
     }
-
-    void RenderScene(Scene* scene, std::span<Camera*> camera);
 
     Gfx::Buffer* GetMeshBuffer() { return meshManager.GetMeshBuffer(); }
 
@@ -160,4 +144,25 @@ void UploadMeshDataCmd::Execute(CommandStreamContext* context, void* ptr)
 
     GetGfxDriver()->UploadBuffer(*meshBuffer, cmd->indexData, cmd->indexDataSize, handle.indexOffset);
     GetGfxDriver()->UploadBuffer(*meshBuffer, cmd->vertexData, cmd->vertexDataSize, handle.vertexOffset);
+}
+
+void RenderCoreImpl::UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData)
+{
+    meshManager.UploadMeshData(handle, vertexData, indexData);
+
+    void* rawData = nullptr;
+    UploadMeshDataCmd* cmd = cm.Push(
+        &UploadMeshDataCmd::Execute,
+        UploadMeshDataCmd{handle},
+        &rawData,
+        vertexData.size() + indexData.size()
+    );
+
+    cmd->vertexData = (uint8_t*)rawData;
+    cmd->vertexDataSize = static_cast<uint32_t>(vertexData.size());
+    memcpy(cmd->vertexData, vertexData.data(), vertexData.size());
+
+    cmd->indexData = cmd->vertexData + vertexData.size();
+    cmd->indexDataSize = static_cast<uint32_t>(indexData.size());
+    memcpy(cmd->indexData, indexData.data(), indexData.size());
 }
