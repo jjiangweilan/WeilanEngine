@@ -1,6 +1,7 @@
 #pragma
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include <vk_mem_alloc.h> // for virtual memory allocator
+                          //
 
 struct RenderImageDescriptor
 {
@@ -166,4 +167,39 @@ struct RenderAttachment
     Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
     Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
     Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
+};
+
+struct DynamicBinding
+{
+    DynamicBinding(std::string_view name, Gfx::Buffer& buffer) : name(name), buffer(&buffer), imageIdentifier()
+    {}
+
+    DynamicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image)
+    {}
+
+    DynamicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView)
+    {}
+
+    DynamicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id)
+    {}
+
+    std::string name;
+    Gfx::Buffer* buffer;
+    ImageIdentifier imageIdentifier;
+};
+
+struct BlitOp
+{
+    std::optional<uint32_t> srcMip;
+    std::optional<uint32_t> dstMip;
+};
+
+struct Viewport
+{
+    float x;
+    float y;
+    float width;
+    float height;
+    float minDepth;
+    float maxDepth;
 };

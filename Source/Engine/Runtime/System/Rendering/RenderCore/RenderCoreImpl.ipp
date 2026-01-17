@@ -45,10 +45,6 @@ public:
 
     void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
 
-    void AllocateTempImage(const RenderImageDescriptor& desc, Gfx::ImageIdentifier& id);
-    void SetRenderPass(std::span<const RenderAttachment> images);
-    void SetClearValues(std::span<Gfx::ClearValue> clearValues);
-    void DrawMesh(const MeshHandle& meshHandle, Gfx::ShaderProgram* shaderProgram, const Gfx::PipelineConfig& pipelineConfig);
 
     void FlushCommands()
     {

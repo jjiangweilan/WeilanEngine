@@ -26,7 +26,7 @@ class CommandStream
         uint32_t dataOffset;
 
         /**
-         * @brief size of the data
+         * @brief size of the data (user data + extra data)
          */
         uint32_t fullDataSize;
     };
@@ -36,8 +36,8 @@ public:
     {
     }
 
-    template <class T>
-    T* Push(CommandStreamFn f, T&& data, void** extraDataPtr = nullptr, size_t extraDataSize = 0)
+    template <class T, class Ptr = void>
+    T* Push(CommandStreamFn f, Ptr** extraDataPtr = nullptr, size_t extraDataSize = 0)
     {
         size_t currentSize = commandBuffer.size();
         size_t headerAlignment = alignof(CommandHeader);
@@ -64,10 +64,10 @@ public:
 
         if (extraDataPtr && extraDataSize > 0)
         {
-            *extraDataPtr = commandBuffer.data() + alignedDataPos + dataSize;
+            *extraDataPtr = (Ptr*)(commandBuffer.data() + alignedDataPos + dataSize);
         }
 
-        T* ret = new (commandBuffer.data() + alignedDataPos) T(std::forward<T>(data));
+        T* ret = commandBuffer.data() + alignedDataPos;
         return ret;
     }
 
