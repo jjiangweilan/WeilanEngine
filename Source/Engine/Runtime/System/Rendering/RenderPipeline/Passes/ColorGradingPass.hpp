@@ -1,6 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"

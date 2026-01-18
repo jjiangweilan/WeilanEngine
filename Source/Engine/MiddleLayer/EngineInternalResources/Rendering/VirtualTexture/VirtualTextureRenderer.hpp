@@ -1,7 +1,7 @@
 // #pragma once
-// #include "Engine/MiddleLayer/EngineInternalResources/Rendering/RenderGraph/Nodes/BufferNode.hpp"
-// #include "Engine/MiddleLayer/EngineInternalResources/Rendering/RenderGraph/Nodes/MemoryTransferNode.hpp"
-// #include "Engine/MiddleLayer/EngineInternalResources/Rendering/RenderGraph/RenderGraph.hpp"
+// #include "Engine/Driver/GfxDriver/GfxStruct"/Nodes/BufferNode.hpp"
+// #include "Engine/Driver/GfxDriver/GfxStruct"/Nodes/MemoryTransferNode.hpp"
+// #include "Engine/Driver/GfxDriver/GfxStruct".hpp"
 // #include "Engine/Driver/GfxDriver/Buffer.hpp"
 // #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 // #include "Engine/Library/Image/LinearImage.hpp"

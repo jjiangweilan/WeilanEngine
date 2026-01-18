@@ -1,5 +1,4 @@
-#include "RenderGraph.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 
 Gfx::ImageIdentifier Gfx::ImageIdentifier::CreateEmpty()
 {

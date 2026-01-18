@@ -1,11 +1,11 @@
 #pragma once
-#include "FogPassParameters.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include "Engine/Driver/GfxDriver/Image.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Runtime/System/Rendering/GPUBuffer.hpp"
-#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "FogPassParameters.hpp"
 
 #include "Engine/Shaders/DepthBasedFogInput.hlsl"
 

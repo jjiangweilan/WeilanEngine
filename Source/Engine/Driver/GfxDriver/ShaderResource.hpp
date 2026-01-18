@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include "Engine/Driver/GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
-#include "Engine/Core/Ptr.hpp"
 #include "ResourceHandle.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
 #include "StorageBuffer.hpp"
 #include <string>
 #include <unordered_map>
@@ -64,8 +64,7 @@ public:
         SetImage(ShaderBindingHandle(name), imageView);
     }
 
-
-    virtual ~ShaderResource(){};
+    virtual ~ShaderResource() {};
 
 protected:
 };

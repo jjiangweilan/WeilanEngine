@@ -1,6 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Module/VolumetricCloud/Cloud.hpp"

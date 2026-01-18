@@ -2,7 +2,7 @@
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "bend_sss_cpu.hpp"

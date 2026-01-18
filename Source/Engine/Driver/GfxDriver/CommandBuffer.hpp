@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Buffer.hpp"
-#include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
+#include "GfxStruct.hpp"
 #include "Image.hpp"
-#include "RenderGraph.hpp"
 #include "RenderPass.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"

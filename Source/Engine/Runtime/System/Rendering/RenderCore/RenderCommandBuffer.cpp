@@ -1,11 +1,11 @@
 #include "RenderCommandBuffer.hpp"
 
-void RenderCommandBuffer::AllocateTempImage(const RenderImageDescriptor& desc, ImageIdentifier& id)
+void RenderCommandBuffer::AllocateTempImage(const Gfx::RenderImageDescriptor& desc, Gfx::ImageIdentifier& id)
 {
     resourceAllocator->Request(id, desc);
 }
 
-void RenderCommandBuffer::BeginLabel(std::string_view label)
+void RenderCommandBuffer::BeginLabel(std::string_view label, const float4& color)
 {
     char* extraData = nullptr;
     BeginLabelCmd* ptr = cm.Push<BeginLabelCmd>(
@@ -16,6 +16,7 @@ void RenderCommandBuffer::BeginLabel(std::string_view label)
 
     memcpy(extraData, label.data(), label.length() + 1);
     ptr->str = extraData;
+    ptr->color = color;
 }
 
 void RenderCommandBuffer::EndLabel()
@@ -23,17 +24,17 @@ void RenderCommandBuffer::EndLabel()
     cm.Push<EndLabelCmd>(&EndLabelCmd::Execute);
 }
 
-void RenderCommandBuffer::SetRenderPass(std::span<const RenderAttachment> images)
+void RenderCommandBuffer::SetRenderPass(std::span<const Gfx::RenderAttachment> images)
 {
-    RenderAttachment* extraData = nullptr;
+    Gfx::RenderAttachment* extraData = nullptr;
     SetRenderPassCmd* ptr = cm.Push<SetRenderPassCmd>(
         &SetRenderPassCmd::Execute,
         &extraData,
-        sizeof(RenderAttachment) * images.size()
+        sizeof(Gfx::RenderAttachment) * images.size()
     );
 
     if (!images.empty())
-        memcpy((void*)extraData, images.data(), sizeof(RenderAttachment) * images.size());
+        memcpy((void*)extraData, images.data(), sizeof(Gfx::RenderAttachment) * images.size());
 
     ptr->attachments = extraData;
     ptr->count = static_cast<uint32_t>(images.size());
@@ -62,17 +63,17 @@ void RenderCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resour
     ptr->resource = resource;
 }
 
-void RenderCommandBuffer::BindResource(uint32_t set, const std::vector<DynamicBinding>& bindings)
+void RenderCommandBuffer::BindResource(uint32_t set, const std::vector<Gfx::DynamicBinding>& bindings)
 {
-    DynamicBinding* extraData = nullptr;
+    Gfx::DynamicBinding* extraData = nullptr;
     BindDynamicBindingsCmd* ptr = cm.Push<BindDynamicBindingsCmd>(
         &BindDynamicBindingsCmd::Execute,
         &extraData,
-        sizeof(DynamicBinding) * bindings.size()
+        sizeof(Gfx::DynamicBinding) * bindings.size()
     );
 
     if (!bindings.empty())
-        memcpy((void*)extraData, bindings.data(), sizeof(DynamicBinding) * bindings.size());
+        memcpy((void*)extraData, bindings.data(), sizeof(Gfx::DynamicBinding) * bindings.size());
 
     ptr->bindings = extraData;
     ptr->count = static_cast<uint32_t>(bindings.size());
@@ -120,7 +121,7 @@ void RenderCommandBuffer::DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset
     ptr->stride = stride;
 }
 
-void RenderCommandBuffer::Blit(ImageIdentifier src, ImageIdentifier dst, BlitOp blitOp)
+void RenderCommandBuffer::Blit(Gfx::ImageIdentifier src, Gfx::ImageIdentifier dst, Gfx::BlitOp blitOp)
 {
     BlitCmd* ptr = cm.Push<BlitCmd>(&BlitCmd::Execute);
     ptr->src = src;
@@ -145,7 +146,7 @@ void RenderCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCoun
     ptr->rects = extraData;
 }
 
-void RenderCommandBuffer::SetViewport(const Viewport& viewport)
+void RenderCommandBuffer::SetViewport(const Gfx::Viewport& viewport)
 {
     SetViewportCmd* ptr = cm.Push<SetViewportCmd>(&SetViewportCmd::Execute);
     ptr->viewport = viewport;
