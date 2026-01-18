@@ -8,10 +8,7 @@
 #include <vector>
 
 class CommandStreamContext
-{
-public:
-    virtual ~CommandStreamContext() = default;
-};
+{};
 
 using CommandStreamFn = void (*)(CommandStreamContext* context, void*);
 
@@ -32,10 +29,6 @@ class CommandStream
     };
 
 public:
-    CommandStream(CommandStreamContext* context) : context(context)
-    {
-    }
-
     template <class T, class Ptr = void>
     T* Push(CommandStreamFn f, Ptr** extraDataPtr = nullptr, size_t extraDataSize = 0)
     {
@@ -71,7 +64,7 @@ public:
         return ret;
     }
 
-    void Execute()
+    void Execute(CommandStreamContext* context)
     {
         size_t cursor = 0;
         size_t alignment = alignof(CommandHeader);
@@ -93,6 +86,5 @@ public:
         commandBuffer.clear();
     }
 
-    CommandStreamContext* context;
     std::vector<uint8_t> commandBuffer;
 };

@@ -1,4 +1,5 @@
-#pragma
+#pragma once
+
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/GfxStruct.hpp"
 #include <vk_mem_alloc.h> // for virtual memory allocator
