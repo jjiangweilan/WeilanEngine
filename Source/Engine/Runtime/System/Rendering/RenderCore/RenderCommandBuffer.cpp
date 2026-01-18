@@ -2,7 +2,7 @@
 
 void RenderCommandBuffer::AllocateTempImage(const RenderImageDescriptor& desc, ImageIdentifier& id)
 {
-    resourceAllocator->AllocateTempImage(desc, id);
+    resourceAllocator->Request(id, desc);
 }
 
 void RenderCommandBuffer::BeginLabel(std::string_view label)
