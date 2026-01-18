@@ -189,7 +189,7 @@ void RenderCommandBuffer::DispatchIndirect(Gfx::Buffer* buffer, size_t bufferOff
     ptr->bufferOffset = bufferOffset;
 }
 
-RenderCommandBuffer::RenderCommandBuffer(CommandStreamProcessor* context, RenderResourceAllocator* resourceAllocator)
+RenderCommandBuffer::RenderCommandBuffer(RenderResourceAllocator* resourceAllocator)
     : cm(), resourceAllocator(resourceAllocator)
 {
 }

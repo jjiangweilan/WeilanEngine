@@ -41,8 +41,8 @@ void CommandStreamProcessor::BindDynamicBindings(CommandStreamContext* selfPtr, 
 {
     CommandStreamProcessor* self = static_cast<CommandStreamProcessor*>(selfPtr);
     BindDynamicBindingsCmd* cmd = (BindDynamicBindingsCmd*)cmdData;
-    (void)self;
-    (void)cmd;
+
+    self->gfxCmdBuf->BindResource(cmd->set, std::vector<Gfx::DynamicBinding>(cmd->bindings, cmd->bindings + cmd->count));
 }
 
 void CommandStreamProcessor::SetPushConstant(CommandStreamContext* selfPtr, void* cmdData)

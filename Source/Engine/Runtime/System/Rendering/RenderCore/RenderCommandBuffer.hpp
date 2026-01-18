@@ -10,7 +10,7 @@ class RenderResourceAllocator;
 class RenderCommandBuffer
 {
 public:
-    RenderCommandBuffer(CommandStreamProcessor* context, RenderResourceAllocator* resourceAllocator);
+    RenderCommandBuffer(RenderResourceAllocator* resourceAllocator);
 
     void AllocateTempImage(const Gfx::RenderImageDescriptor& desc, Gfx::ImageIdentifier& id);
 
