@@ -14,12 +14,6 @@ struct AllocateTempImageData
     Gfx::ImageIdentifier id;
 };
 
-class CommandProcessor : public CommandStreamContext
-{
-public:
-    Gfx::CommandBuffer* gfxCmdBuf;
-};
-
 class RenderResourceAllocator
 {
 public:
@@ -160,70 +154,28 @@ struct BeginLabelCmd
 {
     const char* str;
     float4 color;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        BeginLabelCmd* cmd = (BeginLabelCmd*)ptr;
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-
-        gfxCmd->BeginLabel(cmd->str, cmd->color);
-    }
 };
 
 struct EndLabelCmd
 {
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        (void)ptr;
-
-        gfxCmd->EndLabel();
-    }
 };
 
 struct SetRenderPassCmd
 {
     Gfx::RenderAttachment* attachments;
     uint32_t count;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        SetRenderPassCmd* cmd = (SetRenderPassCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-    }
 };
 
 struct SetClearValuesCmd
 {
     Gfx::ClearValue* values;
     uint32_t count;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        SetClearValuesCmd* cmd = (SetClearValuesCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-    }
 };
 
 struct BindResourceCmd
 {
     uint32_t set;
     Gfx::ShaderResource* resource;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        BindResourceCmd* cmd = (BindResourceCmd*)ptr;
-
-        gfxCmd->BindResource(cmd->set, cmd->resource);
-    }
 };
 
 struct BindDynamicBindingsCmd
@@ -231,27 +183,11 @@ struct BindDynamicBindingsCmd
     Gfx::DynamicBinding* bindings;
     uint32_t count;
     uint32_t set;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        BindDynamicBindingsCmd* cmd = (BindDynamicBindingsCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-    }
 };
 
 struct SetPushConstantCmd
 {
     void* data;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        SetPushConstantCmd* cmd = (SetPushConstantCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-    }
 };
 
 struct DrawMeshCmd
@@ -259,14 +195,6 @@ struct DrawMeshCmd
     MeshHandle meshHandle;
     Gfx::ShaderProgram* shaderProgram;
     Gfx::PipelineConfig pipelineConfig;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        DrawMeshCmd* cmd = (DrawMeshCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-    }
 };
 
 struct DrawCmd
@@ -275,17 +203,6 @@ struct DrawCmd
     uint32_t instanceCount;
     uint32_t firstVertex;
     uint32_t firstInstance;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        DrawCmd* cmd = (DrawCmd*)ptr;
-        (void)rcContext;
-        (void)cmd;
-
-        gfxCmd->Draw(cmd->vertexCount, cmd->instanceCount, cmd->firstVertex, cmd->firstInstance);
-    }
 };
 
 struct DrawIndirectCmd
@@ -294,15 +211,6 @@ struct DrawIndirectCmd
     size_t offset;
     uint32_t drawCount;
     uint32_t stride;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        DrawIndirectCmd* cmd = (DrawIndirectCmd*)ptr;
-
-        gfxCmd->DrawIndirect(cmd->buffer, cmd->offset, cmd->drawCount, cmd->stride);
-    }
 };
 
 struct DrawIndexedIndirectCmd
@@ -311,15 +219,6 @@ struct DrawIndexedIndirectCmd
     size_t offset;
     uint32_t drawCount;
     uint32_t stride;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        DrawIndexedIndirectCmd* cmd = (DrawIndexedIndirectCmd*)ptr;
-
-        gfxCmd->DrawIndexedIndirect(cmd->buffer, cmd->offset, cmd->drawCount, cmd->stride);
-    }
 };
 
 struct BlitCmd
@@ -327,15 +226,6 @@ struct BlitCmd
     Gfx::ImageIdentifier src;
     Gfx::ImageIdentifier dst;
     Gfx::BlitOp op;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        BlitCmd* cmd = (BlitCmd*)ptr;
-
-        gfxCmd->Blit(cmd->src, cmd->dst, cmd->op);
-    }
 };
 
 struct SetScissorCmd
@@ -343,43 +233,16 @@ struct SetScissorCmd
     uint32_t firstScissor;
     uint32_t scissorCount;
     Rect2D* rects;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        SetScissorCmd* cmd = (SetScissorCmd*)ptr;
-
-        gfxCmd->SetScissor(cmd->firstScissor, cmd->scissorCount, cmd->rects);
-    }
 };
 
 struct SetViewportCmd
 {
     Gfx::Viewport viewport;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        SetViewportCmd* cmd = (SetViewportCmd*)ptr;
-
-        gfxCmd->SetViewport(cmd->viewport);
-    }
 };
 
 struct SetLineWidthCmd
 {
     float lineWidth;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        SetLineWidthCmd* cmd = (SetLineWidthCmd*)ptr;
-
-        gfxCmd->SetLineWidth(cmd->lineWidth);
-    }
 };
 
 struct SetDepthBiasCmd
@@ -387,29 +250,11 @@ struct SetDepthBiasCmd
     float constantFactor;
     float clamp;
     float slopeFactor;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        SetDepthBiasCmd* cmd = (SetDepthBiasCmd*)ptr;
-
-        gfxCmd->SetDepthBias(cmd->constantFactor, cmd->clamp, cmd->slopeFactor);
-    }
 };
 
 struct SetDepthBiasEnableCmd
 {
     bool enable;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        SetDepthBiasEnableCmd* cmd = (SetDepthBiasEnableCmd*)ptr;
-
-        gfxCmd->SetDepthBiasEnable(cmd->enable);
-    }
 };
 
 struct DispatchCmd
@@ -417,28 +262,154 @@ struct DispatchCmd
     uint32_t groupCountX;
     uint32_t groupCountY;
     uint32_t groupCountZ;
-
-    static void Execute(CommandStreamContext* context, void* ptr)
-    {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        DispatchCmd* cmd = (DispatchCmd*)ptr;
-
-        gfxCmd->Dispatch(cmd->groupCountX, cmd->groupCountY, cmd->groupCountZ);
-    }
 };
 
 struct DispatchIndirectCmd
 {
     Gfx::Buffer* buffer;
     size_t bufferOffset;
+};
 
-    static void Execute(CommandStreamContext* context, void* ptr)
+class CommandProcessor : public CommandStreamContext
+{
+public:
+    Gfx::CommandBuffer* gfxCmdBuf;
+
+    static void BeginLabel(CommandStreamContext* selfPtr, void* cmdData)
     {
-        CommandProcessor* rcContext = static_cast<CommandProcessor*>(context);
-        Gfx::CommandBuffer* gfxCmd = rcContext->gfxCmdBuf;
-        DispatchIndirectCmd* cmd = (DispatchIndirectCmd*)ptr;
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        BeginLabelCmd* cmd = (BeginLabelCmd*)cmdData;
+        self->gfxCmdBuf->BeginLabel(cmd->str, cmd->color);
+    }
 
-        gfxCmd->DispatchIndirect(cmd->buffer, cmd->bufferOffset);
+    static void EndLabel(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        (void)cmdData;
+        self->gfxCmdBuf->EndLabel();
+    }
+
+    static void SetRenderPass(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetRenderPassCmd* cmd = (SetRenderPassCmd*)cmdData;
+        (void)self;
+        (void)cmd;
+    }
+
+    static void SetClearValues(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetClearValuesCmd* cmd = (SetClearValuesCmd*)cmdData;
+        (void)self;
+        (void)cmd;
+    }
+
+    static void BindResource(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        BindResourceCmd* cmd = (BindResourceCmd*)cmdData;
+        self->gfxCmdBuf->BindResource(cmd->set, cmd->resource);
+    }
+
+    static void BindDynamicBindings(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        BindDynamicBindingsCmd* cmd = (BindDynamicBindingsCmd*)cmdData;
+        (void)self;
+        (void)cmd;
+    }
+
+    static void SetPushConstant(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetPushConstantCmd* cmd = (SetPushConstantCmd*)cmdData;
+        (void)self;
+        (void)cmd;
+    }
+
+    static void DrawMesh(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DrawMeshCmd* cmd = (DrawMeshCmd*)cmdData;
+        (void)self;
+        (void)cmd;
+    }
+
+    static void Draw(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DrawCmd* cmd = (DrawCmd*)cmdData;
+        self->gfxCmdBuf->Draw(cmd->vertexCount, cmd->instanceCount, cmd->firstVertex, cmd->firstInstance);
+    }
+
+    static void DrawIndirect(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DrawIndirectCmd* cmd = (DrawIndirectCmd*)cmdData;
+        self->gfxCmdBuf->DrawIndirect(cmd->buffer, cmd->offset, cmd->drawCount, cmd->stride);
+    }
+
+    static void DrawIndexedIndirect(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DrawIndexedIndirectCmd* cmd = (DrawIndexedIndirectCmd*)cmdData;
+        self->gfxCmdBuf->DrawIndexedIndirect(cmd->buffer, cmd->offset, cmd->drawCount, cmd->stride);
+    }
+
+    static void Blit(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        BlitCmd* cmd = (BlitCmd*)cmdData;
+        self->gfxCmdBuf->Blit(cmd->src, cmd->dst, cmd->op);
+    }
+
+    static void SetScissor(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetScissorCmd* cmd = (SetScissorCmd*)cmdData;
+        self->gfxCmdBuf->SetScissor(cmd->firstScissor, cmd->scissorCount, cmd->rects);
+    }
+
+    static void SetViewport(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetViewportCmd* cmd = (SetViewportCmd*)cmdData;
+        self->gfxCmdBuf->SetViewport(cmd->viewport);
+    }
+
+    static void SetLineWidth(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetLineWidthCmd* cmd = (SetLineWidthCmd*)cmdData;
+        self->gfxCmdBuf->SetLineWidth(cmd->lineWidth);
+    }
+
+    static void SetDepthBias(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetDepthBiasCmd* cmd = (SetDepthBiasCmd*)cmdData;
+        self->gfxCmdBuf->SetDepthBias(cmd->constantFactor, cmd->clamp, cmd->slopeFactor);
+    }
+
+    static void SetDepthBiasEnable(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        SetDepthBiasEnableCmd* cmd = (SetDepthBiasEnableCmd*)cmdData;
+        self->gfxCmdBuf->SetDepthBiasEnable(cmd->enable);
+    }
+
+    static void Dispatch(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DispatchCmd* cmd = (DispatchCmd*)cmdData;
+        self->gfxCmdBuf->Dispatch(cmd->groupCountX, cmd->groupCountY, cmd->groupCountZ);
+    }
+
+    static void DispatchIndirect(CommandStreamContext* selfPtr, void* cmdData)
+    {
+        CommandProcessor* self = static_cast<CommandProcessor*>(selfPtr);
+        DispatchIndirectCmd* cmd = (DispatchIndirectCmd*)cmdData;
+        self->gfxCmdBuf->DispatchIndirect(cmd->buffer, cmd->bufferOffset);
     }
 };
