@@ -29,7 +29,7 @@ void OceanQuadTree::UpdateQuadTree(const float3& center3f, const Frustum& camera
     {
         for (int y = min.y; y < max.y; y += config.lodMaxNodeSize)
         {
-            auto node = nodePool.Allocate();
+            auto node = nodePool.AllocateHandle();
             InitNode(node, x, y, maxLod);
 
             AABB aabb(float3(node->minPos.x, -100, node->minPos.y), float3(node->maxPos.x, 100, node->maxPos.y));
@@ -84,7 +84,7 @@ void OceanQuadTree::DivideNode(QuadTreeNode node, const float2& center, const Fr
         {
             int lx = i & 0b01 ? 1 : 0;
             int ly = i & 0b10 ? 1 : 0;
-            auto child = nodePool.Allocate();
+            auto child = nodePool.AllocateHandle();
             InitNode(child, node->minPos.x + lx * nextNodeSize, node->minPos.y + ly * nextNodeSize, nextLodLevel);
 
             AABB aabb(float3(child->minPos.x, -100, child->minPos.y), float3(child->maxPos.x, 100, child->maxPos.y));

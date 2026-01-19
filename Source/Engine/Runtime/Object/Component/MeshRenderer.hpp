@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/StaticMeshRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
@@ -62,6 +63,8 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() const override;
     void OnLoaded() override;
+    void OnAwake() override;
+    void OnDestroy() override;
 
     // called by RenderingScene
     void UpdateSkinning();
@@ -71,9 +74,11 @@ private:
     std::vector<ObjPtr<Mesh>> meshes{};
     std::vector<ObjPtr<Material>> materials = {};
     bool multipass = false;
-    AABB aabb {};
-    AABB aabbWS {};
+    AABB aabb{};
+    AABB aabbWS{};
     bool wantsToEnableSkinning = false;
+
+    StaticMeshRenderer staticMeshRenderer;
 
     /**** Runtime Data *******/
     bool hasSkeleton = false;

@@ -12,23 +12,19 @@ struct StaticMeshInstanceProperty
 struct StaticMeshInstance : public RenderInstance
 {
 public:
+    const AABB& GetAABB() const { return aabb; }
+
+    void SetTransform(const float4x4& transform)
+    {
+        properties.transform = transform;
+        UpdateAABB();
+    }
+
+private:
     StaticMeshInstanceProperty properties;
-
-    const AABB& GetAABB() const { return aabb; };
-
-private:
     AABB aabb;
-};
 
-class StaticMeshInstanceHandle
-{
-public:
-    StaticMeshInstanceHandle(StaticMeshInstance* instance, RenderSceneImpl* renderSceneImpl)
-        : instance(instance), renderSceneImpl(renderSceneImpl) {};
-
-    void SetTransform(const float4x4& transform);
-
-private:
-    StaticMeshInstance* instance;
-    RenderSceneImpl* renderSceneImpl;
+    void UpdateAABB()
+    {
+    }
 };

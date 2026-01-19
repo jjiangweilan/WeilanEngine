@@ -36,10 +36,10 @@ public:
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
-    // called when play mode enter
-    virtual void OnAwake() {}
+    // called when play mode enter and quit
     virtual void OnStart() {}
     virtual void OnStop() {}
+
     virtual void OnDrawGizmos() {}
     virtual void OnDrawGizmos(GizmoManager& gizmoContext) {}
     virtual void OnLoaded() {}
@@ -49,9 +49,14 @@ protected:
     bool isAwake = false;
     GameObject* gameObject;
 
-    virtual void OnInit() {};
     virtual void OnEnable() {};
     virtual void OnDisable() {};
+
+    // called when component is first time created or added to a scene
+    virtual void OnAwake() {}
+
+    // will be called without scene
+    virtual void OnInit() {};
     virtual void OnDestroy() {};
 
     // editor only
@@ -70,7 +75,7 @@ public:                                                         \
 private:
 
 #define DEFINE_COMPONENT(TypeName, UUID)         \
-    DEFINE_OBJECT(Component, TypeName, UUID)\
+    DEFINE_OBJECT(Component, TypeName, UUID)     \
     const std::string& TypeName::GetName() const \
     {                                            \
         static std::string name = #TypeName;     \
@@ -87,7 +92,7 @@ public:                                          \
 private:
 
 #define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \
-    DEFINE_OBJECT(Component, TypeName, UUID)\
+    DEFINE_OBJECT(Component, TypeName, UUID)       \
     const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \

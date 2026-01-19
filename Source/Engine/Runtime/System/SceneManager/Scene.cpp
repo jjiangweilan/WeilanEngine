@@ -4,7 +4,7 @@ DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 Scene::Scene() : Asset(), renderingScene(), physicsScene(this)
 {
     RenderCore* renderCore = nullptr;
-    renderCore->CreateRenderScene();
+    renderScene = renderCore->CreateRenderScene();
 
     name = "New GameScene";
     renderingScene.scene = this;

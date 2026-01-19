@@ -6,6 +6,7 @@
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/Rendering/RenderCore.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "RenderingScene.hpp"
@@ -64,6 +65,8 @@ public:
     }
     void SetMainCamera(Camera* camera) { this->camera = camera; }
 
+    RenderScene& GetRenderScene() { return renderScene; }
+
     RenderingScene& GetRenderingScene() { return renderingScene; }
     PhysicsScene& GetPhysicsScene() { return physicsScene; }
 
@@ -79,6 +82,7 @@ protected:
     RenderingScene renderingScene;
     PhysicsScene physicsScene;
 
+    RenderScene renderScene;
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;

@@ -1,14 +1,14 @@
 #pragma once
 #include "RenderCamera.hpp"
-#include "StaticMeshInstance.hpp"
+#include "StaticMeshRenderer.hpp"
 #include <memory>
 
 class RenderSceneImpl;
 class RenderScene
 {
 public:
-    StaticMeshInstanceHandle CreateStaticMeshInstance();
-    void SetProperty(StaticMeshInstanceHandle instance, const StaticMeshInstanceProperty& property);
+    StaticMeshRenderer CreateStaticMeshRenderer();
+    void DestroyStaticMeshRenderer(StaticMeshRenderer& renderer);
 
     RenderCamera CreateRenderCamera();
 

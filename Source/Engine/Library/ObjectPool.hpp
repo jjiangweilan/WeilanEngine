@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include "Assert.hpp"
+#include <vector>
 
 template <class T>
 class ObjectPool;
@@ -70,7 +70,24 @@ public:
     ObjectPool(ObjectPool&&) = default;
     ObjectPool& operator=(ObjectPool&&) = default;
 
-    ObjectPoolHandle<T> Allocate()
+    ObjectPoolHandle<T> AllocateHandle()
+    {
+        int index = Allocate();
+        return ObjectPoolHandle<T>{this, static_cast<int>(index)};
+    }
+
+    T* operator[](int index)
+    {
+        ASSERT(index >= 0 && index < allocatedObjects.size() && "Index out of bounds");
+        if (isAllocated[index])
+        {
+            return &allocatedObjects[index];
+        }
+
+        return nullptr;
+    }
+
+    int Allocate()
     {
         if (freeIndices.empty())
         {
@@ -80,7 +97,19 @@ public:
         size_t index = freeIndices.back();
         freeIndices.pop_back();
         isAllocated[index] = true;
-        return ObjectPoolHandle<T>{this, static_cast<int>(index)};
+        return static_cast<int>(index);
+    }
+
+    void Free(int index)
+    {
+        if (index < 0 || index >= isAllocated.size() || !isAllocated[index])
+        {
+            ASSERT(false && "Double-free detected");
+            return;
+        }
+
+        isAllocated[index] = false;
+        freeIndices.push_back(static_cast<size_t>(index));
     }
 
     void Free(ObjectPoolHandle<T>& handle)
@@ -91,18 +120,7 @@ public:
             return;
         }
 
-        if (handle.index >= 0 && handle.index < static_cast<int>(allocatedObjects.size()))
-        {
-            if (!isAllocated[handle.index])
-            {
-                ASSERT(false && "Double-free detected");
-                return;
-            }
-
-            isAllocated[handle.index] = false;
-            freeIndices.push_back(static_cast<size_t>(handle.index));
-            handle.index = -1;
-        }
+        Free(handle.index);
     }
 
     void Clear()
@@ -126,7 +144,7 @@ private:
         size_t newSize = currentSize > 0 ? currentSize * 2 : 1;
         allocatedObjects.resize(newSize);
         isAllocated.resize(newSize, false);
-        
+
         // Add new indices to freeIndices
         for (size_t i = currentSize; i < newSize; ++i)
         {
@@ -139,5 +157,5 @@ private:
     std::vector<bool> isAllocated;
 
     template <class>
-    friend class ObjectPoolHandle;
+    friend struct ObjectPoolHandle;
 };

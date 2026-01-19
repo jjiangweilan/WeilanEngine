@@ -302,3 +302,19 @@ void MeshRenderer::OnLoaded()
 {
     CheckSkeleton();
 }
+
+void MeshRenderer::OnAwake()
+{
+    if (auto scene = GetScene())
+    {
+        staticMeshRenderer = scene->GetRenderScene().CreateStaticMeshRenderer();
+    }
+}
+
+void MeshRenderer::OnDestroy()
+{
+    if (auto scene = GetScene())
+    {
+        staticMeshRenderer = scene->GetRenderScene().CreateStaticMeshRenderer();
+    }
+}

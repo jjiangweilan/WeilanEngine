@@ -3,7 +3,7 @@
 #include "Engine/Library/CommandStream.hpp"
 #include "Engine/Library/SpinLock.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline1/RenderPipeline1.hpp"
-#include "Engine/Runtime/System/Rendering/RenderScene/RenderScene.hpp"
+#include "Engine/Runtime/System/Rendering/RenderScene.hpp"
 #include "RenderCoreData.hpp"
 #include <span>
 #include <vk_mem_alloc.h> // for virtual memory allocator
@@ -12,7 +12,7 @@ class Scene;
 class Camera;
 class RenderCoreImpl;
 
-using RC_CM = CommandStream;
+using RenderCoreCommandStream = CommandStream;
 class RenderCoreImpl;
 
 class RC_CMC : public CommandStreamContext
@@ -127,8 +127,9 @@ private:
         RenderCoreImpl* rc;
     };
 
-    RC_CM cm;
+    RenderCoreCommandStream cm;
     MeshManager meshManager;
+    std::vector<std::unique_ptr<RenderPipeline1>> renderPipelines;
 };
 
 void UploadMeshDataCmd::Execute(CommandStreamContext* context, void* ptr)
