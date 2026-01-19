@@ -2,6 +2,8 @@
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/CommandStream.hpp"
 #include "Engine/Library/SpinLock.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline1/RenderPipeline1.hpp"
+#include "Engine/Runtime/System/Rendering/RenderScene/RenderScene.hpp"
 #include "RenderCoreData.hpp"
 #include <span>
 #include <vk_mem_alloc.h> // for virtual memory allocator
@@ -45,11 +47,11 @@ public:
 
     void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
 
-
     void FlushCommands()
     {
-        cm.Execute();
     }
+
+    void Render(RenderScene& scene, std::span<Camera*> cameras, RenderPipeline1 pipelineHandle);
 
     Gfx::Buffer* GetMeshBuffer() { return meshManager.GetMeshBuffer(); }
 
@@ -147,13 +149,13 @@ void RenderCoreImpl::UploadMeshData(MeshHandle& handle, std::span<uint8_t> verte
     meshManager.UploadMeshData(handle, vertexData, indexData);
 
     void* rawData = nullptr;
-    UploadMeshDataCmd* cmd = cm.Push(
+    UploadMeshDataCmd* cmd = cm.Push<UploadMeshDataCmd>(
         &UploadMeshDataCmd::Execute,
-        UploadMeshDataCmd{handle},
         &rawData,
         vertexData.size() + indexData.size()
     );
 
+    cmd->handle = handle;
     cmd->vertexData = (uint8_t*)rawData;
     cmd->vertexDataSize = static_cast<uint32_t>(vertexData.size());
     memcpy(cmd->vertexData, vertexData.data(), vertexData.size());
@@ -161,4 +163,8 @@ void RenderCoreImpl::UploadMeshData(MeshHandle& handle, std::span<uint8_t> verte
     cmd->indexData = cmd->vertexData + vertexData.size();
     cmd->indexDataSize = static_cast<uint32_t>(indexData.size());
     memcpy(cmd->indexData, indexData.data(), indexData.size());
+}
+
+void RenderCoreImpl::Render(RenderScene& scene, std::span<Camera*> cameras, RenderPipeline1 pipelineHandle)
+{
 }

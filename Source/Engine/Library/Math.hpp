@@ -296,7 +296,7 @@ struct AABB
     {};
     glm::float3 min = {};
     glm::float3 max = {};
-    glm::float3 GetCenter() { return (min + max) / 2.0f; }
+    glm::float3 GetCenter() const { return (min + max) / 2.0f; }
 
     AABB() : min(0), max(0) {}
     AABB(const glm::float3& min, const glm::float3& max) : min(min), max(max) {}
