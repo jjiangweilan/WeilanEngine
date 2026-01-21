@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Library/CommandStream.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "RenderCoreData.hpp"
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>

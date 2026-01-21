@@ -1,9 +1,12 @@
 #pragma once
 
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "RenderCoreData.hpp"
 
+namespace RenderCoreModule
+{
 class RenderResourceAllocator
 {
 public:
@@ -23,3 +26,4 @@ private:
 
     std::unordered_map<UUID, AllocatedImage> images;
 };
+} // namespace RenderCoreModule

@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/CommandStream.hpp"
 #include "RenderCoreData.hpp"
 #include <fmt/format.h>

@@ -1,24 +1,30 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/CommandStream.hpp"
+#include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Library/SpinLock.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline1/RenderPipeline1.hpp"
 #include "Engine/Runtime/System/Rendering/RenderScene.hpp"
+#include "Mesh.hpp"
 #include "RenderCoreData.hpp"
 #include <span>
 #include <vk_mem_alloc.h> // for virtual memory allocator
 
 class Scene;
 class Camera;
-class RenderCoreImpl;
+
+namespace RenderCoreModule
+{
+class RenderCore;
 
 using RenderCoreCommandStream = CommandStream;
-class RenderCoreImpl;
+
+class RenderCore;
 
 class RC_CMC : public CommandStreamContext
 {
 public:
-    RenderCoreImpl* rc;
+    RenderCore* rc;
 };
 
 struct UploadMeshDataCmd
@@ -31,21 +37,23 @@ struct UploadMeshDataCmd
 
     static void Execute(CommandStreamContext* context, void* ptr);
 };
-
-class RenderCoreImpl
+class RenderCore
 {
 public:
     MeshHandle CreateMesh(size_t vertexByteSize, size_t indexCount, bool indexBit_16)
     {
-        return meshManager.CreateMesh(vertexByteSize, indexCount, indexBit_16);
+        return MeshHandle(
+            this,
+            meshManager.CreateMesh(vertexByteSize, indexCount, indexBit_16)
+        );
     }
 
     void DestroyMesh(MeshHandle handle)
     {
-        meshManager.DestroyMesh(handle);
+        meshManager.DestroyMesh(handle.GetHandleIndex());
     }
 
-    void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
+    void UploadMeshData(MeshHandleIndex& handleIndex, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
 
     void FlushCommands()
     {
@@ -53,7 +61,10 @@ public:
 
     void Render(RenderScene& scene, std::span<Camera*> cameras, RenderPipeline1 pipelineHandle);
 
-    Gfx::Buffer* GetMeshBuffer() { return meshManager.GetMeshBuffer(); }
+    Gfx::Buffer* GetMeshBuffer()
+    {
+        return meshManager.GetMeshBuffer();
+    }
 
 private:
     struct MeshManager
@@ -79,7 +90,7 @@ private:
         {
         }
 
-        MeshHandle CreateMesh(size_t vertexByteSize, size_t indexCount, bool indexBit_16)
+        MeshHandleIndex CreateMesh(size_t vertexByteSize, size_t indexCount, bool indexBit_16)
         {
             VmaVirtualAllocationCreateInfo vertexAllocCreateInfo = {};
             vertexAllocCreateInfo.size = vertexByteSize;
@@ -91,40 +102,46 @@ private:
             indexAllocCreateInfo.alignment = indexBit_16 ? 2 : 4;
             indexAllocCreateInfo.flags = VMA_VIRTUAL_ALLOCATION_CREATE_STRATEGY_MIN_MEMORY_BIT;
 
-            MeshHandle handle{};
+            MeshHandleIndex handleIndex = meshes.Allocate();
+            auto& mesh = meshes[handleIndex];
 
             {
                 ScopedSpinLock lock(vmaLock);
-                VmaVirtualAllocation& vertexVirtualAlloc = handle.vertexHandle;
-                VkDeviceSize& vertexOffset = handle.vertexOffset;
+                VmaVirtualAllocation& vertexVirtualAlloc = mesh.vertexHandle;
+                VkDeviceSize& vertexOffset = mesh.vertexOffset;
                 if (vmaVirtualAllocate(meshBufferBlock, &vertexAllocCreateInfo, &vertexVirtualAlloc, &vertexOffset) != VK_SUCCESS)
                 {
                     spdlog::error("RenderCore: Failed to allocate vertex buffer sub allocation");
                 }
 
-                VmaVirtualAllocation& indexVirtualAlloc = handle.indexHandle;
-                VkDeviceSize& indexOffset = handle.indexOffset;
+                VmaVirtualAllocation& indexVirtualAlloc = mesh.indexHandle;
+                VkDeviceSize& indexOffset = mesh.indexOffset;
                 if (vmaVirtualAllocate(meshBufferBlock, &indexAllocCreateInfo, &indexVirtualAlloc, &indexOffset))
                 {
                     spdlog::error("RenderCore: Failed to allocate index buffer sub allocation");
                 }
             }
 
-            return handle;
+            return handleIndex;
         }
 
-        void DestroyMesh(MeshHandle handle)
+        void DestroyMesh(MeshHandleIndex handle)
         {
+            auto& mesh = meshes[handle];
+
             ScopedSpinLock lock(vmaLock);
-            vmaVirtualFree(meshBufferBlock, handle.vertexHandle);
+            vmaVirtualFree(meshBufferBlock, mesh.vertexHandle);
+
+            meshes.Free(handle);
         }
 
         Gfx::Buffer* GetMeshBuffer() { return meshBuffer.get(); }
 
         Spinlock vmaLock;
+        ObjectPool<Mesh> meshes;
         VmaVirtualBlock meshBufferBlock;
         std::unique_ptr<Gfx::Buffer> meshBuffer;
-        RenderCoreImpl* rc;
+        RenderCore* rc;
     };
 
     RenderCoreCommandStream cm;
@@ -135,7 +152,7 @@ private:
 void UploadMeshDataCmd::Execute(CommandStreamContext* context, void* ptr)
 {
     RC_CMC* rcContext = static_cast<RC_CMC*>(context);
-    RenderCoreImpl* rc = rcContext->rc;
+    RenderCore* rc = rcContext->rc;
     UploadMeshDataCmd* cmd = (UploadMeshDataCmd*)ptr;
     Gfx::Buffer* meshBuffer = rc->GetMeshBuffer();
 
@@ -145,7 +162,7 @@ void UploadMeshDataCmd::Execute(CommandStreamContext* context, void* ptr)
     GetGfxDriver()->UploadBuffer(*meshBuffer, cmd->vertexData, cmd->vertexDataSize, handle.vertexOffset);
 }
 
-void RenderCoreImpl::UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData)
+void RenderCore::UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData)
 {
     meshManager.UploadMeshData(handle, vertexData, indexData);
 
@@ -166,6 +183,8 @@ void RenderCoreImpl::UploadMeshData(MeshHandle& handle, std::span<uint8_t> verte
     memcpy(cmd->indexData, indexData.data(), indexData.size());
 }
 
-void RenderCoreImpl::Render(RenderScene& scene, std::span<Camera*> cameras, RenderPipeline1 pipelineHandle)
+void RenderCore::Render(RenderScene& scene, std::span<Camera*> cameras, RenderPipeline1 pipelineHandle)
 {
 }
+
+} // namespace RenderCoreModule

@@ -1,5 +1,6 @@
 #pragma once
 #include "Assert.hpp"
+#include <stdexcept>
 #include <vector>
 
 template <class T>
@@ -76,15 +77,16 @@ public:
         return ObjectPoolHandle<T>{this, static_cast<int>(index)};
     }
 
-    T* operator[](int index)
+    T& operator[](int index)
     {
         ASSERT(index >= 0 && index < allocatedObjects.size() && "Index out of bounds");
         if (isAllocated[index])
         {
-            return &allocatedObjects[index];
+            return allocatedObjects[index];
         }
-
-        return nullptr;
+        {
+            throw std::runtime_error("Accessing unallocated object in ObjectPool");
+        }
     }
 
     int Allocate()

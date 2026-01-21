@@ -1,5 +1,7 @@
 #include "RenderResourceAllocator.hpp"
 
+namespace RenderCoreModule
+{
 Gfx::Image* RenderResourceAllocator::GetImage(const UUID& hash)
 {
     auto iter = images.find(hash);
@@ -84,3 +86,4 @@ void RenderResourceAllocator::UpdateUnusedFrames()
         images.erase(readyToRemove[i]);
     }
 }
+} // namespace RenderCoreNS

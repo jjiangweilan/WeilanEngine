@@ -1,21 +1,25 @@
 #pragma once
+#include <cinttypes>
+#include <span>
 
-#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
-#include "Engine/Driver/GfxDriver/GfxStruct.hpp"
-#include <vk_mem_alloc.h> // for virtual memory allocator
+namespace RenderCoreModule
+{
+class RenderCore;
+typedef uint32_t MeshHandleIndex;
+} // namespace RenderCoreModule
 
 class MeshHandle
 {
 public:
-    void UploadMeshData(MeshHandle& handle, std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
+    MeshHandle(RenderCoreModule::RenderCore* renderCoreImpl, RenderCoreModule::MeshHandleIndex handleIndex) : handleIndex(handleIndex), impl(renderCoreImpl) {}
+    void UploadMeshData(std::span<uint8_t> vertexData, std::span<uint8_t> indexData);
+
+    RenderCoreModule::MeshHandleIndex GetHandleIndex()
+    {
+        return handleIndex;
+    }
 
 private:
-    VmaVirtualAllocation vertexHandle = 0;
-    uint64_t vertexOffset = 0;
-
-    VmaVirtualAllocation indexHandle = 0;
-    uint64_t indexOffset = 0;
-
-    friend class RenderCoreImpl;
-    friend class UploadMeshDataCmd;
+    RenderCoreModule::MeshHandleIndex handleIndex;
+    RenderCoreModule::RenderCore* impl;
 };
