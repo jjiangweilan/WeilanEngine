@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
 
 class Brixelizer
@@ -14,8 +15,7 @@ private:
         AABB aabb;
         uint32_t* triangleIndices;
         uint32_t triangleIndexCount;
-        Gfx::Buffer* indexBuffer = nullptr;
-        Gfx::Buffer* vertexBuffer = nullptr;
+        Submesh* mesh;
     };
 
     struct DispatchData

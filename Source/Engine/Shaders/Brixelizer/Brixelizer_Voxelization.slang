@@ -2,15 +2,25 @@
 name: "Brixelizer/Voxelization"
 #endif
 
-StructuredBuffer<float3>.Handle vertexPositionBuffers;
-StructuredBuffer<uint3>.Handle triangleIndices;
+struct DispatchInfo
+{
+    float triangleCount;
+}
+
+struct Input
+{
+[[DynamicBuffer]]
+ConstantBuffer<DispatchInfo> dispatchInfo;
+StructuredBuffer<float3> vertexBuffer;
+StructuredBuffer<uint3> triangleIndices;
+}
+
+ParameterBlock<Input> params;
 
 [[shader("compute")]]
 void Brixelizer_Voxelization(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint triangleIndex = dispatchThreadID.x;
-    uint3 triangleIndices = triangleIndices[triangleIndex];
-
-    vertexPositionBuffers[triangleIndices.x];
+    uint3 triangleIndices = params.triangleIndices[triangleIndex];
 }
 

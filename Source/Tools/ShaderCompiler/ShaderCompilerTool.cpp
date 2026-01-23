@@ -607,6 +607,22 @@ private:
         return (int)samplerConfigs.size() - 1;
     }
 
+    void AddAttributes(slang::VariableLayoutReflection* variableLayout, json& binding)
+    {
+        binding["attributes"] = json::array();
+
+        auto variableReflection = variableLayout->getVariable();
+        for (unsigned i = 0; i < variableReflection->getUserAttributeCount(); ++i)
+        {
+            auto slangAttribute = variableReflection->getUserAttributeByIndex(i);
+            std::string name = slangAttribute->getName();
+            json attribute;
+            attribute["name"] = name;
+            attribute["arguments"] = json::array();
+            binding["attributes"].push_back(attribute);
+        }
+    }
+
     json AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, json& set, uint32_t currentBinding)
     {
         json binding;
@@ -667,7 +683,7 @@ private:
                     binding["bufferMembers"] = json::array();
                     binding["byteSize"] = 0;
                     binding["samplerIndex"] = AddSamplerConfig(set, variableLayout->getType(), binding["name"]);
-
+                    AddAttributes(variableLayout, binding);
                     outBindings.push_back(binding);
                     break;
                 }
@@ -714,6 +730,8 @@ private:
                         binding["bufferMembers"] = CollectBufferMembers(elementVarLayout);
                         binding["byteSize"] = size;
                         binding["samplerIndex"] = -1;
+
+                        AddAttributes(variableLayout, binding);
                         outBindings.push_back(binding);
                     }
                     CollectBindings(elementVarLayout, set, parentBinding + bindingOffset, outBindings);
@@ -726,6 +744,8 @@ private:
                         auto elementTypeLayout = variableLayout->getTypeLayout()->getElementTypeLayout();
                         auto binding = AddBindingAsResource(variableLayout->getName(), elementTypeLayout, set, currentBinding);
                         binding["descriptorCount"] = variableLayout->getTypeLayout()->getElementCount();
+
+                        AddAttributes(variableLayout, binding);
                         outBindings.push_back(binding);
                     }
                     break;

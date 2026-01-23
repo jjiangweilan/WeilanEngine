@@ -47,6 +47,20 @@ void Brixelizer::Execute(Gfx::CommandBuffer& cmd)
     auto shaderProgram = voxelizer->GetShaderProgram();
     cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
 
-    uint32_t triangleCount = 0;
-    cmd.Dispatch((triangleCount + 63) / 64, 1, 1);
+    for (int instanceIndex = 0; instanceIndex < instancesInCascade.size(); ++instanceIndex)
+    {
+        Instance* instance = instancesInCascade[instanceIndex];
+        // bind instance resources
+
+        Submesh* submesh = instance->mesh;
+
+        std::vector<Gfx::DynamicBinding> bindings =
+            {
+                {"vertexBuffer", *submesh->GetVertexBuffer()},
+                {"indexBuffer", *submesh->GetIndexBuffer()}
+            };
+        cmd.BindResource(0, bindings);
+        uint32_t triangleCount = 0;
+        cmd.Dispatch((triangleCount + 63) / 64, 1, 1);
+    }
 }
