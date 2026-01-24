@@ -18,3 +18,9 @@ struct ObjectAttribute
 struct ColorAttribute
 {
 };
+
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct DynamicBufferAttribute
+{
+};

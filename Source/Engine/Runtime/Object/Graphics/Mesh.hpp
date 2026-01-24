@@ -46,6 +46,8 @@ public:
 
     std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
+    uint32_t GetTriangleCount() const { return indexCount / 3; }
+
 private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;

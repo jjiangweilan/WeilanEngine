@@ -44,6 +44,7 @@ private:
     std::vector<Instance> instances;
 
     ObjPtr<Shader> voxelizer;
+    std::unique_ptr<Gfx::Buffer> dispatchBuffer = nullptr;
 
     bool InstanceInCascade(const Instance& instance, int cascadeIndex) { return true; }
 };

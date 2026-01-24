@@ -2,6 +2,8 @@
 name: "Brixelizer/Voxelization"
 #endif
 
+import WeilanEngine;
+
 struct DispatchInfo
 {
     float triangleCount;

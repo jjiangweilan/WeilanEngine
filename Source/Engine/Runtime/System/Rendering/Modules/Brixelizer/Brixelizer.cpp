@@ -53,14 +53,15 @@ void Brixelizer::Execute(Gfx::CommandBuffer& cmd)
         // bind instance resources
 
         Submesh* submesh = instance->mesh;
+        uint32_t triangleCount = submesh->GetTriangleCount();
 
         std::vector<Gfx::DynamicBinding> bindings =
             {
+                {"dispatchInfo", *dispatchBuffer},
                 {"vertexBuffer", *submesh->GetVertexBuffer()},
                 {"indexBuffer", *submesh->GetIndexBuffer()}
             };
         cmd.BindResource(0, bindings);
-        uint32_t triangleCount = 0;
         cmd.Dispatch((triangleCount + 63) / 64, 1, 1);
     }
 }
