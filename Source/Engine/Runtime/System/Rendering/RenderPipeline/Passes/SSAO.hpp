@@ -1,10 +1,10 @@
 #pragma once
 #include "DepthAwareBilateralUpsampler.hpp"
-#include "Pass.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
-#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Pass.hpp"
 
 namespace Rendering::Passes
 {
@@ -34,7 +34,8 @@ private:
     Gfx::ImageIdentifier ssao = Gfx::ImageIdentifier("SSAO");
     Gfx::ImageIdentifier* result = nullptr;
 
-    bool needDebug = false;
+    bool debugFinalSSAO = false;
+    bool debugNormal = false;
 
     /**
      * @brief lazily initialized debug image

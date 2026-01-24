@@ -44,11 +44,16 @@ void SSAO::Execute(
         cmd->AllocateAttachment(debugImage, desc);
         mat.EnableFeature("DEBUG_show_normal_reconstruction");
         mat.SetTexture("debugTex", GetGfxDriver()->GetImageFromRenderGraph(debugImage));
-        needDebug = true;
+        debugNormal = true;
+    }
+    else if (setting->ssao.debug_ssaoOutput)
+    {
+        debugFinalSSAO = true;
     }
     else
     {
-        needDebug = false;
+        debugFinalSSAO = false;
+        debugNormal = false;
         mat.DisableFeature("DEBUG_show_normal_reconstruction");
         mat.SetTexture("debugTex", nullptr);
     }
@@ -112,8 +117,18 @@ void SSAO::Execute(
 
 bool SSAO::DebugBlit(Gfx::ImageIdentifier& dst)
 {
-    dst = debugImage;
-    return needDebug;
+    if (debugNormal)
+    {
+        dst = debugImage;
+        return true;
+    }
+    else if (debugFinalSSAO)
+    {
+        dst = ssao;
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace Rendering::Passes

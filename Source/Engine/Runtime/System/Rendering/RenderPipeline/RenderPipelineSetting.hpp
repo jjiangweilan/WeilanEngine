@@ -81,6 +81,7 @@ public:
         bool enabled = true;
         bool enableUpscaler = true;
         bool debug_showNormal = false;
+        bool debug_ssaoOutput = false;
         float strength = 1.0;
         float scaling = 3.0f;
         float falloff = 1.5f;
@@ -93,6 +94,7 @@ public:
             SER(enabled),
             SER(enableUpscaler),
             SER(debug_showNormal),
+            SER(debug_ssaoOutput),
             SER(strength),
             SER(scaling),
             SER(falloff),

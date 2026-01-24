@@ -4,6 +4,7 @@ import Library.CommonUtils;
 import Library.PerScene;
 
 static extern const bool DEBUG_show_normal_reconstruction = false;
+#define APPLY_DITHER 2
 
 #define GTAO_SLICE_COUNT 8
 #define GTAO_DIRECTION_SAMPLE_COUNT 4
@@ -55,6 +56,20 @@ float3 GetPostionVS(float3 ndcPos)
 
 static float gDebugMaxSamplePointDistance = 0;
 
+void DitherSampleUV(inout float2 uv, uint sampleIndex)
+{
+    // Using a simple Bayer 2x2 matrix for dithering
+    float2 bayerMatrix[4] = {
+        float2(0.0f, 0.5f),
+        float2(0.75f, 0.25f),
+        float2(0.25f, 0.75f),
+        float2(0.5f, 0.0f)
+    };
+
+    uint index = sampleIndex % 4;
+    uv += (bayerMatrix[index] - 0.5f) * perMaterial.rtSize.zw;
+}
+
 float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, float3 viewVS)
 {
     float cHorizonCos = -1;
@@ -63,6 +78,10 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
     {
         float2 sampleOffset = offsetScaling * sampleIndex;
         float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw;
+
+        #if APPLY_DITHER
+        DitherSampleUV(sTexCoord, sampleIndex);
+        #endif
 
         // Sample view position
         float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sTexCoord, 0).x;
@@ -111,7 +130,7 @@ float GTAO(VertexOutput input)
         float n = signN * acos(cosN);
 
         float2 cHorizonCos = float2(-1.0f, -1.0f);
-        cHorizonCos.x = UpdateHorizon(input, omega, -1, posVS.xyz, viewVS);
+        cHorizonCos.x = UpdateHorizon(input, omega, -1, posVS.xyz, viewVS); // GTAO_DIRECTION_SAMPLE_COUNT samples
         cHorizonCos.y = UpdateHorizon(input, omega, 1, posVS.xyz, viewVS);
 
         float2 angle = acos(cHorizonCos);
