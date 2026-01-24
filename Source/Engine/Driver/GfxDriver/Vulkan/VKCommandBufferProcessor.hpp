@@ -59,6 +59,7 @@ public:
     VKImage* GetImage(const UUID& id);
     VKImage* Request(const ImageIdentifier& id, RenderImageDescriptor& desc);
     VKRenderPass* Request(RenderPass& renderPass);
+    void ShaderReloaded();
 
 private:
     class ResourceAllocator;

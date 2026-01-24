@@ -142,13 +142,13 @@ void WeilanEngine::EndFrame()
     else
         event->swapchainRecreated.state = false;
 
-#if ENGINE_EDITOR
-    assetDatabase->RefreshShader();
-#endif
-
     Graphics::GetSingleton().ClearDraws();
     DelayDestroy::Singleton()->Flush();
     GetFrameContext().EndFrame();
+#if ENGINE_EDITOR
+    assetDatabase->RefreshShader();
+    gfxDriver->ShaderReloaded();
+#endif
 
     ENGINE_END_PROFILE; // End Frame
 

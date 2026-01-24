@@ -1,10 +1,10 @@
 #include "VKDriver.hpp"
 #include "Engine/Core/JobSystem.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Library/Assert.hpp"
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "Engine/Library/Assert.hpp"
-#include "Engine/Core/Profiler/Profiler.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommandPool.hpp"
@@ -172,7 +172,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
-    renderGraph = std::make_unique<VKCommandBufferProcessor>(inflightCount);
+    commandBufferProcessor = std::make_unique<VKCommandBufferProcessor>(inflightCount);
 
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
@@ -183,7 +183,7 @@ VKDriver::~VKDriver()
 {
     vkDeviceWaitIdle(device.handle);
 
-    renderGraph = nullptr;
+    commandBufferProcessor = nullptr;
     sharedResource = nullptr;
 
     descriptorPoolCache = nullptr;
@@ -368,6 +368,11 @@ void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, u
     }
 
     CHECK_VK_RESULT(vkWaitForFences(device.handle, vkFences.size(), vkFences.data(), waitAll, timeout));
+}
+
+void VKDriver::ShaderReloaded()
+{
+    commandBufferProcessor->ShaderReloaded();
 }
 
 bool VKDriver::IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages)
@@ -607,7 +612,7 @@ void VKDriver::FlushPendingCommands()
     }
 
     CmdBufExecutionReport report{};
-    renderGraph->Execute(
+    commandBufferProcessor->Execute(
         framePrepareData,
         frameContexts[currentInflightIndex],
         currentInflightIndex,
@@ -700,7 +705,7 @@ bool VKDriver::EndFrame()
     CmdBufExecutionReport execReport{};
 
     // this section adds present image layout transition to the end of cmd
-    VKCommandBuffer cmd2(renderGraph.get());
+    VKCommandBuffer cmd2(commandBufferProcessor.get());
     int idx = frameContexts[currentInflightIndex].swapchainIndex;
     cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
     for (auto& w : extraWindows)
@@ -712,7 +717,7 @@ bool VKDriver::EndFrame()
     }
     framePrepareData.AppendVKCommandBuffer(&cmd2);
 
-    renderGraph->Execute(
+    commandBufferProcessor->Execute(
         framePrepareData,
         frameContexts[currentInflightIndex],
         currentInflightIndex,
@@ -1419,14 +1424,14 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::ImageIdentifier& id)
     }
     else if (id.GetType() == Gfx::ImageIdentifier::Type::Handle)
     {
-        return renderGraph->GetImage(id.GetAsUUID());
+        return commandBufferProcessor->GetImage(id.GetAsUUID());
     }
     return nullptr;
 }
 
 std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 {
-    return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(renderGraph.get()));
+    return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(commandBufferProcessor.get()));
 }
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)

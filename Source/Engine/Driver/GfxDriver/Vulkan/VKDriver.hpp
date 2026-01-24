@@ -103,6 +103,7 @@ public:
         VkImageLayout finalLayout
     );
 
+    void ShaderReloaded() override;
     void SetGPUProfilerEnabled(bool enabled) override;
     const IProfiler& GetGPUProfiler() override { return profiler; }
 
@@ -168,7 +169,7 @@ public:
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
-    std::unique_ptr<VKCommandBufferProcessor> renderGraph;
+    std::unique_ptr<VKCommandBufferProcessor> commandBufferProcessor;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;

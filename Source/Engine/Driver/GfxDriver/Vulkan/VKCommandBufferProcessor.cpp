@@ -2063,6 +2063,11 @@ VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount)
     defaultUBOBuffer = std::make_unique<VKBuffer>(createInfo);
 }
 
+void VKCommandBufferProcessor::ShaderReloaded()
+{
+    descriptorSetCache.clear();
+}
+
 VKCommandBufferProcessor::~VKCommandBufferProcessor()
 {
     for (auto& d : descriptorSetCache)
