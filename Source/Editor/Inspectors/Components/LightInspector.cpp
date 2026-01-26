@@ -91,6 +91,50 @@ public:
         }
         ImGui::Separator();
 
+        EditorGUI::SeparatorTextLabeled("Shadow Cascades");
+        bool cascadeEnabled = light->IsCascadeShadowEnabled();
+        if (ImGui::Checkbox("Enable Cascaded Shadows", &cascadeEnabled))
+        {
+            light->SetShadowCascadeEnabled(cascadeEnabled);
+        }
+
+        if (cascadeEnabled)
+        {
+            auto cascades = light->GetShadowCascadeSplits();
+            int cascadeCount = static_cast<int>(cascades.size());
+            
+            if (EditorGUI::DragInt("Cascade Count", &cascadeCount, 1.0f, 1, 4))
+            {
+                std::vector<ShadowCascade> newCascades;
+                for (int i = 0; i < cascadeCount; ++i)
+                {
+                    if (i < static_cast<int>(cascades.size()))
+                    {
+                        newCascades.push_back(cascades[i]);
+                    }
+                    else
+                    {
+                        newCascades.push_back({(i + 1) * 50.0f});
+                    }
+                }
+                light->SetCascadeShadowSplits(newCascades);
+                cascades = newCascades;
+            }
+
+            for (int i = 0; i < static_cast<int>(cascades.size()); ++i)
+            {
+                float splitDistance = cascades[i].splitDistance;
+                std::string label = "Cascade " + std::to_string(i + 1) + " Distance";
+                if (EditorGUI::DragFloat(label.c_str(), &splitDistance, 1.0f, 0.1f, 1000.0f))
+                {
+                    auto updatedCascades = light->GetShadowCascadeSplits();
+                    updatedCascades[i].splitDistance = splitDistance;
+                    light->SetCascadeShadowSplits(updatedCascades);
+                }
+            }
+        }
+        ImGui::Separator();
+
         // Frustum frustum = target->GetLightFrusutmPlanes(target->GetGameObject()->GetPosition());
 
         // // 6 different float4 colors

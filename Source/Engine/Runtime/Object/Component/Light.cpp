@@ -73,6 +73,13 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("shadowDistance", shadowDistance);
     s->Serialize("depthBias", depthBias);
     s->Serialize("depthSlopeBias", depthSlopeBias);
+    s->Serialize("enableCascadedShadow", enableCascadedShadow);
+    s->Serialize("cascadeCount", static_cast<int>(shadowCascades.size()));
+    for (size_t i = 0; i < shadowCascades.size(); ++i)
+    {
+        std::string key = "cascade" + std::to_string(i) + "SplitDistance";
+        s->Serialize(key.c_str(), shadowCascades[i].splitDistance);
+    }
 }
 void Light::Deserialize(Serializer* s)
 {
@@ -89,6 +96,17 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("shadowDistance", shadowDistance);
     s->Deserialize("depthBias", depthBias);
     s->Deserialize("depthSlopeBias", depthSlopeBias);
+    s->Deserialize("enableCascadedShadow", enableCascadedShadow);
+    int cascadeCount = 0;
+    s->Deserialize("cascadeCount", cascadeCount);
+    shadowCascades.clear();
+    for (int i = 0; i < cascadeCount; ++i)
+    {
+        std::string key = "cascade" + std::to_string(i) + "SplitDistance";
+        float splitDistance = 0.0f;
+        s->Deserialize(key.c_str(), splitDistance);
+        shadowCascades.push_back({splitDistance});
+    }
 }
 
 const std::string& Light::GetName() const
