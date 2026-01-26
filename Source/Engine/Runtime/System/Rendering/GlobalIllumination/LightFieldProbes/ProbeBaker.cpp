@@ -101,12 +101,6 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     std::vector<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
     for (int face = 0; face < 6; ++face)
     {
-        // set scissor and viewport
-        Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(rtWidth), static_cast<uint32_t>(rtHeight)}};
-        cmd.SetScissor(0, 1, &scissor);
-        Gfx::Viewport viewport{0, 0, static_cast<float>(rtWidth), static_cast<float>(rtHeight), 0, 1};
-        cmd.SetViewport(viewport);
-
         // clear albedo to black
         cmd.BeginRenderPass(*faces[face].gbufferPass, clears);
 
@@ -124,17 +118,6 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     }
 
     // project cubemap to octaheral map
-    Rect2D scissor = {{0, 0}, {Probe::octahedralMapSize, Probe::octahedralMapSize}};
-    cmd.SetScissor(0, 1, &scissor);
-    Gfx::Viewport viewport{
-        0,
-        0,
-        static_cast<float>(Probe::octahedralMapSize),
-        static_cast<float>(Probe::octahedralMapSize),
-        0,
-        1
-    };
-    cmd.SetViewport(viewport);
     Gfx::ClearValue projectClears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
     cmd.BeginRenderPass(*probeOctahedralPass, projectClears);
     cmd.BindResource(2, reprojectMaterial.GetShaderResource());

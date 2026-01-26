@@ -113,6 +113,8 @@ private:
         VKRenderPass* renderPass;
         bool overrideViewport = false;
         bool overrideScissor = false;
+        VkViewport currentViewport = {};
+        VkRect2D currentScissor = {};
         int currentTimestapQueryIndex = 0;
     } exeState;
 
@@ -192,6 +194,32 @@ private:
         int barrierOffset,
         int barrierCount
     );
+    void UpdateViewportAndScissorForRenderPass(VkCommandBuffer vkcmd, VkViewport viewport, VkRect2D scissor, Extent2D extent)
+    {
+        if (!exeState.overrideViewport &&
+            (viewport.x != exeState.currentViewport.x ||
+             viewport.y != exeState.currentViewport.y ||
+             viewport.width != exeState.currentViewport.width ||
+             viewport.height != exeState.currentViewport.height ||
+             viewport.minDepth != exeState.currentViewport.minDepth ||
+             viewport.maxDepth != exeState.currentViewport.maxDepth))
+        {
+            exeState.currentViewport = viewport;
+            exeState.overrideViewport = false;
+            vkCmdSetViewport(vkcmd, 0, 1, &viewport);
+        }
+
+        if (!exeState.overrideScissor &&
+            (scissor.offset.x != exeState.currentScissor.offset.x ||
+             scissor.offset.y != exeState.currentScissor.offset.y ||
+             scissor.extent.width != exeState.currentScissor.extent.width ||
+             scissor.extent.height != exeState.currentScissor.extent.height))
+        {
+            exeState.overrideScissor = false;
+            exeState.currentScissor = scissor;
+            vkCmdSetScissor(vkcmd, 0, 1, &scissor);
+        }
+    }
 
     void GetImageViewOrBuffer(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer);
 

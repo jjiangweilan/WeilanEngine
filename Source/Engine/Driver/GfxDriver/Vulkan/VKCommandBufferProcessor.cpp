@@ -1311,28 +1311,19 @@ void VKCommandBufferProcessor::Execute(
                     // }
                     PutBarriers(vkcmd, barrierOffset, barrierCount);
 
-                    if (!exeState.overrideViewport)
-                    {
-                        VkViewport viewport;
-                        viewport.x = 0.0f;
-                        viewport.y = 0.0f;
-                        viewport.width = (float)extent.width;
-                        viewport.height = (float)extent.height;
-                        viewport.minDepth = 0.0f;
-                        viewport.maxDepth = 1.0f;
-                        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
-                        exeState.overrideViewport = false;
-                    }
+                    VkViewport viewport;
+                    viewport.x = 0.0f;
+                    viewport.y = 0.0f;
+                    viewport.width = (float)extent.width;
+                    viewport.height = (float)extent.height;
+                    viewport.minDepth = 0.0f;
+                    viewport.maxDepth = 1.0f;
 
-                    if (!exeState.overrideScissor)
-                    {
-                        VkRect2D scissor;
-                        scissor.offset = {0, 0};
-                        scissor.extent = {extent.width, extent.height};
-                        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
-                        exeState.overrideScissor = false;
-                    }
+                    VkRect2D scissor;
+                    scissor.offset = {0, 0};
+                    scissor.extent = {extent.width, extent.height};
 
+                    UpdateViewportAndScissorForRenderPass(vkcmd, viewport, scissor, extent);
                     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                     break;
                 }
@@ -1340,6 +1331,9 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - EndRenderPass");
                     vkCmdEndRenderPass(vkcmd);
+
+                    exeState.overrideScissor = false;
+                    exeState.overrideViewport = false;
                     exeState.renderPass = nullptr;
                     break;
                 }
@@ -2249,27 +2243,19 @@ void VKCommandBufferProcessor::BeginRenderPass(
     // }
     PutBarriers(vkcmd, barrierOffset, barrierCount);
 
-    if (!exeState.overrideViewport)
-    {
-        VkViewport viewport;
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = (float)extent.width;
-        viewport.height = (float)extent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
-        exeState.overrideViewport = false;
-    }
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)extent.width;
+    viewport.height = (float)extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
 
-    if (!exeState.overrideScissor)
-    {
-        VkRect2D scissor;
-        scissor.offset = {0, 0};
-        scissor.extent = {extent.width, extent.height};
-        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
-        exeState.overrideScissor = false;
-    }
+    VkRect2D scissor;
+    scissor.offset = {0, 0};
+    scissor.extent = {extent.width, extent.height};
+
+    UpdateViewportAndScissorForRenderPass(vkcmd, viewport, scissor, extent);
 
     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
