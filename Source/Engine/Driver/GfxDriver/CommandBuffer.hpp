@@ -38,12 +38,12 @@ struct BufferImageCopyRegion
 
 struct Viewport
 {
-    float x;
-    float y;
-    float width;
-    float height;
-    float minDepth;
-    float maxDepth;
+    float x = 0;
+    float y = 0;
+    float width = 1;
+    float height = 1;
+    float minDepth = 0;
+    float maxDepth = 1;
 };
 
 struct RenderAttachment

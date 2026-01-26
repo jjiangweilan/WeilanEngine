@@ -30,11 +30,23 @@ struct Camera
     float4 screenSize;
 };
 
+static const int MAX_SHADOW_MAP_CASCADE_COUNT = 4;
+
+struct ShadowDistance
+{
+    float distance;
+    float padding1;
+    float padding2;
+    float padding3;
+};
+
 struct MainLightShadow
 {
-    float4x4 worldToShadow;
+    float4x4 worldToShadow[MAX_SHADOW_MAP_CASCADE_COUNT];
     float4 shadowMapSize;
     float4 cachedMainLightDirection;
+    ShadowDistance shadowDistances[MAX_SHADOW_MAP_CASCADE_COUNT];
+    float shadowCascadeCount;
 };
 
 struct Scene

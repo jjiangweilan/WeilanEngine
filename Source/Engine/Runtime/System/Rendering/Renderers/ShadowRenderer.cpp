@@ -1,7 +1,7 @@
 #include "ShadowRenderer.hpp"
 #include "Engine/MiddleLayer/EngineDebug.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 namespace Rendering
 {
@@ -16,33 +16,65 @@ void ShadowRenderer::Init()
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(Shaders::ShadowMapObject);
     shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
+}
 
-    shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
+void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
+{
+    bool reconfigShadowMap = false;
+    int cascadeCount = light.GetCascadeCount();
+    int shadowMapSizeScale = 1.0f;
+    if (currentShadowMapInfo.cascadeCount != cascadeCount)
+    {
+        currentShadowMapInfo.cascadeCount = light.GetCascadeCount();
+        reconfigShadowMap = true;
+    }
 
-    shadowMap = GetGfxDriver()->CreateImage(
-        shadowDescription,
-        Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
-    );
-    shadowMapId = *shadowMap;
+    if (light.IsCascadeShadowEnabled())
+    {
+        shadowMapSizeScale *= cascadeCount;
+    }
 
-    pass.SetAttachment(0, shadowMapId);
+    if (reconfigShadowMap || shadowMap == nullptr)
+    {
+        shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z * shadowMapSizeScale, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
+
+        shadowMap = GetGfxDriver()->CreateImage(
+            shadowDescription,
+            Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
+        );
+        shadowMapId = *shadowMap;
+
+        pass.SetAttachment(0, shadowMapId);
+
+        for (int i = 0; i < cascadeCount; ++i)
+        {
+            auto cascadeBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::ShadowPass), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst);
+            cascadeBuffers.push_back(std::move(cascadeBuffer));
+
+            GPUParameter::ShadowPass shadowPass{(float)i};
+            GetGfxDriver()->UploadBuffer(
+                *cascadeBuffers[i],
+                (uint8_t*)&shadowPass,
+                sizeof(GPUParameter::ShadowPass)
+            );
+        }
+    }
 }
 
 void ShadowRenderer::SetSettings(ShadowRendererSettigns settings) {}
 
-float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
+float4x4 ShadowRenderer::GetWorldToShadowMatrix(Light& light, RenderingData& renderingData, float shadowDistance)
 {
-    auto light = renderingData.GetMainLight();
     auto view = renderingData.gpuCamera->view;
     auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(
-        light->GetShadowDistance(),
+        shadowDistance,
         renderingData.screenAspect
     );
     auto vp = projection * view;
     Frustum frustum(vp, Frustum::CornersOnly{});
     auto corners = frustum.corners;
 
-    auto lightMatrix = light->GetGameObject()->GetWorldMatrix();
+    auto lightMatrix = light.GetGameObject()->GetWorldMatrix();
     lightMatrix[0] = float4(glm::normalize(float3(lightMatrix[0])), 0.0);
     lightMatrix[1] = float4(glm::normalize(float3(lightMatrix[1])), 0.0);
     lightMatrix[2] = float4(glm::normalize(float3(lightMatrix[2])), 0.0);
@@ -104,7 +136,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     std::vector<MeshRenderer*> renderers{};
     if (renderingData.renderPipelineSettings->shadowFrustumCull)
     {
-        Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow);
+        Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow[0]);
         auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(frustum);
         shadowDrawList.Add(renderers);
     }
@@ -123,38 +155,57 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     {
         if (updateMainLightShadow)
         {
-            Gfx::ClearValue shadowMapClears[] = {{0.0f, 0}};
-            cmd.SetDepthBiasEnable(true);
-            cmd.SetDepthBias(mainLight->depthBias, 0, mainLight->depthSlopeBias);
-            cmd.BeginRenderPass(pass, shadowMapClears);
-            auto program = shadowMapShader->GetShaderProgram();
-            auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
+            auto mainLight = renderingData.GetMainLight();
 
-            for (auto& drawIdx : shadowDrawList.GetSortedIndices())
+            if (mainLight)
             {
-                auto& draw = shadowDrawList[drawIdx];
-                auto programUsed = program;
-                [[unlikely]]
-                if (draw.skinned)
-                {
-                    programUsed = programSkinned;
-                    if (draw.objectResource)
-                        cmd.BindResource(1, draw.objectResource);
-                }
-                else
-                {
-                    auto ps = draw.GetPushConstant();
-                    cmd.SetPushConstant(programUsed, (void*)&ps);
-                }
-                cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
+                auto shadowCascadeCount = mainLight->GetCascadeCount();
 
-                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                Gfx::ClearValue shadowMapClears[] = {{0.0f, 0}};
+                cmd.BeginRenderPass(pass, shadowMapClears);
+                for (int cascadeIndex = 0; cascadeIndex < shadowCascadeCount; ++cascadeIndex)
+                {
+                    Rect2D scissor{{(int)shadowMapTexelSize.z * cascadeIndex, 0}, {(uint32_t)shadowMapTexelSize.z, (uint32_t)shadowMapTexelSize.w}};
+                    Gfx::Viewport viewport = Gfx::Viewport{cascadeIndex * shadowMapTexelSize.z, 0, shadowMapTexelSize.z, shadowMapTexelSize.w, 0, 1};
+
+                    cmd.SetDepthBiasEnable(true);
+                    cmd.SetDepthBias(mainLight->depthBias, 0, mainLight->depthSlopeBias);
+                    cmd.SetViewport(viewport);
+                    cmd.SetScissor(0, 1, &scissor);
+
+                    std::vector<Gfx::DynamicBinding> bindings = {Gfx::DynamicBinding("shadowPass", *cascadeBuffers[cascadeIndex])};
+
+                    cmd.BindResource(1, bindings);
+
+                    auto program = shadowMapShader->GetShaderProgram();
+                    auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
+
+                    for (auto& drawIdx : shadowDrawList.GetSortedIndices())
+                    {
+                        auto& draw = shadowDrawList[drawIdx];
+                        auto programUsed = program;
+                        [[unlikely]]
+                        if (draw.skinned)
+                        {
+                            programUsed = programSkinned;
+                            if (draw.objectResource)
+                                cmd.BindResource(2, draw.objectResource);
+                        }
+                        else
+                        {
+                            auto ps = draw.GetPushConstant();
+                            cmd.SetPushConstant(programUsed, (void*)&ps);
+                        }
+                        cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
+
+                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    }
+                }
+                cmd.EndRenderPass();
+                cmd.SetDepthBias(0, 0, 0);
             }
-
-            cmd.EndRenderPass();
-            cmd.SetDepthBias(0, 0, 0);
         }
     }
     cmd.EndLabel();

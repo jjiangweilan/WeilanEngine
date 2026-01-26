@@ -206,6 +206,7 @@ float3 StandardLightShading(
         SamplerState pointClamp,
         float2 screenUV,
         Light light,
+        Camera camera,
         MainLightShadow mainLightShadow,
         ShadingObject object,
         MainLightShadowData mainLightShadowData,
@@ -246,22 +247,11 @@ float3 StandardLightShading(
             const float shadowBias = mainLightShadowData.shadowConstantBias;
             const float shadowNormalBias = mainLightShadowData.shadowNormalBias;
 
-            float3 shadowWorldPos = objPos;
-            // Shadow reprojection
-            // if (perScene.mainLightShadow.cachedMainLightDirection.a == 1.0f)
-            // {
-            //     shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, perScene.mainLightShadow.cachedMainLightDirection.xyz);
-            // }
-
-            float4 shadowCS = mul(mainLightShadow.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * objNormal, 1.0));
-            shadowCS = shadowCS / shadowCS.w;
-            float2 shadowUV = shadowCS.xy * 0.5 + 0.5;
-            float objShadowDepth = shadowCS.z - shadowBias;
-            bool valid = all(float3(shadowUV, shadowCS.z) > 0) && all(float3(shadowUV, shadowCS.z) < 1);
-            if (valid)
-            {
-                mainLightShadowAttenuation = PcfShadow(shadowUV, mainLightShadow.shadowMapSize.zw, objShadowDepth, mainLightShadowData.shadowMap, mainLightShadowData.shadowSampler);
-            }
+            mainLightShadowAttenuation = GetShadowAttenuation(objPos, objNormal, shadowBias, shadowNormalBias,
+                camera,
+                mainLightShadow,
+                mainLightShadowData.shadowMap,
+                mainLightShadowData.shadowSampler);
         }
 
         // Apply screen space shadow

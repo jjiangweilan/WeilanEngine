@@ -5,6 +5,11 @@
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
 #include <memory>
 
+namespace GPUParameter
+{
+#include "Engine/Shaders/Shadows.hlsl"
+}
+
 namespace Rendering
 {
 struct ShadowRendererSettigns
@@ -14,11 +19,11 @@ class ShadowRenderer
 public:
     void Init();
     void SetSettings(ShadowRendererSettigns settings);
-    void Setup(RenderingData& renderingData);
+    void Setup(Light& light, RenderingData& renderingData);
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData);
     Gfx::Image* GetShadowMap() { return shadowMap.get(); }
     float4 GetShadowMapTexelSize() { return shadowMapTexelSize; }
-    float4x4 GetShadowToWorldMatrix(RenderingData& renderingData);
+    float4x4 GetWorldToShadowMatrix(Light& light, RenderingData& renderingData, float shadowDistance);
 
 private:
     Gfx::RenderPass pass = Gfx::RenderPass(1, 1);
@@ -27,8 +32,14 @@ private:
     std::unique_ptr<Gfx::Image> shadowMap;
     ObjPtr<Shader> shadowMapShader;
     ObjPtr<Shader> shadowMapShaderSkinned;
+    std::vector<std::unique_ptr<Gfx::Buffer>> cascadeBuffers;
 
     bool updateMainLightShadow = true;
+
+    struct ShadowMapInfo
+    {
+        int cascadeCount = 0;
+    } currentShadowMapInfo;
 
     const float shadowMapWidth = 4096.0f;
     const glm::float4 shadowMapTexelSize = {1 / shadowMapWidth, 1 / shadowMapWidth, shadowMapWidth, shadowMapWidth};

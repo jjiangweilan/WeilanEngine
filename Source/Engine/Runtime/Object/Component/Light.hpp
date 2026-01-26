@@ -8,6 +8,12 @@ enum class LightType
     Point
 };
 
+struct ShadowCascade
+{
+    float splitDistance = 0.0f;
+    // float fadeStart = 0.8f;
+};
+
 class Light : public Component
 {
     DECLARE_OBJECT();
@@ -21,6 +27,8 @@ class Light : public Component
     float pointLightTerm1 = 0.7f;
     float pointLightTerm2 = 1.8f;
     float shadowDistance = 100.0;
+    bool enableCascadedShadow = true;
+    std::vector<ShadowCascade> shadowCascades = {};
 
     struct
     {
@@ -78,6 +86,13 @@ public:
     glm::vec3 GetCachedLightDirection() { return shadowCache.cachedLightDirection; }
 
     float GetShadowPlane() { return 100; }
+
+    void OnInit() override;
+    void SetShadowCascadeEnabled(bool enabled);
+    void SetCascadeShadowSplits(const std::vector<ShadowCascade>& cascades) { shadowCascades = cascades; }
+    const std::vector<ShadowCascade>& GetShadowCascadeSplits() const { return shadowCascades; }
+    bool IsCascadeShadowEnabled() const { return enableCascadedShadow; }
+    int GetCascadeCount() const { return static_cast<int>(shadowCascades.size()); }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() const override;

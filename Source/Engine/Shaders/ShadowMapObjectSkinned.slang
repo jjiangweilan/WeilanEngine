@@ -1,5 +1,6 @@
 import Library.PerScene;
 import Skeleton;
+import Shadows;
 
 #if CONFIG
 cull: back
@@ -36,6 +37,7 @@ struct PerObject
 };
 
 ParameterBlock<PerScene> perScene;
+ParameterBlock<ShadowPass> shadowPass;
 ParameterBlock<PerObject> perObject;
 
 [shader("vertex")]
@@ -58,7 +60,7 @@ VertexOutput VertexMain(VertexInput input)
     float3 positionWS = float3(mul(skeletonMatrix, float4(input.position, 1.0)).xyz);
 
     VertexOutput output;
-    output.position = mul(perScene.mainLightShadow.worldToShadow, float4(positionWS, 1.0));
+    output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));
 
     return output;
 }

@@ -1,4 +1,6 @@
 import Library.PerScene;
+import WeilanEngine;
+import Shadows;
 
 #if CONFIG
 cull: back
@@ -26,6 +28,7 @@ struct VertexOutput
 }
 
 ParameterBlock<PerScene> perScene;
+ParameterBlock<ShadowPass> shadowPass;
 
 [shader("vertex")]
 VertexOutput VertexMain(VertexInput input)
@@ -33,7 +36,7 @@ VertexOutput VertexMain(VertexInput input)
     float3 positionWS = float3(mul(transform.model, float4(input.position, 1.0)).xyz);
 
     VertexOutput output;
-    output.position = mul(perScene.mainLightShadow.worldToShadow, float4(positionWS, 1.0));
+    output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));
 
     return output;
 }

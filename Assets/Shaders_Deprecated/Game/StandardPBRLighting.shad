@@ -171,7 +171,7 @@ vec3 ParallaxShadowReprojection(vec3 P1, vec3 L1, vec3 L0)
     float sum = 0, cnt = 0; 
     for (int i = 0; i < 8; ++i) 
     { 
-        vec4 Sp = scene.worldToShadow * vec4(S, 1);
+        vec4 Sp = scene.worldToShadow[0] * vec4(S, 1);
         Sp = Sp / Sp.w;
         vec2 shadowUV = Sp.xy * 0.5 + 0.5;
         float occDepth = textureLod(sampler2D(shadowMap, s_point_clamp), shadowUV, 0).r; 
@@ -260,7 +260,7 @@ void main()
                 shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, scene.cachedMainLightDirection.xyz);
             }
 
-            vec4 shadowCS = scene.worldToShadow * vec4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0);
+            vec4 shadowCS = scene.worldToShadow[0] * vec4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0);
             shadowCS = shadowCS / shadowCS.w;
             vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
             float objShadowDepth = shadowCS.z - shadowBias;

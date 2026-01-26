@@ -1,19 +1,19 @@
 #include "RenderPipeline.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
-#include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
-#include "Engine/Runtime/Object/Component/ReflectionProbe.hpp"
-#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
-#include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
-#include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
+#include "Engine/Runtime/Object/Component/ReflectionProbe.hpp"
+#include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ParticleRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingUtils.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 using namespace Rendering::Passes;
 namespace Rendering
@@ -167,7 +167,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.globalResource.get());
 
     // ssao pass
-    ssaoPass->Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting);
+    ssaoPass->Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
 
     // Contact Shadow (directional main light only) - BEFORE shading so future shaders can consume
     {
@@ -501,15 +501,41 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         {
             state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
 
-            mainLightShadowParam.worldToShadow = shadowRenderer->GetShadowToWorldMatrix(renderingData);
+            auto mainLight = renderingData.GetMainLight();
 
-            if (mainLight->IsShadowCacheEnabled())
+            if (mainLight)
             {
-                mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
-            }
-            else
-            {
-                mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
+                shadowRenderer->Setup(
+                    *mainLight,
+                    renderingData
+                );
+
+                if (mainLight->IsCascadeShadowEnabled())
+                {
+                    int cascadeCount = mainLight->GetCascadeCount();
+                    mainLightShadowParam.shadowCascadeCount = mainLight->GetCascadeCount();
+
+                    for (int i = 0; i < cascadeCount; ++i)
+                    {
+                        mainLightShadowParam.worldToShadow[i] = shadowRenderer->GetWorldToShadowMatrix(*mainLight, renderingData, mainLight->GetShadowCascadeSplits()[i].splitDistance);
+                        mainLightShadowParam.shadowDistances[i].distance = mainLight->GetShadowCascadeSplits()[i].splitDistance;
+                    }
+                }
+                else
+                {
+                    mainLightShadowParam.worldToShadow[0] = shadowRenderer->GetWorldToShadowMatrix(*mainLight, renderingData, mainLight->GetShadowDistance());
+                    mainLightShadowParam.shadowCascadeCount = 1.0;
+                    mainLightShadowParam.shadowDistances[0].distance = mainLight->GetShadowDistance();
+                }
+
+                if (mainLight->IsShadowCacheEnabled())
+                {
+                    mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
+                }
+                else
+                {
+                    mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 #include "Light.hpp"
-#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Component, Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
@@ -27,6 +27,11 @@ Light::~Light() {}
 void Light::SetLightType(LightType type)
 {
     this->lightType = type;
+}
+
+void Light::OnInit()
+{
+    SetShadowCascadeEnabled(IsCascadeShadowEnabled());
 }
 
 glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
@@ -113,4 +118,16 @@ glm::vec3 Light::GetLightDirection()
     auto model = GetGameObject()->GetWorldMatrix();
     glm::vec3 pos = glm::normalize(glm::vec3(model[2]));
     return -pos;
+}
+
+void Light::SetShadowCascadeEnabled(bool enabled)
+{
+    enableCascadedShadow = enabled;
+
+    if (enabled && shadowCascades.empty())
+    {
+        shadowCascades.push_back({50.0f});
+        shadowCascades.push_back({150.0f});
+        shadowCascades.push_back({250.0f});
+    }
 }

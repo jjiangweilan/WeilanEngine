@@ -108,7 +108,7 @@ float3 ParallaxShadowReprojection(float3 P1, float3 L1, float3 L0)
     float sum = 0, cnt = 0; 
     for (int i = 0; i < 8; ++i) 
     { 
-        float4 Sp = mul(perScene.mainLightShadow.worldToShadow, float4(S, 1));
+        float4 Sp = mul(perScene.mainLightShadow.worldToShadow[0], float4(S, 1));
         Sp = Sp / Sp.w;
         float2 shadowUV = Sp.xy * 0.5 + 0.5;
         float occDepth = perMaterial.shadowMap.SampleLevel(perMaterial.sampler_point_clamp, shadowUV, 0).r; 
@@ -164,6 +164,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         perMaterial.sampler_point_clamp,
         input.uv,
         perScene.scene.lights[i],
+        perScene.camera,
         perScene.mainLightShadow, shadingObject, mainLightShadowData, gi, perMaterial.contactShadowMap);
     }
 
