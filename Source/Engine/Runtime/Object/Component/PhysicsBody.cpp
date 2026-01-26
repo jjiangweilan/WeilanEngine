@@ -452,7 +452,7 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
     for (auto meshRenderer : meshRenderers)
     {
         auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
-        auto scale = GetGameObject()->GetLocalScale();
+        auto scale = GetGameObject()->GetScale();
         if (mesh)
         {
             auto& submeshes = mesh->GetSubmeshes();
