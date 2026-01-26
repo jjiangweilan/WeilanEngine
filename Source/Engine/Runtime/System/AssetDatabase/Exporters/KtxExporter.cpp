@@ -71,7 +71,8 @@ void KtxExporter::Export(
         lh *= 0.5;
     }
 
-    if (enableCompression)
+    
+    if (enableCompression && !texture->isCompressed)
     {
         ktxBasisParams params = {0};
         params.structSize = sizeof(params);
@@ -81,14 +82,16 @@ void KtxExporter::Export(
         params.uastc = KTX_TRUE;
         //// Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
         result = ktxTexture2_CompressBasisEx(texture, &params);
-        if (result != KTX_SUCCESS)
+        if (result == KTX_SUCCESS)
         {
-            spdlog::error(ktxErrorString(result));
-            return;
+            char writer[100];
+            snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", 0);
+            ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)strlen(writer) + 1, writer);
         }
-        char writer[100];
-        snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", 0);
-        ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)strlen(writer) + 1, writer);
+        else
+        {
+            spdlog::error("failed to compress texture, uncompressed texture is imported instead. {}", ktxErrorString(result));
+        }
     }
 
     ktxTexture_WriteToNamedFile(ktxTexture(texture), path);
