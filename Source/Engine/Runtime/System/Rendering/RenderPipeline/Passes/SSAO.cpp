@@ -1,4 +1,5 @@
 #include "SSAO.hpp"
+#include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 
 namespace Rendering::Passes
 {
@@ -13,7 +14,8 @@ void SSAO::Execute(
     const Gfx::ImageIdentifier& halfResDepth,
     const Gfx::ImageIdentifier& fullResDepth,
     const Gfx::RenderImageDescriptor& fullResDepthDesc,
-    RenderPipelineSetting* setting
+    RenderPipelineSetting* setting,
+    RenderingData& renderingData
 )
 {
     // Prepare data
@@ -34,6 +36,7 @@ void SSAO::Execute(
     );
     fullDesc.SetRandomWrite(true);
 
+    mat.SetTexture("ignNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
     // Setup debug if needed
     if (setting->ssao.debug_showNormal)
     {

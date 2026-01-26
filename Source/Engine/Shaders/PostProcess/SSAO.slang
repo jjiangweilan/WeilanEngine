@@ -4,8 +4,8 @@ import Library.CommonUtils;
 import Library.PerScene;
 
 static extern const bool DEBUG_show_normal_reconstruction = false;
-#define APPLY_DITHER 2
 
+#define APPLY_NOISE_OFFSET 1
 #define GTAO_SLICE_COUNT 8
 #define GTAO_DIRECTION_SAMPLE_COUNT 4
 #define GTAO_PI 3.1415926f
@@ -38,6 +38,7 @@ struct GTAOParameter
 
     Texture2D depthTex;
     RWTexture2D<float4> debugTex;
+    Texture2D<float4> ignNoise;
     SamplerState sampler_point_clamp;
 };
 
@@ -56,20 +57,6 @@ float3 GetPostionVS(float3 ndcPos)
 
 static float gDebugMaxSamplePointDistance = 0;
 
-void DitherSampleUV(inout float2 uv, uint sampleIndex)
-{
-    // Using a simple Bayer 2x2 matrix for dithering
-    float2 bayerMatrix[4] = {
-        float2(0.0f, 0.5f),
-        float2(0.75f, 0.25f),
-        float2(0.25f, 0.75f),
-        float2(0.5f, 0.0f)
-    };
-
-    uint index = sampleIndex % 4;
-    uv += (bayerMatrix[index] - 0.5f) * perMaterial.rtSize.zw;
-}
-
 float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, float3 viewVS)
 {
     float cHorizonCos = -1;
@@ -78,10 +65,6 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
     {
         float2 sampleOffset = offsetScaling * sampleIndex;
         float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw;
-
-        #if APPLY_DITHER
-        DitherSampleUV(sTexCoord, sampleIndex);
-        #endif
 
         // Sample view position
         float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sTexCoord, 0).x;
@@ -103,7 +86,7 @@ float GTAO(VertexOutput input)
     float3 posVS;
 
 #if NORMAL_RECONSTRUCTION_INPLACE
-    float3 normalVS = NormalReconstructionHigh(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
+    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
 #endif
     float3 viewVS = normalize(-posVS);
 
@@ -112,9 +95,17 @@ float GTAO(VertexOutput input)
     float normalizationCorrection = 0.0f;
 #endif
 
+    float sampleSliceRotationOffset = 0.1f;
+#if APPLY_NOISE_OFFSET
+    float noise = perMaterial.ignNoise.Load(int3((int2)(input.position.xy % 32.0f), 0)).x;
+#endif
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
         float phi = GTAO_PI * float(slice) / float(GTAO_SLICE_COUNT);
+
+#if APPLY_NOISE_OFFSET
+        phi += noise;
+#endif
 
         float2 omega = normalize(float2(cos(phi), sin(phi)));
 

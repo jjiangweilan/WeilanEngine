@@ -19,7 +19,8 @@ public:
         const Gfx::ImageIdentifier& halfResDepth,
         const Gfx::ImageIdentifier& fullResDepth,
         const Gfx::RenderImageDescriptor& fullResDepthDesc,
-        RenderPipelineSetting* setting
+        RenderPipelineSetting* setting,
+        RenderingData& renderingData
     );
 
     Gfx::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
