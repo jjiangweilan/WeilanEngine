@@ -1,4 +1,5 @@
 #include "GameObject.hpp"
+#include "Engine/Core/GameLoop.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
@@ -53,11 +54,20 @@ void GameObject::Copy(const GameObject& other, bool withComponent)
 
     if (withComponent)
     {
+        for (auto& c : components)
+        {
+            c->Disable();
+            c->Destroy();
+        }
+        components.clear();
+
         for (auto& c : other.components)
         {
             components.push_back(c->Clone(*this));
         }
     }
+
+    owningChildren.clear();
 
     for (GameObject* child : other.children)
     {
@@ -184,14 +194,14 @@ void GameObject::OnLoaded()
     for (auto& c : allComponents)
     {
         if (c)
-            c->gameObject = this;
+            c->SetGameObject(this);
     }
 
     for (auto& c : allComponents)
     {
         if (c)
         {
-            c->OnInit();
+            c->Init();
             c->OnLoaded();
         }
     }
@@ -294,7 +304,9 @@ void GameObject::SetEnable(bool isEnabled)
 {
     wantsToBeEnabled = isEnabled;
 
-    if (enabled == isEnabled || gameScene == nullptr)
+    bool isAttachedToScene = gameScene != nullptr;
+
+    if (enabled == isEnabled || !isAttachedToScene)
         return;
 
     if (isEnabled)
@@ -310,13 +322,7 @@ void GameObject::SetEnable(bool isEnabled)
         if (!isAwaked)
         {
             isAwaked = true;
-            for (auto& c : allComponents)
-            {
-                if (c && c->IsEnabled())
-                {
-                    c->OnAwake();
-                }
-            }
+            OnAwake();
         }
     }
     else
@@ -534,6 +540,11 @@ void GameObject::LinkPrefab(Prefab* prefab)
     this->prefab = prefab;
 }
 
+void GameObject::UnlinkPrefab()
+{
+    this->prefab = nullptr;
+}
+
 void GameObject::ApplyToPrefab()
 {
     if (prefab)
@@ -546,15 +557,26 @@ void GameObject::ResetToPrefab()
 {
     auto prefabInstance = prefab->GetGameObject();
     auto scene = GetScene();
-    auto parent = GetParent();
-    auto worldMatrix = GetWorldMatrix();
 
     if (prefabInstance && scene)
     {
-        scene->DestroyGameObject(this);
-        auto newGo = scene->AddGameObject(std::make_unique<GameObject>(*prefabInstance));
-        newGo->SetParent(parent);
-        newGo->SetWorldMatrix(worldMatrix);
+        ApplyPrefabComponents();
+        UpdateAllComponents();
+
+        for (auto& c : prefabComponents)
+        {
+            c->Init();
+            if (GameLoop::IsPlaying())
+            {
+                c->OnAwake();
+                c->OnStart();
+            }
+
+            if (c->IsEnabled())
+            {
+                c->OnEnable();
+            }
+        }
     }
 }
 
@@ -633,7 +655,7 @@ Component* GameObject::AddComponent(std::string_view componentName)
     temp->gameObject = this;
     std::unique_ptr<Component> compPtr(temp);
     components.push_back(std::move(compPtr));
-    temp->OnInit();
+    temp->Init();
     temp->Enable();
 
     UpdateAllComponents();
@@ -725,26 +747,31 @@ void GameObject::OnContactRemoved(
 
 void GameObject::OnAwake()
 {
-    for (auto& c : components)
+    for (auto& c : allComponents)
     {
-        if (c->IsEnabled())
-            c->OnAwake();
+        if (c)
+            c->Awake();
     }
 }
 
 void GameObject::OnStart()
 {
-    for (auto& c : components)
+    for (auto& c : allComponents)
     {
-        c->OnStart();
+        if (c && c->IsEnabled())
+            c->Start();
     }
 }
 
 void GameObject::OnStop()
 {
-    for (auto& c : components)
+    for (auto& c : allComponents)
     {
-        c->OnStop();
+        if (c)
+        {
+            c->Destroy();
+            c->OnStop();
+        }
     }
 }
 
@@ -881,6 +908,7 @@ void GameObject::MoveInComponent(Component* otherPtr)
             otherPtr->Disable();
 
         std::unique_ptr<Component> owned = std::move(*iter);
+        owned->SetGameObject(this);
         otherGO->components.erase(iter);
 
         components.push_back(std::move(owned));
@@ -911,6 +939,11 @@ void GameObject::ApplyPrefabComponents()
 {
     if (prefab != nullptr)
     {
+        for (auto& c : prefabComponents)
+        {
+            c->Disable();
+            c->OnDestroy();
+        }
         prefabComponents.clear();
 
         auto comps = prefab->GetGameObject()->GetComponents();
@@ -948,4 +981,9 @@ int GameObject::LuaGetComponent(lua_State* L)
     }
 
     return 0;
+}
+
+bool GameObject::IsActiveInScene() const
+{
+    return gameScene != nullptr && enabled && (parent != nullptr ? parent->IsActiveInScene() : true);
 }

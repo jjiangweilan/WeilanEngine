@@ -129,7 +129,7 @@ public:
 
     // Enable/Disable State
     [[LuaFn]] bool IsEnabled() { return enabled; }
-    [[LuaFn]] bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
+    [[LuaFn]] bool IsActiveInScene() const;
     [[LuaFn]] void SetEnable(bool isEnabled);
     void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
     bool GetWantsTobeEnabledStateAndReset();
@@ -173,6 +173,7 @@ public:
 
     // Prefab
     void LinkPrefab(Prefab* prefab);
+    void UnlinkPrefab();
     bool HasPrefab() const { return prefab != nullptr; }
     auto GetPrefab() const { return prefab; }
     void ResetToPrefab();
@@ -195,14 +196,15 @@ public:
     );
 
     // Lifecycle Callbacks
-    void OnStart();
     void OnAwake();
+    void OnStart();
     void OnStop();
 
     [[LuaRawFn("GetComponent")]]
     static int LuaGetComponent(lua_State* L);
 
     void Copy(const GameObject& other, bool withComponent = true);
+
 private:
     GameObject* FindInternal(GameObject* go, std::string_view name);
 
