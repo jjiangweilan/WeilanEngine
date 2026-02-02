@@ -2275,6 +2275,9 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
     uint32_t imageWriteIndex = 0;
     uint32_t writeCount = 0;
 
+    if (shaderInfo.descriptorSets.size() <= set)
+        return;
+
     const auto& descriptorSet = shaderInfo.descriptorSets[set];
     {
         for (const auto& b : descriptorSet.bindings)

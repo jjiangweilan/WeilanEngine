@@ -25,7 +25,7 @@ VKRenderPass::~VKRenderPass()
 
 void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
 {
-    if (depth.has_value())
+    if (depth.has_value() && depth->imageView)
     {
         if (!IsDepthStencilFormat(depth->imageView->GetImage().GetDescription().format))
         {
