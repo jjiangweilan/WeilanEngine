@@ -29,7 +29,7 @@ void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
         reconfigShadowMap = true;
     }
 
-    if (light.IsCascadeShadowEnabled())
+    if (light.IsCascadeShadowEnabled() && cascadeCount != 0)
     {
         shadowMapSizeScale *= cascadeCount;
     }
