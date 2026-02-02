@@ -29,30 +29,77 @@ public:
     bool IsActiveInScene();
 
     void Enable();
-
     void Disable();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
-    // called when play mode enter
-    virtual void OnAwake() {}
-    virtual void OnStart() {}
-    virtual void OnStop() {}
+    void Init()
+    {
+        if (!isInited)
+        {
+            OnInit();
+            isInited = true;
+        }
+    }
+
+    void Destroy()
+    {
+        if (isAlive)
+        {
+            OnDestroy();
+            isAlive = false;
+        }
+    }
+
+    void SetGameObject(GameObject* go)
+    {
+        gameObject = go;
+    }
+
+    void Awake()
+    {
+        if (!isAwake)
+        {
+            OnAwake();
+            isAwake = true;
+        }
+    }
+
+    void Start()
+    {
+        if (!isStarted)
+        {
+            OnStart();
+            isStarted = true;
+        }
+    }
+
     virtual void OnDrawGizmos() {}
     virtual void OnDrawGizmos(GizmoManager& gizmoContext) {}
     virtual void OnLoaded() {}
 
 protected:
+    bool isInited = false;
+    bool isAlive = true;
     bool enabled = false;
     bool isAwake = false;
+    bool isStarted = false;
     GameObject* gameObject;
 
     virtual void OnInit() {};
+    virtual void OnDestroy() {};
+
     virtual void OnEnable() {};
     virtual void OnDisable() {};
-    virtual void OnDestroy() {};
+
+    // called when play mode enter
+    virtual void OnAwake() {}
+    virtual void OnStart() {}
+
+    // TODO: remove OnStop, merge it with OnDestroy
+    virtual void OnStop() {}
 
     // editor only
     virtual void TransformChanged() {}
@@ -70,7 +117,7 @@ public:                                                         \
 private:
 
 #define DEFINE_COMPONENT(TypeName, UUID)         \
-    DEFINE_OBJECT(Component, TypeName, UUID)\
+    DEFINE_OBJECT(Component, TypeName, UUID)     \
     const std::string& TypeName::GetName() const \
     {                                            \
         static std::string name = #TypeName;     \
@@ -87,7 +134,7 @@ public:                                          \
 private:
 
 #define DEFINE_COMPONENT_CONSTRUCT(TypeName, UUID) \
-    DEFINE_OBJECT(Component, TypeName, UUID)\
+    DEFINE_OBJECT(Component, TypeName, UUID)       \
     const std::string& TypeName::GetName() const   \
     {                                              \
         static std::string name = #TypeName;       \

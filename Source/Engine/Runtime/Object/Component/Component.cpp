@@ -41,13 +41,11 @@ void Component::Enable()
     if (enabled == false)
     {
         enabled = true;
-        if (gameObject->IsEnabled())
-            OnEnable();
-
-        if (!isAwake)
+        if (gameObject->IsActiveInScene())
         {
-            isAwake = true;
-            OnAwake();
+            Awake();
+            Start();
+            OnEnable();
         }
     }
 }
@@ -64,5 +62,5 @@ void Component::Disable()
 
 bool Component::IsActiveInScene()
 {
-    return gameObject && gameObject->IsEnabled() && enabled;
+    return gameObject && gameObject->IsActiveInScene() && enabled;
 }
