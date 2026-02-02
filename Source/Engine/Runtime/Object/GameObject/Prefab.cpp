@@ -23,8 +23,12 @@ void Prefab::SetGameObject(GameObject* gameObject)
 {
     if (gameObject)
     {
-        this->gameObject = std::make_unique<GameObject>(*gameObject);
+        auto prefab = gameObject->GetPrefab();
+        gameObject->UnlinkPrefab();
+        this->gameObject->Copy(*gameObject, true);
         this->gameObject->LinkPrefab(this);
+
+        gameObject->LinkPrefab(prefab.Get());
         SetDirty(true);
     }
 }
