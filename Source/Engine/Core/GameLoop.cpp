@@ -145,11 +145,19 @@ void GameLoop::Play()
     isPlaying = true;
 
     auto gos = scene->GetAllGameObjects();
+    std::vector<GameObject*> awakedGos{};
     for (auto go : gos)
     {
-        go->OnStart();
         if (go->IsActiveInScene())
+        {
             go->OnAwake();
+            awakedGos.push_back(go);
+        }
+    }
+
+    for (auto go : awakedGos)
+    {
+        go->OnStart();
     }
 
     // recreate render pipeline when playing

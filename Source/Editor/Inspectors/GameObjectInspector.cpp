@@ -84,6 +84,9 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         target->SetScale(scale);
     }
 
+    bool resetToPrefab = false;
+    bool applyToPrefab = false;
+
     // Show prefab
     auto prefab = target->GetPrefab();
     if (prefab)
@@ -91,12 +94,12 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         ImGui::SeparatorText("Prefab");
         if (ImGui::Button("Reset To Prefab"))
         {
-            target->ResetToPrefab();
+            resetToPrefab = true;
         }
         ImGui::SameLine();
         if (ImGui::Button("Apply To Prefab"))
         {
-            target->ApplyToPrefab();
+            applyToPrefab = true;
         }
     }
 
@@ -183,6 +186,16 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     if (!ImGui::IsPopupOpen("Component Context") && !popupTriggered)
     {
         contextComponent = nullptr;
+    }
+
+    if (resetToPrefab)
+    {
+        target->ResetToPrefab();
+    }
+
+    if (applyToPrefab)
+    {
+        target->ApplyToPrefab();
     }
 }
 
