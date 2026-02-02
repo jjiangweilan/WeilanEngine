@@ -28,4 +28,15 @@ void DrawMesh(Gfx::CommandBuffer& cmd, Mesh& mesh, Material& material, const flo
         }
     }
 }
+
+void DrawMesh(Gfx::CommandBuffer& cmd, Mesh& mesh, Gfx::ShaderProgram& shader)
+{
+    for (auto& submesh : mesh.GetSubmeshes())
+    {
+        cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
+        cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
+        cmd.BindShaderProgram(&shader, shader.GetDefaultShaderConfig());
+        cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
+    }
+}
 } // namespace Rendering

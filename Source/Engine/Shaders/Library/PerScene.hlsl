@@ -78,6 +78,11 @@ struct PerScene
         return mul(camera.viewProjection, position);
     }
 
+    float3 WorldToClipSpaceDir(float3 dir)
+    {
+        return mul((float3x3)0camera.viewProjection, dir);
+    }
+
     float4 WorldToClipSpace(float3 position)
     {
         return mul(camera.viewProjection, float4(position, 1.0));
