@@ -1,4 +1,5 @@
 #include "Input.hpp"
+#include "Engine/MiddleLayer/SystemInfo.hpp"
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
@@ -9,6 +10,8 @@ struct Input
     SDL_GameController* gameController = nullptr;
 
     int2 mousePosition;
+    bool hasMouseUV = false;
+    float2 lastMouseUV = {0.0f, 0.0f};
 
     struct GamepadInstance
     {
@@ -294,6 +297,36 @@ void Input::SetGameplayInput(bool enabled)
 void Input::Reset()
 {
     input.FrameReset();
+}
+
+float2 Input::GetMouseDelta()
+{
+    auto& systemInfo = SystemInfo::Singleton();
+    int2 origin = systemInfo.GetGameViewOrigin();
+    float2 screenSize = systemInfo.GetScreenSize();
+
+    if (screenSize.x <= 0.0f || screenSize.y <= 0.0f)
+    {
+        input.hasMouseUV = false;
+        return {0.0f, 0.0f};
+    }
+
+    float2 mouseInView = {
+        static_cast<float>(input.mousePosition.x - origin.x),
+        static_cast<float>(input.mousePosition.y - origin.y)
+    };
+    float2 mouseUV = {mouseInView.x / screenSize.x, mouseInView.y / screenSize.y};
+
+    if (!input.hasMouseUV)
+    {
+        input.lastMouseUV = mouseUV;
+        input.hasMouseUV = true;
+        return {0.0f, 0.0f};
+    }
+
+    float2 delta = {mouseUV.x - input.lastMouseUV.x, mouseUV.y - input.lastMouseUV.y};
+    input.lastMouseUV = mouseUV;
+    return delta;
 }
 
 Gamepad Input::GetGamepad(int padIdx)
