@@ -3,9 +3,9 @@ import WeilanEngine;
 
 #define SOURCE_IN_GAMMA_SPACE 1
 #define FXAA_GATHER4_ALPHA 0
-#define FxaaTexOff(t, p, o, r) t.Sample(perMaterial.sampler_point_clamp, p + (o * r))
+#define FxaaTexOff(t, p, o, r) t.Sample(perMaterial.sampler_linear_clamp, p + (o * r))
 #define FxaaSat(x) clamp(x, 0.0, 1.0)
-#define FxaaTexTop(t, p) t.SampleLevel(perMaterial.sampler_point_clamp, p, 0.0)
+#define FxaaTexTop(t, p) t.SampleLevel(perMaterial.sampler_linear_clamp, p, 0.0)
 // FXAA_QUALITY__PRESET 26
 static const int edgeIteration = 9;
 static const float edgesWeights[edgeIteration] = {1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0};
@@ -20,7 +20,7 @@ PushConstant p;
 struct PerMaterial
 {
     Texture2D source;
-    SamplerState sampler_point_clamp;
+    SamplerState sampler_linear_clamp;
 }
 
 [Material]
