@@ -15,6 +15,7 @@
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "Engine/ThirdParty/imgui/implot.h"
+#include "Engine/WeilanEngine.hpp"
 #include "FileIcons.hpp"
 #include <cmath>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -58,13 +59,11 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     return fontImage;
 }
 
-GameEditor::GameEditor(const char* path)
+GameEditor::GameEditor(WeilanEngine* engine, const char* path)
 {
     instance = this;
-    engine = std::make_unique<WeilanEngine>();
-    engine->Init({.projectPath = path});
-    loop = engine->GetGameLoop();
-    EditorState::GetGameLoop() = loop;
+    this->engine = engine;
+    EditorState::GetGameLoop() = engine->GetGameLoop();
     auto& editorConfig = EditorConfig::GetInstance();
     editorConfig.Reload();
 
@@ -113,14 +112,14 @@ GameEditor::GameEditor(const char* path)
         if (scene)
         {
             SceneManager::SetActiveScene(scene);
-            loop->SetScene(*scene);
+            EditorState::GetGameLoop()->SetScene(*scene);
         }
     }
 
     // Initialize standalone window implementations
     gameView = std::make_unique<GameView>();
     sceneEditor = std::make_unique<SceneEditor>();
-    assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
+    assetBrowser = std::make_unique<AssetBrowser>(engine, this);
     gizmoManager = std::make_unique<GizmoManager>();
     engineCommandGUI = std::make_unique<EngineCommandGUI>();
 
@@ -138,7 +137,6 @@ GameEditor::GameEditor(const char* path)
     fontImage = CreateImGuiFont(nullptr);
     gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
 
-    cmd = GetGfxDriver()->CreateCommandBuffer();
     ImPlot::CreateContext();
 };
 
@@ -153,8 +151,6 @@ GameEditor::~GameEditor()
 
     if (SceneManager::GetActiveScene())
         editorState["lastActiveScene"] = SceneManager::GetActiveScene()->GetUUID().ToString();
-
-    loop = nullptr;
 
     if (Camera* cam = sceneEditor->GetEditorCamera())
     {
@@ -496,74 +492,6 @@ void GameEditor::MainMenuBar()
     ImGui::EndMainMenuBar();
 }
 
-void GameEditor::Start()
-{
-    static bool keepLooping = true;
-    while (keepLooping)
-    {
-        if (engine->BeginFrame())
-        {
-            ImGui_ImplSDL2_NewFrame();
-            ImGui::NewFrame();
-            ImGuizmo::BeginFrame();
-
-            endEvents.TickBegin();
-            endPopup.TickBegin();
-
-            ENGINE_BEGIN_PROFILE("Before Game Tick")
-            if (engine->event->GetWindowClose().state)
-            {
-                gameView->Deinit(); // stop playing the game
-                sceneEditor->Deinit();
-                endPopup.Show(
-                    "Save Project?",
-                    [this]()
-                    {
-                        SaveProject();
-                        keepLooping = false;
-                    },
-                    []()
-                    { keepLooping = false; }
-                );
-            }
-
-            ENGINE_BEGIN_PROFILE("GUI")
-            GUIPass();
-            ENGINE_END_PROFILE; // GUI
-
-            // update gameloop
-            auto gameScreenImage = gameView->GetGameScreenImage();
-            auto screenSize = gameScreenImage->GetDescription().GetSize();
-            const Gfx::ImageIdentifier* gameOutputImage = nullptr;
-            const Gfx::ImageIdentifier* gameOutputDepthImage = nullptr;
-            bool offscreen = !gameView->IsVisible();
-
-            ENGINE_END_PROFILE; // Before Game Tick
-
-            loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
-
-            ENGINE_BEGIN_PROFILE("After Game Tick");
-            endPopup.TickEnd();
-            endEvents.TickEnd();
-
-            ENGINE_BEGIN_PROFILE("ImGui Render");
-            ImGui::Render();
-            ENGINE_END_PROFILE; // ImGui Render
-
-            ENGINE_BEGIN_PROFILE("Render");
-            Render(*cmd, gameOutputImage, gameOutputDepthImage);
-            ENGINE_END_PROFILE; // Render
-
-            GetGfxDriver()->ExecuteCommandBuffer(*cmd);
-            cmd->Reset(true);
-
-            ENGINE_END_PROFILE; // After Game Tick
-
-            engine->EndFrame();
-        }
-    }
-}
-
 void GameEditor::GUIPass()
 {
     // gizmo states needs to be reset as nearly as possible to that calls to mark gizmo actived can be correctly set
@@ -656,6 +584,12 @@ void GameEditor::Render(
     Gfx::CommandBuffer& cmd, const Gfx::ImageIdentifier* gameImage, const Gfx::ImageIdentifier* gameDepthImage
 )
 {
+    ENGINE_BEGIN_PROFILE("ImGui Render");
+    ImGui::Render();
+    ENGINE_END_PROFILE; // ImGui Render
+
+    ENGINE_BEGIN_PROFILE("Render");
+    //
     // make sure we don't have sync issue with game rendering
 
     glm::float4 color = {0.3, 0.6, 0.12, 1.0};
@@ -684,6 +618,7 @@ void GameEditor::Render(
     }
 
     cmd.EndLabel();
+    ENGINE_END_PROFILE; // Render
 }
 
 void GameEditor::OpenWindow() {}
@@ -1186,7 +1121,7 @@ void GameEditor::ShowEngineResourceDebug()
 void GameEditor::ShowRenderPipelineSetting()
 {
     ImGui::Begin("Render Pipeline");
-    auto setting = loop->GetRenderPipeline().GetRenderPipelineSetting();
+    auto setting = EditorState::GetGameLoop()->GetRenderPipeline().GetRenderPipelineSetting();
     EditorGUI::AutoObjectInspector(setting);
     ImGui::End();
 }
@@ -1211,4 +1146,52 @@ void GameEditor::ShowStaticEngineDebugs()
     }
     ImGui::End();
 }
+
+void GameEditor::Tick()
+{
+    endEvents.TickBegin();
+    endPopup.TickBegin();
+
+    ENGINE_BEGIN_PROFILE("Before Game Tick")
+    if (engine->event->GetWindowClose().state)
+    {
+        gameView->Deinit(); // stop playing the game
+        sceneEditor->Deinit();
+        endPopup.Show(
+            "Save Project?",
+            [this]()
+            {
+                SaveProject();
+                engine->CloseEngine();
+            },
+            [this]()
+            { engine->CloseEngine(); }
+        );
+    }
+
+    ENGINE_BEGIN_PROFILE("GUI")
+    GUIPass();
+    ENGINE_END_PROFILE; // GUI
+}
+
+void GameEditor::AfterGameLoopTick()
+{
+    ENGINE_BEGIN_PROFILE("After Game Tick");
+    endPopup.TickEnd();
+    endEvents.TickEnd();
+}
+
+float2 GameEditor::GetGameScreenSize()
+{
+    auto gameScreenImage = gameView->GetGameScreenImage();
+    auto screenSize = gameScreenImage->GetDescription().GetSize();
+    return screenSize;
+}
+
+bool GameEditor::IsGameViewVisible()
+{
+    return gameView->IsVisible();
+}
+
 } // namespace Editor
+  //

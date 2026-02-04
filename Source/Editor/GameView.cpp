@@ -13,6 +13,9 @@
 #include "Engine/Library/Math.hpp"
 #include "Engine/Driver/Physics/JoltDebugRenderer.hpp"
 #include "Editor/PickObjectFromGameView.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Core/GameLoop.hpp"
+#include "Engine/WeilanEngine.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 

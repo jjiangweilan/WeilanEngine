@@ -1,17 +1,21 @@
 #pragma once
+#include "Editor/IGameEditor.hpp"
+#include "Engine/Core/GameLoop.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers.hpp"
-#include "Engine/Core/GameLoop.hpp"
-#include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
-#include "Engine/Core/Time.hpp"
-#include "Editor/IGameEditor.hpp"
 #include "Engine/Runtime/System/Event/Event.hpp"
-#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include <filesystem>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
+namespace Editor
+{
+class GameEditor;
+}
 // class Physics;
 class WeilanEngine
 {
@@ -29,6 +33,8 @@ public:
 
     bool BeginFrame();
     void EndFrame();
+    void StartEngine();
+    void CloseEngine();
     GameLoop* GetGameLoop() { return gameLoop.get(); };
     SDL_Window* GetMainWindow() { return mainWindow.handle; }
 
@@ -56,10 +62,12 @@ private:
         Extent2D size = {1920, 1080};
     } mainWindow;
 
+    bool keepLooping = true;
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
     std::unique_ptr<GameLoop> gameLoop;
     std::unique_ptr<GameContext> gameContext;
-    IGameEditor* gameEditor;
+    std::unique_ptr<Editor::GameEditor> editor;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
     // std::unique_ptr<Physics> physics;
 
     std::filesystem::path projectPath;

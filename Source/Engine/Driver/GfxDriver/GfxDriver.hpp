@@ -20,7 +20,6 @@
 #include <memory>
 #include <span>
 #include "Engine/Library/DynamicArray.hpp"
-#include <vulkan/vulkan.h>
 
 namespace Gfx
 {

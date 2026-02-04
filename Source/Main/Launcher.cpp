@@ -1,7 +1,7 @@
-#include "Editor/GameEditorLauncher.hpp"
+#include "Engine/WeilanEngine.hpp"
 #include <filesystem>
-#include <memory>
 #include <iostream>
+#include <memory>
 
 class Launcher
 {
@@ -31,10 +31,17 @@ public:
             curr++;
             std::filesystem::path path(args[curr]);
 
-            LaunchGameEditor(path.string().c_str());
+            LaunchEngine(path.string().c_str());
 
             hasAction = true;
         }
+    }
+
+    void LaunchEngine(const char* projectPath)
+    {
+        auto engine = std::make_unique<WeilanEngine>();
+        engine->Init({.projectPath = projectPath});
+        engine->StartEngine();
     }
 
     std::unique_ptr<ArgList> argList;

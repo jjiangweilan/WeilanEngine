@@ -9,7 +9,6 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_internal.h"
-#include "Engine/WeilanEngine.hpp"
 #include "EngineCommandGUI.hpp"
 #include "SceneEditor.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
@@ -26,11 +25,20 @@ class GameEditor
     friend class AssetBrowser; // Allow AssetBrowser to access private members
 
 public:
-    GameEditor(const char* path);
+    GameEditor(WeilanEngine* engine, const char* path);
     ~GameEditor();
 
-    void Start();
-    WeilanEngine* GetEngine() { return engine.get(); }
+    bool IsGameViewVisible();
+    float2 GetGameScreenSize();
+    // void Start(); remove
+    void Tick();
+    void AfterGameLoopTick();
+    void Render(
+        Gfx::CommandBuffer& cmd,
+        const Gfx::ImageIdentifier* gameImage,
+        const Gfx::ImageIdentifier* gameDepthImage
+    );
+    WeilanEngine* GetEngine() { return engine; }
 
     void SetActiveScene(ObjPtr<Scene> scene);
 
@@ -47,11 +55,6 @@ private:
     void MainMenuBar();
     void OpenWindow();
     void GUIPass();
-    void Render(
-        Gfx::CommandBuffer& cmd,
-        const Gfx::ImageIdentifier* gameImage,
-        const Gfx::ImageIdentifier* gameDepthImage
-    );
     void SaveProject();
 
     void ShowInspectorWindow();
@@ -74,9 +77,8 @@ private:
     std::unique_ptr<GizmoManager> gizmoManager;
 
     std::string imguiInitPath;
-    std::unique_ptr<WeilanEngine> engine;
+    WeilanEngine* engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    GameLoop* loop;
 
     std::unique_ptr<GameView> gameView;
     std::unique_ptr<SceneEditor> sceneEditor;
@@ -102,7 +104,6 @@ private:
     InspectorBase* primaryInspector = nullptr;
     InspectorBase* secondaryInspector = nullptr;
 
-    std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::list<std::unique_ptr<Window>> activeWindows;
 
 public:

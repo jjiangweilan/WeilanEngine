@@ -5,6 +5,7 @@
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
 
 namespace Editor
 {

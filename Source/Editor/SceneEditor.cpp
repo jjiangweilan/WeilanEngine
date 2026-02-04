@@ -15,6 +15,9 @@
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Game/Input.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor

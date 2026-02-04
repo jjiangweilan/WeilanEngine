@@ -1,10 +1,11 @@
 #include "WeilanEngine.hpp"
-#include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Editor/GameEditor.hpp"
 #include "Engine/Core/DelayDestroy.hpp"
-#include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/MiddleLayer/FrameContext.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
@@ -28,6 +29,7 @@ WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
+    editor = nullptr;
     event->Deinit();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
@@ -93,6 +95,44 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gameLoop = std::make_unique<GameLoop>();
 
     ShaderLibrary::Singleton().WaitForShaderCompilation();
+
+    editor = std::make_unique<Editor::GameEditor>(this, createInfo.projectPath.string().c_str());
+    cmd = GetGfxDriver()->CreateCommandBuffer();
+}
+
+void WeilanEngine::StartEngine()
+{
+    while (keepLooping)
+    {
+        if (BeginFrame())
+        {
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+            ImGuizmo::BeginFrame();
+
+            editor->Tick();
+
+            // update gameloop
+            auto screenSize = editor->GetGameScreenSize();
+            const Gfx::ImageIdentifier* gameOutputImage = nullptr;
+            const Gfx::ImageIdentifier* gameOutputDepthImage = nullptr;
+            bool offscreen = !editor->IsGameViewVisible();
+
+            ENGINE_END_PROFILE; // Before Game Tick
+
+            gameLoop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
+
+            editor->AfterGameLoopTick();
+            editor->Render(*cmd, gameOutputImage, gameOutputDepthImage);
+
+            GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+            cmd->Reset(true);
+
+            ENGINE_END_PROFILE; // After Game Tick
+
+            EndFrame();
+        }
+    }
 }
 
 bool WeilanEngine::BeginFrame()
@@ -268,4 +308,9 @@ void WeilanEngine::DeinitSDL()
 void WeilanEngine::ReloadScripts()
 {
     assetDatabase->ReloadScripts();
+}
+
+void WeilanEngine::CloseEngine()
+{
+    keepLooping = false;
 }
