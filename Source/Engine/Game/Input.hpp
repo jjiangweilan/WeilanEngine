@@ -483,4 +483,5 @@ public:
     static void SetGameplayInput(bool enabled);
     static void Reset();
     static void UpdateState();
+    static float2 GetMouseDelta();
 };

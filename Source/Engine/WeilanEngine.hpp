@@ -37,6 +37,9 @@ public:
     void CloseEngine();
     GameLoop* GetGameLoop() { return gameLoop.get(); };
     SDL_Window* GetMainWindow() { return mainWindow.handle; }
+    void WindowBorderless(bool enable);
+    void SetSystemWindowSize(int2 size);
+    int2 GetSystemWindowSize();
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
     {

@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "Engine/Runtime/System/UserInterface/UI.hpp"
 #include <memory>
 
 namespace Gfx
@@ -39,5 +40,7 @@ private:
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     ObjPtr<Scene> scene = nullptr;
+
+    std::unique_ptr<UI> ui;
     std::unique_ptr<Rendering::RenderPipeline> renderPipeline;
 };

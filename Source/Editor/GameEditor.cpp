@@ -59,6 +59,22 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     return fontImage;
 }
 
+void GameEditor::SimulatePlayerView(bool enable)
+{
+    engine->WindowBorderless(enable);
+    hideDevTool = enable;
+
+    // adjust system window to current view size
+    auto sceneImage = gameView->GetGameScreenImage();
+    float2 sceneImageSize = sceneImage->GetDescription().GetSize();
+    cacheSystemWindowSize = engine->GetSystemWindowSize();
+
+    if (enable)
+        engine->SetSystemWindowSize(sceneImageSize);
+    else
+        engine->SetSystemWindowSize(cacheSystemWindowSize);
+}
+
 GameEditor::GameEditor(WeilanEngine* engine, const char* path)
 {
     instance = this;
@@ -299,6 +315,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
+
 static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)
@@ -484,6 +501,11 @@ void GameEditor::MainMenuBar()
         }
     }
 
+    if (ImGui::MenuItem(hideDevTool ? "Show Dev Tool" : "Hide Dev Tool"))
+    {
+        SimulatePlayerView(!hideDevTool);
+    }
+
     for (auto& windowInfo : WindowRegistery::GetRegistery())
     {
         WindowRegisteryIteration(windowInfo, 0);
@@ -495,73 +517,80 @@ void GameEditor::MainMenuBar()
 void GameEditor::GUIPass()
 {
     // gizmo states needs to be reset as nearly as possible to that calls to mark gizmo actived can be correctly set
-    sceneEditor->ResetGizmoState();
 
-    ImGui::DockSpaceOverViewport();
-
-    MainMenuBar();
-
-    ShowSceneWindow();
-    assetBrowser->Show(assetWindow);
-    ShowInspectorWindow();
-    ShowSurfelGIBakerWindow();
-    ShowRenderPipelineSetting();
-    ShowStaticEngineDebugs();
-
-    ShowEngineResourceDebug();
-
-    std::vector<std::unique_ptr<Window>*> toClose;
-    for (auto& w : activeWindows)
+    if (!hideDevTool)
     {
-        if (!w->Tick())
+        sceneEditor->ResetGizmoState();
+
+        ImGui::DockSpaceOverViewport();
+
+        MainMenuBar();
+
+        ShowSceneWindow();
+        assetBrowser->Show(assetWindow);
+        ShowInspectorWindow();
+        ShowSurfelGIBakerWindow();
+        ShowRenderPipelineSetting();
+        ShowStaticEngineDebugs();
+
+        ShowEngineResourceDebug();
+
+        std::vector<std::unique_ptr<Window>*> toClose;
+        for (auto& w : activeWindows)
         {
-            toClose.push_back(&w);
-            w->OnClose();
+            if (!w->Tick())
+            {
+                toClose.push_back(&w);
+                w->OnClose();
+            }
         }
-    }
-    for (auto close : toClose)
-    {
-        activeWindows.remove(*close);
+        for (auto close : toClose)
+        {
+            activeWindows.remove(*close);
+        }
     }
 
     gameView->Tick();
-    sceneEditor->Tick();
 
-    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
+    if (!hideDevTool)
     {
-        engine->assetDatabase->RequestShaderRefresh(false);
-        engine->assetDatabase->ReloadScripts();
-        EditorConfig::GetInstance().Reload();
-    }
-
-    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S))
-    {
-        SaveProject();
-        SPDLOG_INFO("project saved");
-    }
-
-    if (SceneManager::GetActiveScene())
-    {
-        ShowSceneTree(*SceneManager::GetActiveScene());
-    }
-
-    ShowGameProfiler(Profiler::GetSingleton());
-    ShowConsoleOutputWindow();
-    ShowAssetDatabaseViewer();
-    engineCommandGUI->EditorDraw();
-
-    if (pbrBaker)
-    {
-        ImGui::Begin("PBR Baker", &pbrBaker);
-
-        if (ImGui::Button("Bake"))
+        sceneEditor->Tick();
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
         {
-            Rendering::GenerateBRDFResponseTexture(
-                (AssetDatabase::Singleton()->GetProjectRoot() / "Assets/PBRResponse.ktx").string().c_str()
-            );
+            engine->assetDatabase->RequestShaderRefresh(false);
+            engine->assetDatabase->ReloadScripts();
+            EditorConfig::GetInstance().Reload();
         }
 
-        ImGui::End();
+        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S))
+        {
+            SaveProject();
+            SPDLOG_INFO("project saved");
+        }
+
+        if (SceneManager::GetActiveScene())
+        {
+            ShowSceneTree(*SceneManager::GetActiveScene());
+        }
+
+        ShowGameProfiler(Profiler::GetSingleton());
+        ShowConsoleOutputWindow();
+        ShowAssetDatabaseViewer();
+        engineCommandGUI->EditorDraw();
+
+        if (pbrBaker)
+        {
+            ImGui::Begin("PBR Baker", &pbrBaker);
+
+            if (ImGui::Button("Bake"))
+            {
+                Rendering::GenerateBRDFResponseTexture(
+                    (AssetDatabase::Singleton()->GetProjectRoot() / "Assets/PBRResponse.ktx").string().c_str()
+                );
+            }
+
+            ImGui::End();
+        }
     }
 
     // Configure for first frame
@@ -571,6 +600,11 @@ void GameEditor::GUIPass()
         // Set focus window
         ImGui::SetWindowFocus(assetBrowser->GetWindowName());
         firstFrame = false;
+    }
+
+    if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_H))
+    {
+        SimulatePlayerView(!hideDevTool);
     }
 }
 

@@ -287,6 +287,11 @@ void WeilanEngine::InitSDL()
     mainWindow.size.height = drawbaleHeight;
 }
 
+void WeilanEngine::WindowBorderless(bool enable)
+{
+    SDL_SetWindowBordered(mainWindow.handle, enable ? SDL_FALSE : SDL_TRUE);
+}
+
 void WeilanEngine::DeinitAssetDatabase()
 {
     assetDatabase = nullptr;
@@ -313,4 +318,16 @@ void WeilanEngine::ReloadScripts()
 void WeilanEngine::CloseEngine()
 {
     keepLooping = false;
+}
+
+void WeilanEngine::SetSystemWindowSize(int2 size)
+{
+    SDL_SetWindowSize(mainWindow.handle, size.x, size.y);
+}
+
+int2 WeilanEngine::GetSystemWindowSize()
+{
+    int w, h;
+    SDL_GetWindowSize(mainWindow.handle, &w, &h);
+    return int2{w, h};
 }

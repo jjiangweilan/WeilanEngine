@@ -56,6 +56,7 @@ private:
     void OpenWindow();
     void GUIPass();
     void SaveProject();
+    void SimulatePlayerView(bool enable);
 
     void ShowInspectorWindow();
     void ShowSurfelGIBakerWindow();
@@ -91,6 +92,7 @@ private:
     bool sceneTree = true;
     bool sceneInfo = false;
 
+    bool hideDevTool = false;
     bool engineDebug = true;
     bool assetWindow = true;
     bool inspectorWindow = true;
@@ -105,6 +107,8 @@ private:
     InspectorBase* secondaryInspector = nullptr;
 
     std::list<std::unique_ptr<Window>> activeWindows;
+
+    int2 cacheSystemWindowSize;
 
 public:
     // event handling
