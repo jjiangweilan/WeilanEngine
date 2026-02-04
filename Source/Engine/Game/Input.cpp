@@ -299,6 +299,27 @@ void Input::Reset()
     input.FrameReset();
 }
 
+bool Input::IsMouseButtonDown(MouseButton mouseButton)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    Uint32 state = SDL_GetMouseState(nullptr, nullptr);
+    switch (mouseButton)
+    {
+        case MouseButton::Left:
+            return (state & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+        case MouseButton::Right:
+            return (state & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+        case MouseButton::Middle:
+            return (state & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+        default:
+            return false;
+    }
+}
+
 float2 Input::GetMouseDelta()
 {
     auto& systemInfo = SystemInfo::Singleton();
