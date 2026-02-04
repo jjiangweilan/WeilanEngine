@@ -459,6 +459,13 @@ enum class [[LuaEnum]] InputScancode
                                  for array bounds */
 };
 
+enum class MouseButton
+{
+    Left,
+    Right,
+    Middle
+};
+
 /**
  * @class Input
  * @brief We need an improvement on Input handling, like jump command should append to a process queue instead of
@@ -483,5 +490,6 @@ public:
     static void SetGameplayInput(bool enabled);
     static void Reset();
     static void UpdateState();
+    static bool IsMouseButtonDown(MouseButton mouseButton);
     static float2 GetMouseDelta();
 };
