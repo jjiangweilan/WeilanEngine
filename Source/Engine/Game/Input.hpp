@@ -13,7 +13,8 @@ enum class [[LuaEnum]] GamepadButtons
 
 struct [[LuaClass]] Gamepad
 {
-    Gamepad(int idx) : gamepadID(idx) {}
+    Gamepad(int idx)
+        : gamepadID(idx) {}
     /**
      * reserved for multi gamepad support,
      * matching the ID of SDL_JoystickInstanceID
@@ -477,7 +478,12 @@ class [[LuaClass]] Input
 {
 public:
     [[LuaFn]] static Gamepad GetGamepad(int padIdx = 0);
+    static bool IsKeyDown(InputScancode key);
+    static bool IsKeyPressed(InputScancode key);
+    static bool IsKeyReleased(InputScancode key);
     static int2 GetMousePosition();
+    static float2 GetMouseUV();
+    static float GetMouseWheelDelta();
     [[LuaFn]] static float GetMovementX();
     [[LuaFn]] static float GetMovementY();
     [[LuaFn]] static bool IsInteractPressed();
@@ -491,5 +497,8 @@ public:
     static void Reset();
     static void UpdateState();
     static bool IsMouseButtonDown(MouseButton mouseButton);
+    static bool IsMouseButtonPressed(MouseButton mouseButton);
+    static bool IsMouseButtonReleased(MouseButton mouseButton);
+    static bool HasFocus();
     static float2 GetMouseDelta();
 };

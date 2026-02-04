@@ -1,5 +1,7 @@
 #include "Input.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/MiddleLayer/SystemInfo.hpp"
+#include <array>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
@@ -12,6 +14,13 @@ struct Input
     int2 mousePosition;
     bool hasMouseUV = false;
     float2 lastMouseUV = {0.0f, 0.0f};
+    float mouseWheelDelta = 0.0f;
+    std::array<bool, 3> mouseButtons = {false, false, false};
+    std::array<bool, 3> mouseButtonsPressed = {false, false, false};
+    std::array<bool, 3> mouseButtonsReleased = {false, false, false};
+    std::array<bool, SDL_NUM_SCANCODES> keyDown = {};
+    std::array<bool, SDL_NUM_SCANCODES> keyPressed = {};
+    std::array<bool, SDL_NUM_SCANCODES> keyReleased = {};
 
     struct GamepadInstance
     {
@@ -73,6 +82,11 @@ struct Input
         {
             memset(p->buttonPressed, 0, sizeof(p->buttonPressed));
         }
+        mouseButtonsPressed.fill(false);
+        mouseButtonsReleased.fill(false);
+        keyPressed.fill(false);
+        keyReleased.fill(false);
+        mouseWheelDelta = 0.0f;
     }
 
     GamepadInstance* GetGamepad(int id)
@@ -161,6 +175,19 @@ struct Input
             {
                 bool pressing = event.type == SDL_KEYDOWN ? true : false;
                 auto pad = GetGamepad(0);
+                auto scancode = event.key.keysym.scancode;
+                if (scancode >= 0 && scancode < SDL_NUM_SCANCODES)
+                {
+                    keyDown[scancode] = pressing;
+                    if (pressing && event.key.repeat == 0)
+                    {
+                        keyPressed[scancode] = true;
+                    }
+                    if (!pressing)
+                    {
+                        keyReleased[scancode] = true;
+                    }
+                }
                 if (event.key.keysym.sym == SDL_KeyCode::SDLK_SPACE)
                 {
                     keyboard.space = pressing;
@@ -181,6 +208,34 @@ struct Input
                 {
                     pad->axis[0].y = pressing ? -1 : 0;
                 }
+            }
+            else if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
+            {
+                bool pressing = event.type == SDL_MOUSEBUTTONDOWN;
+                int index = -1;
+                if (event.button.button == SDL_BUTTON_LEFT)
+                    index = 0;
+                else if (event.button.button == SDL_BUTTON_RIGHT)
+                    index = 1;
+                else if (event.button.button == SDL_BUTTON_MIDDLE)
+                    index = 2;
+
+                if (index >= 0)
+                {
+                    mouseButtons[index] = pressing;
+                    if (pressing)
+                    {
+                        mouseButtonsPressed[index] = true;
+                    }
+                    else
+                    {
+                        mouseButtonsReleased[index] = true;
+                    }
+                }
+            }
+            else if (event.type == SDL_MOUSEWHEEL)
+            {
+                mouseWheelDelta += static_cast<float>(event.wheel.y);
             }
         }
 
@@ -240,6 +295,51 @@ void Input::UpdateState()
     SDL_GetMouseState(&input.mousePosition.x, &input.mousePosition.y);
 }
 
+bool Input::IsKeyDown(InputScancode key)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    int scancode = static_cast<int>(key);
+    if (scancode < 0 || scancode >= SDL_NUM_SCANCODES)
+    {
+        return false;
+    }
+    return input.keyDown[scancode];
+}
+
+bool Input::IsKeyPressed(InputScancode key)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    int scancode = static_cast<int>(key);
+    if (scancode < 0 || scancode >= SDL_NUM_SCANCODES)
+    {
+        return false;
+    }
+    return input.keyPressed[scancode];
+}
+
+bool Input::IsKeyReleased(InputScancode key)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    int scancode = static_cast<int>(key);
+    if (scancode < 0 || scancode >= SDL_NUM_SCANCODES)
+    {
+        return false;
+    }
+    return input.keyReleased[scancode];
+}
+
 float Input::GetMovementX()
 {
     float x = input.GetGamepad(0)->axis[0].x;
@@ -268,6 +368,33 @@ int2 Input::GetMousePosition()
     return input.mousePosition;
 }
 
+float2 Input::GetMouseUV()
+{
+    auto& systemInfo = SystemInfo::Singleton();
+    int2 origin = systemInfo.GetGameViewOrigin();
+    float2 screenSize = systemInfo.GetScreenSize();
+
+    if (screenSize.x <= 0.0f || screenSize.y <= 0.0f)
+    {
+        return {0.0f, 0.0f};
+    }
+
+    float2 mouseInView = {
+        static_cast<float>(input.mousePosition.x - origin.x),
+        static_cast<float>(input.mousePosition.y - origin.y)
+    };
+    return {mouseInView.x / screenSize.x, mouseInView.y / screenSize.y};
+}
+
+float Input::GetMouseWheelDelta()
+{
+    if (!input.gameplayInput)
+    {
+        return 0.0f;
+    }
+    return input.mouseWheelDelta;
+}
+
 void Input::GetLookAround(float& x, float& y)
 {
     x = input.GetGamepad(0)->axis[1].x;
@@ -291,7 +418,19 @@ bool Input::Jump()
 
 void Input::SetGameplayInput(bool enabled)
 {
+    if (input.gameplayInput == enabled)
+    {
+        return;
+    }
     input.gameplayInput = enabled;
+    input.keyDown.fill(false);
+    input.keyPressed.fill(false);
+    input.keyReleased.fill(false);
+    input.mouseButtons.fill(false);
+    input.mouseButtonsPressed.fill(false);
+    input.mouseButtonsReleased.fill(false);
+    input.mouseWheelDelta = 0.0f;
+    input.hasMouseUV = false;
 }
 
 void Input::Reset()
@@ -305,19 +444,72 @@ bool Input::IsMouseButtonDown(MouseButton mouseButton)
     {
         return false;
     }
-
-    Uint32 state = SDL_GetMouseState(nullptr, nullptr);
     switch (mouseButton)
     {
         case MouseButton::Left:
-            return (state & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
+            return input.mouseButtons[0];
         case MouseButton::Right:
-            return (state & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
+            return input.mouseButtons[1];
         case MouseButton::Middle:
-            return (state & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
+            return input.mouseButtons[2];
         default:
             return false;
     }
+}
+
+bool Input::IsMouseButtonPressed(MouseButton mouseButton)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    switch (mouseButton)
+    {
+        case MouseButton::Left:
+            return input.mouseButtonsPressed[0];
+        case MouseButton::Right:
+            return input.mouseButtonsPressed[1];
+        case MouseButton::Middle:
+            return input.mouseButtonsPressed[2];
+        default:
+            return false;
+    }
+}
+
+bool Input::IsMouseButtonReleased(MouseButton mouseButton)
+{
+    if (!input.gameplayInput)
+    {
+        return false;
+    }
+
+    switch (mouseButton)
+    {
+        case MouseButton::Left:
+            return input.mouseButtonsReleased[0];
+        case MouseButton::Right:
+            return input.mouseButtonsReleased[1];
+        case MouseButton::Middle:
+            return input.mouseButtonsReleased[2];
+        default:
+            return false;
+    }
+}
+
+bool Input::HasFocus()
+{
+    auto driver = GetGfxDriver();
+    if (!driver)
+    {
+        return false;
+    }
+    SDL_Window* window = driver->GetSDLWindow();
+    if (!window)
+    {
+        return false;
+    }
+    return (SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS) != 0;
 }
 
 float2 Input::GetMouseDelta()
