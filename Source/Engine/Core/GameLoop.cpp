@@ -9,6 +9,7 @@
 GameLoop::GameLoop()
 {
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
+    ui = std::make_unique<UI>();
 }
 
 GameLoop::~GameLoop() {}
@@ -65,6 +66,7 @@ const void GameLoop::Tick(
     bool offscreen
 )
 {
+    ui->DragOverlay();
     ENGINE_SCOPED_PROFILE("GameLoop - Tick");
 
     Scene* scene = this->scene;
@@ -123,6 +125,8 @@ const void GameLoop::Tick(
 
         outGraphOutputImage = &renderPipeline->GetOutputColor();
         outGraphOutputDepthImage = &renderPipeline->GetOutputDepth();
+
+        ui->RenderElements(outGraphOutputImage);
     }
     else
     {
