@@ -98,6 +98,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     editor = std::make_unique<Editor::GameEditor>(this, createInfo.projectPath.string().c_str());
     cmd = GetGfxDriver()->CreateCommandBuffer();
+
+    blitShader = ShaderLibrary::GetShader("Blit");
 }
 
 void WeilanEngine::StartEngine()
@@ -110,25 +112,46 @@ void WeilanEngine::StartEngine()
             ImGui::NewFrame();
             ImGuizmo::BeginFrame();
 
-            editor->Tick();
-
             // update gameloop
             auto screenSize = editor->GetGameScreenSize();
             const Gfx::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::ImageIdentifier* gameOutputDepthImage = nullptr;
             bool offscreen = !editor->IsGameViewVisible();
 
-            ENGINE_END_PROFILE; // Before Game Tick
-
+            editor->Tick();
             gameLoop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
-
             editor->AfterGameLoopTick();
-            editor->Render(*cmd, gameOutputImage, gameOutputDepthImage);
+
+            if (presentGameColorOnly)
+            {
+                auto swapchainImage = GetGfxDriver()->GetSwapChainImage();
+                std::vector<Gfx::DynamicBinding> bindings{
+                    Gfx::DynamicBinding("input", *gameOutputImage)
+                };
+                Gfx::RenderAttachment attachments[] = {
+                    Gfx::RenderAttachment(
+                        *swapchainImage,
+                        Gfx::AttachmentLoadOperation::Clear,
+                        Gfx::AttachmentStoreOperation::Store
+                    )
+                };
+                Gfx::ClearValue clears[] = {
+                    {0.0f, 0.0f, 0.0f, 0.0f},
+                };
+
+                cmd->BeginRenderPass(attachments, clears);
+                cmd->BindShaderProgram(blitShader->GetShaderProgram(), blitShader->GetShaderProgram()->GetDefaultShaderConfig());
+                cmd->BindResource(blitShader->GetSet("perMaterial"), bindings);
+                cmd->Draw(6, 1, 0, 0);
+                cmd->EndRenderPass();
+            }
+            else
+            {
+                editor->Render(*cmd, gameOutputImage, gameOutputDepthImage);
+            }
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
             cmd->Reset(true);
-
-            ENGINE_END_PROFILE; // After Game Tick
 
             EndFrame();
         }
@@ -330,4 +353,9 @@ int2 WeilanEngine::GetSystemWindowSize()
     int w, h;
     SDL_GetWindowSize(mainWindow.handle, &w, &h);
     return int2{w, h};
+}
+
+void WeilanEngine::PresentGameOnly(bool enable)
+{
+    presentGameColorOnly = enable;
 }

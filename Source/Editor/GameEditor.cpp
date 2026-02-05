@@ -70,9 +70,15 @@ void GameEditor::SimulatePlayerView(bool enable)
     cacheSystemWindowSize = engine->GetSystemWindowSize();
 
     if (enable)
+    {
         engine->SetSystemWindowSize(sceneImageSize);
+        engine->PresentGameOnly(true);
+    }
     else
+    {
+        engine->PresentGameOnly(false);
         engine->SetSystemWindowSize(cacheSystemWindowSize);
+    }
 }
 
 GameEditor::GameEditor(WeilanEngine* engine, const char* path)

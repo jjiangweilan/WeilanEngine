@@ -14,12 +14,14 @@ ParameterBlock<PerMaterial> perMaterial;
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
-if (_ResetAlpha)
-{
-    return float4(perMaterial.input.Sample(input.uv).xyz, 1.0);
-}
-else
-{
-    return perMaterial.input.Sample(input.uv);
-}
+    float4 color = float4(perMaterial.input.Sample(input.uv).xyz, 1.0);
+
+    if (_ResetAlpha)
+    {
+        return float4(color.xyz, 1.0);
+    }
+    else
+    {
+        return color;
+    }
 }

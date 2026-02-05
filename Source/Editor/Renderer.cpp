@@ -132,7 +132,6 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
         int x = 0;
     }
 
-    Gfx::Image* color = (Gfx::Image*)finalImage;
     std::vector<Gfx::ClearValue> clears{{0, 0, 0, 0}};
     mainPass.SetAttachment(0, *finalImage);
     cmd.BeginRenderPass(mainPass, clears);

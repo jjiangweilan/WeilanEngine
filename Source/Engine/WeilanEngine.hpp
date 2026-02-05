@@ -40,6 +40,7 @@ public:
     void WindowBorderless(bool enable);
     void SetSystemWindowSize(int2 size);
     int2 GetSystemWindowSize();
+    void PresentGameOnly(bool enable);
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
     {
@@ -52,6 +53,7 @@ public:
 
     void ReloadScripts();
 
+    bool presentGameColorOnly = false;
     std::vector<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
@@ -75,6 +77,8 @@ private:
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;
+
+    ObjPtr<Shader> blitShader;
 
     void InitAssetDatabase();
     void DeinitAssetDatabase();
