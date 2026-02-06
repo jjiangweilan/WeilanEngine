@@ -3,6 +3,7 @@
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/WindowSystemHost/IInteropDriver.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers.hpp"
 #include "Engine/Runtime/System/Event/Event.hpp"
@@ -73,6 +74,7 @@ private:
     std::unique_ptr<GameContext> gameContext;
     std::unique_ptr<Editor::GameEditor> editor;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<WindowSystemHost::IInteropDriver> interopDriver;
     // std::unique_ptr<Physics> physics;
 
     std::filesystem::path projectPath;

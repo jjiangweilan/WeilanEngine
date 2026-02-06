@@ -4,7 +4,9 @@
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Driver/WindowSystemHost/D3D11/D3D11InteropDriverCreateHelper.hpp"
 #include "Engine/MiddleLayer/FrameContext.hpp"
+#include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
@@ -47,6 +49,11 @@ WeilanEngine::~WeilanEngine()
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
+    interopDriver = CreateD3D11InteropDriver();
+    interopDriver->Initialize(mainWindow.handle, mainWindow.size.width, mainWindow.size.height);
+
+    const bool enableTransparentWindow = true;
+
     JobSystem::InitJobSystem();
     InitSDL();
     projectPath = createInfo.projectPath;
@@ -100,12 +107,22 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     cmd = GetGfxDriver()->CreateCommandBuffer();
 
     blitShader = ShaderLibrary::GetShader("Blit");
+
+    // if (enableTransparentWindow)
+    // {
+    //
+    //     // WindowBorderless(true);
+    //     TransparentWindowPixel::EnableTransparent(mainWindow.handle);
+    //     TransparentWindowPixel::ForceTopmost(mainWindow.handle);
+    // }
 }
 
 void WeilanEngine::StartEngine()
 {
     while (keepLooping)
     {
+        interopDriver->Present();
+        break;
         if (BeginFrame())
         {
             ImGui_ImplSDL2_NewFrame();
@@ -299,7 +316,7 @@ void WeilanEngine::InitSDL()
         SDL_WINDOWPOS_UNDEFINED,
         mainWindow.size.width,
         mainWindow.size.height,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN
     );
     SDL_MaximizeWindow(mainWindow.handle);
 
