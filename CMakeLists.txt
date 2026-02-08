@@ -353,6 +353,10 @@ target_link_libraries( WeilanEngine
     ${Vulkan_LIBRARIES}
     )
 
+if(WIN32)
+    target_link_libraries(${PROJECT_NAME} PUBLIC dwmapi)
+endif()
+
 target_compile_definitions(
     WeilanEngine
     PUBLIC

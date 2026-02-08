@@ -118,6 +118,8 @@ public:
 
     Gfx::Image* GetImageFromRenderGraph(const Gfx::ImageIdentifier& id) override;
 
+    void SetWin32WindowInteropTexture(const void* sharedHandle, int2 size) override;
+
     void FlushPendingCommands() override;
 
 public:
@@ -173,6 +175,8 @@ public:
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;
+
+    bool needPresent = true;
 
     void CreateInstance(bool enableValidationLayers);
     void CreatePhysicalDevice();

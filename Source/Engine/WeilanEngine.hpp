@@ -3,6 +3,7 @@
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/WindowSystemHost/IInteropDriver.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers.hpp"
 #include "Engine/Runtime/System/Event/Event.hpp"
@@ -37,6 +38,8 @@ public:
     void CloseEngine();
     GameLoop* GetGameLoop() { return gameLoop.get(); };
     SDL_Window* GetMainWindow() { return mainWindow.handle; }
+
+    // Window API
     void WindowBorderless(bool enable);
     void SetSystemWindowSize(int2 size);
     int2 GetSystemWindowSize();
@@ -73,7 +76,10 @@ private:
     std::unique_ptr<GameContext> gameContext;
     std::unique_ptr<Editor::GameEditor> editor;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<WindowSystemHost::IInteropDriver> interopDriver;
     // std::unique_ptr<Physics> physics;
+    //
+    void* window_HWND;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;

@@ -4,7 +4,9 @@
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Driver/WindowSystemHost/D3D11/D3D11InteropDriverCreateHelper.hpp"
 #include "Engine/MiddleLayer/FrameContext.hpp"
+#include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
@@ -100,6 +102,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     cmd = GetGfxDriver()->CreateCommandBuffer();
 
     blitShader = ShaderLibrary::GetShader("Blit");
+
+    // TransparentWindowPixel::ForceTopmost(mainWindow.handle);
 }
 
 void WeilanEngine::StartEngine()
@@ -154,6 +158,12 @@ void WeilanEngine::StartEngine()
             cmd->Reset(true);
 
             EndFrame();
+
+            if (presentGameColorOnly)
+            {
+                GetGfxDriver()->WaitForIdle();
+                interopDriver->Present();
+            }
         }
     }
 }
@@ -301,13 +311,13 @@ void WeilanEngine::InitSDL()
         mainWindow.size.height,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
     );
-    SDL_MaximizeWindow(mainWindow.handle);
-
-    int drawableWidth, drawbaleHeight;
-    SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
-
-    mainWindow.size.width = drawableWidth;
-    mainWindow.size.height = drawbaleHeight;
+    // SDL_MaximizeWindow(mainWindow.handle);
+    //
+    // int drawableWidth, drawbaleHeight;
+    // SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
+    //
+    // mainWindow.size.width = drawableWidth;
+    // mainWindow.size.height = drawbaleHeight;
 }
 
 void WeilanEngine::WindowBorderless(bool enable)
@@ -346,6 +356,8 @@ void WeilanEngine::CloseEngine()
 void WeilanEngine::SetSystemWindowSize(int2 size)
 {
     SDL_SetWindowSize(mainWindow.handle, size.x, size.y);
+    mainWindow.size.width = size.x;
+    mainWindow.size.height = size.y;
 }
 
 int2 WeilanEngine::GetSystemWindowSize()
@@ -358,4 +370,13 @@ int2 WeilanEngine::GetSystemWindowSize()
 void WeilanEngine::PresentGameOnly(bool enable)
 {
     presentGameColorOnly = enable;
+
+    TransparentWindowPixel::EnableTransparent(mainWindow.handle);
+
+    window_HWND = WeilanEngine_CreateWindow();
+
+    interopDriver = CreateD3D11InteropDriver();
+    interopDriver->Initialize(window_HWND, mainWindow.size.width + 256, mainWindow.size.height + 256);
+    auto intermediateTextureHandle = interopDriver->GetSharedHandle();
+    gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, int2(mainWindow.size.width + 256, mainWindow.size.height + 256));
 }

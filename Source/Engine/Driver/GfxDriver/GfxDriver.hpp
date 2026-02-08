@@ -5,21 +5,21 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "CompiledSpv.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Core/Ptr.hpp"
+#include "Engine/Library/EnumFlags.hpp"
+#include "Engine/ThirdParty/renderdoc/renderdoc_app.h"
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
-#include "Engine/Library/EnumFlags.hpp"
-#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Semaphore.hpp"
-#include "Engine/ThirdParty/renderdoc/renderdoc_app.h"
 #include "Window.hpp"
 
+#include "Engine/Library/DynamicArray.hpp"
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>
-#include "Engine/Library/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -116,6 +116,14 @@ public:
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;
+
+    /**
+     * @brief replace the swapchain image with the interop texture, this texture will be presented to screen, the format will always be r8g8b8a8_unorm
+     *
+     * @param sharedHandle the HANDLE
+     * @param size the size of the interop texture
+     */
+    virtual void SetWin32WindowInteropTexture(const void* sharedHandle, int2 size) = 0;
 
     virtual void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) = 0;
     virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;

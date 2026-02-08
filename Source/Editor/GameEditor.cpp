@@ -61,12 +61,12 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
 
 void GameEditor::SimulatePlayerView(bool enable)
 {
-    engine->WindowBorderless(enable);
+    // engine->WindowBorderless(enable);
     hideDevTool = enable;
 
     // adjust system window to current view size
     auto sceneImage = gameView->GetGameScreenImage();
-    float2 sceneImageSize = sceneImage->GetDescription().GetSize();
+    float2 sceneImageSize = {1920, 1080};// sceneImage->GetDescription().GetSize();
     cacheSystemWindowSize = engine->GetSystemWindowSize();
 
     if (enable)
@@ -76,8 +76,8 @@ void GameEditor::SimulatePlayerView(bool enable)
     }
     else
     {
-        engine->PresentGameOnly(false);
         engine->SetSystemWindowSize(cacheSystemWindowSize);
+        engine->PresentGameOnly(false);
     }
 }
 

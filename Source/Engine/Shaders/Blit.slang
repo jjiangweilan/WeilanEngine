@@ -14,7 +14,7 @@ ParameterBlock<PerMaterial> perMaterial;
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
-    float4 color = float4(perMaterial.input.Sample(input.uv).xyz, 1.0);
+    float4 color = perMaterial.input.Sample(input.uv);
 
     if (_ResetAlpha)
     {

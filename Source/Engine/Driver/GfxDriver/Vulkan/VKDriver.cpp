@@ -27,6 +27,9 @@
 #include <set>
 #include <spdlog/spdlog.h>
 #include <string>
+#if defined(_WIN32) || defined(_WIN64)
+#include <vulkan/vulkan_win32.h>
+#endif
 #if !_MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnullability-completeness"
@@ -177,6 +180,13 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
     SDL_GetWindowWMInfo(window, &sdlInfo->wmInfo);
+
+    VKExtensionFunc::vkGetMemoryWin32HandlePropertiesKHR =
+        (PFN_vkGetMemoryWin32HandlePropertiesKHR)vkGetDeviceProcAddr(device.handle, "vkGetMemoryWin32HandlePropertiesKHR");
+    if (!VKExtensionFunc::vkGetMemoryWin32HandlePropertiesKHR)
+    {
+        throw std::runtime_error("Could not get a valid function pointer for vkGetMemoryWin32HandlePropertiesKHR");
+    }
 }
 
 VKDriver::~VKDriver()
@@ -214,10 +224,13 @@ VKDriver::~VKDriver()
 
     SamplerCachePool::DestroyPool();
 
-    vkDestroySwapchainKHR(device.handle, swapchain.handle, VK_NULL_HANDLE);
+    if (swapchain.handle != VK_NULL_HANDLE)
+        vkDestroySwapchainKHR(device.handle, swapchain.handle, VK_NULL_HANDLE);
     objectManager = nullptr;
     memAllocator = nullptr;
-    vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
+
+    if (surface.handle != VK_NULL_HANDLE)
+        vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
 
     vkDestroyDevice(device.handle, nullptr);
 
@@ -656,29 +669,33 @@ bool VKDriver::EndFrame()
     ENGINE_END_PROFILE
 
     // acquire next swapchain
-    ENGINE_BEGIN_PROFILE("VKDriver - Acquire Next Image");
-    VkResult acquireResult = vkAcquireNextImageKHR(
-        device.handle,
-        swapchain.handle,
-        -1,
-        imageAcquireSemaphores[currentInflightIndex],
-        VK_NULL_HANDLE,
-        &frameContexts[currentInflightIndex].swapchainIndex
-    );
-    swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
-    ENGINE_END_PROFILE
-
-    for (auto& w : extraWindows)
+    //
+    if (needPresent)
     {
+        ENGINE_BEGIN_PROFILE("VKDriver - Acquire Next Image");
         VkResult acquireResult = vkAcquireNextImageKHR(
             device.handle,
-            w->swapchain.handle,
+            swapchain.handle,
             -1,
-            w->imageAcquireSemaphores[w->activeIndex],
+            imageAcquireSemaphores[currentInflightIndex],
             VK_NULL_HANDLE,
-            &w->swapchainIndex
+            &frameContexts[currentInflightIndex].swapchainIndex
         );
-        w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
+        swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
+        ENGINE_END_PROFILE
+
+        for (auto& w : extraWindows)
+        {
+            VkResult acquireResult = vkAcquireNextImageKHR(
+                device.handle,
+                w->swapchain.handle,
+                -1,
+                w->imageAcquireSemaphores[w->activeIndex],
+                VK_NULL_HANDLE,
+                &w->swapchainIndex
+            );
+            w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
+        }
     }
 
     dataUploader->UploadAllPending(
@@ -705,17 +722,20 @@ bool VKDriver::EndFrame()
     CmdBufExecutionReport execReport{};
 
     // this section adds present image layout transition to the end of cmd
-    VKCommandBuffer cmd2(commandBufferProcessor.get());
-    int idx = frameContexts[currentInflightIndex].swapchainIndex;
-    cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
-    for (auto& w : extraWindows)
+    if (needPresent)
     {
-        if (w->presentRequest.requested)
+        VKCommandBuffer cmd2(commandBufferProcessor.get());
+        int idx = frameContexts[currentInflightIndex].swapchainIndex;
+        cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
+        for (auto& w : extraWindows)
         {
-            cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
+            if (w->presentRequest.requested)
+            {
+                cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
+            }
         }
+        framePrepareData.AppendVKCommandBuffer(&cmd2);
     }
-    framePrepareData.AppendVKCommandBuffer(&cmd2);
 
     commandBufferProcessor->Execute(
         framePrepareData,
@@ -730,15 +750,28 @@ bool VKDriver::EndFrame()
         ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer") CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE // Vulkan End Command Buffer
 
-        VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
+        int signalSemaphoreCount = 0;
+    int waitSemaphoreCount = 0;
+    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
-    waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    waitFlags[1] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-    waitSemaphores[0] = imageAcquireSemaphores[currentInflightIndex];
-    waitSemaphores[1] = transferSignalSemaphore;
-    signalSemaphores[0] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
-    signalSemaphores[1] = dataUploaderWaitSemaphore;
+    waitFlags[0] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    waitSemaphores[0] = transferSignalSemaphore;
+    if (needPresent)
+    {
+        waitSemaphores[1] = imageAcquireSemaphores[currentInflightIndex];
+        waitFlags[1] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        signalSemaphores[1] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
+        signalSemaphoreCount++;
+        waitSemaphoreCount++;
+    }
+    signalSemaphores[0] = dataUploaderWaitSemaphore;
+    signalSemaphoreCount++;
+    signalSemaphoreCount += extraWindows.size();
+    waitSemaphoreCount++;
+    waitSemaphores += extraWindows.size();
+
     for (int i = 0; i < extraWindows.size(); ++i)
     {
         waitFlags[i + 2] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -746,12 +779,12 @@ bool VKDriver::EndFrame()
         signalSemaphores[i + 2] = extraWindows[i]->presentSemaphores[extraWindows[i]->activeIndex];
     }
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.waitSemaphoreCount = 2 + extraWindows.size();
+    submitInfo.waitSemaphoreCount = waitSemaphoreCount;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitFlags;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
-    submitInfo.signalSemaphoreCount = 2 + extraWindows.size();
+    submitInfo.signalSemaphoreCount = signalSemaphoreCount;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
@@ -766,31 +799,34 @@ bool VKDriver::EndFrame()
     ENGINE_END_PROFILE
 
     allocator.Reset();
-
-    ENGINE_BEGIN_PROFILE("VKDriver - present");
-    bool swapchainRecreated = Present(
-        presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex],
-        swapchain.handle,
-        surface,
-        swapchain,
-        frameContexts[currentInflightIndex].swapchainIndex
-    );
-
-    for (auto& w : extraWindows)
+    bool swapchainRecreated = false;
+    if (needPresent)
     {
-        if (w->presentRequest.requested)
+        ENGINE_BEGIN_PROFILE("VKDriver - present");
+        swapchainRecreated = Present(
+            presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex],
+            swapchain.handle,
+            surface,
+            swapchain,
+            frameContexts[currentInflightIndex].swapchainIndex
+        );
+
+        for (auto& w : extraWindows)
         {
-            Present(
-                w->presentSemaphores[w->activeIndex],
-                w->swapchain.handle,
-                w->surface,
-                w->swapchain,
-                w->swapchain.swapchainImage->GetActiveIndex()
-            );
-            w->presentRequest.requested = false;
+            if (w->presentRequest.requested)
+            {
+                Present(
+                    w->presentSemaphores[w->activeIndex],
+                    w->swapchain.handle,
+                    w->surface,
+                    w->swapchain,
+                    w->swapchain.swapchainImage->GetActiveIndex()
+                );
+                w->presentRequest.requested = false;
+            }
         }
+        ENGINE_END_PROFILE
     }
-    ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("VKDriver - Frame End Clear");
     FrameEndClear();
@@ -1213,6 +1249,7 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
         // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };
 #if ENGINE_EDITOR
@@ -1518,5 +1555,13 @@ void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
 void VKDriver::SetGPUProfilerEnabled(bool enabled)
 {
     featureSettings.enableGPUProfiling = enabled && gpuFeatures.timestampPeriod;
+}
+
+void VKDriver::SetWin32WindowInteropTexture(const void* sharedHandle, int2 size)
+{
+#if WIN32
+    needPresent = false;
+    swapchain.AsWin32WindowInteropTexture(sharedHandle, size);
+#endif
 }
 } // namespace Gfx

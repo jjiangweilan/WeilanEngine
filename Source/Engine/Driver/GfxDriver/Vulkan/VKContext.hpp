@@ -87,6 +87,7 @@ struct Swapchain
     std::vector<InflightData> inflightData = {};
     uint32_t currentInflightIndex = 0;
 
+    void AsWin32WindowInteropTexture(const void* sharedHandle, int2 size);
     bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);
 
 private:
