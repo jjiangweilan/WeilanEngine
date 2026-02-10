@@ -36,6 +36,12 @@ public:
             light->SetAmbientScale(ambientScale);
         }
 
+        float wrappedDiffuse = light->GetWrappedDiffuse();
+        if (EditorGUI::DragFloat("Wrapped Diffuse", &wrappedDiffuse))
+        {
+            light->SetWrappedDiffuse(wrappedDiffuse);
+        }
+
         EditorGUI::DragFloat("Depth Bias", &target->depthBias);
         EditorGUI::DragFloat("Depth Slope Bias", &target->depthSlopeBias);
 

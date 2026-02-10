@@ -10,6 +10,7 @@ struct Light
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
+    float wrappedDiffuse;
 };
 
 struct SphericalHarmonics_2ndOrder

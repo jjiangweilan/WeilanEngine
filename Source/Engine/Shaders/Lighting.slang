@@ -220,6 +220,7 @@ float3 StandardLightShading(
         float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - objPos);
 
         float dotNL = max(dot(objNormal, l), NearZero);
+        dotNL = saturate((dotNL + light.wrappedDiffuse) / ((1 + light.wrappedDiffuse) * (1 + light.wrappedDiffuse)));
         float3 F = 0.0f;
         float3 specularBrdf = SpecularBRDF(object.baseColor, l, object.viewDir, object.normalWS, object.metallic, object.roughness, F);
 

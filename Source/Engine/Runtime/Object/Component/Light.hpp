@@ -28,6 +28,7 @@ class Light : public Component
     float pointLightTerm2 = 1.8f;
     float shadowDistance = 100.0;
     bool enableCascadedShadow = true;
+    float wrappedDiffuse = 1.0f;
     std::vector<ShadowCascade> shadowCascades = {};
 
     struct
@@ -64,6 +65,8 @@ public:
     glm::vec3 GetLightColor() const { return ambient; }
 
     float GetAmbientScale() const { return ambientScale; }
+    float GetWrappedDiffuse() const { return wrappedDiffuse; }
+    void SetWrappedDiffuse(float value) { this->wrappedDiffuse = value; }
 
     void SetAmbientScale(float scale) { this->ambientScale = scale; }
 

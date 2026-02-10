@@ -470,6 +470,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
             sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
             sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
+            sceneParam.lights[i].wrappedDiffuse = lights[i]->GetWrappedDiffuse();
             auto model = lights[i]->GetGameObject()->GetWorldMatrix();
             switch (lights[i]->GetLightType())
             {
