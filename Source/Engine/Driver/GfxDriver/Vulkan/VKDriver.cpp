@@ -5,6 +5,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "RayTracing/VKRayTracing.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommandPool.hpp"
@@ -15,6 +16,7 @@
 #include "VKFence.hpp"
 #include "VKFrameBuffer.hpp"
 #include "VKImageView.hpp"
+#include "VKRayTracingContext.hpp"
 #include "VKRenderPass.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
@@ -99,6 +101,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     cmdPoolCreateInfo.queueFamilyIndex = mainQueue.queueFamilyIndex;
     cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     vkCreateCommandPool(device.handle, &cmdPoolCreateInfo, VK_NULL_HANDLE, &mainCmdPool);
+    context->mainCmdPool = mainCmdPool;
 
     // create inflightData
     frameContexts.resize(driverConfig.swapchainImageCount);
@@ -1469,6 +1472,11 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::ImageIdentifier& id)
 std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 {
     return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(commandBufferProcessor.get()));
+}
+
+std::unique_ptr<RayTracingContext> VKDriver::CreateRayTracingContext()
+{
+    return std::unique_ptr<VKRayTracingContext>();
 }
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)

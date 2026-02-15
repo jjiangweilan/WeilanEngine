@@ -77,6 +77,8 @@ public:
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
+    std::unique_ptr<RayTracingContext> CreateRayTracingContext() override;
+
     void CaptureFrameRenderDoc() override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) override;

@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include "Assert.hpp"
+#include <vector>
 
 template <class T>
 class ObjectPool;
@@ -70,6 +70,12 @@ public:
     ObjectPool(ObjectPool&&) = default;
     ObjectPool& operator=(ObjectPool&&) = default;
 
+    T& operator[](size_t index)
+    {
+        ASSERT(index < allocatedObjects.size() && "Index out of bounds");
+        return allocatedObjects[index];
+    }
+
     ObjectPoolHandle<T> Allocate()
     {
         if (freeIndices.empty())
@@ -81,6 +87,19 @@ public:
         freeIndices.pop_back();
         isAllocated[index] = true;
         return ObjectPoolHandle<T>{this, static_cast<int>(index)};
+    }
+
+    int AllocateRaw()
+    {
+        if (freeIndices.empty())
+        {
+            Grow();
+        }
+
+        size_t index = freeIndices.back();
+        freeIndices.pop_back();
+        isAllocated[index] = true;
+        return index;
     }
 
     void Free(ObjectPoolHandle<T>& handle)
@@ -126,7 +145,7 @@ private:
         size_t newSize = currentSize > 0 ? currentSize * 2 : 1;
         allocatedObjects.resize(newSize);
         isAllocated.resize(newSize, false);
-        
+
         // Add new indices to freeIndices
         for (size_t i = currentSize; i < newSize; ++i)
         {

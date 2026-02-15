@@ -27,7 +27,8 @@ DEFINE_SERIALIZATION(
     SER(materials),
     SER(aabbMin, aabb.min),
     SER(aabbMax, aabb.max),
-    SER(wantsToEnableSkinning)
+    SER(wantsToEnableSkinning),
+    SER(isRayTracingEnabled)
 );
 
 void MeshRenderer::SetMesh(Mesh* mesh)
@@ -301,4 +302,61 @@ void MeshRenderer::CheckSkeleton()
 void MeshRenderer::OnLoaded()
 {
     CheckSkeleton();
+}
+
+void MeshRenderer::SetRayTracingEnabled(bool enabled)
+{
+    isRayTracingEnabled = enabled;
+
+    auto scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    if (isRayTracingEnabled && !isRayTracingInitialized)
+    {
+        InitializeForRayTracing();
+    }
+}
+
+void MeshRenderer::InitializeForRayTracing()
+{
+    auto scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    auto& renderingScene = scene->GetRenderingScene();
+    auto rayTracingContext = renderingScene.GetRayTracingContext();
+    if (rayTracingContext == nullptr)
+        return;
+
+    rayTracingMeshes.clear();
+    rayTracingInstances.clear();
+
+    auto worldMatrix = GetGameObject()->GetWorldMatrix();
+
+    for (auto& mesh : meshes)
+    {
+        if (mesh == nullptr)
+            continue;
+
+        auto& submeshes = mesh->GetSubmeshes();
+        std::vector<Gfx::BlasGeometry> geometries;
+        geometries.reserve(submeshes.size());
+
+        for (auto& submesh : mesh->GetSubmeshes())
+        {
+            geometries.push_back(Gfx::BlasGeometry{.vertexBuffer = submesh.GetVertexBuffer(), .vertexFormat = Gfx::GfxFormat::R32G32B32_SFloat, .vertexStride = sizeof(glm::vec3), .maxVertex = static_cast<uint32_t>(submesh.GetPositions().size()), .indexBuffer = submesh.GetIndexBuffer(), .indexBufferType = submesh.GetIndexBufferType(), .triangleCount = static_cast<uint32_t>(submesh.GetTriangleCount())});
+        }
+
+        if (!geometries.empty())
+        {
+            auto meshHandle = rayTracingContext->CreateBLAS(geometries);
+            rayTracingMeshes.push_back(meshHandle);
+
+            auto instanceHandle = rayTracingContext->CreateInstance(meshHandle, worldMatrix);
+            rayTracingInstances.push_back(instanceHandle);
+        }
+    }
+
+    isRayTracingInitialized = true;
 }

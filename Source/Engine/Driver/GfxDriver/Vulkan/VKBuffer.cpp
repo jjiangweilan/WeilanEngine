@@ -168,4 +168,20 @@ void* VKBuffer::GetCPUVisibleAddress()
 {
     return allocationInfo.pMappedData;
 }
+
+VkDeviceAddress VKBuffer::GetDeviceAddress()
+{
+    if (deviceAddress == 0)
+    {
+        auto device = VKContext::Instance()->device;
+        VkBufferDeviceAddressInfo info =
+            {
+                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                .buffer = buffer,
+            };
+        deviceAddress = vkGetBufferDeviceAddress(device, &info);
+    }
+
+    return deviceAddress;
+}
 } // namespace Gfx

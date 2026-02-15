@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
+#include "Engine/Driver/GfxDriver/RayTracingContext.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/SceneEnvironmentData.hpp"
@@ -88,7 +89,11 @@ private:
 class RenderingScene
 {
 public:
-    RenderingScene() {};
+    RenderingScene()
+    {
+        rayTracingContext = GetGfxDriver()->CreateRayTracingContext();
+    };
+
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
@@ -183,11 +188,14 @@ public:
 
     SceneEnvironmentData& GetSceneEnvironmentData();
 
+    Gfx::RayTracingContext* GetRayTracingContext() { return rayTracingContext.get(); }
+
     void Tick();
 
 private:
     Scene* scene;
     RenderingObjectList renderingObjects;
+    std::unique_ptr<Gfx::RayTracingContext> rayTracingContext;
 
     template <class T>
     void AddSpecialObject(T& obj, std::vector<T*>& addTo)

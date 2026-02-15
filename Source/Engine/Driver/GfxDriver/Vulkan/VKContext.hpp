@@ -99,6 +99,7 @@ class VKContext
 public:
     static inline VKContext* Instance() { return context; }
     VKDriver* driver;
+    VkCommandPool mainCmdPool; // reference to VKDriver's mainCmdPool
     VkDevice device;
     VkInstance instance;
     GPU* gpu;

@@ -32,6 +32,7 @@ public:
     ~Submesh();
 
     inline int GetIndexCount() const { return indexCount; }
+    int GetTriangleCount() const { return indexCount / 3; }
 
     Gfx::IndexBufferType GetIndexBufferType() const { return indexBufferType; }
 
