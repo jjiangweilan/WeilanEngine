@@ -4,8 +4,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 #include "../GfxDriver.hpp"
 

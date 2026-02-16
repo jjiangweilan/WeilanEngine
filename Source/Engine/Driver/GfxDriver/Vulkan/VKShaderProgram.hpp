@@ -8,7 +8,7 @@
 #include "VKShaderInfo.hpp"
 #include <memory>
 #include <unordered_map>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {

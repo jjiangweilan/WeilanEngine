@@ -1,7 +1,7 @@
 #pragma once
 #include "../Fence.hpp"
 #include "VKContext.hpp"
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {

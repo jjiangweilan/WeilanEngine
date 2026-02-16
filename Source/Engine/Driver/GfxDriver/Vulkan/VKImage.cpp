@@ -7,7 +7,6 @@
 #include "VKDebugUtils.hpp"
 #include "VKDriver.hpp"
 #include "VKImageView.hpp"
-#include <vk_mem_alloc.h>
 
 #include <spdlog/spdlog.h>
 

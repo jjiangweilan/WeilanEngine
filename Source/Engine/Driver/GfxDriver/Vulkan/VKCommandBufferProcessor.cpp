@@ -5,7 +5,7 @@
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDriver.hpp"
-#include "VKExtensionFunc.hpp"
+
 #include "VKShaderProgram.hpp"
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
@@ -1614,7 +1614,7 @@ void VKCommandBufferProcessor::Execute(
                         }
                     }
 
-                    VKExtensionFunc::vkCmdPushDescriptorSetKHR(
+                    vkCmdPushDescriptorSetKHR(
                         vkcmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         args.shader->GetVKPipelineLayout(),

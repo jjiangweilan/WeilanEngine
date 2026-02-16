@@ -2,7 +2,7 @@
 #include "Engine/Library/DynamicArray.hpp"
 #include "VKRawBuffer.hpp"
 #include <queue>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include "Engine/Core/Ptr.hpp"
 namespace Gfx
 {

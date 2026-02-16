@@ -208,6 +208,13 @@ FetchContent_Declare(vma
 set(VMA_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(vma)
 
+FetchContent_Declare(volk
+    GIT_REPOSITORY https://github.com/zeux/volk.git
+    GIT_TAG "1.4.304"
+    UPDATE_DISCONNECTED TRUE
+)
+FetchContent_MakeAvailable(volk)
+
 FetchContent_Declare(ktx_software
     GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
     GIT_TAG v4.3.1
@@ -350,7 +357,7 @@ target_link_libraries( WeilanEngine
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp
-    ${Vulkan_LIBRARIES}
+    volk
     )
 
 if(WIN32)
@@ -365,6 +372,7 @@ target_compile_definitions(
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     VULKAN_HPP_CPP_VERSION=20
     GLM_ENABLE_EXPERIMENTAL
+    VK_NO_PROTOTYPES
     )
 
 find_package(Python3 REQUIRED)

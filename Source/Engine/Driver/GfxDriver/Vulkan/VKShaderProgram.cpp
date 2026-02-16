@@ -10,7 +10,6 @@
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKShaderProgram.hpp"
-#include "vulkan/vulkan_core.h"
 #include <cwchar>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hash.hpp>

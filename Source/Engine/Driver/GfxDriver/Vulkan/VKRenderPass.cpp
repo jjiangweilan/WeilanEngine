@@ -7,7 +7,7 @@
 #include "VKImage.hpp"
 #include "VKImageView.hpp"
 #include <spdlog/spdlog.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 namespace Gfx
 {
 DEFINE_OBJECT(RenderPass_Deprecated, VKRenderPass, "E84D6781-F767-4282-837E-74994AF91161");

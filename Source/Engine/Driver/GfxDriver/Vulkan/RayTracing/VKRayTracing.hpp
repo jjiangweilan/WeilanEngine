@@ -3,7 +3,7 @@
 #include "Engine/Driver/GfxDriver/Vulkan/VKBuffer.hpp"
 #include "Engine/Library/CommandStream.hpp"
 #include "Engine/Library/ObjectPool.hpp"
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx::VKRayTracing
 {

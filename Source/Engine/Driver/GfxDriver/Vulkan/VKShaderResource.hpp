@@ -8,7 +8,6 @@
 #include "VKSharedResource.hpp"
 #include <unordered_map>
 #include <variant>
-#include <vk_mem_alloc.h>
 namespace Gfx
 {
 class VKBuffer;

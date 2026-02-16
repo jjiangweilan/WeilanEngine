@@ -1,7 +1,7 @@
 #pragma once
 #include "../CommandPool.hpp"
 #include "VKCommandBuffer.hpp"
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {
