@@ -340,7 +340,8 @@ enum class DescriptorType
     UniformBufferDynamic = 8,
     StorageBufferDynamic = 9,
     InputAttachment = 10,
-    Invalid = 11
+    AccelerationStructure = 11,
+    Invalid = 12
 };
 
 enum class SamplerAddressMode

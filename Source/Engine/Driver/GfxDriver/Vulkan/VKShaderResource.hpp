@@ -65,6 +65,7 @@ public:
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
     void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) override;
+    void SetAccelerationStructure(ShaderBindingHandle handle, int index, RayTracingContext* context, RayTracingSceneHandle scene) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
     void RebuildAll() override;
@@ -81,6 +82,13 @@ protected:
         ImageView,
         Buffer,
         ImageID,
+        AccelerationStructure,
+    };
+
+    struct AccelerationStructureRef
+    {
+        RayTracingContext* context;
+        RayTracingSceneHandle scene;
     };
 
     struct ResourceRef
@@ -95,6 +103,8 @@ protected:
                 return std::get<ObjPtr<ImageView>>(res) != nullptr;
             else if (type == ShaderBindingType::ImageID)
                 return true;
+            else if (type == ShaderBindingType::AccelerationStructure)
+                return true;
 
             return false;
         }
@@ -105,7 +115,7 @@ protected:
 
         const Gfx::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::ImageIdentifier>(res) : Gfx::ImageIdentifier::GetEmpty(); }
 
-        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier> res = ObjPtr<ImageView>(nullptr);
+        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier, AccelerationStructureRef> res = ObjPtr<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
     };
 

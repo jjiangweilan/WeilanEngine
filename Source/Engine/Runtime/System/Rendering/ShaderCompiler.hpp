@@ -38,7 +38,43 @@ struct ShaderCompiler
 private:
     slang::IGlobalSession* globalSession;
 
-    Gfx::ShaderPipelineInfo::Binding AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, Gfx::ShaderPipelineInfo::DescriptorSet& set, uint32_t currentBinding);
+    Gfx::ShaderPipelineInfo::Binding AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, Gfx::ShaderPipelineInfo::DescriptorSet& set, uint32_t currentBinding)
+    {
+        Gfx::ShaderPipelineInfo::Binding binding{};
+        binding.name = name;
+        binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
+        binding.bindingNum = currentBinding;
+        binding.descriptorCount = 1; // TODO array binding
+        binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
+        binding.descriptorType = MapSlangDescriptorType(typeLayout, typeLayout->getResourceShape());
+        binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
+        binding.isTextureArray = IsTextureArray(typeLayout->getResourceShape());
+        binding.bufferMembers = {};
+        binding.byteSize = 0;
+        binding.samplerIndex = -1;
+
+        if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+            binding.descriptorType == Gfx::DescriptorType::Sampler)
+        {
+            binding.samplerIndex = AddSamplerConfig(set, typeLayout->getType(), name);
+        }
+
+        // TODO: currently slang can't report stage usage correctly
+        // https://github.com/shader-slang/slang/issues/5940
+        // if (binding.stages == Gfx::ShaderStage::None)
+        {
+            if (HasComputeEntryPoint())
+            {
+                binding.stages = Gfx::ShaderStage::Compute;
+            }
+            else
+            {
+                binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+            }
+        }
+
+        return binding;
+    }
 
 public:
     static void DiagnoseIfNeeded(slang::IBlob* diagnostics)
@@ -315,6 +351,7 @@ public:
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(ParameterBlock, UniformBuffer);
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(RawBuffer, StorageBuffer);
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(MutableRawBuffer, StorageBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(RayTracingAccelerationStructure, AccelerationStructure);
                 default:
                     {
                         ASSERT(0 && "Not Handled");

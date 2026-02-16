@@ -364,4 +364,9 @@ RayTracingSceneHandle Manager::CreateScene()
 {
     return tlasPool.AllocateRaw();
 }
+
+void* Manager::GetNativeHandle(RayTracingSceneHandle scene)
+{
+    return (void*)tlasPool[scene].handle;
+}
 } // namespace Gfx::VKRayTracing

@@ -23,4 +23,9 @@ void VKRayTracingContext::BuildScene(const RayTracingSceneHandle& sceneHandle, s
     manager.BuildScene(sceneHandle, instances);
 }
 
+void* VKRayTracingContext::GetNativeHandle(RayTracingSceneHandle scene)
+{
+    return manager.GetNativeHandle(scene);
+}
+
 } // namespace Gfx

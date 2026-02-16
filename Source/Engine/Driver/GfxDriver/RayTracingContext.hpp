@@ -29,6 +29,8 @@ public:
     virtual RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform) = 0;
     virtual void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances) = 0;
 
+    virtual void* GetNativeHandle(RayTracingSceneHandle scene) = 0;
+
     virtual ~RayTracingContext() = default;
 };
 } // namespace Gfx

@@ -113,6 +113,12 @@ void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Imag
     }
 }
 
+void VKShaderResource::SetAccelerationStructure(ShaderBindingHandle handle, int index, RayTracingContext* context, RayTracingSceneHandle scene)
+{
+    bindings[handle][index] = {AccelerationStructureRef{context, scene}, ShaderBindingType::AccelerationStructure};
+    RebuildAll();
+}
+
 void VKShaderResource::Remove(ShaderBindingHandle handle)
 {
     if (bindings.contains(handle))
@@ -178,8 +184,12 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         VkWriteDescriptorSet writes[64];
         VkDescriptorBufferInfo bufferInfos[64];
         VkDescriptorImageInfo imageInfos[64];
+        VkWriteDescriptorSetAccelerationStructureKHR asWrites[64];
+        VkAccelerationStructureKHR asHandles[64];
         uint32_t bufferWriteIndex = 0;
         uint32_t imageWriteIndex = 0;
+        uint32_t asWriteCount = 0;
+        uint32_t asHandleIndex = 0;
         uint32_t writeCount = 0;
 
         const auto& descriptorSet = shaderInfo.descriptorSets[set];
@@ -222,6 +232,17 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                     case DescriptorType::StorageImage:
                     case DescriptorType::SampledImage:
                     case DescriptorType::Sampler: writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex]; break;
+                    case DescriptorType::AccelerationStructure:
+                        {
+                            auto& asWrite = asWrites[asWriteCount++];
+                            asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+                            asWrite.pNext = VK_NULL_HANDLE;
+                            asWrite.accelerationStructureCount = b.descriptorCount;
+                            asWrite.pAccelerationStructures = &asHandles[asHandleIndex];
+                            writes[writeCount].pNext = &asWrite;
+                            asHandleIndex += b.descriptorCount;
+                        }
+                        break;
                 }
 
                 for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
@@ -436,6 +457,19 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                 imageInfo.sampler = sampler;
                                 imageInfo.imageView = VK_NULL_HANDLE;
+                                break;
+                            }
+                        case DescriptorType::AccelerationStructure:
+                            {
+                                if (resRef.type == ShaderBindingType::AccelerationStructure)
+                                {
+                                    auto& asRef = std::get<AccelerationStructureRef>(resRef.res);
+                                    asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)asRef.context->GetNativeHandle(asRef.scene);
+                                }
+                                else
+                                {
+                                    asHandles[asHandleIndex - b.descriptorCount + i] = VK_NULL_HANDLE;
+                                }
                                 break;
                             }
                         default: ASSERT(0 && "Not implemented"); break;

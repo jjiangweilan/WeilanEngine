@@ -19,6 +19,8 @@ public:
 
     void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances) override;
 
+    void* GetNativeHandle(RayTracingSceneHandle scene) override;
+
 private:
     struct TLAS
     {

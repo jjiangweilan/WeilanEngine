@@ -473,6 +473,7 @@ private:
             case slang::BindingType::ParameterBlock: return "UniformBuffer";
             case slang::BindingType::RawBuffer: return "StorageBuffer";
             case slang::BindingType::MutableRawBuffer: return "StorageBuffer";
+            case slang::BindingType::RayTracingAccelerationStructure: return "AccelerationStructure";
             default: return "Invalid";
         }
     }
