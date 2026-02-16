@@ -41,6 +41,12 @@ public:
                 meshRenderer->DisableMultipass();
         }
 
+        bool rayTracing = meshRenderer->IsRayTracingEnabled();
+        if (ImGui::Checkbox("Ray Tracing", &rayTracing))
+        {
+            meshRenderer->SetRayTracingEnabled(rayTracing);
+        }
+
         if (multipass)
         {
             int size = meshRenderer->GetMaterialSize();

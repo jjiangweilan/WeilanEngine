@@ -151,6 +151,8 @@ void MeshRenderer::RemoveFromRenderingScene()
 void MeshRenderer::OnEnable()
 {
     AddToRenderingScene();
+
+    SetRayTracingEnabled(true);
 }
 void MeshRenderer::OnDisable()
 {
@@ -327,7 +329,10 @@ void MeshRenderer::InitializeForRayTracing()
     auto& renderingScene = scene->GetRenderingScene();
     auto rayTracingContext = renderingScene.GetRayTracingContext();
     if (rayTracingContext == nullptr)
+    {
+        spdlog::warn("Ray tracing context is not available, cannot initialize ray tracing for MeshRenderer");
         return;
+    }
 
     rayTracingMeshes.clear();
     rayTracingInstances.clear();

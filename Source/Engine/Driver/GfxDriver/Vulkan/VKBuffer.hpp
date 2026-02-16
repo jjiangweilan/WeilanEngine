@@ -35,7 +35,7 @@ private:
     VmaAllocation allocation = nullptr;
     size_t size;
 
-    VkDeviceAddress deviceAddress = 0;
+    VkDeviceAddress deviceAddress = -1;
 
     VkBufferUsageFlags usage = 0;
     VmaMemoryUsage vmaMemUsage = VMA_MEMORY_USAGE_AUTO;

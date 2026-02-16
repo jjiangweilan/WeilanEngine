@@ -1226,9 +1226,13 @@ void VKDriver::CreateDevice()
     //     }
     // #endif
 
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
+    asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    asFeatures.accelerationStructure = true;
+
     VkPhysicalDeviceSynchronization2Features synchronization2Features = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-        .pNext = VK_NULL_HANDLE,
+        .pNext = &asFeatures,
         .synchronization2 = true
     };
 
@@ -1246,8 +1250,11 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
-        // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, // The one you need
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,   // Usually needed with AS
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME // Required dependency for RT
+                                                      // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -1464,7 +1471,7 @@ std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 
 std::unique_ptr<RayTracingContext> VKDriver::CreateRayTracingContext()
 {
-    return std::unique_ptr<VKRayTracingContext>();
+    return std::unique_ptr<VKRayTracingContext>(new VKRayTracingContext());
 }
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)

@@ -67,6 +67,8 @@ public:
     void UpdateSkinning();
 
     void SetRayTracingEnabled(bool enabled);
+    bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
+    const std::vector<Gfx::RayTracingInstanceHandle>& GetRayTracingInstances() const { return rayTracingInstances; }
 
 private:
     /***** Serialized Data ******/
