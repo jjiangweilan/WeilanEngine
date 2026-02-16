@@ -213,6 +213,9 @@ FetchContent_Declare(volk
     GIT_TAG "1.4.304"
     UPDATE_DISCONNECTED TRUE
 )
+if (WIN32)
+   set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+endif()
 FetchContent_MakeAvailable(volk)
 
 FetchContent_Declare(ktx_software
@@ -371,6 +374,7 @@ target_compile_definitions(
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     VULKAN_HPP_CPP_VERSION=20
+    VULKAN_HPP_NO_PROTOTYPES
     GLM_ENABLE_EXPERIMENTAL
     VK_NO_PROTOTYPES
     )

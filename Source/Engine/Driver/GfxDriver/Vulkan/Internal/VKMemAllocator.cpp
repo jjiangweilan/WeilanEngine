@@ -36,11 +36,11 @@ VKMemAllocator::VKMemAllocator(
     vulkanFunctions.vkCreateImage = vkCreateImage;
     vulkanFunctions.vkDestroyImage = vkDestroyImage;
     vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
-    vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
-    vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
-    vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
-    vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
-    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+    vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;
+    vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;
+    vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2;
+    vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2;
+    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
 
     VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
     vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
