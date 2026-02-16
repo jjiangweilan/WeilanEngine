@@ -1230,10 +1230,15 @@ void VKDriver::CreateDevice()
     asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
     asFeatures.accelerationStructure = true;
 
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{};
+    bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bufferDeviceAddressFeatures.pNext = &asFeatures;
+    bufferDeviceAddressFeatures.bufferDeviceAddress = true;
+
     VkPhysicalDeviceSynchronization2Features synchronization2Features = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-        .pNext = &asFeatures,
-        .synchronization2 = true
+        .pNext = &bufferDeviceAddressFeatures,
+        .synchronization2 = true,
     };
 
     VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
@@ -1268,7 +1273,12 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.enabledLayerCount = 0;
     deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
 
-    vkCreateDevice(gpu.handle, &deviceCreateInfo, VK_NULL_HANDLE, &device.handle);
+    VkResult createDeviceResult = vkCreateDevice(gpu.handle, &deviceCreateInfo, VK_NULL_HANDLE, &device.handle);
+    if (createDeviceResult != VK_SUCCESS)
+    {
+        spdlog::error("Failed to create Vulkan device, VkResult: {}", (int)createDeviceResult);
+        throw std::runtime_error("failed to create device!");
+    }
 
     volkLoadDevice(device.handle);
 

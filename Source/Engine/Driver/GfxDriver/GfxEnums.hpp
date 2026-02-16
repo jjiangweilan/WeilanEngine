@@ -17,6 +17,8 @@ ENUM_FLAGS(BufferUsage, uint64_t){
     Index = 0x00000040,
     Vertex = 0x00000080,
     Indirect = 0x00000100,
+    AccelerationStructure = 0x00000200,
+    ShaderDeviceAddress = 0x00000400,
 };
 
 ENUM_FLAGS(ImageAspect, uint64_t){

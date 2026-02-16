@@ -44,6 +44,7 @@ VKMemAllocator::VKMemAllocator(
 
     VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
     vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    vmaAllocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     vmaAllocatorCreateInfo.physicalDevice = physicalDevice;
     vmaAllocatorCreateInfo.device = device;
     vmaAllocatorCreateInfo.instance = instance;
