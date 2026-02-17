@@ -128,7 +128,7 @@ void Submesh::Apply()
     // create vertex buffer
     Gfx::Buffer::CreateInfo bufCreateInfo;
     bufCreateInfo.size = vertexBufferSize;
-    bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
+    bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress;
     bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
     VertexAttributes positionBinding{};
@@ -141,7 +141,7 @@ void Submesh::Apply()
     size_t indexByteSize = indexBufferType == Gfx::IndexBufferType::UInt16 ? sizeof(uint16_t) : sizeof(uint32_t);
     std::size_t indexBufferSize = indices.size() * indexByteSize;
     bufCreateInfo.size = indexBufferSize;
-    bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst;
+    bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress;
     bufCreateInfo.debugName = name.data();
     gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 

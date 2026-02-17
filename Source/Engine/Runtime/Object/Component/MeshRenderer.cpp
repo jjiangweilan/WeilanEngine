@@ -27,7 +27,8 @@ DEFINE_SERIALIZATION(
     SER(materials),
     SER(aabbMin, aabb.min),
     SER(aabbMax, aabb.max),
-    SER(wantsToEnableSkinning)
+    SER(wantsToEnableSkinning),
+    SER(isRayTracingEnabled)
 );
 
 void MeshRenderer::SetMesh(Mesh* mesh)
@@ -151,6 +152,7 @@ void MeshRenderer::OnEnable()
 {
     AddToRenderingScene();
 }
+
 void MeshRenderer::OnDisable()
 {
     RemoveFromRenderingScene();
@@ -174,6 +176,10 @@ AABB MeshRenderer::GetAABB()
     }
 
     return aabbWS;
+}
+
+void MeshRenderer::OnStart()
+{
 }
 
 void MeshRenderer::Tick() {}
@@ -301,4 +307,63 @@ void MeshRenderer::CheckSkeleton()
 void MeshRenderer::OnLoaded()
 {
     CheckSkeleton();
+}
+
+void MeshRenderer::EnableRayTracing(bool enable)
+{
+    isRayTracingEnabled = enable;
+
+    auto scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    if (isRayTracingEnabled && !isRayTracingInitialized)
+    {
+        InitializeForRayTracing();
+    }
+}
+
+void MeshRenderer::InitializeForRayTracing()
+{
+    auto scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    auto& renderingScene = scene->GetRenderingScene();
+
+    rayTracingMesh = -1;
+    rayTracingInstance = -1;
+
+    auto worldMatrix = GetGameObject()->GetWorldMatrix();
+    std::vector<Gfx::BlasGeometry> geometries{};
+
+    for (auto& mesh : meshes)
+    {
+        if (mesh == nullptr)
+            continue;
+
+        for (auto& submesh : mesh->GetSubmeshes())
+        {
+            geometries.push_back(Gfx::BlasGeometry{
+                .vertexBuffer = submesh.GetVertexBuffer(),
+                .vertexFormat = Gfx::GfxFormat::R32G32B32_SFloat,
+                .vertexStride = sizeof(glm::vec3),
+                .maxVertex = static_cast<uint32_t>(submesh.GetPositions().size()),
+                .indexBuffer = submesh.GetIndexBuffer(),
+                .indexBufferType = submesh.GetIndexBufferType(),
+                .triangleCount = static_cast<uint32_t>(submesh.GetIndexCount() / 3),
+            });
+        }
+    }
+
+    if (!geometries.empty())
+    {
+        auto meshHandle = renderingScene.CreateBLAS(geometries);
+        rayTracingMesh = meshHandle;
+
+        auto instanceHandle = renderingScene.CreateInstance(meshHandle, worldMatrix);
+        rayTracingInstance = instanceHandle;
+
+        isRayTracingInitialized = true;
+    }
 }

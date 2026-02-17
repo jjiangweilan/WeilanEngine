@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
+#include "Engine/Driver/GfxDriver/RayTracingContext.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/SceneEnvironmentData.hpp"
@@ -88,7 +89,11 @@ private:
 class RenderingScene
 {
 public:
-    RenderingScene() {};
+    RenderingScene() : rayTracingContext(nullptr)
+    {
+        rayTracingContext = GetGfxDriver()->CreateRayTracingContext();
+    };
+
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
@@ -183,11 +188,21 @@ public:
 
     SceneEnvironmentData& GetSceneEnvironmentData();
 
+    Gfx::RayTracingContext* GetRayTracingContext() { return rayTracingContext.get(); }
+    Gfx::RayTracingSceneHandle GetRayTracingSceneHandle() { return rayTracingScene; }
+
+    Gfx::RayTracingMeshHandle CreateBLAS(std::span<Gfx::BlasGeometry> geometries);
+    Gfx::RayTracingInstanceHandle CreateInstance(Gfx::RayTracingMeshHandle mesh, glm::float4x3 transform);
+
     void Tick();
 
 private:
     Scene* scene;
     RenderingObjectList renderingObjects;
+    std::unique_ptr<Gfx::RayTracingContext> rayTracingContext;
+    Gfx::RayTracingSceneHandle rayTracingScene = 0;
+    std::vector<Gfx::RayTracingInstanceHandle> rayTracingInstances;
+    bool needsTLASRebuild = false;
 
     template <class T>
     void AddSpecialObject(T& obj, std::vector<T*>& addTo)

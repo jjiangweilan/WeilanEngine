@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
@@ -66,16 +66,24 @@ public:
     // called by RenderingScene
     void UpdateSkinning();
 
+    void EnableRayTracing(bool enabled);
+    bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
+
 private:
     /***** Serialized Data ******/
     std::vector<ObjPtr<Mesh>> meshes{};
     std::vector<ObjPtr<Material>> materials = {};
     bool multipass = false;
-    AABB aabb {};
-    AABB aabbWS {};
+    AABB aabb{};
+    AABB aabbWS{};
     bool wantsToEnableSkinning = false;
+    bool isRayTracingEnabled = false;
 
     /**** Runtime Data *******/
+    bool isRayTracingInitialized = false;
+    Gfx::RayTracingMeshHandle rayTracingMesh = -1;
+    Gfx::RayTracingInstanceHandle rayTracingInstance = -1;
+
     bool hasSkeleton = false;
     bool aabbBoundsNeedUpdate = true;
     bool aabbPositionNeedUpdate = true;
@@ -100,7 +108,9 @@ private:
     void UpdateAABB();
     void CheckSkeleton();
 
+    void OnStart() override;
     void OnEnable() override;
     void OnDisable() override;
     void TransformChanged() override;
+    void InitializeForRayTracing();
 };

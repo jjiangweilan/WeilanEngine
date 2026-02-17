@@ -19,6 +19,27 @@ SceneEnvironmentData& RenderingScene::GetSceneEnvironmentData()
     return defaultData;
 }
 
+Gfx::RayTracingMeshHandle RenderingScene::CreateBLAS(std::span<Gfx::BlasGeometry> geometries)
+{
+    if (rayTracingContext)
+    {
+        return rayTracingContext->CreateBLAS(geometries);
+    }
+    return 0;
+}
+
+Gfx::RayTracingInstanceHandle RenderingScene::CreateInstance(Gfx::RayTracingMeshHandle mesh, glm::float4x3 transform)
+{
+    if (rayTracingContext)
+    {
+        auto handle = rayTracingContext->CreateInstance(mesh, transform);
+        rayTracingInstances.push_back(handle);
+        needsTLASRebuild = true;
+        return handle;
+    }
+    return 0;
+}
+
 void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
 {
     nodes.clear();
@@ -216,9 +237,20 @@ void BoundingVolumeHierarchy::Refit()
 
 void RenderingScene::Tick()
 {
+    if (rayTracingScene == 0 && rayTracingContext != nullptr)
+    {
+        rayTracingScene = rayTracingContext->CreateScene(1024);
+    }
+
     for (auto m : meshRenderers)
     {
         m->UpdateSkinning();
+    }
+
+    if (rayTracingContext != nullptr && needsTLASRebuild && !rayTracingInstances.empty())
+    {
+        rayTracingContext->BuildScene(rayTracingScene, rayTracingInstances);
+        needsTLASRebuild = false;
     }
 
     if (updateRendererNodeHierarchy)
