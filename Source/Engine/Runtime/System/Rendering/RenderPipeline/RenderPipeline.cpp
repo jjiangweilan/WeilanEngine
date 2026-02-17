@@ -30,6 +30,7 @@ RenderPipeline::RenderPipeline()
     cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
     colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
+    // rayTracingTestPass = AddRenderPipelinePass<Passes::RayTracingTestPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
@@ -284,6 +285,16 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Fog
     fogPass->Execute(*cmd, mainColor, depthCopy, renderingScene.GetSceneEnvironmentData().fogPassParameters);
+
+    // Ray Tracing Test
+    // rayTracingTestPass->Execute(
+    //     *cmd,
+    //     depthCopy,
+    //     scene.GetRenderingScene().GetRayTracingSceneHandle(),
+    //     scene.GetRenderingScene().GetRayTracingContext(),
+    //     GetPerSceneGPUResource(),
+    //     mainRTSize
+    // );
 
     if (setting->postProcess.bloom.enabled)
     {
@@ -579,13 +590,18 @@ bool RenderPipeline::IsCommandBufferOverriden()
 const Gfx::ImageIdentifier& RenderPipeline::GetOutputColor()
 {
     Gfx::ImageIdentifier debugImage;
-    Gfx::ImageIdentifier finalColorId;
-    if (ssaoPass->DebugBlit(debugImage))
+    finalColorId = finalColor;
+
+    for (auto& pass : renderPipelinePasses)
     {
-        finalColor = debugImage;
+        if (pass->DebugBlit(debugImage))
+        {
+            finalColorId = debugImage;
+            break;
+        }
     }
 
-    return finalColor;
+    return finalColorId;
 }
 
 Gfx::ImageIdentifier RenderPipeline::GetFinalColor()
@@ -595,16 +611,7 @@ Gfx::ImageIdentifier RenderPipeline::GetFinalColor()
         return *renderConfig.colorOutputOverride.value();
     }
 
-    Gfx::ImageIdentifier debugImage;
-    Gfx::ImageIdentifier finalColorId;
-    if (ssaoPass->DebugBlit(debugImage))
-    {
-        finalColorId = debugImage;
-    }
-    else
-        Gfx::ImageIdentifier finalColorId = finalColor;
-
-    return finalColorId;
+    return finalColor;
 }
 
 void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, RenderEvents event)

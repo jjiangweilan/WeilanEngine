@@ -4,23 +4,24 @@
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Module/VolumetricCloud/Cloud.hpp"
+#include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/FogPass.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/RayTracingTestPass.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
+#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/ShadowRenderer.hpp"
+#include "Passes/BloomPass.hpp"
 #include "Passes/CloudPass.hpp"
 #include "Passes/ColorGradingPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/SSAO.hpp"
-#include "Passes/BloomPass.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
-#include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
-#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/FogPass.hpp"
-#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
-#include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
-#include "Engine/Runtime/System/Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
-#include "Engine/Runtime/System/Rendering/Renderers/ShadowRenderer.hpp"
 #include "SkyboxPass.hpp"
 
 class Scene;
@@ -65,6 +66,10 @@ class RenderPipeline
     Gfx::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::ImageIdentifier maskGBuffer = "maskGBuffer";
     Gfx::ImageIdentifier finalColor;
+    /**
+     * @brief used as id for the final output color. Because GetOutputColor is returning a reference, I cached the value here. Maybe GetOutputColor should return by value
+     */
+    Gfx::ImageIdentifier finalColorId;
 
     Gfx::RenderImageDescriptor mainColorDescription;
     Gfx::RenderImageDescriptor mainDepthDescription;
@@ -80,6 +85,7 @@ class RenderPipeline
     Passes::CloudPass* cloudPass;
     Passes::ColorGradingPass* colorGradingPass;
     Passes::FXAAPass* fxaaPass;
+    Passes::RayTracingTestPass* rayTracingTestPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
     Passes::SSAO* ssaoPass;
     Passes::BloomPass* bloomPass;

@@ -11,6 +11,12 @@ struct GI
     Sampler2D specularBRDFIntegrationMap;
 };
 
+struct RayTracing
+{
+    RaytracingAccelerationStructure sceneBVH;
+    uint maxRayRecursionDepth;
+};
+
 struct ShadingObject
 {
     float3 positionWS;
