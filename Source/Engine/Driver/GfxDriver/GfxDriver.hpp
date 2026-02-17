@@ -12,6 +12,7 @@
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
+#include "RayTracingContext.hpp"
 #include "Semaphore.hpp"
 #include "Window.hpp"
 
@@ -99,6 +100,8 @@ public:
     virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
 
     virtual std::unique_ptr<CommandBuffer> CreateCommandBuffer() = 0;
+
+    virtual std::unique_ptr<RayTracingContext> CreateRayTracingContext() = 0;
 
     virtual void QueueSubmit(
         RefPtr<CommandQueue> queue,

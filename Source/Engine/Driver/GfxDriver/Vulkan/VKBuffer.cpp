@@ -31,6 +31,10 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
         usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     if (HasFlag(usageIn, BufferUsage::Indirect))
         usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::AccelerationStructure))
+        usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+    if (HasFlag(usageIn, BufferUsage::ShaderDeviceAddress))
+        usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     return usage;
 }
@@ -167,5 +171,21 @@ VKBuffer::~VKBuffer()
 void* VKBuffer::GetCPUVisibleAddress()
 {
     return allocationInfo.pMappedData;
+}
+
+VkDeviceAddress VKBuffer::GetDeviceAddress()
+{
+    if (deviceAddress == -1)
+    {
+        auto device = VKContext::Instance()->device;
+        VkBufferDeviceAddressInfo info =
+            {
+                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                .buffer = buffer,
+            };
+        deviceAddress = vkGetBufferDeviceAddress(device, &info);
+    }
+
+    return deviceAddress;
 }
 } // namespace Gfx
