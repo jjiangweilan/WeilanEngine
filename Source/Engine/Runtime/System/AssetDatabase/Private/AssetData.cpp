@@ -63,7 +63,7 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         }
         catch (...)
         {
-            spdlog::error("failed to load AssetData at {}", path.string());
+            spdlog::warn("failed to load AssetData at {}", path.string());
             isValid = false;
             return;
         }

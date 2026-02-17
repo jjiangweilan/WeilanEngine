@@ -311,13 +311,14 @@ void WeilanEngine::InitSDL()
         mainWindow.size.height,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
     );
-    // SDL_MaximizeWindow(mainWindow.handle);
-    //
-    // int drawableWidth, drawbaleHeight;
-    // SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
-    //
-    // mainWindow.size.width = drawableWidth;
-    // mainWindow.size.height = drawbaleHeight;
+
+    SDL_MaximizeWindow(mainWindow.handle);
+
+    int drawableWidth, drawbaleHeight;
+    SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
+
+    mainWindow.size.width = drawableWidth;
+    mainWindow.size.height = drawbaleHeight;
 }
 
 void WeilanEngine::WindowBorderless(bool enable)
@@ -370,8 +371,6 @@ int2 WeilanEngine::GetSystemWindowSize()
 void WeilanEngine::PresentGameOnly(bool enable)
 {
     presentGameColorOnly = enable;
-
-    TransparentWindowPixel::EnableTransparent(mainWindow.handle);
 
     window_HWND = WeilanEngine_CreateWindow();
 
