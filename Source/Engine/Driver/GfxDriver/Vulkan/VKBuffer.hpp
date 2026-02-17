@@ -26,12 +26,16 @@ public:
     void* CreateBuffer(const CreateInfo& createInfo) override;
     inline VkBuffer GetHandle() const { return buffer; }
 
+    VkDeviceAddress GetDeviceAddress();
+
 private:
     std::string name;
     RefPtr<VKMemAllocator> allocator;
     VkBuffer buffer = VK_NULL_HANDLE;
     VmaAllocation allocation = nullptr;
     size_t size;
+
+    VkDeviceAddress deviceAddress = -1;
 
     VkBufferUsageFlags usage = 0;
     VmaMemoryUsage vmaMemUsage = VMA_MEMORY_USAGE_AUTO;

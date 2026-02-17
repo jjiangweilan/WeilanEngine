@@ -4,7 +4,7 @@
 #include "Engine/Library/DynamicArray.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {

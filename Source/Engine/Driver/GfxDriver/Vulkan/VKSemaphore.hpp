@@ -2,7 +2,7 @@
 #include "../Semaphore.hpp"
 #include "VKContext.hpp"
 #include "VKDebugUtils.hpp"
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {

@@ -5,7 +5,7 @@
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDriver.hpp"
-#include "VKExtensionFunc.hpp"
+
 #include "VKShaderProgram.hpp"
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
@@ -486,7 +486,7 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed ||
                  cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
-            FlushAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
+            MakeBarrierForAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
             FlushAllBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
@@ -1090,7 +1090,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
-            FlushAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
+            MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
         else if (cmd.type == VKCmdType::DispatchIndirect)
@@ -1100,7 +1100,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
-            FlushAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
+            MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
     }
@@ -1614,7 +1614,7 @@ void VKCommandBufferProcessor::Execute(
                         }
                     }
 
-                    VKExtensionFunc::vkCmdPushDescriptorSetKHR(
+                    vkCmdPushDescriptorSetKHR(
                         vkcmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
                         args.shader->GetVKPipelineLayout(),
@@ -1793,7 +1793,7 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKC
                 exeState.setResources[setIndex].dynamicBindingNeedUpdate = false;
 
                 VKDynamicBindResourceCmd& dynamicBindResourceCmd = std::get<VKDynamicBindResourceCmd>(cmds[exeState.setResources[setIndex].dynamicBindSetCmdIndex].args);
-                UpdateDynamicDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
+                BindDynamicDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
             }
         }
     }
@@ -2119,7 +2119,7 @@ void VKCommandBufferProcessor::MakeBarrierFromWritableResources(std::vector<VKIm
         }
     }
 }
-void VKCommandBufferProcessor::FlushAllDynamicBindedSetUpdate(
+void VKCommandBufferProcessor::MakeBarrierForAllDynamicBindedSetUpdate(
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
@@ -2260,7 +2260,7 @@ void VKCommandBufferProcessor::BeginRenderPass(
     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
+void VKCommandBufferProcessor::BindDynamicDescriptorSet(
     VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram
 )
 {
@@ -2271,9 +2271,13 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
     VkWriteDescriptorSet writes[64];
     VkDescriptorBufferInfo bufferInfos[64];
     VkDescriptorImageInfo imageInfos[64];
+    VkWriteDescriptorSetAccelerationStructureKHR asWrites[64];
+    VkAccelerationStructureKHR asHandles[64];
     uint32_t bufferWriteIndex = 0;
     uint32_t imageWriteIndex = 0;
     uint32_t writeCount = 0;
+    uint32_t asWriteCount = 0;
+    uint32_t asHandleIndex = 0;
 
     if (shaderInfo.descriptorSets.size() <= set)
         return;
@@ -2310,14 +2314,25 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
                 case DescriptorType::StorageImage:
                 case DescriptorType::SampledImage:
                 case DescriptorType::Sampler: writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex]; break;
+                case DescriptorType::AccelerationStructure:
+                    {
+                        auto& asWrite = asWrites[asWriteCount++];
+                        asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+                        asWrite.pNext = VK_NULL_HANDLE;
+                        asWrite.accelerationStructureCount = b.descriptorCount;
+                        asWrite.pAccelerationStructures = &asHandles[asHandleIndex];
+                        writes[writeCount].pNext = &asWrite;
+                        asHandleIndex += b.descriptorCount;
+                    }
             }
 
             VKImageView* imageView = nullptr;
             VKBuffer* buffer = nullptr;
+            AccelerationStructureRef asRef;
 
             if (binding != bindings.end())
             {
-                GetImageViewOrBuffer(*binding, imageView, buffer);
+                GetImageViewOrBufferOrAccelerationStructure(*binding, imageView, buffer, asRef);
             }
 
             for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
@@ -2470,6 +2485,18 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
                             imageInfo.imageView = VK_NULL_HANDLE;
                             break;
                         }
+                    case DescriptorType::AccelerationStructure:
+                        {
+                            if (asRef.context != nullptr)
+                            {
+                                asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)asRef.context->GetNativeHandle(asRef.scene);
+                            }
+                            else
+                            {
+                                asHandles[asHandleIndex - b.descriptorCount + i] = VK_NULL_HANDLE;
+                            }
+                            break;
+                        }
                     default: ASSERT(0 && "Not implemented"); break;
                 }
             }
@@ -2491,11 +2518,15 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSet(
     }
 }
 
-void VKCommandBufferProcessor::GetImageViewOrBuffer(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer)
+void VKCommandBufferProcessor::GetImageViewOrBufferOrAccelerationStructure(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer, AccelerationStructureRef& asRef)
 {
     if (binding.buffer != nullptr)
     {
         buffer = static_cast<VKBuffer*>(binding.buffer);
+    }
+    else if (binding.asRef.context != nullptr)
+    {
+        asRef = binding.asRef;
     }
     else
     {
@@ -2535,10 +2566,11 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
 
         VKImageView* imageView = nullptr;
         VKBuffer* buffer = nullptr;
+        AccelerationStructureRef asRef;
 
         if (binding != bindings.end())
         {
-            GetImageViewOrBuffer(*binding, imageView, buffer);
+            GetImageViewOrBufferOrAccelerationStructure(*binding, imageView, buffer, asRef);
         }
 
         for (int i = 0; i < b.descriptorCount; ++i)
@@ -2627,6 +2659,7 @@ std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResource
                         break;
                     }
                 case DescriptorType::Sampler:
+                case DescriptorType::AccelerationStructure:
                     {
                         break;
                     }

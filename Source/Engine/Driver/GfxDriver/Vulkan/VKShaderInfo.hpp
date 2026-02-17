@@ -1,5 +1,5 @@
 //#include "../ShaderInfo.hpp"
-//#include <vulkan/vulkan.h>
+//#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 //
 //namespace Gfx::ShaderInfo::Utils
 //{

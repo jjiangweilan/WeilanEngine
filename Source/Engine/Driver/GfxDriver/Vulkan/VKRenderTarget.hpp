@@ -4,8 +4,7 @@
 
 #include <memory>
 #include "Engine/Library/DynamicArray.hpp"
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 namespace Gfx
 {
 class VKMemAllocator;

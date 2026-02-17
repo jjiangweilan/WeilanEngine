@@ -4,8 +4,7 @@
 #include <functional>
 #include <utility>
 #include <list>
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.hpp>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include <vulkan/vulkan_hash.hpp>
 
 namespace Gfx

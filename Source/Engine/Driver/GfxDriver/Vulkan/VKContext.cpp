@@ -1,5 +1,6 @@
 #include "VKContext.hpp"
-#include "VKExtensionFunc.hpp"
+#include "VKCommon.hpp"
+
 #include "VKSwapchainImage.hpp"
 #include <spdlog/spdlog.h>
 
@@ -231,7 +232,7 @@ void Swapchain::AsWin32WindowInteropTexture(const void* sharedHandle, int2 size)
     handleInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT;
     handleInfo.handle = externalTextureHandle;
 
-    if (VKExtensionFunc::vkGetMemoryWin32HandlePropertiesKHR(context->device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT, externalTextureHandle, &handleProperties) != VK_SUCCESS)
+    if (vkGetMemoryWin32HandlePropertiesKHR(context->device, VK_EXTERNAL_MEMORY_HANDLE_TYPE_D3D11_TEXTURE_BIT, externalTextureHandle, &handleProperties) != VK_SUCCESS)
     {
         SPDLOG_ERROR("Failed to get Win32 handle properties");
         return;

@@ -87,19 +87,15 @@ VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
-
-    VKDebugUtils::Init(vulkanInstance);
 }
 
 VKInstance::~VKInstance()
 {
     if (debugMessenger != VK_NULL_HANDLE)
     {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT
-        )vkGetInstanceProcAddr(vulkanInstance, "vkDestroyDebugUtilsMessengerEXT");
-        if (func != nullptr)
+        if (vkDestroyDebugUtilsMessengerEXT != nullptr)
         {
-            func(vulkanInstance, debugMessenger, nullptr);
+            vkDestroyDebugUtilsMessengerEXT(vulkanInstance, debugMessenger, nullptr);
         }
     }
 
@@ -180,10 +176,9 @@ VkResult VKInstance::CreateDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT* pDebugMessenger
 )
 {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr)
+    if (vkCreateDebugUtilsMessengerEXT != nullptr)
     {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        return vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
     else
     {

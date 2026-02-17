@@ -1,6 +1,7 @@
 #include "VKMemAllocator.hpp"
 #include "../VKBuffer.hpp"
 #include "../VKImage.hpp"
+#include "../VKCommon.hpp"
 #include "Engine/Library/Assert.hpp"
 #include <spdlog/spdlog.h>
 #define VK_CHECK(x)                                                                                                    \
@@ -15,11 +16,39 @@ VKMemAllocator::VKMemAllocator(
     : device(device), queueFamilyIndex(transferQueueIndex), pendingBuffers(), pendingImages()
 {
     // vma
+    VmaVulkanFunctions vulkanFunctions = {};
+    vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+    vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+    vulkanFunctions.vkFreeMemory = vkFreeMemory;
+    vulkanFunctions.vkMapMemory = vkMapMemory;
+    vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+    vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+    vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+    vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+    vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+    vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+    vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+    vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+    vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+    vulkanFunctions.vkCreateImage = vkCreateImage;
+    vulkanFunctions.vkDestroyImage = vkDestroyImage;
+    vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+    vulkanFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;
+    vulkanFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;
+    vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2;
+    vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2;
+    vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
+
     VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
-    vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+    vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    vmaAllocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     vmaAllocatorCreateInfo.physicalDevice = physicalDevice;
     vmaAllocatorCreateInfo.device = device;
     vmaAllocatorCreateInfo.instance = instance;
+    vmaAllocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
     VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));
 }

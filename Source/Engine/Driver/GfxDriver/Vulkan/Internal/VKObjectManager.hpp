@@ -1,6 +1,6 @@
 #pragma once
 #include <list>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore
 #endif

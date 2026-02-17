@@ -1,5 +1,4 @@
 #include "VKDevice.hpp"
-#include "../VKExtensionFunc.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "VKInstance.hpp"
 #include "VKPhysicalDevice.hpp"
@@ -7,7 +6,7 @@
 
 #include <format>
 #include <spdlog/spdlog.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {
@@ -130,14 +129,6 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
         q.queueIndex = queueIndex;
         q.queueFamilyIndex = queueFamilyIndices[i];
         queues.push_back(q);
-    }
-
-    // get extension address
-    VKExtensionFunc::vkCmdPushDescriptorSetKHR =
-        (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(deviceHandle, "vkCmdPushDescriptorSetKHR");
-    if (!VKExtensionFunc::vkCmdPushDescriptorSetKHR)
-    {
-        throw std::runtime_error("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR");
     }
 }
 

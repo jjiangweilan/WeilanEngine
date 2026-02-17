@@ -8,8 +8,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "VKUtils.hpp"
 
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include <vulkan/vulkan_hash.hpp>
 
 #include "Engine/Library/DynamicArray.hpp"

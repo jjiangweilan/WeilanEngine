@@ -5,16 +5,18 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "RayTracing/VKRayTracing.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
 #include "VKDataUploader.hpp"
 #include "VKDescriptorPool.hpp"
-#include "VKExtensionFunc.hpp"
+
 #include "VKFence.hpp"
 #include "VKFrameBuffer.hpp"
 #include "VKImageView.hpp"
+#include "VKRayTracingContext.hpp"
 #include "VKRenderPass.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
@@ -22,14 +24,13 @@
 #include <SDL_syswm.h>
 #include <SDL_vulkan.h>
 
-#include <algorithm>
 #include <mutex>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <string>
-#if defined(_WIN32) || defined(_WIN64)
-#include <vulkan/vulkan_win32.h>
-#endif
+
+#include "VKCommon.hpp"
+
 #if !_MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnullability-completeness"
@@ -99,6 +100,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     cmdPoolCreateInfo.queueFamilyIndex = mainQueue.queueFamilyIndex;
     cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     vkCreateCommandPool(device.handle, &cmdPoolCreateInfo, VK_NULL_HANDLE, &mainCmdPool);
+    context->mainCmdPool = mainCmdPool;
 
     // create inflightData
     frameContexts.resize(driverConfig.swapchainImageCount);
@@ -180,13 +182,6 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
     SDL_GetWindowWMInfo(window, &sdlInfo->wmInfo);
-
-    VKExtensionFunc::vkGetMemoryWin32HandlePropertiesKHR =
-        (PFN_vkGetMemoryWin32HandlePropertiesKHR)vkGetDeviceProcAddr(device.handle, "vkGetMemoryWin32HandlePropertiesKHR");
-    if (!VKExtensionFunc::vkGetMemoryWin32HandlePropertiesKHR)
-    {
-        throw std::runtime_error("Could not get a valid function pointer for vkGetMemoryWin32HandlePropertiesKHR");
-    }
 }
 
 VKDriver::~VKDriver()
@@ -236,11 +231,9 @@ VKDriver::~VKDriver()
 
     if (instance.debugMessenger != VK_NULL_HANDLE)
     {
-        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(instance.handle, "vkDestroyDebugUtilsMessengerEXT");
-        if (func != nullptr)
+        if (vkDestroyDebugUtilsMessengerEXT != nullptr)
         {
-            func(instance.handle, instance.debugMessenger, nullptr);
+            vkDestroyDebugUtilsMessengerEXT(instance.handle, instance.debugMessenger, nullptr);
         }
     }
 
@@ -927,6 +920,11 @@ bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<con
 
 void VKDriver::CreateInstance(bool enableValidationLayers)
 {
+    if (volkInitialize() != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to initialize volk!");
+    }
+
     // Create vulkan application info
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -996,6 +994,8 @@ void VKDriver::CreateInstance(bool enableValidationLayers)
         throw std::runtime_error("failed to create instance!");
     }
 
+    volkLoadInstance(instance.handle);
+
     instance.debugMessenger = nullptr;
     if (enableValidationLayers)
     {
@@ -1006,8 +1006,6 @@ void VKDriver::CreateInstance(bool enableValidationLayers)
             throw std::runtime_error("failed to set up debug messenger!");
         }
     }
-
-    VKDebugUtils::Init(instance.handle);
 }
 
 VkBool32 VKDriver::DebugCallback(
@@ -1118,10 +1116,9 @@ VkResult VKDriver::CreateDebugUtilsMessengerEXT(
     VkDebugUtilsMessengerEXT* pDebugMessenger
 )
 {
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr)
+    if (vkCreateDebugUtilsMessengerEXT != nullptr)
     {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        return vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
     else
     {
@@ -1229,10 +1226,24 @@ void VKDriver::CreateDevice()
     //     }
     // #endif
 
+    VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
+    rayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+    rayQueryFeatures.rayQuery = true;
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR asFeatures{};
+    asFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+    asFeatures.pNext = &rayQueryFeatures;
+    asFeatures.accelerationStructure = true;
+
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{};
+    bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+    bufferDeviceAddressFeatures.pNext = &asFeatures;
+    bufferDeviceAddressFeatures.bufferDeviceAddress = true;
+
     VkPhysicalDeviceSynchronization2Features synchronization2Features = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-        .pNext = VK_NULL_HANDLE,
-        .synchronization2 = true
+        .pNext = &bufferDeviceAddressFeatures,
+        .synchronization2 = true,
     };
 
     VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
@@ -1249,8 +1260,12 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME
-        // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, // The one you need
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,   // Usually needed with AS
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME // Required dependency for RT
+                                                      // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -1264,7 +1279,14 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.enabledLayerCount = 0;
     deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
 
-    vkCreateDevice(gpu.handle, &deviceCreateInfo, VK_NULL_HANDLE, &device.handle);
+    VkResult createDeviceResult = vkCreateDevice(gpu.handle, &deviceCreateInfo, VK_NULL_HANDLE, &device.handle);
+    if (createDeviceResult != VK_SUCCESS)
+    {
+        spdlog::error("Failed to create Vulkan device, VkResult: {}", (int)createDeviceResult);
+        throw std::runtime_error("failed to create device!");
+    }
+
+    volkLoadDevice(device.handle);
 
     // Get the device' queue
     VkQueue queue = VK_NULL_HANDLE;
@@ -1283,14 +1305,6 @@ void VKDriver::CreateDevice()
     else
     {
         mainQueue.supportTimestamp = queueFamilyProperties[mainQueue.queueFamilyIndex].timestampValidBits;
-    }
-
-    // get extension address
-    VKExtensionFunc::vkCmdPushDescriptorSetKHR =
-        (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(device.handle, "vkCmdPushDescriptorSetKHR");
-    if (!VKExtensionFunc::vkCmdPushDescriptorSetKHR)
-    {
-        throw std::runtime_error("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR");
     }
 }
 
@@ -1469,6 +1483,11 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::ImageIdentifier& id)
 std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 {
     return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(commandBufferProcessor.get()));
+}
+
+std::unique_ptr<RayTracingContext> VKDriver::CreateRayTracingContext()
+{
+    return std::unique_ptr<VKRayTracingContext>(new VKRayTracingContext());
 }
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)

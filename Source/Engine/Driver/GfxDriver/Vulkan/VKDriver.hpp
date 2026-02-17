@@ -4,8 +4,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 #include "../GfxDriver.hpp"
 
@@ -76,6 +75,8 @@ public:
     Window* CreateExtraWindow(SDL_Window* window) override;
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
+
+    std::unique_ptr<RayTracingContext> CreateRayTracingContext() override;
 
     void CaptureFrameRenderDoc() override;
 

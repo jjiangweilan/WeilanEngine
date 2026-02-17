@@ -4,7 +4,7 @@
 #include "Engine/Driver/GfxDriver/Vulkan/VKSwapchainImage.hpp"
 #include <optional>
 #include "Engine/Library/DynamicArray.hpp"
-#include <vulkan/vulkan.h>
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {

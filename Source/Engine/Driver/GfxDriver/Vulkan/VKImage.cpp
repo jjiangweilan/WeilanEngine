@@ -7,7 +7,6 @@
 #include "VKDebugUtils.hpp"
 #include "VKDriver.hpp"
 #include "VKImageView.hpp"
-#include <vk_mem_alloc.h>
 
 #include <spdlog/spdlog.h>
 
@@ -77,6 +76,8 @@ VKImage::~VKImage()
     imageViewForShaderResource = nullptr;
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
+
+    spdlog::info("VKImage is destoryed {}", GetName());
 }
 
 void VKImage::InitBarrierTrack()
