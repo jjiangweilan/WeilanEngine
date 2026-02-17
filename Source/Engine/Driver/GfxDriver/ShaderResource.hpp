@@ -3,6 +3,7 @@
 #include "Buffer.hpp"
 #include "Engine/Driver/GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
+#include "RayTracingContext.hpp"
 #include "Engine/Core/Ptr.hpp"
 #include "ResourceHandle.hpp"
 #include "Engine/Driver/GfxDriver/RenderGraph.hpp"
@@ -44,6 +45,7 @@ public:
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) = 0;
+    virtual void SetAccelerationStructure(ShaderBindingHandle handle, int index, RayTracingContext* context, RayTracingSceneHandle scene) = 0;
     virtual void RebuildAll() = 0;
     virtual void Clear() = 0;
 

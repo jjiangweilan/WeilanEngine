@@ -70,21 +70,25 @@ struct DescriptorBinding
 
 struct DynamicBinding
 {
-    DynamicBinding(std::string_view name, Gfx::Buffer& buffer) : name(name), buffer(&buffer), imageIdentifier()
+    DynamicBinding(std::string_view name, Gfx::Buffer& buffer) : name(name), buffer(&buffer), imageIdentifier(), asRef()
     {}
 
-    DynamicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image)
+    DynamicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image), asRef()
     {}
 
-    DynamicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView)
+    DynamicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView), asRef()
     {}
 
-    DynamicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id)
+    DynamicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id), asRef()
+    {}
+
+    DynamicBinding(std::string_view name, RayTracingContext* rayTracingContext, RayTracingSceneHandle sceneHandle) : name(name), buffer(nullptr), imageIdentifier(), asRef({rayTracingContext, sceneHandle})
     {}
 
     std::string name;
     Gfx::Buffer* buffer;
     ImageIdentifier imageIdentifier;
+    AccelerationStructureRef asRef;
 };
 
 struct BlitOp

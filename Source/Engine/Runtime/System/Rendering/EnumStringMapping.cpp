@@ -18,24 +18,42 @@ const char* DescriptorTypeToString(DescriptorType type)
         case DescriptorType::UniformBufferDynamic: return "UniformBufferDynamic";
         case DescriptorType::StorageBufferDynamic: return "StorageBufferDynamic";
         case DescriptorType::InputAttachment: return "InputAttachment";
+        case DescriptorType::AccelerationStructure: return "AccelerationStructure";
         case DescriptorType::Invalid: return "Invalid";
     }
+
+    spdlog::warn("Unknown DescriptorType, default to Invalid");
     return "Invalid";
 }
 
 DescriptorType StringToDescriptorType(const std::string& str)
 {
-    if (str == "Sampler") return DescriptorType::Sampler;
-    if (str == "CombinedImageSampler") return DescriptorType::CombinedImageSampler;
-    if (str == "SampledImage") return DescriptorType::SampledImage;
-    if (str == "StorageImage") return DescriptorType::StorageImage;
-    if (str == "UniformTexelBuffer") return DescriptorType::UniformTexelBuffer;
-    if (str == "StorageTexelBuffer") return DescriptorType::StorageTexelBuffer;
-    if (str == "UniformBuffer") return DescriptorType::UniformBuffer;
-    if (str == "StorageBuffer") return DescriptorType::StorageBuffer;
-    if (str == "UniformBufferDynamic") return DescriptorType::UniformBufferDynamic;
-    if (str == "StorageBufferDynamic") return DescriptorType::StorageBufferDynamic;
-    if (str == "InputAttachment") return DescriptorType::InputAttachment;
+    if (str == "Sampler")
+        return DescriptorType::Sampler;
+    if (str == "CombinedImageSampler")
+        return DescriptorType::CombinedImageSampler;
+    if (str == "SampledImage")
+        return DescriptorType::SampledImage;
+    if (str == "StorageImage")
+        return DescriptorType::StorageImage;
+    if (str == "UniformTexelBuffer")
+        return DescriptorType::UniformTexelBuffer;
+    if (str == "StorageTexelBuffer")
+        return DescriptorType::StorageTexelBuffer;
+    if (str == "UniformBuffer")
+        return DescriptorType::UniformBuffer;
+    if (str == "StorageBuffer")
+        return DescriptorType::StorageBuffer;
+    if (str == "UniformBufferDynamic")
+        return DescriptorType::UniformBufferDynamic;
+    if (str == "StorageBufferDynamic")
+        return DescriptorType::StorageBufferDynamic;
+    if (str == "InputAttachment")
+        return DescriptorType::InputAttachment;
+    if (str == "AccelerationStructure")
+        return DescriptorType::AccelerationStructure;
+
+    spdlog::warn("Unknown DescriptorType string: {}, default to Invalid", str);
     return DescriptorType::Invalid;
 }
 
@@ -53,32 +71,47 @@ const char* TextureTypeToString(TextureType type)
 
 TextureType StringToTextureType(const std::string& str)
 {
-    if (str == "Tex2D") return TextureType::Tex2D;
-    if (str == "Tex3D") return TextureType::Tex3D;
-    if (str == "TexCube") return TextureType::TexCube;
+    if (str == "Tex2D")
+        return TextureType::Tex2D;
+    if (str == "Tex3D")
+        return TextureType::Tex3D;
+    if (str == "TexCube")
+        return TextureType::TexCube;
     return TextureType::Invalid;
 }
 
 const char* ShaderStageToString(ShaderStageFlags stages)
 {
     // Handle common combinations
-    if (stages == ShaderStage::None) return "None";
-    if (stages == ShaderStage::Vertex) return "Vertex";
-    if (stages == ShaderStage::Fragment) return "Fragment";
-    if (stages == ShaderStage::Compute) return "Compute";
-    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment)) return "VertexFragment";
-    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute)) return "All";
+    if (stages == ShaderStage::None)
+        return "None";
+    if (stages == ShaderStage::Vertex)
+        return "Vertex";
+    if (stages == ShaderStage::Fragment)
+        return "Fragment";
+    if (stages == ShaderStage::Compute)
+        return "Compute";
+    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment))
+        return "VertexFragment";
+    if (stages == (ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute))
+        return "All";
     return "Unknown";
 }
 
 ShaderStageFlags StringToShaderStage(const std::string& str)
 {
-    if (str == "None") return ShaderStage::None;
-    if (str == "Vertex") return ShaderStage::Vertex;
-    if (str == "Fragment") return ShaderStage::Fragment;
-    if (str == "Compute") return ShaderStage::Compute;
-    if (str == "VertexFragment") return ShaderStage::Vertex | ShaderStage::Fragment;
-    if (str == "All") return ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute;
+    if (str == "None")
+        return ShaderStage::None;
+    if (str == "Vertex")
+        return ShaderStage::Vertex;
+    if (str == "Fragment")
+        return ShaderStage::Fragment;
+    if (str == "Compute")
+        return ShaderStage::Compute;
+    if (str == "VertexFragment")
+        return ShaderStage::Vertex | ShaderStage::Fragment;
+    if (str == "All")
+        return ShaderStage::Vertex | ShaderStage::Fragment | ShaderStage::Compute;
     return ShaderStage::None;
 }
 
@@ -97,11 +130,16 @@ const char* SamplerAddressModeToString(SamplerAddressMode mode)
 
 SamplerAddressMode StringToSamplerAddressMode(const std::string& str)
 {
-    if (str == "Repeat") return SamplerAddressMode::Repeat;
-    if (str == "MirroredRepeat") return SamplerAddressMode::MirroredRepeat;
-    if (str == "ClampToEdge") return SamplerAddressMode::ClampToEdge;
-    if (str == "ClampToBorder") return SamplerAddressMode::ClampToBorder;
-    if (str == "MirrorClampToEdge") return SamplerAddressMode::MirrorClampToEdge;
+    if (str == "Repeat")
+        return SamplerAddressMode::Repeat;
+    if (str == "MirroredRepeat")
+        return SamplerAddressMode::MirroredRepeat;
+    if (str == "ClampToEdge")
+        return SamplerAddressMode::ClampToEdge;
+    if (str == "ClampToBorder")
+        return SamplerAddressMode::ClampToBorder;
+    if (str == "MirrorClampToEdge")
+        return SamplerAddressMode::MirrorClampToEdge;
     return SamplerAddressMode::Repeat;
 }
 
@@ -117,7 +155,8 @@ const char* SamplerMipmapModeToString(SamplerMipmapMode mode)
 
 SamplerMipmapMode StringToSamplerMipmapMode(const std::string& str)
 {
-    if (str == "Linear") return SamplerMipmapMode::Linear;
+    if (str == "Linear")
+        return SamplerMipmapMode::Linear;
     return SamplerMipmapMode::Nearest;
 }
 
@@ -133,7 +172,8 @@ const char* FilterModeToString(FilterMode mode)
 
 FilterMode StringToFilterMode(const std::string& str)
 {
-    if (str == "Linear") return FilterMode::Linear;
+    if (str == "Linear")
+        return FilterMode::Linear;
     return FilterMode::Nearest;
 }
 
@@ -150,8 +190,10 @@ const char* DescriptorSetSemanticsToString(DescriptorSetSemantics semantics)
 
 DescriptorSetSemantics StringToDescriptorSetSemantics(const std::string& str)
 {
-    if (str == "Material") return DescriptorSetSemantics::Material;
-    if (str == "Object") return DescriptorSetSemantics::Object;
+    if (str == "Material")
+        return DescriptorSetSemantics::Material;
+    if (str == "Object")
+        return DescriptorSetSemantics::Object;
     return DescriptorSetSemantics::Global;
 }
 
@@ -170,11 +212,16 @@ const char* MemberDataTypeToString(ShaderPipelineInfo::MemberDataType type)
 
 ShaderPipelineInfo::MemberDataType StringToMemberDataType(const std::string& str)
 {
-    if (str == "Bool") return ShaderPipelineInfo::MemberDataType::Bool;
-    if (str == "Float") return ShaderPipelineInfo::MemberDataType::Float;
-    if (str == "UInt") return ShaderPipelineInfo::MemberDataType::UInt;
-    if (str == "Int") return ShaderPipelineInfo::MemberDataType::Int;
-    if (str == "Structure") return ShaderPipelineInfo::MemberDataType::Structure;
+    if (str == "Bool")
+        return ShaderPipelineInfo::MemberDataType::Bool;
+    if (str == "Float")
+        return ShaderPipelineInfo::MemberDataType::Float;
+    if (str == "UInt")
+        return ShaderPipelineInfo::MemberDataType::UInt;
+    if (str == "Int")
+        return ShaderPipelineInfo::MemberDataType::Int;
+    if (str == "Structure")
+        return ShaderPipelineInfo::MemberDataType::Structure;
     return ShaderPipelineInfo::MemberDataType::Float;
 }
 
@@ -194,21 +241,31 @@ const char* VertexAttributeSemanticsToString(VertexAttributeSemantics semantics)
 
 VertexAttributeSemantics StringToVertexAttributeSemantics(const std::string& str)
 {
-    if (str == "Position") return VertexAttributeSemantics::Position;
-    if (str == "Normal") return VertexAttributeSemantics::Normal;
-    if (str == "Tangent") return VertexAttributeSemantics::Tangent;
-    if (str == "Texcoord") return VertexAttributeSemantics::Texcoord;
-    if (str == "Color") return VertexAttributeSemantics::Color;
-    if (str == "Bone") return VertexAttributeSemantics::Bone;
+    if (str == "Position")
+        return VertexAttributeSemantics::Position;
+    if (str == "Normal")
+        return VertexAttributeSemantics::Normal;
+    if (str == "Tangent")
+        return VertexAttributeSemantics::Tangent;
+    if (str == "Texcoord")
+        return VertexAttributeSemantics::Texcoord;
+    if (str == "Color")
+        return VertexAttributeSemantics::Color;
+    if (str == "Bone")
+        return VertexAttributeSemantics::Bone;
     return VertexAttributeSemantics::Position;
 }
 
 const char* ShaderDynamicStateToString(ShaderDynamicStateFlags state)
 {
-    if (state == ShaderDynamicState::None) return "None";
-    if (state == ShaderDynamicState::DepthBiasEnable) return "DepthBiasEnable";
-    if (state == ShaderDynamicState::DepthBias) return "DepthBias";
-    if (state == (ShaderDynamicState::DepthBiasEnable | ShaderDynamicState::DepthBias)) return "DepthBiasEnable|DepthBias";
+    if (state == ShaderDynamicState::None)
+        return "None";
+    if (state == ShaderDynamicState::DepthBiasEnable)
+        return "DepthBiasEnable";
+    if (state == ShaderDynamicState::DepthBias)
+        return "DepthBias";
+    if (state == (ShaderDynamicState::DepthBiasEnable | ShaderDynamicState::DepthBias))
+        return "DepthBiasEnable|DepthBias";
     return "None";
 }
 

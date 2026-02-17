@@ -153,7 +153,7 @@ private:
         std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
     );
     void MakeBarrierFromWritableResources(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded, const std::vector<VKWritableGPUResource>& writableResources);
-    void FlushAllDynamicBindedSetUpdate(
+    void MakeBarrierForAllDynamicBindedSetUpdate(
         std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
     );
     bool TrackResource(
@@ -171,7 +171,7 @@ private:
         int& barrierCount,
         int& barrierOffset
     );
-    void UpdateDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
+    void BindDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
     std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
@@ -221,7 +221,7 @@ private:
         }
     }
 
-    void GetImageViewOrBuffer(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer);
+    void GetImageViewOrBufferOrAccelerationStructure(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer, AccelerationStructureRef& asRef);
 
     int MakeBarrierForLastUsage2(VKImage* image)
     {

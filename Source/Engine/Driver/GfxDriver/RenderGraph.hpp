@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Driver/GfxDriver/RayTracingContext.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include "Engine/Library/Hash.hpp"
 #include "Engine/Library/UUID.hpp"
@@ -81,6 +82,17 @@ private:
     uint64_t hash;
 
     void Rehash() { hash = XXH3_64bits(&data, sizeof(InternalData)); }
+};
+
+struct AccelerationStructureRef
+{
+    RayTracingContext* context = nullptr;
+    RayTracingSceneHandle scene = -1;
+
+    bool operator==(const AccelerationStructureRef& other) const
+    {
+        return context == other.context && scene == other.scene;
+    }
 };
 
 struct ImageIdentifier

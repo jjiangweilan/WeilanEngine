@@ -5,7 +5,7 @@
  * It uses the same compilation and reflection logic as the runtime ShaderLibraryAsyncWorker.
  *
  * Usage:
- *   ShaderCompilerTool --shader <shader_name> --output <output_dir> [--features feature1,feature2,...]
+ *   ShaderCompilerTool --shader <shader_name> --output <output_dir> --shader-root <shader_root_directory> [--features feature1,feature2,...]
  *
  * Outputs to <output_dir>:
  *   - vertex.spv (if vertex shader exists)
@@ -473,6 +473,7 @@ private:
             case slang::BindingType::ParameterBlock: return "UniformBuffer";
             case slang::BindingType::RawBuffer: return "StorageBuffer";
             case slang::BindingType::MutableRawBuffer: return "StorageBuffer";
+            case slang::BindingType::RayTracingAccelerationStructure: return "AccelerationStructure";
             default: return "Invalid";
         }
     }
