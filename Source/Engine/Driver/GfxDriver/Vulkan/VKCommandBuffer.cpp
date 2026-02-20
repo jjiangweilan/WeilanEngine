@@ -568,4 +568,23 @@ void VKCommandBuffer::BindResource(uint32_t set, const std::vector<DynamicBindin
     cmds.push_back(VKCmd{VKCmdType::DynamicBindResource, cmd});
 }
 
+void VKCommandBuffer::BuildBLAS(RayTracingMeshHandle handle, std::span<VkAccelerationStructureGeometryKHR> geometries, std::span<uint32_t> maxPrimitiveCounts)
+{
+    VKBuildBLASCmd cmd{};
+    cmd.handle = handle;
+    cmd.vkGeometries.assign(geometries.begin(), geometries.end());
+    cmd.maxPrimitiveCounts.assign(maxPrimitiveCounts.begin(), maxPrimitiveCounts.end());
+
+    cmds.push_back(VKCmd{VKCmdType::BuildBLAS, cmd});
+}
+
+void VKCommandBuffer::BuildTLAS(RayTracingSceneHandle handle, std::span<RayTracingInstanceHandle> instances)
+{
+    VKBuildTLASCmd cmd{};
+    cmd.handle = handle;
+    cmd.instances.assign(instances.begin(), instances.end());
+
+    cmds.push_back(VKCmd{VKCmdType::BuildTLAS, cmd});
+}
+
 } // namespace Gfx

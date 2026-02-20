@@ -151,6 +151,8 @@ void MeshRenderer::RemoveFromRenderingScene()
 void MeshRenderer::OnEnable()
 {
     AddToRenderingScene();
+
+    // InitializeForRayTracing();
 }
 
 void MeshRenderer::OnDisable()

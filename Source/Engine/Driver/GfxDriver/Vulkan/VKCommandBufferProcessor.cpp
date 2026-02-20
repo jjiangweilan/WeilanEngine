@@ -1,11 +1,14 @@
 #include "VKCommandBufferProcessor.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKRayTracingContext.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/Hash.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDriver.hpp"
 
+#include "RayTracing/VKRayTracing.hpp"
+#include "VKBuffer.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
@@ -1214,6 +1217,20 @@ void VKCommandBufferProcessor::Execute(
                     vkCmdClearColorImage(vkcmd, vkimage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
                     break;
                 }
+            case VKCmdType::BuildBLAS:
+                {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BuildBLAS");
+                    auto& args = std::get<VKBuildBLASCmd>(cmd.args);
+                    rayTracingManager->CreateBLASCommandBufferImpl(vkcmd, args.handle, args.vkGeometries, args.maxPrimitiveCounts);
+                    break;
+                }
+            case VKCmdType::BuildTLAS:
+                {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BuildTLAS");
+                    auto& args = std::get<VKBuildTLASCmd>(cmd.args);
+                    rayTracingManager->BuildSceneCommandBufferImpl(vkcmd, args.handle, args.instances);
+                    break;
+                }
             case VKCmdType::DrawIndirect:
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndirect");
@@ -2041,8 +2058,9 @@ VKImage* VKCommandBufferProcessor::GetImage(const UUID& hash)
     return resourceAllocator->GetImage(hash);
 }
 
-VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount)
+VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount, VKRayTracing::Manager* rayTracingManager)
 {
+    this->rayTracingManager = rayTracingManager;
     resourceAllocator = std::make_unique<ResourceAllocator>(this);
 
     Buffer::CreateInfo createInfo{
@@ -2489,7 +2507,8 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                         {
                             if (asRef.context != nullptr)
                             {
-                                asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)asRef.context->GetNativeHandle(asRef.scene);
+                                auto rayTracingContext = static_cast<VKRayTracingContext*>(asRef.context);
+                                asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)rayTracingContext->GetNativeHandle(asRef.scene);
                             }
                             else
                             {

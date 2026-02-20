@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKInflightCmd.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
@@ -47,8 +48,11 @@ struct GPU
     VkPhysicalDevice handle;
 
     VkPhysicalDeviceMemoryProperties memProperties;
-    VkPhysicalDeviceProperties physicalDeviceProperties{};
     VkPhysicalDeviceFeatures physicalDeviceFeatures{};
+
+    VkPhysicalDeviceProperties physicalDeviceProperties{};
+    VkPhysicalDeviceProperties2 physicalDeviceProperties2{};
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR asProps = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR};
 
     std::vector<VkQueueFamilyProperties> queueFamilyProperties;
     std::vector<VkExtensionProperties> availableExtensions;
@@ -105,6 +109,7 @@ public:
     GPU* gpu;
     Swapchain* swapchain;
     Queue* mainQueue;
+    VKFrameContext* currentFrameContext = nullptr;
 
     VKMemAllocator* allocator;
     VKObjectManager* objManager;

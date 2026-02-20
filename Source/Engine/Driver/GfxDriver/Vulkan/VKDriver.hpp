@@ -1,10 +1,11 @@
 #pragma once
+#include "Engine/Driver/GfxDriver/Vulkan/RayTracing/VKRayTracing.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
-#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 #include "../GfxDriver.hpp"
 
@@ -172,6 +173,7 @@ public:
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
+    size_t frameCount = 0;
     std::unique_ptr<VKCommandBufferProcessor> commandBufferProcessor;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
@@ -203,6 +205,7 @@ private:
     SDL_Window* window;
     struct SDLInfo;
     std::unique_ptr<SDLInfo> sdlInfo;
+    std::unique_ptr<VKRayTracing::Manager> rayTracingManager;
 
     // ====== profiler ======
     struct TimestampQuery

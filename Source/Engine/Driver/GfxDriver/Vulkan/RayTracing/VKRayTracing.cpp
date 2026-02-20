@@ -1,10 +1,11 @@
 #include "VKRayTracing.hpp"
 
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommandBuffer.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKContext.hpp"
 #include <cstring>
-#include <vector>
 #include <spdlog/spdlog.h>
-#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
+#include <vector>
 
 namespace Gfx::VKRayTracing
 {
@@ -12,6 +13,10 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
 {
     auto device = VKContext::Instance()->device;
     auto allocator = VKContext::Instance()->allocator;
+    auto vkContext = VKContext::Instance();
+
+    auto blasHandle = blasPool.AllocateRaw();
+    auto& blasEntry = blasPool[blasHandle];
 
     std::vector<VkAccelerationStructureGeometryKHR> vkGeometries;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos;
@@ -50,25 +55,15 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
             .indexData = {.deviceAddress = vkIndexBuffer->GetDeviceAddress()}
         };
 
-        vkGeometries.push_back(VkAccelerationStructureGeometryKHR{
-            .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-            .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
-            .geometry = {.triangles = trianglesData},
-            .flags = VK_GEOMETRY_OPAQUE_BIT_KHR
-        });
+        vkGeometries.push_back(VkAccelerationStructureGeometryKHR{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR, .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR, .geometry = {.triangles = trianglesData}, .flags = VK_GEOMETRY_OPAQUE_BIT_KHR});
 
-        buildRangeInfos.push_back(VkAccelerationStructureBuildRangeInfoKHR{
-            .primitiveCount = geometry.triangleCount,
-            .primitiveOffset = 0,
-            .firstVertex = 0,
-            .transformOffset = 0
-        });
+        buildRangeInfos.push_back(VkAccelerationStructureBuildRangeInfoKHR{.primitiveCount = geometry.triangleCount, .primitiveOffset = 0, .firstVertex = 0, .transformOffset = 0});
 
         maxPrimitiveCounts.push_back(geometry.triangleCount);
     }
 
     if (vkGeometries.empty())
-        return 0;
+        return -1;
 
     VkAccelerationStructureBuildGeometryInfoKHR blasBuildGeometryInfo{
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
@@ -90,9 +85,6 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
         &blasBuildSizes
     );
 
-    auto blasHandle = blasPool.AllocateRaw();
-    auto& blasEntry = blasPool[blasHandle];
-
     // Create blas buffer
     VkBufferCreateInfo blasBufferCreateInfo{
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -111,58 +103,8 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
         .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
     };
     vkCreateAccelerationStructureKHR(device, &blasCreateInfo, nullptr, &blasEntry.handle);
-    blasBuildGeometryInfo.dstAccelerationStructure = blasEntry.handle;
 
-    // Create scratch buffer
-    VkBuffer scratchBuffer;
-    VmaAllocation scratchAllocation;
-    VkBufferCreateInfo scratchBufferCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = blasBuildSizes.buildScratchSize,
-        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-    };
-    VmaAllocationCreateInfo scratchAllocInfo{.usage = VMA_MEMORY_USAGE_GPU_ONLY};
-    allocator->CreateBuffer(scratchBufferCreateInfo, scratchAllocInfo, scratchBuffer, scratchAllocation);
-
-    VkBufferDeviceAddressInfo scratchAddrInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = scratchBuffer
-    };
-    blasBuildGeometryInfo.scratchData.deviceAddress = vkGetBufferDeviceAddress(device, &scratchAddrInfo);
-
-    // Build BLAS
-    auto cmdPool = VKContext::Instance()->mainCmdPool;
-    VkCommandBuffer commandBuffer;
-    VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = cmdPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
-    };
-    vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-    };
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfos = buildRangeInfos.data();
-    vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &blasBuildGeometryInfo, &pBuildRangeInfos);
-    vkEndCommandBuffer(commandBuffer);
-
-    // submit
-    VkSubmitInfo submitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &commandBuffer
-    };
-    vkQueueSubmit(VKContext::Instance()->mainQueue->handle, 1, &submitInfo, VK_NULL_HANDLE);
-
-    // Sync
-    vkDeviceWaitIdle(device);
-    allocator->DestroyBuffer(scratchBuffer, scratchAllocation);
+    cmdBuffer->BuildBLAS(blasHandle, vkGeometries, maxPrimitiveCounts);
 
     return blasHandle;
 }
@@ -199,115 +141,7 @@ RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm:
 
 void Manager::BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instanceHandles)
 {
-    auto& tlas = tlasPool[sceneHandle];
-    auto device = VKContext::Instance()->device;
-    auto allocator = VKContext::Instance()->allocator;
-
-    uint32_t instanceCount = static_cast<uint32_t>(instanceHandles.size());
-    if (instanceCount == 0 || instanceCount > tlas.instanceCount)
-        return;
-
-    // 1. Prepare instance data buffer
-    void* mappedData;
-    vmaMapMemory(allocator->GetHandle(), tlas.instanceAllocation, &mappedData);
-    auto* instanceData = static_cast<VkAccelerationStructureInstanceKHR*>(mappedData);
-    for (uint32_t i = 0; i < instanceCount; ++i)
-    {
-        instanceData[i] = instancePool[instanceHandles[i]].data;
-    }
-    vmaUnmapMemory(allocator->GetHandle(), tlas.instanceAllocation);
-
-    VkBufferDeviceAddressInfo instanceAddrInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = tlas.instanceBuffer
-    };
-    VkDeviceAddress instanceDeviceAddr = vkGetBufferDeviceAddress(device, &instanceAddrInfo);
-
-    // 2. Describe TLAS Geometry
-    VkAccelerationStructureGeometryInstancesDataKHR instancesData{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-        .arrayOfPointers = VK_FALSE,
-        .data = {.deviceAddress = instanceDeviceAddr}
-    };
-
-    VkAccelerationStructureGeometryKHR tlasGeometry{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-        .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
-        .geometry = {.instances = instancesData},
-        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR
-    };
-
-    VkAccelerationStructureBuildGeometryInfoKHR tlasBuildGeometryInfo{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
-        .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
-        .flags = 0,
-        .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
-        .srcAccelerationStructure = VK_NULL_HANDLE,
-        .dstAccelerationStructure = tlas.handle,
-        .geometryCount = 1,
-        .pGeometries = &tlasGeometry,
-    };
-
-    // 3. Create Scratch Buffer
-    VkAccelerationStructureBuildSizesInfoKHR tlasBuildSizes{
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR
-    };
-    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &tlasBuildGeometryInfo, &instanceCount, &tlasBuildSizes);
-
-    VkBuffer scratchBuffer;
-    VmaAllocation scratchAllocation;
-    VkBufferCreateInfo scratchBufferCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = tlasBuildSizes.buildScratchSize,
-        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-    };
-    VmaAllocationCreateInfo scratchAllocInfo{.usage = VMA_MEMORY_USAGE_GPU_ONLY};
-    allocator->CreateBuffer(scratchBufferCreateInfo, scratchAllocInfo, scratchBuffer, scratchAllocation);
-
-    VkBufferDeviceAddressInfo scratchAddrInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = scratchBuffer
-    };
-    tlasBuildGeometryInfo.scratchData.deviceAddress = vkGetBufferDeviceAddress(device, &scratchAddrInfo);
-
-    // 4. Build Command
-    auto cmdPool = VKContext::Instance()->mainCmdPool;
-    VkCommandBuffer commandBuffer;
-    VkCommandBufferAllocateInfo cmdBufAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = cmdPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
-    };
-    vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-    };
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{
-        .primitiveCount = instanceCount,
-        .primitiveOffset = 0,
-        .firstVertex = 0,
-        .transformOffset = 0
-    };
-    const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfo = &buildRangeInfo;
-    vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &tlasBuildGeometryInfo, &pBuildRangeInfo);
-    vkEndCommandBuffer(commandBuffer);
-
-    // submit
-    VkSubmitInfo submitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &commandBuffer
-    };
-    vkQueueSubmit(VKContext::Instance()->mainQueue->handle, 1, &submitInfo, VK_NULL_HANDLE);
-    vkDeviceWaitIdle(device);
-
-    allocator->DestroyBuffer(scratchBuffer, scratchAllocation);
+    cmdBuffer->BuildTLAS(sceneHandle, instanceHandles);
 }
 
 RayTracingSceneHandle Manager::CreateScene(uint32_t maxInstanceCount)
@@ -405,5 +239,128 @@ void Manager::DestroyScene(RayTracingSceneHandle sceneHandle)
 void* Manager::GetNativeHandle(RayTracingSceneHandle scene)
 {
     return (void*)tlasPool[scene].handle;
+}
+
+void Manager::BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instanceHandles)
+{
+    auto& tlas = tlasPool[sceneHandle];
+    auto vkContext = VKContext::Instance();
+    auto device = VKContext::Instance()->device;
+    auto allocator = VKContext::Instance()->allocator;
+
+    uint32_t instanceCount = static_cast<uint32_t>(instanceHandles.size());
+    if (instanceCount == 0 || instanceCount > tlas.instanceCount)
+        return;
+
+    auto instanceDataBuffer = allocator->AllocateScratchBuffer(sizeof(VkAccelerationStructureInstanceKHR) * instanceCount, 16, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::HostVisibleScatchBuffer);
+    void* mappedData = instanceDataBuffer.mappedData;
+    auto* instanceData = static_cast<VkAccelerationStructureInstanceKHR*>(mappedData);
+    for (uint32_t i = 0; i < instanceCount; ++i)
+    {
+        instanceData[i] = instancePool[instanceHandles[i]].data;
+    }
+    VkDeviceAddress instanceDeviceAddr = instanceDataBuffer.deviceAddress; // vkGetBufferDeviceAddress(device, &instanceAddrInfo);
+
+    // 2. Describe TLAS Geometry
+    VkAccelerationStructureGeometryInstancesDataKHR instancesData{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+        .arrayOfPointers = VK_FALSE,
+        .data = {.deviceAddress = instanceDeviceAddr}
+    };
+
+    VkAccelerationStructureGeometryKHR tlasGeometry{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+        .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+        .geometry = {.instances = instancesData},
+        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR
+    };
+
+    VkAccelerationStructureBuildGeometryInfoKHR tlasBuildGeometryInfo{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+        .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        .flags = 0,
+        .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
+        .srcAccelerationStructure = VK_NULL_HANDLE,
+        .dstAccelerationStructure = tlas.handle,
+        .geometryCount = 1,
+        .pGeometries = &tlasGeometry,
+    };
+
+    VkAccelerationStructureBuildSizesInfoKHR tlasBuildSizes{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR
+    };
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &tlasBuildGeometryInfo, &instanceCount, &tlasBuildSizes);
+
+    auto scratchBufferHandle = allocator->AllocateScratchBuffer(tlasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::GPUScratchBuffer);
+    tlasBuildGeometryInfo.scratchData.deviceAddress = scratchBufferHandle.deviceAddress; // vkGetBufferDeviceAddress(device, &scratchAddrInfo);
+
+    VkCommandBuffer commandBuffer = vkContext->currentFrameContext->cmd;
+
+    VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo{
+        .primitiveCount = instanceCount,
+        .primitiveOffset = 0,
+        .firstVertex = 0,
+        .transformOffset = 0
+    };
+    const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfo = &buildRangeInfo;
+    vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &tlasBuildGeometryInfo, &pBuildRangeInfo);
+}
+
+void Manager::CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHandle& blasHandle, std::span<VkAccelerationStructureGeometryKHR> vkGeometries, std::vector<uint32_t> maxPrimitiveCounts)
+{
+    auto device = VKContext::Instance()->device;
+    auto allocator = VKContext::Instance()->allocator;
+    auto vkContext = VKContext::Instance();
+    auto blasEntry = blasPool[blasHandle];
+
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos{};
+
+    int geometryIndex = 0;
+    for (auto& geometry : vkGeometries)
+    {
+        buildRangeInfos.push_back(VkAccelerationStructureBuildRangeInfoKHR{.primitiveCount = maxPrimitiveCounts[geometryIndex], .primitiveOffset = 0, .firstVertex = 0, .transformOffset = 0});
+        geometryIndex += 1;
+    }
+
+    if (vkGeometries.empty())
+        return;
+
+    VkAccelerationStructureBuildGeometryInfoKHR blasBuildGeometryInfo{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+        .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
+        .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
+        .geometryCount = static_cast<uint32_t>(vkGeometries.size()),
+        .pGeometries = vkGeometries.data(),
+    };
+
+    //// Query memory usage
+    VkAccelerationStructureBuildSizesInfoKHR blasBuildSizes{
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR
+    };
+    vkGetAccelerationStructureBuildSizesKHR(
+        device,
+        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &blasBuildGeometryInfo,
+        maxPrimitiveCounts.data(),
+        &blasBuildSizes
+    );
+
+    blasBuildGeometryInfo.dstAccelerationStructure = blasEntry.handle;
+
+    auto scratchBufferHandle = allocator->AllocateScratchBuffer(blasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::GPUScratchBuffer);
+    blasBuildGeometryInfo.scratchData.deviceAddress = scratchBufferHandle.deviceAddress; // vkGetBufferDeviceAddress(device, &scratchAddrInfo);
+
+    auto commandBuffer = vkContext->currentFrameContext->cmd;
+    const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfos = buildRangeInfos.data();
+    vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &blasBuildGeometryInfo, &pBuildRangeInfos);
+}
+
+Manager::Manager()
+{
+    cmdBuffer = std::make_unique<VKCommandBuffer>(nullptr); // nullptr is ok, because we don't allocate any dynamic resources
+}
+
+Manager::~Manager()
+{
 }
 } // namespace Gfx::VKRayTracing

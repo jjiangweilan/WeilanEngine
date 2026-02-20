@@ -301,6 +301,19 @@ struct VKAsyncReadbackCmd
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
 
+struct VKBuildBLASCmd
+{
+    RayTracingMeshHandle handle;
+    std::vector<VkAccelerationStructureGeometryKHR> vkGeometries;
+    std::vector<uint32_t> maxPrimitiveCounts;
+};
+
+struct VKBuildTLASCmd
+{
+    RayTracingSceneHandle handle;
+    std::vector<RayTracingInstanceHandle> instances;
+};
+
 struct VKGraphicsBlitCmd
 {
     ImageIdentifier from;
@@ -358,6 +371,8 @@ enum class VKCmdType
     EndLabel,
     InsertLabel,
     AsyncReadback,
+    BuildBLAS,
+    BuildTLAS,
     GraphicsBlit,
     ClearColorImage,
 };
@@ -402,6 +417,8 @@ struct VKCmd
         VKEndLabelCmd,
         VKInsertLabelCmd,
         VKAsyncReadbackCmd,
+        VKBuildBLASCmd,
+        VKBuildTLASCmd,
         VKGraphicsBlitCmd,
         VKClearColorImageCmd>
         args;
@@ -484,6 +501,9 @@ public:
     void PresentImage(VKImage* image);
 
     std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset) override;
+
+    void BuildBLAS(RayTracingMeshHandle handle, std::span<VkAccelerationStructureGeometryKHR> geometries, std::span<uint32_t> maxPrimitiveCounts);
+    void BuildTLAS(RayTracingSceneHandle handle, std::span<RayTracingInstanceHandle> instances);
 
     void Reset(bool releaseResource) override
     {

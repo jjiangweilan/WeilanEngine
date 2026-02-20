@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Driver/GfxDriver/Vulkan/RayTracing/VKRayTracing.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKContext.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKInflightCmd.hpp"
@@ -44,7 +45,7 @@ struct ResourceUsageTrack
 class VKCommandBufferProcessor
 {
 public:
-    VKCommandBufferProcessor(int inflightCount);
+    VKCommandBufferProcessor(int inflightCount, VKRayTracing::Manager* rayTracingManager);
     ~VKCommandBufferProcessor();
 
     void Execute(
@@ -145,8 +146,10 @@ private:
     //
     std::unique_ptr<ResourceAllocator> resourceAllocator;
     std::unordered_map<uint64_t, DescriptorSetCacheInfo> descriptorSetCache;
+    VKRayTracing::Manager* rayTracingManager;
 
-    VkDescriptorSet RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram);
+    VkDescriptorSet
+    RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram);
     void CreateRenderPassNode(int visitIndex);
     // scheduling
     void FlushAllBindedSetUpdate(

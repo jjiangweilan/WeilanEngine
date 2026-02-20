@@ -12,6 +12,7 @@ struct VKFrameContext
 
     VkQueryPool timestapQueryPool = VK_NULL_HANDLE;
     int maxtimestapQueryCount = 0;
+    size_t frameIndex = 0;
 
     std::vector<std::function<void()>> onCompleteCallbacks{};
 };

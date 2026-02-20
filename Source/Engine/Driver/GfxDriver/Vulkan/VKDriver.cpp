@@ -61,6 +61,7 @@ struct VKDriver::SDLInfo
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
     featureSettings.enableGPUProfiling = false;
+    rayTracingManager = std::make_unique<VKRayTracing::Manager>();
 
 #if ENGINE_DEV_BUILD
     if (createInfo.enableRenderDoc)
@@ -177,7 +178,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
-    commandBufferProcessor = std::make_unique<VKCommandBufferProcessor>(inflightCount);
+    commandBufferProcessor = std::make_unique<VKCommandBufferProcessor>(inflightCount, rayTracingManager.get());
 
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
@@ -571,6 +572,10 @@ bool VKDriver::BeginFrame()
 
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
 
+    VKContext::Instance()->currentFrameContext = &frameContexts[currentInflightIndex];
+    frameCount++;
+    memAllocator->NewFrame(frameCount - 1);
+
     return true;
 }
 
@@ -661,6 +666,8 @@ bool VKDriver::EndFrame()
     vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
+    frameContexts[currentInflightIndex].frameIndex = frameCount - 1;
+
     // acquire next swapchain
     //
     if (needPresent)
@@ -700,6 +707,9 @@ bool VKDriver::EndFrame()
 
     // record scheduled commands
     auto cmd = frameContexts[currentInflightIndex].cmd;
+
+    ExecuteCommandBuffer(*rayTracingManager->cmdBuffer);
+    rayTracingManager->cmdBuffer->Reset(true);
 
     CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -1068,7 +1078,9 @@ void VKDriver::CreatePhysicalDevice()
     {
         GPU thisGPU{pd};
 
+        thisGPU.physicalDeviceProperties2.pNext = &thisGPU.asProps;
         vkGetPhysicalDeviceProperties(thisGPU.handle, &thisGPU.physicalDeviceProperties);
+        vkGetPhysicalDeviceProperties2(thisGPU.handle, &thisGPU.physicalDeviceProperties2);
         vkGetPhysicalDeviceFeatures(thisGPU.handle, &thisGPU.physicalDeviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(thisGPU.handle, &thisGPU.memProperties);
 
@@ -1262,10 +1274,10 @@ void VKDriver::CreateDevice()
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
-        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, // The one you need
-        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,   // Usually needed with AS
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,  // The one you need
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,    // Usually needed with AS
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME // Required dependency for RT
-                                                      // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+                                                       // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -1419,7 +1431,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
     );
 
-    VKCommandBufferProcessor rg(1);
+    VKCommandBufferProcessor rg(1, rayTracingManager.get());
     VKFramePrepareData framePrepareData;
     framePrepareData.AppendVKCommandBuffer(static_cast<VKCommandBuffer*>(&cmd));
 
@@ -1487,7 +1499,7 @@ std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 
 std::unique_ptr<RayTracingContext> VKDriver::CreateRayTracingContext()
 {
-    return std::unique_ptr<VKRayTracingContext>(new VKRayTracingContext());
+    return std::unique_ptr<VKRayTracingContext>(new VKRayTracingContext(rayTracingManager.get(), driverMutex));
 }
 
 void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)
@@ -1525,6 +1537,7 @@ void VKDriver::WaitForCurrentInflightCmd()
     {
         f();
     }
+    memAllocator->GPUFrameFinished(frameContexts[currentInflightIndex].frameIndex);
     frameContexts[currentInflightIndex].onCompleteCallbacks.clear();
 }
 

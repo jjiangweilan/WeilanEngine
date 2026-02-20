@@ -5,33 +5,24 @@
 #include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 
-namespace Gfx
-{
-class VKCommandBuffer;
-}
-
 namespace Gfx::VKRayTracing
 {
-class Manager
+class Manager : public RayTracingContext
 {
 public:
-    Manager();
-    ~Manager();
-    RayTracingSceneHandle CreateScene(uint32_t maxInstanceCount);
+    RayTracingSceneHandle CreateScene(uint32_t maxInstanceCount) override;
     void DestroyScene(RayTracingSceneHandle scene);
 
-    RayTracingMeshHandle CreateBLAS(std::span<BlasGeometry> geometries);
+    RayTracingMeshHandle CreateBLAS(std::span<BlasGeometry> geometries) override;
 
-    RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform);
+    RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform) override;
 
-    void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances);
+    void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances) override;
 
     void BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances);
-    void CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHandle& blasHandle, std::span<VkAccelerationStructureGeometryKHR> vkGeometries, std::vector<uint32_t> maxPrimitiveCounts);
+    void CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHandle& blasHandle, std::span<BlasGeometry> geometries);
 
-    void* GetNativeHandle(RayTracingSceneHandle scene);
-
-    std::unique_ptr<VKCommandBuffer> cmdBuffer;
+    void* GetNativeHandle(RayTracingSceneHandle scene) override;
 
 private:
     struct TLAS
