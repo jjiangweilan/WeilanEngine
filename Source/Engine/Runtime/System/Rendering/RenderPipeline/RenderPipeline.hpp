@@ -19,6 +19,7 @@
 #include "Passes/SSAO.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
+#include "Passes/StaticMotionVectorPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
@@ -65,6 +66,7 @@ class RenderPipeline
     Gfx::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::ImageIdentifier maskGBuffer = "maskGBuffer";
+    Gfx::ImageIdentifier motionVector = "StaticMotionVector";
     Gfx::ImageIdentifier finalColor;
     /**
      * @brief used as id for the final output color. Because GetOutputColor is returning a reference, I cached the value here. Maybe GetOutputColor should return by value
@@ -90,6 +92,7 @@ class RenderPipeline
     Passes::SSAO* ssaoPass;
     Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;
+    Passes::StaticMotionVectorPass* staticMotionVectorPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
 

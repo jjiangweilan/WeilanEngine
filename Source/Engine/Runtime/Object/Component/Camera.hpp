@@ -99,6 +99,11 @@ public:
 
     void LookAt(const float3& lookAtPos);
 
+    void SetPreviousViewProjection(const glm::mat4& vp) { previousViewProjection = vp; }
+    void SetInvPreviousViewProjection(const glm::mat4& invVp) { invPreviousViewProjection = invVp; }
+    const glm::mat4& GetPreviousViewProjection() const { return previousViewProjection; }
+    const glm::mat4& GetInvPreviousViewProjection() const { return invPreviousViewProjection; }
+
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() const override;
@@ -109,6 +114,8 @@ private:
     SRef<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
+    glm::mat4 previousViewProjection = glm::mat4(1.0f);
+    glm::mat4 invPreviousViewProjection = glm::mat4(1.0f);
     float near = 0.01f;
     float far = 25000.0f;
     float fov = glm::radians(60.0);

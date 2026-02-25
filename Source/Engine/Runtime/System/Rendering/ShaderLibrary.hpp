@@ -17,6 +17,7 @@
                          Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),     \
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
+                         Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
                          Do(ShadowMapObject, "ShadowMapObject"),                                             \
                          Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                               \
                          Do(ScreenSpaceShadow, "ScreenSpaceShadow"), Do(FXAA, "FXAA"),                       \

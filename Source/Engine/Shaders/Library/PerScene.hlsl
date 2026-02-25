@@ -28,6 +28,8 @@ struct Camera
     float4x4 invProjection;
     float4x4 invNDCToWorld;
     float4 screenSize;
+    float4x4 previousViewProjection;
+    float4x4 invPreviousViewProjection;
 };
 
 static const int MAX_SHADOW_MAP_CASCADE_COUNT = 4;

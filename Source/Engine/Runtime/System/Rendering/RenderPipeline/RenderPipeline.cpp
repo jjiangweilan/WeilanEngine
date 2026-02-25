@@ -35,6 +35,7 @@ RenderPipeline::RenderPipeline()
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
+    staticMotionVectorPass = AddRenderPipelinePass<Passes::StaticMotionVectorPass>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
 
@@ -155,6 +156,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndRenderPass();
     }
     cmd->EndLabel(); // GBuffer
+
+    staticMotionVectorPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
     auto downSampledDepthCopyDesc = mainDepthDescription;
     downSampledDepthCopyDesc.SetFormat(Gfx::GfxFormat::R32_SFloat);
@@ -332,6 +335,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         GetGfxDriver()->ExecuteCommandBuffer(*cmd);
         cmd->Reset(true);
     }
+
+    // Update camera temporal state for the next frame
+    camera.SetPreviousViewProjection(perScene.cameraParameter.viewProjection);
+    camera.SetInvPreviousViewProjection(perScene.cameraParameter.invNDCToWorld);
 }
 
 PerScene::PerScene()
@@ -455,6 +462,10 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     auto& sceneParam = perScene.sceneParameter;
     auto& mainLightShadowParam = perScene.mainLightShadowParameter;
     cameraParam = RenderingUtils::CreateCameraGPUParameter(camera, screenSize);
+
+    // populate previous matrices from camera component
+    cameraParam.previousViewProjection = camera.GetPreviousViewProjection();
+    cameraParam.invPreviousViewProjection = camera.GetInvPreviousViewProjection();
 
     // update main light shadow parameters
     auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();

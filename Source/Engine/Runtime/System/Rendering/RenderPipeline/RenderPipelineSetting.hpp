@@ -68,10 +68,12 @@ public:
     {
         bool drawMeshRendererAABB = false;
         bool wireframe = false;
+        bool motionVectors = false;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(drawMeshRendererAABB),
-            SER(wireframe)
+            SER(wireframe),
+            SER(motionVectors)
         );
 
     } debugDraw;
