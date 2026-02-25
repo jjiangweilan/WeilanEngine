@@ -318,7 +318,10 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     std::unique_ptr<GameObject> firstModelClone = std::make_unique<GameObject>(*go);
     firstModelClone->SetWantsToBeEnabled();
     Material* mats[] = {EngineInternalResources::GetDefaultGridMaterial()};
-    firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
+    for (auto c : firstModelClone->GetComponentsInChildren<MeshRenderer>())
+    {
+        c->SetMaterials(mats);
+    }
     scene.AddGameObject(std::move(firstModelClone));
 }
 
