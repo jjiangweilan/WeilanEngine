@@ -9,6 +9,7 @@
 #include "VKDriver.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
+#include "VKRayTracingContext.hpp"
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
@@ -470,7 +471,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 if (resRef.type == ShaderBindingType::AccelerationStructure)
                                 {
                                     auto& asRef = std::get<AccelerationStructureRef>(resRef.res);
-                                    asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)asRef.context->GetNativeHandle(asRef.scene);
+                                    asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)static_cast<VKRayTracingContext*>(asRef.context)->GetNativeHandle(asRef.scene);
                                 }
                                 else
                                 {
