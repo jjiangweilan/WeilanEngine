@@ -58,6 +58,83 @@ float3 NormalReconstructionMedium(Texture2D depthTex, SamplerState depthTexSampl
     return normal;
 }
 
+float3 NormalReconstructionHigh2(Texture2D depthTex, SamplerState depthTexSampler, float2 uv, float2 depthTexelSize, float4 cameraZBufferParams, matrix<float,4,4> invNDCToX, out float3 centerPos)
+{
+    float depths[9] = {
+        depthTex.SampleLevel(depthTexSampler, uv, 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv - float2(depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv - float2(0, depthTexelSize.y), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(0, depthTexelSize.y), 0).x,
+
+        depthTex.SampleLevel(depthTexSampler, uv - float2(2 * depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(2 * depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv - float2(0, 2 * depthTexelSize.y), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(0, 2 * depthTexelSize.y), 0).x
+    };
+
+
+    float depthC = LinearEyeDepth(depths[0], cameraZBufferParams);
+    float depthL = LinearEyeDepth(depths[1], cameraZBufferParams);
+    float depthR = LinearEyeDepth(depths[2], cameraZBufferParams);
+    float depthU = LinearEyeDepth(depths[3], cameraZBufferParams);
+    float depthB = LinearEyeDepth(depths[4], cameraZBufferParams);
+
+    float depthL2 = LinearEyeDepth(depths[5], cameraZBufferParams);
+    float depthR2 = LinearEyeDepth(depths[6], cameraZBufferParams);
+    float depthU2 = LinearEyeDepth(depths[7], cameraZBufferParams);
+    float depthB2 = LinearEyeDepth(depths[8], cameraZBufferParams);
+
+    depthC = 1 / depthC;
+    depthL = 1 / depthL;
+    depthR = 1 / depthR;
+    depthU = 1 / depthU;
+    depthB = 1 / depthB;
+    depthL2 = 1 / depthL2;
+    depthR2 = 1 / depthR2;
+    depthU2 = 1 / depthU2;
+    depthB2 = 1 / depthB2;
+
+    float diffh0 = abs(depthL - depthC);
+    float diffh1 = abs(depthR - depthC);
+    float diffv0 = abs(depthU - depthC);
+    float diffv1 = abs(depthB - depthC);
+
+    float diffhh0 = abs(depthL2 - depthL);
+    float diffhh1 = abs(depthR2 - depthR);
+    float diffvv0 = abs(depthU2 - depthU);
+    float diffvv1 = abs(depthB2 - depthB);
+
+    int h = abs(diffhh0 - diffh0) < abs(diffhh1 - diffh1) ? 1 : 2;
+    int v = abs(diffvv0 - diffv0) < abs(diffvv1 - diffv1) ? 3 : 4;
+
+    float4 posC = mul(invNDCToX, float4(uv * 2 - 1, depths[0], 1.0f));
+    posC.xyz /= posC.w;
+
+    float4 posH, posV;
+    posH = mul(invNDCToX, float4((uv + float2((2 * (h - 1) - 1) * depthTexelSize.x, 0)) * 2 - 1, (h == 1 ? depths[1] : depths[2]), 1.0f));
+    posH.xyz /= posH.w;
+    posV = mul(invNDCToX, float4((uv + float2(0, (2 * (v - 3) - 1) * depthTexelSize.y)) * 2 - 1, (v == 3 ? depths[3] : depths[4]), 1.0f));
+    posV.xyz /= posV.w;
+
+    float3 n0, n1;
+    if ((h == 1 && v == 3) || (h == 2 && v == 4))
+    {
+        n0 = posV.xyz;
+        n1 = posH.xyz;
+    }
+    else
+    {
+        n0 = posH.xyz;
+        n1 = posV.xyz;
+    }
+
+    float3 normal = normalize(cross(n1 - posC.xyz, n0 - posC.xyz));
+
+    centerPos = posC.xyz;
+    return normal;
+}
+
 // From Intel's XeGTAO
 float4 CalculateEdges( const float centerZ, const float leftZ, const float rightZ, const float topZ, const float bottomZ )
 {
