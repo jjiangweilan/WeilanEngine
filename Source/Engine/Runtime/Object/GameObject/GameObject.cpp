@@ -250,24 +250,15 @@ void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
     // fix local transforms
     if (keepWorldSpacePostion)
     {
-        float4x4 parentWorld = glm::mat4(1);
-        if (newParent != nullptr)
-        {
-            parentWorld = newParent->GetWorldMatrix();
-        }
         float4x4 currentWorld = GetWorldMatrix();
-
-        float4x4 local = glm::inverse(parentWorld) * currentWorld;
-
-        float3 newPosition, newScale;
-        glm::quat newRotation;
-        Math::DecomposeMatrix(local, newPosition, newScale, newRotation);
-        SetLocalPosition(newPosition);
-        SetEulerAngles(glm::eulerAngles(newRotation));
-        SetLocalScale(newScale);
+        this->parent = newParent;
+        SetWorldMatrix(currentWorld);
+    }
+    else
+    {
+        this->parent = newParent;
     }
 
-    this->parent = newParent;
     if (newParent)
         newParent->children.push_back(this);
 }
