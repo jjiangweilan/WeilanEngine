@@ -36,6 +36,7 @@ RenderPipeline::RenderPipeline()
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
     staticMotionVectorPass = AddRenderPipelinePass<Passes::StaticMotionVectorPass>();
+    hierarchyZBufferPass = AddRenderPipelinePass<Passes::HierarchyZBufferPass>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
 
@@ -158,6 +159,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->EndLabel(); // GBuffer
 
     staticMotionVectorPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
+    hierarchyZBufferPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
     auto downSampledDepthCopyDesc = mainDepthDescription;
     downSampledDepthCopyDesc.SetFormat(Gfx::GfxFormat::R32_SFloat);

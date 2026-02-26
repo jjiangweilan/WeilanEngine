@@ -58,14 +58,13 @@ public:
                 images.erase(iter);
             }
 
-            // id = ImageIdentifier();
             Gfx::ImageDescription imageDesc;
             imageDesc.width = desc.GetWidth();
             imageDesc.height = desc.GetHeight();
             imageDesc.depth = 1;
             imageDesc.format = desc.GetFormat();
             imageDesc.multiSampling = MultiSampling::Sample_Count_1;
-            imageDesc.mipLevels = 1;
+            imageDesc.mipLevels = desc.GetMipLevels();
             imageDesc.isCubemap = false;
 
             images[id.GetAsUUID()] = {

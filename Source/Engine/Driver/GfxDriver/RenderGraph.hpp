@@ -15,8 +15,8 @@ namespace Gfx
 struct RenderImageDescriptor
 {
     RenderImageDescriptor() {}
-    RenderImageDescriptor(uint32_t width, uint32_t height, Gfx::GfxFormat format, bool randomWrite = false)
-        : data({width, height, format, randomWrite})
+    RenderImageDescriptor(uint32_t width, uint32_t height, Gfx::GfxFormat format, bool randomWrite = false, uint32_t mipLevels = 1)
+        : data({width, height, mipLevels, format, randomWrite})
     {
         Rehash();
     }
@@ -50,6 +50,15 @@ struct RenderImageDescriptor
         }
     }
 
+    void SetMipLevels(uint32_t mipLevels)
+    {
+        if (data.mipLevels != mipLevels)
+        {
+            data.mipLevels = mipLevels;
+            Rehash();
+        }
+    }
+
     void SetFormat(Gfx::GfxFormat format)
     {
         if (data.format != format)
@@ -63,6 +72,8 @@ struct RenderImageDescriptor
 
     uint32_t GetHeight() const { return data.height; }
 
+    uint32_t GetMipLevels() const { return data.mipLevels; }
+
     Gfx::GfxFormat GetFormat() const { return data.format; }
 
     uint64_t GetHash() const { return hash; }
@@ -74,6 +85,7 @@ private:
     {
         uint32_t width = 0;
         uint32_t height = 0;
+        uint32_t mipLevels = 1;
         Gfx::GfxFormat format = Gfx::GfxFormat::Invalid;
         bool randomWrite = false;
         bool operator==(const InternalData& other) const = default;

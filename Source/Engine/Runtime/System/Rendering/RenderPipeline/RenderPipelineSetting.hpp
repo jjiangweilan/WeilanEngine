@@ -69,11 +69,13 @@ public:
         bool drawMeshRendererAABB = false;
         bool wireframe = false;
         bool motionVectors = false;
+        bool hierarchyZBuffer = false;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(drawMeshRendererAABB),
             SER(wireframe),
-            SER(motionVectors)
+            SER(motionVectors),
+            SER(hierarchyZBuffer)
         );
 
     } debugDraw;

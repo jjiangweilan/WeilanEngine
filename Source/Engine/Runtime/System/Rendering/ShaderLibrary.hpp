@@ -18,6 +18,8 @@
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
+                         Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                     \
+                         Do(PostProcess_HierarchyZBuffer_Downsample, "HierarchyZBuffer_Downsample"),         \
                          Do(ShadowMapObject, "ShadowMapObject"),                                             \
                          Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                               \
                          Do(ScreenSpaceShadow, "ScreenSpaceShadow"), Do(FXAA, "FXAA"),                       \
