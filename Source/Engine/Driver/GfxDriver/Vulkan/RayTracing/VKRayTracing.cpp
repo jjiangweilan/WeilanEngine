@@ -362,5 +362,29 @@ Manager::Manager()
 
 Manager::~Manager()
 {
+    for (auto& tlas : tlasPool)
+    {
+        if (tlas.handle != VK_NULL_HANDLE)
+        {
+            auto device = VKContext::Instance()->device;
+            auto allocator = VKContext::Instance()->allocator;
+
+            vkDestroyAccelerationStructureKHR(device, tlas.handle, nullptr);
+            allocator->DestroyBuffer(tlas.buffer, tlas.allocation);
+            allocator->DestroyBuffer(tlas.instanceBuffer, tlas.instanceAllocation);
+        }
+    }
+
+    for (auto& blas : blasPool)
+    {
+        if (blas.handle != VK_NULL_HANDLE)
+        {
+            auto device = VKContext::Instance()->device;
+            auto allocator = VKContext::Instance()->allocator;
+
+            vkDestroyAccelerationStructureKHR(device, blas.handle, nullptr);
+            allocator->DestroyBuffer(blas.buffer, blas.allocation);
+        }
+    }
 }
 } // namespace Gfx::VKRayTracing

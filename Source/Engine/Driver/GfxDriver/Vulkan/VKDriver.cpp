@@ -189,6 +189,8 @@ VKDriver::~VKDriver()
 {
     vkDeviceWaitIdle(device.handle);
 
+    rayTracingManager = nullptr;
+
     commandBufferProcessor = nullptr;
     sharedResource = nullptr;
 

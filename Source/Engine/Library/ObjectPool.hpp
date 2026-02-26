@@ -1,6 +1,7 @@
 #pragma once
 #include "Assert.hpp"
 #include <vector>
+#include <type_traits>
 
 template <class T>
 class ObjectPool;
@@ -69,6 +70,54 @@ public:
     // Allow moving
     ObjectPool(ObjectPool&&) = default;
     ObjectPool& operator=(ObjectPool&&) = default;
+
+    template <bool IsConst>
+    struct PoolIterator
+    {
+        using PoolType = std::conditional_t<IsConst, const ObjectPool<T>, ObjectPool<T>>;
+        using ValueType = std::conditional_t<IsConst, const T, T>;
+
+        PoolType* pool;
+        size_t index;
+
+        PoolIterator(PoolType* p, size_t i) : pool(p), index(i)
+        {
+            MoveToAllocated();
+        }
+
+        void MoveToAllocated()
+        {
+            while (index < pool->allocatedObjects.size() && !pool->isAllocated[index])
+            {
+                ++index;
+            }
+        }
+
+        ValueType& operator*() const { return pool->allocatedObjects[index]; }
+        ValueType* operator->() const { return &pool->allocatedObjects[index]; }
+
+        PoolIterator& operator++()
+        {
+            ++index;
+            MoveToAllocated();
+            return *this;
+        }
+
+        bool operator!=(const PoolIterator& other) const { return index != other.index; }
+        bool operator==(const PoolIterator& other) const { return index == other.index; }
+    };
+
+    using Iterator = PoolIterator<false>;
+    using ConstIterator = PoolIterator<true>;
+
+    Iterator begin() { return Iterator(this, 0); }
+    Iterator end() { return Iterator(this, allocatedObjects.size()); }
+
+    ConstIterator begin() const { return ConstIterator(this, 0); }
+    ConstIterator end() const { return ConstIterator(this, allocatedObjects.size()); }
+
+    ConstIterator cbegin() const { return ConstIterator(this, 0); }
+    ConstIterator cend() const { return ConstIterator(this, allocatedObjects.size()); }
 
     T& operator[](size_t index)
     {
