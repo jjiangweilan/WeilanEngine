@@ -64,8 +64,12 @@ void SSAO::Execute(
 
     // Allocate resources
     // TODO: when ssao is not needed we can return a small white built in texture to save these allocations
+    float sourceDepthTexSize = fullResDepthDesc.GetWidth();
     if (useUpscaler)
+    {
         cmd->AllocateAttachment(ssaoDownSampled, desc);
+        sourceDepthTexSize /= 2.0f;
+    }
     cmd->AllocateAttachment(ssao, fullDesc);
     Gfx::ImageIdentifier& ssaoSrc = useUpscaler ? ssaoDownSampled : ssao;
 
@@ -78,7 +82,7 @@ void SSAO::Execute(
         mat.SetFloat("falloff", setting->ssao.falloff);
         mat.SetFloat("bias", setting->ssao.bias);
 
-        float s_bar = fullResDepthDesc.GetWidth() / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
+        float s_bar = sourceDepthTexSize / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
         mat.SetFloat("oneMeterPixelSize", s_bar);
         mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
         mat.SetTexture("depthTex", depthTex);
