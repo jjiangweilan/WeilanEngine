@@ -35,6 +35,7 @@ struct GTAOParameter
     float scaling;
     float falloff;
     float bias;
+    float oneMeterPixelSize; // one meter object in pixel size when it's at position with view space z == 1
 
     Texture2D depthTex;
     RWTexture2D<float4> debugTex;
@@ -60,7 +61,9 @@ static float gDebugMaxSamplePointDistance = 0;
 float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, float3 viewVS)
 {
     float cHorizonCos = -1;
-    float2 offsetScaling = perMaterial.scaling * side * float2(omega[0], -omega[1]);
+
+    float offsetDelta = perMaterial.scaling / (GTAO_DIRECTION_SAMPLE_COUNT - 1);
+    float2 offsetScaling = offsetDelta * perMaterial.oneMeterPixelSize / posVS.z * side * float2(omega[0], -omega[1]);
     for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
     {
         float2 sampleOffset = offsetScaling * sampleIndex;

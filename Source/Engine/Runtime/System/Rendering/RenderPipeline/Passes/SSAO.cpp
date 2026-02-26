@@ -1,4 +1,5 @@
 #include "SSAO.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 
 namespace Rendering::Passes
@@ -76,6 +77,9 @@ void SSAO::Execute(
         mat.SetFloat("scaling", setting->ssao.scaling);
         mat.SetFloat("falloff", setting->ssao.falloff);
         mat.SetFloat("bias", setting->ssao.bias);
+
+        float s_bar = fullResDepthDesc.GetWidth() / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
+        mat.SetFloat("oneMeterPixelSize", s_bar);
         mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
         mat.SetTexture("depthTex", depthTex);
 
