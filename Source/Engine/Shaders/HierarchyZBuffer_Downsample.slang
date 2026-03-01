@@ -29,11 +29,11 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint2 base = dispatchThreadID.xy * 2;
 
     // Use 3x3 overlap only when dimensions are odd
-    uint xCount = (srcSize.x & 1) ? 3 : 2;
-    uint yCount = (srcSize.y & 1) ? 3 : 2;
+    uint xCount = (srcSize.x & 1) == 1 ? 3 : 2;
+    uint yCount = (srcSize.y & 1) == 1 ? 3 : 2;
 
-    float minDepth = 1.0;
-    float maxDepth = 0.0;
+    float minDepth = 0.0;
+    float maxDepth = 1.0;
 
     for (uint y = 0; y < yCount; ++y)
     {
@@ -41,8 +41,10 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             uint2 coord = min(base + uint2(x, y), srcSize - 1);
             float d = input.src.Load(int3(coord, 0)).r;
-            minDepth = min(minDepth, d);
-            maxDepth = max(maxDepth, d);
+
+            // we use reversed depth
+            minDepth = max(minDepth, d);
+            maxDepth = min(maxDepth, d);
         }
     }
 

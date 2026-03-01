@@ -62,11 +62,11 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
 {
     float cHorizonCos = -1;
 
-    float offsetDelta = perMaterial.scaling / (GTAO_DIRECTION_SAMPLE_COUNT - 1);
-    float2 offsetScaling = offsetDelta * perMaterial.oneMeterPixelSize / posVS.z * side * float2(omega[0], -omega[1]);
+    float offsetDelta = perMaterial.scaling / (GTAO_DIRECTION_SAMPLE_COUNT - 1) * perMaterial.oneMeterPixelSize / posVS.z * side;
     for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
     {
-        float2 sampleOffset = offsetScaling * sampleIndex;
+        float offset = offsetDelta * sampleIndex;
+        float2 sampleOffset = offset * float2(omega[0], -omega[1]);
         float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw;
 
         // Sample view position

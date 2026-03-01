@@ -16,6 +16,7 @@ public:
     Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("SSAO");
     void Execute(
         Gfx::CommandBuffer* cmd,
+        const Gfx::ImageIdentifier& hizTex,
         const Gfx::ImageIdentifier& halfResDepth,
         const Gfx::ImageIdentifier& fullResDepth,
         const Gfx::RenderImageDescriptor& fullResDepthDesc,

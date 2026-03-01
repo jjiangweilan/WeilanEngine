@@ -12,6 +12,7 @@ SSAO::SSAO()
 
 void SSAO::Execute(
     Gfx::CommandBuffer* cmd,
+    const Gfx::ImageIdentifier& hizTex,
     const Gfx::ImageIdentifier& halfResDepth,
     const Gfx::ImageIdentifier& fullResDepth,
     const Gfx::RenderImageDescriptor& fullResDepthDesc,
@@ -25,6 +26,7 @@ void SSAO::Execute(
     int2 rtSize = {fullResDepthDesc.GetWidth() * scale, fullResDepthDesc.GetHeight() * scale};
     auto halfResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(halfResDepth);
     auto fullResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(fullResDepth);
+    auto hizTexImage = GetGfxDriver()->GetImageFromRenderGraph(hizTex);
     auto depthTex = useUpscaler ? halfResDepthImage : fullResDepthImage;
 
     // Create GPU resources
@@ -85,7 +87,7 @@ void SSAO::Execute(
         float s_bar = sourceDepthTexSize / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
         mat.SetFloat("oneMeterPixelSize", s_bar);
         mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
-        mat.SetTexture("depthTex", depthTex);
+        mat.SetTexture("depthTex", hizTexImage);
 
         // Dispatch SSAO
         pass.SetAttachment(0, ssaoSrc);

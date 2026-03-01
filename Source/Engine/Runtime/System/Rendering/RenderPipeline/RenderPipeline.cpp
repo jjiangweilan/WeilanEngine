@@ -173,7 +173,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.globalResource.get());
 
     // ssao pass
-    ssaoPass->Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
+    ssaoPass->Execute(cmd, hierarchyZBufferPass->GetOutputId(), downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
 
     // Contact Shadow (directional main light only) - BEFORE shading so future shaders can consume
     {
