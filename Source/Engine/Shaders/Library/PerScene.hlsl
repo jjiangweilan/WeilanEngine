@@ -22,12 +22,13 @@ struct Camera
     float4 position;
     float4 cameraZBufferParams;
     float4 cameraFrustum;// left right bottom top
+    float4 screenSize;
     float4x4 view;
     float4x4 projection;
     float4x4 viewProjection;
+    float4x4 invView;
     float4x4 invProjection;
     float4x4 invNDCToWorld;
-    float4 screenSize;
     float4x4 previousViewProjection;
     float4x4 invPreviousViewProjection;
 };
@@ -73,6 +74,15 @@ struct PerScene
         }
         else
             return Light(0,0,0,0,0,0,0);
+    }
+
+    float3 UvToWorldRay(float2 uv)
+    {
+        float4 clipPos = float4(uv * 2.0 - 1.0, camera.cameraZBufferParams.x, 1.0);
+        float4 worldPos = mul(camera.invNDCToWorld, clipPos);
+        worldPos /= worldPos.w;
+        float3 rayDir = normalize(worldPos.xyz - camera.position.xyz);
+        return rayDir;
     }
 
     float4 WorldToClipSpace(float4 position)

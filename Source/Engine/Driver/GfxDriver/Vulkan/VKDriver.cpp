@@ -198,7 +198,7 @@ VKDriver::~VKDriver()
     dataUploader = nullptr;
     swapchain.swapchainImage = nullptr;
 
-    // destroy inflight data
+    // destroy inflight data 
     vkDestroyCommandPool(device.handle, mainCmdPool, VK_NULL_HANDLE);
     for (VKFrameContext& inflight : frameContexts)
     {

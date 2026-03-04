@@ -210,4 +210,23 @@ float4 Gaussian_v(float4 v, float sigma)
     return exp(-1/(sigma * sigma) * (v * v));
 }
 
+// float oneMeterPixelSize = sourceDepthTexSize / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
+float WorldLengthToScreen(float worldLength, float oneMeterPixelSize, float viewSpaceZ)
+{
+    return worldLength * oneMeterPixelSize / viewSpaceZ;
+}
+
+T PerspectiveCorrectInterpolation<T : IFloat>(T attrA, T attrB, float depthA_VS, float depthB_VS, float s)
+{
+    float invDepthA = 1.0f / depthA_VS;
+    float invDepthB = 1.0f / depthB_VS;
+
+    float zt = 1.0f / lerp(invDepthA, invDepthB, s);
+
+    T tInvDepthA = T(invDepthA);
+    T tInvDepthB = T(invDepthB);
+    T attr = ((attrA * tInvDepthA) * T(1 - s) + attrB * tInvDepthB * T(s)) * T(zt);
+
+    return attr;
+}
 

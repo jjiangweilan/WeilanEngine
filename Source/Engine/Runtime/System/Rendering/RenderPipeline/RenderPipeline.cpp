@@ -33,6 +33,8 @@ RenderPipeline::RenderPipeline()
     // rayTracingTestPass = AddRenderPipelinePass<Passes::RayTracingTestPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
+    ssilPass = AddRenderPipelinePass<Passes::SSIL>();
+    lightingCombinePass = AddRenderPipelinePass<Passes::LightingCombinePass>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
     staticMotionVectorPass = AddRenderPipelinePass<Passes::StaticMotionVectorPass>();
@@ -232,6 +234,13 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->Blit(mainColor, colorCopy);
     }
     cmd->EndLabel(); // Shading
+
+    // ssil pass
+    if (setting->ssil.enabled)
+    {
+        ssilPass->Execute(cmd, colorCopy, mainDepth, albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
+        lightingCombinePass->Execute(cmd, ssilPass->GetOutputId(), albedoGBuffer, mainColor, renderingData);
+    }
 
     // TODO: copy mainColor and mainDepth for special effects
 

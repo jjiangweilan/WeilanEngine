@@ -60,6 +60,7 @@ GPUParameter::Camera RenderingUtils::CreateCameraGPUParameter(
     cameraParam.viewProjection = vp;
     cameraParam.invProjection = glm::inverse(projectionMatrix);
     cameraParam.invNDCToWorld = glm::inverse(viewMatrix) * cameraParam.invProjection;
+    cameraParam.invView = glm::inverse(viewMatrix);
     cameraParam.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
 
     return cameraParam;

@@ -18,6 +18,8 @@
 #include "Passes/FXAAPass.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
 #include "Passes/SSAO.hpp"
+#include "Passes/SSIL.hpp"
+#include "Passes/LightingCombinePass.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "Passes/StaticMotionVectorPass.hpp"
@@ -91,6 +93,8 @@ class RenderPipeline
     Passes::RayTracingTestPass* rayTracingTestPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
     Passes::SSAO* ssaoPass;
+    Passes::SSIL* ssilPass;
+    Passes::LightingCombinePass* lightingCombinePass;
     Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;
     Passes::StaticMotionVectorPass* staticMotionVectorPass;

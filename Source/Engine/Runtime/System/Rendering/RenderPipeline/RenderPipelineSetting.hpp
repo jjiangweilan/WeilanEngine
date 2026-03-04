@@ -109,5 +109,28 @@ public:
         )
 
     } ssao;
+
+    struct SSIL
+    {
+        bool enabled = false;
+        float strength = 1.0f;
+        float thickness = 0.1f;
+        float radius = 1.0f;
+        int sliceCount = 8;
+        int sampleCount = 4;
+        bool debug_ssilOutput = false;
+        float2 debugPoint;
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(strength),
+            SER(thickness),
+            SER(radius),
+            SER(sliceCount),
+            SER(sampleCount),
+            SER(debug_ssilOutput),
+            SER(debugPoint)
+        )
+    } ssil;
 };
 } // namespace Rendering

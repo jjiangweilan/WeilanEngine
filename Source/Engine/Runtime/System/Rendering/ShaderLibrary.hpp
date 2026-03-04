@@ -16,6 +16,8 @@
                          Do(PostProcess_OutlineFullScreenPass, "PostProcess/Outline/OutlineFullScreenPass"), \
                          Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),     \
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
+                         Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
+                         Do(LightingCombine, "LightingCombine"),                                             \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
                          Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                     \
