@@ -187,6 +187,11 @@ public:
         return Singleton().GetShaderImpl(ShaderNameMap[(int)shader], permutation);
     }
 
+    static Shader* GetShader(Shaders shader, const std::vector<std::string>& permutations)
+    {
+        return Singleton().GetShaderImpl(ShaderNameMap[(int)shader], QueryShaderFeatures(ShaderNameMap[(int)shader]).GetPermutation(permutations));
+    }
+
     static Shader* GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {
         return Singleton().GetShaderImpl(name, permutation);
