@@ -22,7 +22,7 @@ public:
             const Gfx::ImageIdentifier& lowDepth,
             const Gfx::ImageIdentifier& highDepth,
             const Gfx::ImageIdentifier& destination,
-            int filterPassIndex
+            int lowDepthMipLevel
         );
 
     private:
@@ -52,6 +52,7 @@ private:
     Shader* ssilShader;
     Shader* bilateralUpscale;
     Material mat;
+    Gfx::ImageIdentifier ssilRaw = "SSIL_Raw";
     Gfx::ImageIdentifier ssil = "SSIL_Output";
     Gfx::ImageIdentifier firstFilterPassOutput = "SSIL_Filter1";
     std::unique_ptr<BilateralFilterPass> firstFilterPass;

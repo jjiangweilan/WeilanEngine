@@ -8,7 +8,7 @@ namespace Rendering::Passes
 {
 SSIL::BilateralFilterPass::BilateralFilterPass()
 {
-    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale), {"_2x2_BILATERAL_UPSCALE"});
+    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale), {"_2x2_BILATERAL_UPSCALE", "_USE_BOX_FILTER_FOR_PIXEL_DISTANCE"});
     mat.SetShader(shader);
     mat.SetName("SSIL_BilateralFilter_Material");
 }
@@ -20,7 +20,7 @@ void SSIL::BilateralFilterPass::Execute(
     const Gfx::ImageIdentifier& lowDepth,
     const Gfx::ImageIdentifier& highDepth,
     const Gfx::ImageIdentifier& destination,
-    int filterPassIndex
+    int lowDepthMipLevel
 )
 {
     if (sourceTexSize.x == 0 || sourceTexSize.y == 0)
@@ -29,8 +29,8 @@ void SSIL::BilateralFilterPass::Execute(
     glm::int2 highResTexSize = sourceTexSize * 2;
 
     mat.SetTexture("lowColor", GetGfxDriver()->GetImageFromRenderGraph(sourceTex));
-    mat.SetTexture("lowDepth", GetGfxDriver()->GetImageFromRenderGraph(lowDepth));
-    mat.SetTexture("highDepth", GetGfxDriver()->GetImageFromRenderGraph(highDepth));
+    mat.SetTexture("lowDepth", GetGfxDriver()->GetImageFromRenderGraph(lowDepth), Gfx::ImageViewOption(lowDepthMipLevel, 1, 0, 1, Gfx::ImageAspect::Color));
+    mat.SetTexture("highDepth", GetGfxDriver()->GetImageFromRenderGraph(highDepth), Gfx::ImageViewOption(lowDepthMipLevel - 1, 1, 0, 1, Gfx::ImageAspect::Color));
     mat.SetTexture("dst", GetGfxDriver()->GetImageFromRenderGraph(destination));
 
     mat.SetVector(
@@ -47,8 +47,6 @@ void SSIL::BilateralFilterPass::Execute(
         )
     );
 
-    // mat.SetFloat("kernelScale", kernelSize);
-    // mat.SetFloat("integerCoordSigma", integerCoordSigma);
     mat.SetFloat("depthDiffSigma", depthDiffSigma);
 
     int dispatchX = (highResTexSize.x + 7) / 8;
@@ -99,13 +97,16 @@ void SSIL::Execute(
     if (!setting->ssil.enabled)
         return;
 
+    firstFilterPass->depthDiffSigma = setting->ssil.filter1DepthDiffSigma;
+    secondFilterPass->depthDiffSigma = setting->ssil.filter2DepthDiffSigma;
+
     cmd->BeginLabel("SSIL", {0.1, 0.4, 0.6, 1.0});
 
     int width = renderingData.screenSize.x / 4;
     int height = renderingData.screenSize.y / 4;
 
     Gfx::RenderImageDescriptor desc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    cmd->AllocateAttachment(ssil, desc);
+    cmd->AllocateAttachment(ssilRaw, desc);
 
     mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
@@ -125,7 +126,7 @@ void SSIL::Execute(
     debugSSIL = setting->ssil.debug_ssilOutput;
 
     Gfx::RenderAttachment attachments[] = {
-        {ssil, Gfx::AttachmentLoadOperation::Clear}
+        {ssilRaw, Gfx::AttachmentLoadOperation::Clear}
     };
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd->BeginRenderPass(attachments, clears);
@@ -137,17 +138,32 @@ void SSIL::Execute(
 
     cmd->EndRenderPass();
 
-    // desc.SetWidth(width * 2);
-    // desc.SetHeight(height * 2);
-    // cmd->AllocateAttachment(firstFilterPassOutput, desc);
-    // firstFilterPass->Execute(
-    //     cmd,
-    //     ssil,
-    //     {width, height},
-    //     hizTex,
-    //     hizTex,
-    //     firstFilterPassOutput
-    // );
+    desc.SetRandomWrite(true);
+    desc.SetWidth(width * 2);
+    desc.SetHeight(height * 2);
+    cmd->AllocateAttachment(firstFilterPassOutput, desc);
+    firstFilterPass->Execute(
+        cmd,
+        ssilRaw,
+        {width, height},
+        hizTex,
+        hizTex,
+        firstFilterPassOutput,
+        2
+    );
+
+    desc.SetWidth(renderingData.screenSize.x);
+    desc.SetHeight(renderingData.screenSize.y);
+    cmd->AllocateAttachment(ssil, desc);
+    secondFilterPass->Execute(
+        cmd,
+        firstFilterPassOutput,
+        {width * 2, height * 2},
+        hizTex,
+        hizTex,
+        ssil,
+        1
+    );
 
     cmd->EndLabel();
 }
