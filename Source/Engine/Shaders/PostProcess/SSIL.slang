@@ -11,6 +11,7 @@ import Lighting;
 #define SSIL_PI 3.14159265359f
 #define SSIL_HALF_PI 1.57079632679f
 #define SSIL_TWO_PI 6.28318530718f
+#define SSIL_RAW_MIP 2
 #define DEBUG_DRAW 0
 
 struct SSILParameter
@@ -42,7 +43,7 @@ ParameterBlock<SSILParameter> perMaterial;
 
 float4 GetPositionVS(float2 uv)
 {
-    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 2).x;
+    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).x;
     float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
     return float4(posVS.xyz / posVS.w, depth);
 }
@@ -124,6 +125,7 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
 
         uint bits_i = 0;
 
+        [unroll]
         for (float direction = 0; direction < 2; ++direction)
         {
             float directionFixed = direction * 2 - 1;
@@ -137,7 +139,7 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
                 if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
                     continue;
                 
-                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 2).x;
+                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
                 float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
                 frontVS.xyz /= frontVS.w;
 
