@@ -18,10 +18,30 @@ void* WeilanEngine_CreateWindow()
     wc.lpfnWndProc =
         [](HWND window, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT
     {
+        // if (WM_DESTROY == message)
+        // {
+        //     PostQuitMessage(0);
+        //     return 0;
+        // }
+        // return DefWindowProc(window, message, wparam, lparam);
+
+        // TEMP code to make the window movable, we will handle the input in a better way later
         if (WM_DESTROY == message)
         {
             PostQuitMessage(0);
             return 0;
+        }
+        else if (WM_NCHITTEST == message)
+        {
+            // First, let the default procedure determine where the mouse is
+            LRESULT hit = DefWindowProc(window, message, wparam, lparam);
+
+            // If the mouse is inside the client area, tell Windows it's the caption/title bar
+            if (hit == HTCLIENT)
+            {
+                return HTCAPTION;
+            }
+            return hit;
         }
         return DefWindowProc(window, message, wparam, lparam);
     };
