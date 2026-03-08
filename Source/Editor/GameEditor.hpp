@@ -67,7 +67,12 @@ private:
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void ShowSceneTree(Scene& scene);
     void SceneTree(
-        GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
+        GameObject* go,
+        int imguiID,
+        GameObject* currentSelected,
+        std::vector<ObjPtr<Object>>& selects,
+        bool autoExpand,
+        const std::vector<GameObject*>& flatList
     );
     void ShowGameProfiler(IProfiler& profiler);
     void ShowEngineResourceDebug();

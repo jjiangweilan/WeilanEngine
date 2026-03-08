@@ -67,8 +67,27 @@ void GameEditor::ShowSceneTree(Scene& scene)
     Object* moveToRoot = nullptr;
     if (EditorGUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
     {
-        GameObject* casted = static_cast<GameObject*>(moveToRoot);
-        casted->SetParent(nullptr, true);
+        endEvents.Register([moveToRoot]()
+                           {
+            auto selects = EditorState::GetSelectedObjects();
+            bool isMultiDrag = false;
+            for (auto& s : selects) {
+                if (s.Get() == moveToRoot) {
+                    isMultiDrag = true;
+                    break;
+                }
+            }
+
+            if (isMultiDrag) {
+                for (auto& s : selects) {
+                    if (GameObject* casted = dynamic_cast<GameObject*>(s.Get())) {
+                        casted->SetParent(nullptr, true);
+                    }
+                }
+            } else {
+                GameObject* casted = static_cast<GameObject*>(moveToRoot);
+                casted->SetParent(nullptr, true);
+            } });
     }
 
     static GameObject* currentSelected = nullptr;
@@ -80,9 +99,23 @@ void GameEditor::ShowSceneTree(Scene& scene)
     size_t imguiTreeId = 0;
     auto selects = EditorState::GetSelectedObjects();
     sceneViewHightedGameObjectCandidate = nullptr; // reselect highted GameObject
+
+    std::vector<GameObject*> flatList;
+    auto add_to_list = [&](GameObject* go, auto& self) -> void {
+        flatList.push_back(go);
+        for (auto child : go->GetChildren())
+        {
+            self(child, self);
+        }
+    };
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand);
+        add_to_list(root, add_to_list);
+    }
+
+    for (auto root : scene.GetRootObjects())
+    {
+        SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand, flatList);
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -202,7 +235,12 @@ void GameEditor::ShowSceneTree(Scene& scene)
 }
 
 void GameEditor::SceneTree(
-    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
+    GameObject* go,
+    int imguiID,
+    GameObject* currentSelected,
+    std::vector<ObjPtr<Object>>& selects,
+    bool autoExpand,
+    const std::vector<GameObject*>& flatList
 )
 {
     ImGuiTreeNodeFlags nodeFlags =
@@ -242,14 +280,42 @@ void GameEditor::SceneTree(
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             bool deselect = ImGui::IsKeyDown(ImGuiKey_LeftAlt);
+            bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+            bool shiftSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
             if (deselect)
             {
                 EditorState::DeselectObject(go);
             }
+            else if (shiftSelect && currentSelected != nullptr)
+            {
+                auto it1 = std::find(flatList.begin(), flatList.end(), currentSelected);
+                auto it2 = std::find(flatList.begin(), flatList.end(), go);
+
+                if (it1 != flatList.end() && it2 != flatList.end())
+                {
+                    int startIdx = std::min(std::distance(flatList.begin(), it1), std::distance(flatList.begin(), it2));
+                    int endIdx = std::max(std::distance(flatList.begin(), it1), std::distance(flatList.begin(), it2));
+
+                    if (!multiSelect)
+                    {
+                        EditorState::SelectObject(nullptr, false);
+                    }
+
+                    EditorState::SelectObject(currentSelected, true);
+                    for (int i = startIdx; i <= endIdx; ++i)
+                    {
+                        if (flatList[i] != currentSelected)
+                            EditorState::SelectObject(flatList[i], true);
+                    }
+                }
+                else
+                {
+                    EditorState::SelectObject(go, multiSelect);
+                }
+            }
             else
             {
-                bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
                 EditorState::SelectObject(go, multiSelect);
             }
         }
@@ -269,8 +335,29 @@ void GameEditor::SceneTree(
     {
         endEvents.Register([go, dropGO]()
                            {
-            GameObject* casted = static_cast<GameObject*>(dropGO);
-            casted->SetParent(go); });
+            auto selects = EditorState::GetSelectedObjects();
+            bool isMultiDrag = false;
+            for (auto& s : selects) {
+                if (s.Get() == dropGO) {
+                    isMultiDrag = true;
+                    break;
+                }
+            }
+
+            if (isMultiDrag) {
+                for (auto& s : selects) {
+                    if (GameObject* casted = dynamic_cast<GameObject*>(s.Get())) {
+                        if (casted != go && !IsAncestorOf(casted, go)) {
+                            casted->SetParent(go);
+                        }
+                    }
+                }
+            } else {
+                GameObject* casted = static_cast<GameObject*>(dropGO);
+                if (casted != go && !IsAncestorOf(casted, go)) {
+                    casted->SetParent(go);
+                }
+            } });
     }
 
     if (EditorGUI::DragDropTarget(dropGO))
@@ -286,7 +373,7 @@ void GameEditor::SceneTree(
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, ++imguiID, currentSelected, selects, autoExpand);
+            SceneTree(child, ++imguiID, currentSelected, selects, autoExpand, flatList);
         }
         ImGui::TreePop();
     }
