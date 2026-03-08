@@ -20,25 +20,25 @@ void AccumulateBilateralWeight(
     uint2 highResPixel,
     float linearHighResDepth,
     int kernelSize,
-    inout float output,
+    inout float4 output,
     inout float totalWeights)
 {
     float lowDepth = input.lowDepth.SampleLevel(input.sampler_point_clamp, lowResUv, 0).r;
-    float lowColor = input.lowColor.SampleLevel(input.sampler_linear_clamp, lowResUv, 0).r;
+    float4 lowColor = input.lowColor.SampleLevel(input.sampler_linear_clamp, lowResUv, 0);
     float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.camera.cameraZBufferParams);
 
     float2 currHighResPixel = lowResUv * input.highResTexSize.xy;
     float g = 0;
     if (_USE_BOX_FILTER_FOR_PIXEL_DISTANCE)
     {
-        g = 1.0f / (kernelSize * kernelSize);
+        g = 1.0f;
     }
     else
     {
         g = Gaussian_v0(length(currHighResPixel - float2(highResPixel)), input.integerCoordSigma);
     }
     float j = Gaussian_v0(linearLowResDepth - linearHighResDepth, input.depthDiffSigma);
-    float weight = g * j;
+    float weight = max(g * j, 0.000001);
 
     output += lowColor * weight;
     totalWeights += weight;
@@ -53,7 +53,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
 
     float totalWeights = 0;
-    float output = 0;
+    float4 output = 0;
 
     // prepare pixel data
     float highDepth = input.highDepth.Load(int3(pixel, 0)).r;
