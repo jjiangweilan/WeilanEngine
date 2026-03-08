@@ -127,6 +127,7 @@ public:
      * @param size the size of the interop texture
      */
     virtual void SetWin32WindowInteropTexture(const void* sharedHandle, int2 size) = 0;
+    virtual void UnsetWin32WindowInteropTexture(int2 size) = 0;
 
     virtual void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) = 0;
     virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;

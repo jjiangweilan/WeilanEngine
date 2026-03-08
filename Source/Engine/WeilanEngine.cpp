@@ -101,7 +101,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     editor = std::make_unique<Editor::GameEditor>(this, createInfo.projectPath.string().c_str());
     cmd = GetGfxDriver()->CreateCommandBuffer();
 
-    blitShader = ShaderLibrary::GetShader("Blit");
+    blitShader = ShaderLibrary::GetShader("Blit", {"_Premultiplied"});
 
     // TransparentWindowPixel::ForceTopmost(mainWindow.handle);
 }
@@ -372,10 +372,21 @@ void WeilanEngine::PresentGameOnly(bool enable)
 {
     presentGameColorOnly = enable;
 
-    window_HWND = WeilanEngine_CreateWindow();
-
-    interopDriver = CreateD3D11InteropDriver();
-    interopDriver->Initialize(window_HWND, mainWindow.size.width + 256, mainWindow.size.height + 256);
-    auto intermediateTextureHandle = interopDriver->GetSharedHandle();
-    gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, int2(mainWindow.size.width + 256, mainWindow.size.height + 256));
+    // lazy create interop driver
+    if (window_HWND == nullptr)
+    {
+        window_HWND = WeilanEngine_CreateWindow();
+        interopDriver = CreateD3D11InteropDriver();
+        interopDriver->Initialize(window_HWND, mainWindow.size.width, mainWindow.size.height);
+    }
+    
+    if (presentGameColorOnly)
+    {
+        auto intermediateTextureHandle = interopDriver->GetSharedHandle();
+        gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, int2(mainWindow.size.width, mainWindow.size.height));
+    }
+    else
+    {
+        gfxDriver->UnsetWin32WindowInteropTexture(int2(mainWindow.size.width, mainWindow.size.height));
+    }
 }

@@ -198,7 +198,7 @@ VKDriver::~VKDriver()
     dataUploader = nullptr;
     swapchain.swapchainImage = nullptr;
 
-    // destroy inflight data 
+    // destroy inflight data
     vkDestroyCommandPool(device.handle, mainCmdPool, VK_NULL_HANDLE);
     for (VKFrameContext& inflight : frameContexts)
     {
@@ -1596,6 +1596,14 @@ void VKDriver::SetWin32WindowInteropTexture(const void* sharedHandle, int2 size)
 #if WIN32
     needPresent = false;
     swapchain.AsWin32WindowInteropTexture(sharedHandle, size);
+#endif
+}
+
+void VKDriver::UnsetWin32WindowInteropTexture(int2 size)
+{
+#if WIN32
+    needPresent = true;
+    swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount, size.x, size.y);
 #endif
 }
 } // namespace Gfx

@@ -121,6 +121,7 @@ public:
     Gfx::Image* GetImageFromRenderGraph(const Gfx::ImageIdentifier& id) override;
 
     void SetWin32WindowInteropTexture(const void* sharedHandle, int2 size) override;
+    void UnsetWin32WindowInteropTexture(int2 size) override;
 
     void FlushPendingCommands() override;
 

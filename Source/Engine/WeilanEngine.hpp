@@ -76,10 +76,9 @@ private:
     std::unique_ptr<GameContext> gameContext;
     std::unique_ptr<Editor::GameEditor> editor;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+
+    void* window_HWND = nullptr;
     std::unique_ptr<WindowSystemHost::IInteropDriver> interopDriver;
-    // std::unique_ptr<Physics> physics;
-    //
-    void* window_HWND;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;

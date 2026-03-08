@@ -48,7 +48,7 @@ void RenderingObjectList::RemoveFromList(uint32_t objectTypeID, ObjectIndex obje
 
     if (renderEvent != Rendering::RenderEvents::None)
     {
-        std::swap(renderingObjectsByEvent[static_cast<int>(renderEvent)]->back(), renderingObjectsByEvent[objectTypeID]->at(object));
+        std::swap(renderingObjectsByEvent[static_cast<int>(renderEvent)]->back(), renderingObjectsByEvent[static_cast<int>(renderEvent)]->at(object));
         renderingObjectsByEvent[static_cast<int>(renderEvent)]->pop_back();
     }
 

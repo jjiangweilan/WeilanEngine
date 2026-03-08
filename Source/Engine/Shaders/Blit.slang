@@ -2,6 +2,7 @@
 import WeilanEngine;
 
 static extern const bool _ResetAlpha = false;
+static extern const bool _Premultiplied = false;
 
 struct PerMaterial
 {
@@ -19,6 +20,10 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     if (_ResetAlpha)
     {
         return float4(color.xyz, 1.0);
+    }
+    else if (_Premultiplied)
+    {
+        return float4(color.xyz * color.a, color.a);
     }
     else
     {
