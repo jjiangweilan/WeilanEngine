@@ -133,7 +133,10 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
                 float3 samplePosVS = posVS + dirDelta * sampleIndex * directionFixed;
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
-
+                
+                if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
+                    continue;
+                
                 float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 2).x;
                 float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
                 frontVS.xyz /= frontVS.w;
