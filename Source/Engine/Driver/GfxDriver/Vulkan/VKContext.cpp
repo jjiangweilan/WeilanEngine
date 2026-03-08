@@ -198,7 +198,7 @@ void Swapchain::AsWin32WindowInteropTexture(const void* sharedHandle, int2 size)
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.pNext = &extImageInfo;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+    imageInfo.format = VK_FORMAT_B8G8R8A8_SRGB; // !!! interop texture format is always UNROM format, but we can treat it as SRGB format in vulkan to match the format in our actual swapchain in development
     imageInfo.extent = {static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), 1};
     imageInfo.mipLevels = 1;
     imageInfo.arrayLayers = 1;

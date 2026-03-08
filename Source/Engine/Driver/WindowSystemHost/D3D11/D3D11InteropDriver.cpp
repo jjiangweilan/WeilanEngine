@@ -99,6 +99,7 @@ void D3D11InteropDriver::SetupDComp(HWND hwnd)
     if (FAILED(hr))
         throw std::runtime_error("Failed to query IDXGIDevice");
 
+    // This can fail if RenderDoc is attached
     hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
     if (FAILED(hr))
         throw std::runtime_error("Failed to create DComposition Device");
