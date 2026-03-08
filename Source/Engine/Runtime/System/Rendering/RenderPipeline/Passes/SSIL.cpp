@@ -6,6 +6,59 @@
 
 namespace Rendering::Passes
 {
+SSIL::BilateralFilterPass::BilateralFilterPass()
+{
+    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale), {"_2x2_BILATERAL_UPSCALE"});
+    mat.SetShader(shader);
+    mat.SetName("SSIL_BilateralFilter_Material");
+}
+
+void SSIL::BilateralFilterPass::Execute(
+    Gfx::CommandBuffer* cmd,
+    const Gfx::ImageIdentifier& sourceTex,
+    glm::int2 sourceTexSize,
+    const Gfx::ImageIdentifier& lowDepth,
+    const Gfx::ImageIdentifier& highDepth,
+    const Gfx::ImageIdentifier& destination,
+    int filterPassIndex
+)
+{
+    if (sourceTexSize.x == 0 || sourceTexSize.y == 0)
+        return;
+
+    glm::int2 highResTexSize = sourceTexSize * 2;
+
+    mat.SetTexture("lowColor", GetGfxDriver()->GetImageFromRenderGraph(sourceTex));
+    mat.SetTexture("lowDepth", GetGfxDriver()->GetImageFromRenderGraph(lowDepth));
+    mat.SetTexture("highDepth", GetGfxDriver()->GetImageFromRenderGraph(highDepth));
+    mat.SetTexture("dst", GetGfxDriver()->GetImageFromRenderGraph(destination));
+
+    mat.SetVector(
+        "lowResTexSize",
+        glm::float4(sourceTexSize.x, sourceTexSize.y, 1.0f / sourceTexSize.x, 1.0f / sourceTexSize.y)
+    );
+    mat.SetVector(
+        "highResTexSize",
+        glm::float4(
+            highResTexSize.x,
+            highResTexSize.y,
+            1.0f / highResTexSize.x,
+            1.0f / highResTexSize.y
+        )
+    );
+
+    // mat.SetFloat("kernelScale", kernelSize);
+    // mat.SetFloat("integerCoordSigma", integerCoordSigma);
+    mat.SetFloat("depthDiffSigma", depthDiffSigma);
+
+    int dispatchX = (highResTexSize.x + 7) / 8;
+    int dispatchY = (highResTexSize.y + 7) / 8;
+
+    cmd->BindResource(1, mat.GetShaderResource());
+    cmd->BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd->Dispatch(dispatchX, dispatchY, 1);
+}
+
 SSIL::SSIL()
 {
     ssilShader = ShaderLibrary::GetShader(Shaders::PostProcess_SSIL);
@@ -24,12 +77,18 @@ SSIL::SSIL()
     config.depth.testEnable = false;
     config.depth.writeEnable = false;
     combineConfig = Gfx::PipelineConfig(config);
+
+    firstFilterPass = std::make_unique<BilateralFilterPass>();
+    secondFilterPass = std::make_unique<BilateralFilterPass>();
+
+    firstFilterPass->depthDiffSigma = 1.0f;
+    secondFilterPass->depthDiffSigma = 1.0f;
 }
 
 void SSIL::Execute(
     Gfx::CommandBuffer* cmd,
     const Gfx::ImageIdentifier& colorTex,
-    const Gfx::ImageIdentifier& depthTex,
+    const Gfx::ImageIdentifier& hizTex,
     const Gfx::ImageIdentifier& albedoTex,
     const Gfx::ImageIdentifier& normalTex,
     const Gfx::ImageIdentifier& targetColor,
@@ -42,13 +101,13 @@ void SSIL::Execute(
 
     cmd->BeginLabel("SSIL", {0.1, 0.4, 0.6, 1.0});
 
-    int width = renderingData.screenSize.x;
-    int height = renderingData.screenSize.y;
+    int width = renderingData.screenSize.x / 4;
+    int height = renderingData.screenSize.y / 4;
 
     Gfx::RenderImageDescriptor desc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
     cmd->AllocateAttachment(ssil, desc);
 
-    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(depthTex));
+    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
@@ -78,6 +137,18 @@ void SSIL::Execute(
 
     cmd->EndRenderPass();
 
+    // desc.SetWidth(width * 2);
+    // desc.SetHeight(height * 2);
+    // cmd->AllocateAttachment(firstFilterPassOutput, desc);
+    // firstFilterPass->Execute(
+    //     cmd,
+    //     ssil,
+    //     {width, height},
+    //     hizTex,
+    //     hizTex,
+    //     firstFilterPassOutput
+    // );
+
     cmd->EndLabel();
 }
 
@@ -90,5 +161,4 @@ bool SSIL::DebugBlit(Gfx::ImageIdentifier& dst)
     }
     return false;
 }
-
 } // namespace Rendering::Passes

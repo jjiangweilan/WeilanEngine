@@ -42,7 +42,7 @@ ParameterBlock<SSILParameter> perMaterial;
 
 float4 GetPositionVS(float2 uv)
 {
-    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).x;
+    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 2).x;
     float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
     return float4(posVS.xyz / posVS.w, depth);
 }
@@ -134,7 +134,7 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
 
-                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 0).x;
+                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 2).x;
                 float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
                 frontVS.xyz /= frontVS.w;
 

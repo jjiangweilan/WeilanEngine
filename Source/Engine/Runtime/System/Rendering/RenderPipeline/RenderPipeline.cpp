@@ -238,7 +238,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // ssil pass
     if (setting->ssil.enabled)
     {
-        ssilPass->Execute(cmd, colorCopy, mainDepth, albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
+        ssilPass->Execute(cmd, colorCopy, hierarchyZBufferPass->GetOutputId(), albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
         lightingCombinePass->Execute(cmd, ssilPass->GetOutputId(), albedoGBuffer, mainColor, renderingData);
     }
 
