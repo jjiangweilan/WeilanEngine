@@ -25,11 +25,13 @@ void LightingCombinePass::Execute(
     int width = renderingData.screenSize.x;
     int height = renderingData.screenSize.y;
 
-    mat.SetTexture("ssil", GetGfxDriver()->GetImageFromRenderGraph(ssil));
+    auto ssilImg = GetGfxDriver()->GetImageFromRenderGraph(ssil);
+    mat.SetTexture("ssil", ssilImg);
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
 
-    mat.SetVector("params", glm::float4(1.0f / width, 1.0f / height, 0.0f, 0.0f));
+    mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, 0.0f, 0.0f));
+    mat.SetVector("ssilTexelSize", glm::float4(1.0f / ssilImg->GetDescription().width, 1.0f / ssilImg->GetDescription().height, 0.0f, 0.0f));
 
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(0, mat.GetShaderResource());
