@@ -74,7 +74,7 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
     float3 posVS = fragPosVS.xyz;
     float fragDepth = fragPosVS.w;
     
-    if (fragDepth < 0.000001)
+    if (fragDepth < 0.0000001)
     {
         return 0;
     }
@@ -87,9 +87,12 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
     float ao = 0;
     float totalWeight = 0;
 
-    float3 upVS = normalVS;
-    float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
-    float3 binormaVS = cross(upVS, tangentVS);
+    // use view axis aligned direction can enable the opportunity to use de-interaved texture sampling
+    float3 tangentVS = float3(1,0,0);
+    float3 binormaVS = float3(0,1,0);
+    // float3 upVS = normalVS;
+    // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
+    // float3 binormaVS = cross(upVS, tangentVS);
 
     float jitter = randf((int)screenPos.x, (int)screenPos.y);
 
