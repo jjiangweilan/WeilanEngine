@@ -215,7 +215,7 @@ void GameEditor::ShowGameProfiler(IProfiler& cpuProfiler)
     // auto& gpuProfiles = GetGfxDriver()->GetFrameProfiles();
     ImGui::Begin("Profiler Module");
 
-    if (!ImGui::IsWindowAppearing())
+    if (ImGui::IsWindowCollapsed())
     {
         cpuProfiler.Pause();
         GetGfxDriver()->GetGPUProfiler().Pause();
