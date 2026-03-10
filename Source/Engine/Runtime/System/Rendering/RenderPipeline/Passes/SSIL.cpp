@@ -106,6 +106,7 @@ void SSIL::Execute(
     int height = renderingData.screenSize.y / 4;
 
     Gfx::RenderImageDescriptor desc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
+    desc.SetRandomWrite(true);
     cmd->AllocateAttachment(ssilRaw, desc);
 
     mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
@@ -113,6 +114,7 @@ void SSIL::Execute(
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
     mat.SetTexture("ignNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
+    mat.SetTexture("outSsilTex", GetGfxDriver()->GetImageFromRenderGraph(ssilRaw));
 
     mat.SetVector("rtSize", glm::float4(width, height, 1.0f / width, 1.0f / height));
     mat.SetFloat("strength", setting->ssil.strength);
@@ -126,18 +128,10 @@ void SSIL::Execute(
 
     debugSSIL = setting->ssil.debug_ssilOutput;
 
-    Gfx::RenderAttachment attachments[] = {
-        {ssilRaw, Gfx::AttachmentLoadOperation::Clear}
-    };
-    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-    cmd->BeginRenderPass(attachments, clears);
-
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
     cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-    cmd->Draw(6, 1, 0, 0);
-
-    cmd->EndRenderPass();
+    cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     desc.SetRandomWrite(true);
     desc.SetWidth(width * 2);

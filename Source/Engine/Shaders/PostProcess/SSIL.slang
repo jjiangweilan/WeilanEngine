@@ -32,6 +32,7 @@ struct SSILParameter
     Texture2D colorTex;
     Texture2D albedoTex;
     Texture2D<float4> ignNoise;
+    RWTexture2D<float4> outSsilTex;
     SamplerState sampler_point_clamp;
     SamplerState sampler_linear_clamp;
     SamplerState sampler_point_repeat;
@@ -224,19 +225,26 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
     return perMaterial.strength * max(float4(indirectLight, ao), 0);
 }
 
-[shader("fragment")]
-float4 FragmentMain(VertexOutput input, float4 screenPos : SV_Position) : SV_Target
+[shader("compute")]
+[numthreads(8, 8, 1)]
+void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    float4 ssil = SSIL(input.uv, screenPos.xy, false);
+    if (dispatchThreadID.x >= perMaterial.rtSize.x || dispatchThreadID.y >= perMaterial.rtSize.y)
+        return;
+
+    float2 uv = (float2(dispatchThreadID.xy) + 0.5f) * perMaterial.rtSize.zw;
+    float2 screenPos = float2(dispatchThreadID.xy);
+
+    float4 ssil = SSIL(uv, screenPos, false);
 #if DEBUG_DRAW
-    float3 dir = perScene.UvToWorldRay(input.uv);
+    float3 dir = perScene.UvToWorldRay(uv);
     s2h_init(context, perScene.camera.position.xyz, dir);
-    s2h_init(debugGatherContext, screenPos.xy);
-    SSIL(perMaterial.debugPoint.xy, screenPos.xy, true);
+    s2h_init(debugGatherContext, screenPos);
+    SSIL(perMaterial.debugPoint.xy, screenPos, true);
 
     ssil.xyz = lerp(ssil.xyz, context.dstColor.xyz, context.dstColor.a);
     ssil.xyz = lerp(ssil.xyz, debugGatherContext.dstColor.xyz, debugGatherContext.dstColor.a);
 #endif
 
-    return ssil;
+    perMaterial.outSsilTex[dispatchThreadID.xy] = ssil;
 }
