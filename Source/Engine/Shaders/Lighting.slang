@@ -265,9 +265,6 @@ float3 StandardLightShading(
 
         float shadowAttenuation = min(contactShadow, mainLightShadowAttenuation);
 
-        // IBL
-        float3 indirectSpecular = CalcIndirectSpecularFromCubemap(object.viewDir, object.normalWS, object.metallic, gi.specularCubemap, gi.specularBRDFIntegrationMap, object.roughness, object.baseColor);
-
-        float3 color = lighting * shadowAttenuation;// + indirectSpecular;
+        float3 color = lighting * shadowAttenuation;
         return color;
 }
