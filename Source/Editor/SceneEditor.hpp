@@ -121,7 +121,7 @@ private:
 
             return {0, 0};
         }
-    } mouseTrack;
+    } mouseTrack, middleMouseTrack;
 
     int2 sceneImageOrigin{0, 0};
 
