@@ -22,6 +22,7 @@ struct SSILParameter
     float radius;
     float sliceCount;
     float sampleCount;
+    float jitterScale;
     float debug_ssilOutput;
     float oneMeterPixelSize;
     float2 debugPoint;
@@ -94,7 +95,7 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
     // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
     // float3 binormaVS = cross(upVS, tangentVS);
 
-    float jitter = randf((int)screenPos.x, (int)screenPos.y);
+    float jitter = randf((int)screenPos.x, (int)screenPos.y) * perMaterial.jitterScale;
 
 #if DEBUG_DRAW
     if (debug)

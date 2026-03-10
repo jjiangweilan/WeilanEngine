@@ -120,6 +120,7 @@ void SSIL::Execute(
     mat.SetFloat("radius", setting->ssil.radius);
     mat.SetFloat("sliceCount", (float)setting->ssil.sliceCount);
     mat.SetFloat("sampleCount", (float)setting->ssil.sampleCount);
+    mat.SetFloat("jitterScale", setting->ssil.jitterScale);
     mat.SetFloat("debug_ssilOutput", setting->ssil.debug_ssilOutput ? 1.0f : 0.0f);
     mat.SetVector("debugPoint", float4(setting->ssil.debugPoint, 0, 0));
 
