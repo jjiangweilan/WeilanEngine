@@ -194,10 +194,18 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         go->SetPosition(pos);
 
         // Calculate camera rotation based on mouse movement
-        auto upDown = 25 * glm::radians(mouseDelta.y) * Time::DeltaTime();
-        auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
-        auto lookAtDelta = leftRight * right + upDown * up;
-        go->LookAt(forward + lookAtDelta);
+        float pitchDelta = 25.0f * glm::radians(mouseDelta.y) * Time::DeltaTime();
+        float yawDelta = -25.0f * glm::radians(mouseDelta.x) * Time::DeltaTime();
+
+        glm::quat currentRot = go->GetRotation();
+        
+        // Pitch rotates around the local X axis (right)
+        glm::quat pitchQuat = glm::angleAxis(pitchDelta, glm::vec3(1.0f, 0.0f, 0.0f));
+        // Yaw rotates around the global Y axis (up)
+        glm::quat yawQuat = glm::angleAxis(yawDelta, glm::vec3(0.0f, 1.0f, 0.0f));
+
+        // Applying yaw globally (left multiply) and pitch locally (right multiply)
+        go->SetRotation(glm::normalize(yawQuat * currentRot * pitchQuat));
     }
     else if (isMiddleButtonDown)
     {
