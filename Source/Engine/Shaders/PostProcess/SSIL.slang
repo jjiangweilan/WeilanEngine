@@ -12,7 +12,14 @@ import Lighting;
 #define SSIL_HALF_PI 1.57079632679f
 #define SSIL_TWO_PI 6.28318530718f
 #define SSIL_RAW_MIP 2
+
+// 0 or 1
 #define DEBUG_DRAW 0
+
+// 0 or 1
+#define SSIL_USE_SHARED_SAMPLES 1
+
+#define SSIL_SHARED_SAMPLES_SUBSLICE_COUNT 2
 
 struct SSILParameter
 {
@@ -69,7 +76,9 @@ static Context3D context;
 static ContextGather debugGatherContext;
 #endif
 
-float4 SSIL(float2 uv, float2 screenPos, bool debug)
+groupshared float3 g_sharedSamples[64];
+
+float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 {
     // main algorithm
     float4 fragPosVS = GetPositionVS(uv);
@@ -96,7 +105,12 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
     // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
     // float3 binormaVS = cross(upVS, tangentVS);
 
+#if SSIL_USE_SHARED_SAMPLES
+    float jitter = randf(((int)screenPos.x) / 2, ((int)screenPos.y) / 2) * perMaterial.jitterScale;
+#else
     float jitter = randf((int)screenPos.x, (int)screenPos.y) * perMaterial.jitterScale;
+#endif
+    
 
 #if DEBUG_DRAW
     if (debug)
@@ -111,9 +125,21 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
 
     const float Nbits = 32;
     uint lastBits = 0; // For debug display
+    uint bits_i = 0;
+
+#if SSIL_USE_SHARED_SAMPLES
+    uint sliceIndex = groupIndex % 4;
+    for(uint subsliceIndex = 0; subsliceIndex < SSIL_SHARED_SAMPLES_SUBSLICE_COUNT; ++subsliceIndex)
+#else
     for(uint sliceIndex = 0; sliceIndex < perMaterial.sliceCount; ++sliceIndex)
+#endif
     {
+
+#if SSIL_USE_SHARED_SAMPLES
+        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter) / perMaterial.sliceCount;
+#else
         float phi = SSIL_PI * float(sliceIndex + jitter) / perMaterial.sliceCount;
+#endif
 
         float2 sampleDir = normalize(float2(cos(phi), -sin(phi)));
         float3 axis = normalize(tangentVS * sampleDir.x + binormaVS * sampleDir.y);
@@ -121,16 +147,6 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
 
         float3 dirDelta = axis * perMaterial.radius / sampleCount;
 
-        // float4 uvStart = mul(perScene.camera.projection, float4(sampleStartPosVS, 1.0));
-        // float4 uvEnd = mul(perScene.camera.projection, float4(sampleEndPosVS, 1.0));
-        // uvStart.xy /= uvStart.w;
-        // uvStart.xy = uvStart.xy * 0.5 + 0.5;
-        // uvEnd.xy /= uvEnd.w;
-        // uvEnd.xy = uvEnd.xy * 0.5 + 0.5;
-
-        uint bits_i = 0;
-
-        [unroll]
         for (float direction = 0; direction < 2; ++direction)
         {
             float directionFixed = direction * 2 - 1;
@@ -140,52 +156,72 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
                 float3 samplePosVS = posVS + dirDelta * sampleIndex * directionFixed;
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
-                
+                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
+                g_sharedSamples[groupIndex] = float3(sampleUV, depth);
+                GroupMemoryBarrierWithGroupSync();
+
                 if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
                     continue;
-                
-                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
-                float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
-                frontVS.xyz /= frontVS.w;
 
-                float3 backVS = frontVS.xyz + posDirVS * perMaterial.thickness;
-                float3 frontAngleDir = normalize(frontVS.xyz - posVS);
-                float3 backAngleDir = normalize(backVS - posVS);
-                float frontAngle = acos(clamp(dot(normalVS, frontAngleDir), 0, SSIL_HALF_PI) * select(dot(frontAngleDir, axis) < -1, -1, 1));
-                float backAngle = acos(clamp(dot(normalVS, backAngleDir), 0, SSIL_HALF_PI) * select(dot(backAngleDir, axis) < -1, -1, 1));
+#if SSIL_USE_SHARED_SAMPLES
+                for (int sharedSamplesSubgroupIndex = 0; sharedSamplesSubgroupIndex < 4; sharedSamplesSubgroupIndex++) 
+                {
+                    uint sharedSampleOffset = groupIndex / 4 * 4;
+                    float3 sharedSamples = g_sharedSamples[sharedSampleOffset + sharedSamplesSubgroupIndex]; 
+                    float2 sampleUV = sharedSamples.xy;
+                    float depth = sharedSamples.z;
+#endif
 
-                float2 minMaxAngle = frontAngle > backAngle ? float2(backAngle, frontAngle) : float2(frontAngle, backAngle);
+                    float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
+                    frontVS.xyz /= frontVS.w;
 
-                uint a = (uint)(floor((minMaxAngle.x + SSIL_HALF_PI) / SSIL_PI * Nbits + 0.5));
-                uint b = (uint)(ceil((minMaxAngle.y - minMaxAngle.x) / SSIL_PI * Nbits - 0.5));
+                    float3 backVS = frontVS.xyz + posDirVS * perMaterial.thickness;
+                    float3 frontAngleDir = normalize(frontVS.xyz - posVS);
+                    float3 backAngleDir = normalize(backVS - posVS);
+                    float frontAngle = acos(clamp(dot(normalVS, frontAngleDir), 0, SSIL_HALF_PI) * select(dot(frontAngleDir, axis) < -1, -1, 1));
+                    float backAngle = acos(clamp(dot(normalVS, backAngleDir), 0, SSIL_HALF_PI) * select(dot(backAngleDir, axis) < -1, -1, 1));
 
-                uint bits_j = (uint)pow(2, b) - 1 << a;
+                    float2 minMaxAngle = frontAngle > backAngle ? float2(backAngle, frontAngle) : float2(frontAngle, backAngle);
 
-                // GI
-                float3 lighting = perMaterial.colorTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 0).xyz;
-                float3 normal = GetNormalVS(sampleUV);
-                float3 l = normalize(frontVS.xyz - posVS);
-                indirectLight = indirectLight + countbits(bits_j & ~bits_i) / Nbits * lighting * dot(normal, l) * dot(normalVS, -l);
+                    uint a = (uint)(floor((minMaxAngle.x + SSIL_HALF_PI) / SSIL_PI * Nbits + 0.5));
+                    uint b = (uint)(ceil((minMaxAngle.y - minMaxAngle.x) / SSIL_PI * Nbits - 0.5));
 
-                // ao
-                bits_i = bits_i | bits_j;
+                    uint bits_j = (uint)pow(2, b) - 1 << a;
+
+                    // GI
+                    float3 lighting = perMaterial.colorTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 0).xyz;
+                    float3 normal = GetNormalVS(sampleUV);
+                    float3 l = normalize(frontVS.xyz - posVS);
+                    indirectLight = indirectLight + countbits(bits_j & ~bits_i) / Nbits * lighting * dot(normal, l) * dot(normalVS, -l);
+
+                    // ao
+                    bits_i = bits_i | bits_j;
 
 #if DEBUG_DRAW
-                if (debug)
-                {
-                    // Draw front (green) and back (yellow) thickness indicator
-                    s2h_drawSphereWS(context, mul(perScene.camera.invView, float4(frontVS.xyz, 1.0)).xyz, float4(0,1,0,1), 0.05f);
-                    s2h_drawSphereWS(context, mul(perScene.camera.invView, float4(backVS.xyz, 1.0)).xyz, float4(1,1,0,0.5), 0.03f);
+                    if (debug)
+                    {
+                        // Draw front (green) and back (yellow) thickness indicator
+                        s2h_drawSphereWS(context, mul(perScene.camera.invView, float4(frontVS.xyz, 1.0)).xyz, float4(0,1,0,1), 0.05f);
+                        s2h_drawSphereWS(context, mul(perScene.camera.invView, float4(backVS.xyz, 1.0)).xyz, float4(1,1,0,0.5), 0.03f);
+                    }
+#endif
+
+#if SSIL_USE_SHARED_SAMPLES
                 }
 #endif
             }
         }
-        lastBits = bits_i;
-        ao = ao + 1 - countbits(bits_i) / Nbits;
     }
+    lastBits = bits_i;
+    ao = ao + 1 - countbits(bits_i) / Nbits;
 
-    ao = ao / perMaterial.sliceCount;
-    indirectLight /= perMaterial.sliceCount;
+#if SSIL_USE_SHARED_SAMPLES
+    float sliceCount = 4 * SSIL_SHARED_SAMPLES_SUBSLICE_COUNT; // 2x2 shared samples * 2 subslices for each thread
+#else
+    float sliceCount = perMaterial.sliceCount;
+#endif
+    ao /= sliceCount;
+    indirectLight /= sliceCount;
 
 #if DEBUG_DRAW
     if (debug)
@@ -226,25 +262,27 @@ float4 SSIL(float2 uv, float2 screenPos, bool debug)
 }
 
 [shader("compute")]
-[numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+    [numthreads(64, 1, 1)]
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    if (dispatchThreadID.x >= perMaterial.rtSize.x || dispatchThreadID.y >= perMaterial.rtSize.y)
+    uint2 pixelCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
+
+    if (pixelCoord.x >= perMaterial.rtSize.x || pixelCoord.y >= perMaterial.rtSize.y)
         return;
 
-    float2 uv = (float2(dispatchThreadID.xy) + 0.5f) * perMaterial.rtSize.zw;
-    float2 screenPos = float2(dispatchThreadID.xy);
+    float2 uv = (float2(pixelCoord.xy) + 0.5f) * perMaterial.rtSize.zw;
+    float2 screenPos = float2(pixelCoord.xy);
 
-    float4 ssil = SSIL(uv, screenPos, false);
+    float4 ssil = SSIL(uv, screenPos, groupIndex, false);
 #if DEBUG_DRAW
     float3 dir = perScene.UvToWorldRay(uv);
     s2h_init(context, perScene.camera.position.xyz, dir);
     s2h_init(debugGatherContext, screenPos);
-    SSIL(perMaterial.debugPoint.xy, screenPos, true);
+    SSIL(perMaterial.debugPoint.xy, screenPos, groupIndex, true);
 
     ssil.xyz = lerp(ssil.xyz, context.dstColor.xyz, context.dstColor.a);
     ssil.xyz = lerp(ssil.xyz, debugGatherContext.dstColor.xyz, debugGatherContext.dstColor.a);
 #endif
 
-    perMaterial.outSsilTex[dispatchThreadID.xy] = ssil;
+    perMaterial.outSsilTex[pixelCoord.xy] = ssil;
 }

@@ -230,3 +230,16 @@ T PerspectiveCorrectInterpolation<T : IFloat>(T attrA, T attrB, float depthA_VS,
     return attr;
 }
 
+// Mapping 1D index -> 2D (8x8 grid)
+uint2 MortonDecode8x8(uint i) {
+    uint x = (i & 1u) | ((i & 4u) >> 1) | ((i & 16u) >> 2);
+    uint y = ((i & 2u) >> 1) | ((i & 8u) >> 2) | ((i & 32u) >> 3);
+    return uint2(x, y);
+}
+
+// Mapping 2D -> 1D index (8x8 grid)
+uint MortonEncode8x8(uint2 coord) {
+    uint x = coord.x & 7u; // Clamp to 0-7
+    uint y = coord.y & 7u;
+    return (x & 1u) | ((y & 1u) << 1) | ((x & 2u) << 1) | ((y & 2u) << 2) | ((x & 4u) << 2) | ((y & 4u) << 3);
+}
