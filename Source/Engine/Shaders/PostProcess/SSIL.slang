@@ -21,6 +21,12 @@ import Lighting;
 
 #define SSIL_SHARED_SAMPLES_SUBSLICE_COUNT 2
 
+#if SSIL_USE_SHARED_SAMPLES
+    #define SSIL_SLICE_COUNT 8 // 2x2 shared samples * 2 subslices for each thread
+#else
+    #define SSIL_SLICE_COUNT perMaterial.sliceCount
+#endif
+
 struct SSILParameter
 {
     float4 rtSize;
@@ -131,14 +137,14 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     uint sliceIndex = groupIndex % 4;
     for(uint subsliceIndex = 0; subsliceIndex < SSIL_SHARED_SAMPLES_SUBSLICE_COUNT; ++subsliceIndex)
 #else
-    for(uint sliceIndex = 0; sliceIndex < perMaterial.sliceCount; ++sliceIndex)
+    for(uint sliceIndex = 0; sliceIndex < SSIL_SLICE_COUNT; ++sliceIndex)
 #endif
     {
 
 #if SSIL_USE_SHARED_SAMPLES
-        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter) / perMaterial.sliceCount;
+        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter) / SSIL_SLICE_COUNT;
 #else
-        float phi = SSIL_PI * float(sliceIndex + jitter) / perMaterial.sliceCount;
+        float phi = SSIL_PI * float(sliceIndex + jitter) / SSIL_SLICE_COUNT;
 #endif
 
         float2 sampleDir = normalize(float2(cos(phi), -sin(phi)));
@@ -215,11 +221,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     lastBits = bits_i;
     ao = ao + 1 - countbits(bits_i) / Nbits;
 
-#if SSIL_USE_SHARED_SAMPLES
-    float sliceCount = 4 * SSIL_SHARED_SAMPLES_SUBSLICE_COUNT; // 2x2 shared samples * 2 subslices for each thread
-#else
-    float sliceCount = perMaterial.sliceCount;
-#endif
+    float sliceCount = SSIL_SLICE_COUNT;
     ao /= sliceCount;
     indirectLight /= sliceCount;
 
