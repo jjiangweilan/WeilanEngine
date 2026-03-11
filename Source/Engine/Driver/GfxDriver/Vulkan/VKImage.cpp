@@ -77,7 +77,7 @@ VKImage::~VKImage()
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
 
-    spdlog::info("VKImage is destoryed {}", GetName());
+    // spdlog::info("VKImage is destoryed {}", GetName());
 }
 
 void VKImage::InitBarrierTrack()
