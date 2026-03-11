@@ -164,7 +164,7 @@ void GameObject::SetWorldMatrix(const float4x4& matrix)
 
     Math::DecomposeMatrix(localMatrix, position, scale, rotation);
 
-    SetEulerAngles(glm::eulerAngles(rotation));
+    SetLocalRotation(rotation);
     SetLocalScale(scale);
     SetLocalPosition(position);
 }
