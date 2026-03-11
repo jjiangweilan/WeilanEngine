@@ -217,7 +217,7 @@ public:
 
     static void WaitForShaderCompilation() { Singleton().WaitForAllImpl(); }
 
-    static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
+    static void ReloadAllShaders(bool runCompilation = true) { return Singleton().ReloadAllShadersImpl(runCompilation); }
 
     // Trigger shader recompilation via Python script
     static bool TriggerShaderRecompilation() { return Singleton().TriggerShaderRecompilationImpl(); }
@@ -239,7 +239,7 @@ private:
     void WaitForAllImpl() {}
     Shader* GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
-    void ReloadAllShadersImpl();
+    void ReloadAllShadersImpl(bool runCompilation = true);
     inline const char* GetShaderRootPath()
     {
         return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/";

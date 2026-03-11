@@ -219,8 +219,10 @@ void WeilanEngine::EndFrame()
     DelayDestroy::Singleton()->Flush();
     GetFrameContext().EndFrame();
 #if ENGINE_EDITOR
-    assetDatabase->RefreshShader();
-    gfxDriver->ShaderReloaded();
+    if (assetDatabase->RefreshShader())
+    {
+        gfxDriver->ShaderReloaded();
+    }
 #endif
 
     ENGINE_END_PROFILE; // End Frame

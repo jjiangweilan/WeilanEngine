@@ -43,7 +43,7 @@ public:
 
     void ReloadScripts();
     void RequestShaderRefresh(bool all = false);
-    void RefreshShader();
+    bool RefreshShader();
 
     std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
     void SaveDirtyAssets();

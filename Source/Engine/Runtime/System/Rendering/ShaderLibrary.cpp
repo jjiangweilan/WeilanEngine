@@ -70,7 +70,7 @@ const ShaderFeatures& ShaderLibrary::QueryShaderFeaturesImpl(const char* name)
     return emptyFeatures;
 }
 
-void ShaderLibrary::ReloadAllShadersImpl()
+void ShaderLibrary::ReloadAllShadersImpl(bool runCompilation)
 {
     GetGfxDriver()->WaitForIdle();
 
@@ -94,74 +94,77 @@ void ShaderLibrary::ReloadAllShadersImpl()
         }
     }
 
-    auto runCompileShadersTool = []() -> bool
+    if (runCompilation)
     {
+        auto runCompileShadersTool = []() -> bool
+        {
 #ifdef ENGINE_SOURCE_PATH
-        // Invoke CompileShaders.py directly (no dependency on cmake targets).
-        const std::filesystem::path engineRoot = std::filesystem::path(ENGINE_SOURCE_PATH);
-        const std::filesystem::path scriptPath = engineRoot / "Source" / "Scripts" / "CompileShaders.py";
-        std::string command = "python \"" + scriptPath.string() + "\"";
+            // Invoke CompileShaders.py directly (no dependency on cmake targets).
+            const std::filesystem::path engineRoot = std::filesystem::path(ENGINE_SOURCE_PATH);
+            const std::filesystem::path scriptPath = engineRoot / "Source" / "Scripts" / "CompileShaders.py";
+            std::string command = "python \"" + scriptPath.string() + "\"";
 
 #if defined(_WIN32)
-        spdlog::info("Invoking local tool CompileShaders...");
+            spdlog::info("Invoking local tool CompileShaders...");
 
-        STARTUPINFOA si = {sizeof(si)};
-        PROCESS_INFORMATION pi;
+            STARTUPINFOA si = {sizeof(si)};
+            PROCESS_INFORMATION pi;
 
-        if (CreateProcessA(
-                nullptr,
-                const_cast<char*>(command.c_str()),
-                nullptr,
-                nullptr,
-                FALSE,
-                0,
-                nullptr,
-                engineRoot.string().c_str(),
-                &si,
-                &pi
-            ))
-        {
-            WaitForSingleObject(pi.hProcess, INFINITE);
+            if (CreateProcessA(
+                    nullptr,
+                    const_cast<char*>(command.c_str()),
+                    nullptr,
+                    nullptr,
+                    FALSE,
+                    0,
+                    nullptr,
+                    engineRoot.string().c_str(),
+                    &si,
+                    &pi
+                ))
+            {
+                WaitForSingleObject(pi.hProcess, INFINITE);
 
-            DWORD exitCode;
-            GetExitCodeProcess(pi.hProcess, &exitCode);
+                DWORD exitCode;
+                GetExitCodeProcess(pi.hProcess, &exitCode);
 
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
 
-            if (exitCode == 0)
+                if (exitCode == 0)
+                {
+                    spdlog::info("CompileShaders completed successfully");
+                    return true;
+                }
+
+                spdlog::error("CompileShaders failed with exit code {}", exitCode);
+                return false;
+            }
+
+            spdlog::error("Failed to start CompileShaders process");
+            return false;
+#else
+            spdlog::info("Invoking local tool CompileShaders...");
+            int result = std::system(command.c_str());
+            if (result == 0)
             {
                 spdlog::info("CompileShaders completed successfully");
                 return true;
             }
-
-            spdlog::error("CompileShaders failed with exit code {}", exitCode);
+            spdlog::error("CompileShaders failed with exit code {}", result);
             return false;
-        }
-
-        spdlog::error("Failed to start CompileShaders process");
-        return false;
+#endif
 #else
-        spdlog::info("Invoking local tool CompileShaders...");
-        int result = std::system(command.c_str());
-        if (result == 0)
+            spdlog::error("Cannot invoke CompileShaders: ENGINE_SOURCE_PATH not defined");
+            return false;
+#endif
+        };
+
+        if (!runCompileShadersTool())
         {
-            spdlog::info("CompileShaders completed successfully");
-            return true;
+            // Keep existing in-memory shaders running.
+            return;
         }
-        spdlog::error("CompileShaders failed with exit code {}", result);
-        return false;
-#endif
-#else
-        spdlog::error("Cannot invoke CompileShaders: ENGINE_SOURCE_PATH not defined");
-        return false;
-#endif
-    };
-
-    if (!runCompileShadersTool())
-    {
-        // Keep existing in-memory shaders running.
-        return;
     }
 
     // Reload all shaders that are currently loaded in this process.

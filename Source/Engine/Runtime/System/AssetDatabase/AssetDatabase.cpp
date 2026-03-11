@@ -279,15 +279,42 @@ void AssetDatabase::RequestShaderRefresh(bool all)
     requestShaderRefreshAll = all;
 }
 
-void AssetDatabase::RefreshShader()
+static std::future<bool> shaderCompileFuture;
+static bool isCompilingShaders = false;
+
+bool AssetDatabase::RefreshShader()
 {
     if (requestShaderRefresh)
     {
         requestShaderRefresh = false;
-        ShaderLibrary::ReloadAllShaders();
-        Material::RebuildAllMaterials();
-        requestShaderRefreshAll = false;
+        
+        // Launch compilation asynchronously if not already running
+        if (!isCompilingShaders)
+        {
+            isCompilingShaders = true;
+            shaderCompileFuture = std::async(std::launch::async, []() {
+                return ShaderLibrary::TriggerShaderRecompilation();
+            });
+        }
     }
+
+    // Check if the background compilation task has finished
+    if (isCompilingShaders && shaderCompileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+    {
+        isCompilingShaders = false;
+        bool success = shaderCompileFuture.get();
+        requestShaderRefreshAll = false;
+        
+        if (success)
+        {
+            // Now that compilation is done, safely reload shaders and materials on the main thread
+            ShaderLibrary::ReloadAllShaders(false);
+            Material::RebuildAllMaterials();
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 AssetDatabase*& AssetDatabase::SingletonReference()
