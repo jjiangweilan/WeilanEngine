@@ -95,8 +95,8 @@ bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance)
 bool RayVsMesh(const Ray& ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
-    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
-    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferData();
+    const uint32_t* indices = mesh->GetIndices().data();
+    const glm::vec3* positions = mesh->GetPositions().data();
     for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];
@@ -132,8 +132,8 @@ bool RayVsMesh(
 )
 {
     glm::vec2 bary;
-    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
-    glm::vec3* positions = (glm::vec3*)mesh->GetIndexBufferData();
+    auto* indices = mesh->GetIndices().data();
+    const glm::vec3* positions = mesh->GetPositions().data();
     for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];

@@ -34,6 +34,9 @@ public:
     inline int GetIndexCount() const { return indexCount; }
     int GetTriangleCount() const { return indexCount / 3; }
 
+    uint32_t GetVertexDataByteSize() const;
+    uint32_t GetIndexDataByteSize() const;
+
     Gfx::IndexBufferType GetIndexBufferType() const { return indexBufferType; }
 
     const AABB& GetAABB() const;
@@ -47,17 +50,6 @@ public:
 
     std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
-private:
-    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
-    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
-    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt32;
-    std::vector<VertexBinding> bindings;
-    std::vector<Gfx::VertexBufferBinding> gfxBindings;
-    AABB aabb;
-    int indexCount = 0;
-    std::string name;
-
-    // v0.2 API
 public:
     void SetIndices(std::vector<uint32_t>&& indices);
     void SetIndices(const std::vector<uint32_t>& indices);
@@ -87,25 +79,20 @@ private:
     std::vector<uint32_t> indices;
     std::vector<glm::vec3> positions; // binding 0,
     VertexAttributes attributes;      // binding 1, interleaved
+                                      //
+    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
+    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt32;
+    std::vector<VertexBinding> bindings;
+    std::vector<Gfx::VertexBufferBinding> gfxBindings;
+    AABB aabb;
+    int indexCount = 0;
+    std::string name;
+    uint32_t vertexBufferSize;
+    uint32_t indexBufferSize;
 
-    // v0.1 API
-public:
-    Submesh(
-        std::unique_ptr<unsigned char>&& vertexBuffer,
-        std::vector<VertexBinding>&& bindings,
-        std::unique_ptr<unsigned char>&& indexBuffer,
-        Gfx::IndexBufferType indexBufferType,
-        int indexCount,
-        std::string_view name = ""
-    );
-
-    uint8_t* GetIndexBufferData() const { return indexBuffer.get(); }
-
-    uint8_t* GetVertexBufferData() const { return vertexBuffer.get(); }
-
-private:
-    std::unique_ptr<unsigned char> vertexBuffer = nullptr;
-    std::unique_ptr<unsigned char> indexBuffer = nullptr;
+    void UpdateVertexDataByteSize();
+    void UpdateIndexDataByteSize();
 };
 
 class Mesh : public Asset
