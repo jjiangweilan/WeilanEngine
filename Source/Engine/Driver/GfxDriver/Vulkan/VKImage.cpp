@@ -278,7 +278,7 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.aspectMask = option.aspect;
     range.baseMipLevel = glm::clamp(option.baseMipLevel, 0, (int)imageDescription.mipLevels - 1);
     range.levelCount = glm::min(
-        Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels - range.baseMipLevel : option.levelCount,
+        option.levelCount == Gfx::Remaining_Mip_Levels ? imageDescription.mipLevels - range.baseMipLevel : option.levelCount,
         imageDescription.mipLevels - range.baseMipLevel
     );
     range.baseArrayLayer = glm::clamp(option.baseArrayLayer, 0, (int)imageDescription.layers - 1);

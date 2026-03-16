@@ -93,6 +93,7 @@ private:
         VkImage dst;
         uint32_t width;
         uint32_t height;
+        uint32_t depth;
         size_t srcOffset;
         size_t size;
         uint32_t mipLevel;

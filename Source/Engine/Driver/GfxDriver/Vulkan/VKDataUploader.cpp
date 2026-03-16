@@ -103,6 +103,7 @@ void VKDataUploader::UploadImage(
             vkDst->GetImage(),
             (uint32_t)(vkDst->GetDescription().width * scale),
             (uint32_t)(vkDst->GetDescription().height * scale),
+            (uint32_t)glm::max((vkDst->GetDescription().depth * scale), 1.0f),
             takingOffCmd.endOffset + align,
             size,
             mipLevel,
@@ -205,7 +206,7 @@ void VKDataUploader::UploadAllPendingInternal(
         region.imageSubresource.baseArrayLayer = p.arrayLayer;
         region.imageSubresource.layerCount = 1;
         region.imageOffset = VkOffset3D{0, 0, 0};
-        region.imageExtent = VkExtent3D{p.width, p.height, 1};
+        region.imageExtent = VkExtent3D{p.width, p.height, p.depth};
 
         bufferImageCopies.push_back(region);
 

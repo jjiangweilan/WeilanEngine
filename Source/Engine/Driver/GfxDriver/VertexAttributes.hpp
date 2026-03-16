@@ -47,7 +47,7 @@ public:
 
     size_t GetSize() const { return data.size(); }
 
-    auto GetData() -> const std::vector<uint8_t> { return data; }
+    auto GetData() const -> const std::vector<uint8_t>& { return data; }
     void SetData(const std::vector<uint8_t>& data) { this->data = data; }
     void SetData(std::vector<uint8_t>&& data) { this->data = std::move(data); }
 

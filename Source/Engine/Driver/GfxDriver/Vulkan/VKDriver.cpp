@@ -1080,6 +1080,8 @@ void VKDriver::CreatePhysicalDevice()
     {
         GPU thisGPU{pd};
 
+        thisGPU.physicalDeviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+
         thisGPU.physicalDeviceProperties2.pNext = &thisGPU.asProps;
         vkGetPhysicalDeviceProperties(thisGPU.handle, &thisGPU.physicalDeviceProperties);
         vkGetPhysicalDeviceProperties2(thisGPU.handle, &thisGPU.physicalDeviceProperties2);
