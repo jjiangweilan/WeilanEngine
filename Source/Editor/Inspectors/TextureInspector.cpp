@@ -38,7 +38,11 @@ public:
         ImGui::Separator();
         EditorGUI::DragFloat("Image Scale", &imageScale, 0.01, 0.01, 1.0);
         float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
-        EditorGUI::TextFormatted("Size", "%d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
+        int targetDepth = target->GetDescription().img.depth;
+        if (targetDepth > 1)
+            EditorGUI::TextFormatted("Size", "%d x %d x %d", target->GetDescription().img.width, target->GetDescription().img.height, targetDepth);
+        else
+            EditorGUI::TextFormatted("Size", "%d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
         EditorGUI::TextFormatted("Memory Size (without mip)", "%.2f Mb", mb);
         EditorGUI::Text("Format", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
 

@@ -161,6 +161,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     desc.img.isCubemap = texture->isCubemap;
     desc.img.width = texture->baseWidth;
     desc.img.height = texture->baseHeight;
+    desc.img.depth = texture->baseDepth;
     desc.img.mipLevels = gpuMipLevels;
     desc.img.format = Gfx::MapVKFormat(ktxTexture2_GetVkFormat(texture));
     desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
@@ -175,10 +176,11 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     {
         throw std::runtime_error("Texture-numDimensions not implemented");
     }
-    else if (texture->numDimensions == 2)
+    else if (texture->numDimensions == 2 || texture->numDimensions == 3)
     {
         for (uint32_t level = 0; level < texture->numLevels; ++level)
         {
+            uint32_t levelDepth = (texture->baseDepth >> level) > 0 ? (texture->baseDepth >> level) : 1u;
             for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
             {
                 for (uint32_t face = 0; face < texture->numFaces; ++face)
@@ -186,7 +188,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
                     ktx_size_t offset = 0;
                     if (ktxTexture_GetImageOffset(ktxTexture(texture), level, layer, face, &offset) != KTX_SUCCESS)
                         throw std::runtime_error("Texture-failed to get image offset");
-                    ktx_size_t byteSize = ktxTexture_GetImageSize(ktxTexture(texture), level);
+                    ktx_size_t byteSize = ktxTexture_GetImageSize(ktxTexture(texture), level) * levelDepth;
 
                     GetGfxDriver()->UploadImage(*image, data + offset, byteSize, level, layer + face);
                 }
@@ -195,7 +197,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     }
     else
     {
-        std::runtime_error("Texture-numDimensions not implemented");
+        throw std::runtime_error("Texture-numDimensions not implemented");
     }
 }
 
