@@ -321,7 +321,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     if (setting->postProcess.colorGrading)
     {
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize);
+        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize, (uint32_t)setting->postProcess.tonemapMode);
         finalColor = colorGradingPass->GetOutputId();
         cmd->EndLabel(); // Color Grading
     }
@@ -501,7 +501,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         for (int i = 0; i < lights.size(); ++i)
         {
             sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
-            sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
+            sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLinearLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
             auto model = lights[i]->GetGameObject()->GetWorldMatrix();
             switch (lights[i]->GetLightType())
@@ -644,6 +644,10 @@ void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, 
     {
         obj->Render(cmd, renderingData);
     }
+}
+
+void RenderPipeline::SetupGPUDrivenBindings()
+{
 }
 
 } // namespace Rendering

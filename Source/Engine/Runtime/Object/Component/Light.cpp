@@ -8,7 +8,7 @@ DEFINE_OBJECT(Component, Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
 TYPE_REFLECTION_MEMBER_VARIABLES(
     Light,
     TYPE_REFLECTION_MEM(Light, ambientScale),
-    TYPE_REFLECTION_MEM(Light, ambient),
+    TYPE_REFLECTION_MEM(Light, lightColor),
     TYPE_REFLECTION_MEM(Light, range),
     TYPE_REFLECTION_MEM(Light, intensity),
     TYPE_REFLECTION_MEM(Light, pointLightTerm1),
@@ -64,7 +64,7 @@ void Light::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     s->Serialize("ambientScale", ambientScale);
-    s->Serialize("ambient", ambient);
+    s->Serialize("ambient", lightColor);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
     s->Serialize("pointLightTerm1", pointLightTerm1);
@@ -85,7 +85,8 @@ void Light::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
     s->Deserialize("ambientScale", ambientScale);
-    s->Deserialize("ambient", ambient);
+    s->Deserialize("ambient", lightColor);
+    SetLightColor(lightColor);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
     s->Deserialize("pointLightTerm1", pointLightTerm1);

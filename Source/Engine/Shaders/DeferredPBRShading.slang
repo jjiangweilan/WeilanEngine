@@ -174,7 +174,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     // use the highest mip for the indirect diffuse
     float3 indirectDiffuse = (1 - shadingObject.metallic) * shadingObject.baseColor * gi.specularCubemap.SampleLevel(shadingObject.normalWS, 100).xyz * perScene.GetMainLight().ambientScale * gi.ao;
 
-    color = color + indirectDiffuse;
+    color = color + indirectDiffuse + indirectSpecular;
 
     return float4(color, 1);
 }

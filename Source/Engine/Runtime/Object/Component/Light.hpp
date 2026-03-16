@@ -20,7 +20,8 @@ class Light : public Component
 
     float directionalLightFrustum_W[6] = {-10, 10, -10, 10, -300, 700};
     LightType lightType = LightType::Directional;
-    glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
+    glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
+    glm::vec4 linearLightColor = glm::vec4(1, 1, 1, 1);
     float ambientScale = 1.0f;
     float range = 10.0f; // valid when it's a point light
     float intensity = 1.0f;
@@ -61,13 +62,18 @@ public:
     float GetRange() const { return range; }
     float GetIntensity() const { return intensity; }
 
-    glm::vec3 GetLightColor() const { return ambient; }
+    glm::vec3 GetLightColor() const { return lightColor; }
+    glm::vec3 GetLinearLightColor() const { return linearLightColor; }
 
     float GetAmbientScale() const { return ambientScale; }
 
     void SetAmbientScale(float scale) { this->ambientScale = scale; }
 
-    void SetLightColor(glm::vec3 ambient) { this->ambient = glm::vec4(ambient, 1.0); }
+    void SetLightColor(glm::vec3 lightColor)
+    {
+        this->lightColor = glm::vec4(lightColor, 1.0);
+        this->linearLightColor = glm::vec4(glm::pow(lightColor, glm::vec3(2.2f)), 1.0f);
+    }
 
     void SetPointLightLinear(float t) { this->pointLightTerm1 = t; }
 

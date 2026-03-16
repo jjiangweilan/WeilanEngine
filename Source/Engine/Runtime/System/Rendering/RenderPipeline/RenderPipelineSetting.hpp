@@ -15,9 +15,16 @@ public:
     bool frustumCull = true;
     bool shadowFrustumCull = true;
 
+    enum class TonemapMode : uint32_t
+    {
+        ACES = 0,
+        TonyMcMapface = 1
+    };
+
     struct PostProcess
     {
         bool colorGrading = true;
+        uint32_t tonemapMode = (uint32_t)TonemapMode::ACES;
         struct Bloom
         {
             bool enabled = true;
@@ -37,6 +44,7 @@ public:
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(colorGrading),
+            SER(tonemapMode),
             SER(bloom)
         );
     } postProcess;
