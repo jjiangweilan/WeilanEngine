@@ -55,8 +55,47 @@ struct VertexOutput
 [Global]
 ParameterBlock<PerScene> perScene;
 
+struct PerMaterial
+{
+    float4 baseColorFactor;
+    float4 emissive;
+    float roughness;
+    float metallic;
+    float alphaCutoff;
+
+    Sampler2D baseColorTex;
+    Sampler2D normalMap;
+    Sampler2D metallicRoughnessMap;
+    Sampler2D emissiveMap;
+};
+
+[Material]
+ParameterBlock<PerMaterial> perMaterial;
+
+struct PerObject
+{
+    uint positionOffset; 
+    uint vertexAttributeOffset;
+    uint indexBufferIndex;
+};
+
+[Object]
+ParameterBlock<PerObject> perObject;
+
+struct FragmentOutput
+{
+    float4 color : SV_Target0;
+    float4 albedo : SV_Target1;
+    float4 normal : SV_Target2;
+    float4 property : SV_Target3;
+}
+
 VertexOutput SceneLitVertex(VertexInput input)
 {
+    // uint32_t vertexIndex = perScene.indexBuffer.Load<uint32_t>(perObject.indexBufferIndex + vertexId);
+    // SceneObjectPositionData positionData = perScene.vertexBuffer.Load<SceneObjectPositionData>(perObject.positionOffset + vertexIndex);
+    // SceneObjectAttributeData attributeData = perScene.vertexBuffer.Load<SceneObjectAttributeData>(perObject.vertexAttributeOffset + vertexIndex);
+
     VertexOutput output;
     float3 vertexPos = input.GetPosition();
     float3 normal = input.GetNormal();
@@ -75,36 +114,10 @@ VertexOutput SceneLitVertex(VertexInput input)
     return output;
 }
 
-
 [shader("vertex")]
 VertexOutput VertexMain(VertexInput input)
 {
     return SceneLitVertex(input);
-}
-
-struct PerMaterial
-{
-    float4 baseColorFactor;
-    float4 emissive;
-    float roughness;
-    float metallic;
-    float alphaCutoff;
-
-    Sampler2D baseColorTex;
-    Sampler2D normalMap;
-    Sampler2D metallicRoughnessMap;
-    Sampler2D emissiveMap;
-};
-
-[Material]
-ParameterBlock<PerMaterial> perMaterial;
-
-struct FragmentOutput
-{
-    float4 color : SV_Target0;
-    float4 albedo : SV_Target1;
-    float4 normal : SV_Target2;
-    float4 property : SV_Target3;
 }
 
 FragmentOutput SceneLitFragment(VertexOutput input)

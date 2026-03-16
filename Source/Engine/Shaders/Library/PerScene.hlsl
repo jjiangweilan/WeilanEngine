@@ -1,4 +1,9 @@
 #pragma once
+
+#if GPU_RESOURCE
+#include "GPUDriven/GPUDrivenStructures.hlsl"
+#endif
+
 #define MAX_LIGHT_COUNT 128
 
 struct Light
@@ -65,7 +70,13 @@ struct PerScene
     ConstantBuffer<Scene> scene;
     ConstantBuffer<Camera> camera;
     ConstantBuffer<MainLightShadow> mainLightShadow;
-    
+
+    ByteAddressBuffer vertexBuffer;
+    ByteAddressBuffer indexBuffer;
+
+    ByteAddressBuffer GetVertexBuffer() { return vertexBuffer; }
+    ByteAddressBuffer GetIndexBuffer() { return indexBuffer; }
+
     Light GetMainLight()
     {
         if (scene.lightCount > 0)

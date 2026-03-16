@@ -1,5 +1,5 @@
 #pragma once
-#include "Allocators/StackAllocator.hpp"
+#include "Allocators/Internal/StackAllocator.hpp"
 #include <memory_resource>
 
 // fast, thread local memory allocation

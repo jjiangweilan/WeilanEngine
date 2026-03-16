@@ -149,5 +149,7 @@ private:
     Gfx::CommandBuffer* GetCommandBuffer();
     bool IsCommandBufferOverriden();
     void ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, RenderEvents event); // new method for handling render events
+                                                                                         //
+    void SetupGPUDrivenBindings();
 };
 } // namespace Rendering
