@@ -171,7 +171,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     // IBL
     float3 indirectSpecular = CalcIndirectSpecularFromCubemap(shadingObject.viewDir, shadingObject.normalWS, shadingObject.metallic, gi.specularCubemap, gi.specularBRDFIntegrationMap, shadingObject.roughness, shadingObject.baseColor);
 
-    // use the highest mip for the indirect diffuse
+    // use the highest mip for the indirect diffuse (this is wrong, the last mip only contains a single color)
     float3 indirectDiffuse = (1 - shadingObject.metallic) * shadingObject.baseColor * gi.specularCubemap.SampleLevel(shadingObject.normalWS, 100).xyz * perScene.GetMainLight().ambientScale * gi.ao;
 
     color = color + indirectDiffuse + indirectSpecular;
