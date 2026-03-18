@@ -17,22 +17,6 @@ interface IVertexInput
     float4 GetBone();
 }
 
-struct StandardVertexInput : IVertexInput
-{
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float4 tangent : TANGENT;
-    float2 uv : TEXCOORD0;
-
-    float3 GetPosition() {return position;}
-    float3 GetNormal() {return normal;}
-    float4 GetTangent() {return tangent;}
-    float2 GetUV() { return uv;}
-    float4 GetBone() { return float4(0,0,0,0);}
-}
-
-extern struct VertexInput : IVertexInput = StandardVertexInput;
-
 struct PushConstant
 {
     float4x4 model;
@@ -80,15 +64,15 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(VertexInput input, uint vertexID)
+VertexOutput SceneLitVertex(uint vertexID)
 {
     uint indexOffset = asuint(pconst.invTspModel[0][3]);
     uint positionOffset = asuint(pconst.invTspModel[1][3]);
     uint attributeOffset = asuint(pconst.invTspModel[2][3]);
 
-    uint vertexIndex = perScene.globalBuffer.Load<uint>(indexOffset + vertexID * 4);
-    SceneObjectPositionData positionData = perScene.globalBuffer.Load<SceneObjectPositionData>(positionOffset + vertexIndex * 12);
-    SceneObjectAttributeData attributeData = perScene.globalBuffer.Load<SceneObjectAttributeData>(attributeOffset + vertexIndex * sizeof(SceneObjectAttributeData));
+    uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
+    SceneObjectPositionData positionData = perScene.LoadData<SceneObjectPositionData>(positionOffset, vertexIndex);
+    SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
 
     VertexOutput output;
     float3 vertexPos = positionData.position;// input.GetPosition();
@@ -109,9 +93,9 @@ VertexOutput SceneLitVertex(VertexInput input, uint vertexID)
 }
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
+VertexOutput VertexMain(uint vertexID : SV_VertexID)
 {
-    return SceneLitVertex(input, vertexID);
+    return SceneLitVertex(vertexID);
 }
 
 FragmentOutput SceneLitFragment(VertexOutput input)

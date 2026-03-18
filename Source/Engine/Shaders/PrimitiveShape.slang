@@ -12,22 +12,6 @@ interface IVertexInput
     float4 GetBone();
 }
 
-struct StandardVertexInput : IVertexInput
-{
-    float3 position;
-    float3 normal;
-    float4 tangent;
-    float2 uv;
-
-    float3 GetPosition() {return position;}
-    float3 GetNormal() {return normal;}
-    float4 GetTangent() {return tangent;}
-    float2 GetUV() { return uv;}
-    float4 GetBone() { return 0;}
-}
-
-extern struct VertexInput : IVertexInput = StandardVertexInput;
-
 struct PushConstant
 {
     float4x4 model;
@@ -52,15 +36,15 @@ struct VertexOutput
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
+VertexOutput VertexMain(uint vertexID : SV_VertexID)
 {
     uint indexOffset = asuint(pconst.invTspModel[0][3]);
     uint positionOffset = asuint(pconst.invTspModel[1][3]);
     uint attributeOffset = asuint(pconst.invTspModel[2][3]);
 
-    uint vertexIndex = perScene.globalBuffer.Load<uint>(indexOffset + vertexID * 4);
-    SceneObjectPositionData positionData = perScene.globalBuffer.Load<SceneObjectPositionData>(positionOffset + vertexIndex * 12);
-    SceneObjectAttributeData attributeData = perScene.globalBuffer.Load<SceneObjectAttributeData>(attributeOffset + vertexIndex * sizeof(SceneObjectAttributeData));
+    uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
+    SceneObjectPositionData positionData = perScene.LoadData<SceneObjectPositionData>(positionOffset, vertexIndex);
+    SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
 
     VertexOutput output;
     float3 vertexPos = positionData.position;// input.GetPosition();

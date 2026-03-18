@@ -75,6 +75,16 @@ struct PerScene
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
 
+    T LoadData<T>(uint byteOffset)
+    {
+        return globalBuffer.Load<T>(byteOffset);
+    }
+
+    T LoadData<T>(uint byteOffset, uint index)
+    {
+        return globalBuffer.Load<T>(byteOffset + index * sizeof(T));
+    }
+
     Light GetMainLight()
     {
         if (scene.lightCount > 0)

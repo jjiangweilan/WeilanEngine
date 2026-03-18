@@ -198,9 +198,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                         }
                         cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
 
-                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                        cmd.Draw(draw.indexCount, 1, 0, 0);
                     }
                 }
                 cmd.EndRenderPass();
