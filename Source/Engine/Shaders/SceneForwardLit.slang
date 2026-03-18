@@ -4,9 +4,9 @@ import SceneLit; // use it's Vertex function
 import Lighting; // use it's lighting function
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
 {
-    return SceneLitVertex(input);
+    return SceneLitVertex(input, vertexID);
 }
 
 [shader("fragment")]

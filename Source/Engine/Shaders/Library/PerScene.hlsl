@@ -69,13 +69,11 @@ struct PerScene
 #if GPU_RESOURCE
     ConstantBuffer<Scene> scene;
     ConstantBuffer<Camera> camera;
-    ConstantBuffer<MainLightShadow> mainLightShadow;
+    ConstantBuffer<MainLightShadow> mainLightShadow; 
 
-    ByteAddressBuffer vertexBuffer;
-    ByteAddressBuffer indexBuffer;
+    ByteAddressBuffer globalBuffer; 
 
-    ByteAddressBuffer GetVertexBuffer() { return vertexBuffer; }
-    ByteAddressBuffer GetIndexBuffer() { return indexBuffer; }
+    ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
 
     Light GetMainLight()
     {
@@ -118,3 +116,5 @@ struct PerScene
     }
 #endif
 };
+// test comment
+// another test comment

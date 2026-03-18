@@ -52,12 +52,21 @@ struct VertexOutput
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
 {
+    uint indexOffset = asuint(pconst.invTspModel[0][3]);
+    uint positionOffset = asuint(pconst.invTspModel[1][3]);
+    uint attributeOffset = asuint(pconst.invTspModel[2][3]);
+
+    uint vertexIndex = perScene.globalBuffer.Load<uint>(indexOffset + vertexID * 4);
+    SceneObjectPositionData positionData = perScene.globalBuffer.Load<SceneObjectPositionData>(positionOffset + vertexIndex * 12);
+    SceneObjectAttributeData attributeData = perScene.globalBuffer.Load<SceneObjectAttributeData>(attributeOffset + vertexIndex * sizeof(SceneObjectAttributeData));
+
     VertexOutput output;
-    float3 vertexPos = input.GetPosition();
-    float3 normal = input.GetNormal();
-    float4 tangent = input.GetTangent();
+    float3 vertexPos = positionData.position;// input.GetPosition();
+
+    float3 normal = attributeData.normal;//ainput.GetNormal();
+    float4 tangent = attributeData.tangent;// input.GetTangent();
 
     output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
 
@@ -65,12 +74,12 @@ VertexOutput VertexMain(VertexInput input)
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = input.GetUV();
+    output.uv = attributeData.uv;// input.GetUV();
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     float3 scale = float3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
-    output.positionOS = input.GetPosition() * scale;
+    output.positionOS = vertexPos * scale;// input.GetPosition() * scale;
 
     return output;
 }

@@ -112,6 +112,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // {
     //     ReflectionProbe* reflectionProbe = static_cast<ReflectionProbe*>(r);
     // }
+
     reflectionProbeUpdate->Execute(*cmd, renderingData);
     renderingData.specularCubemap = reflectionProbeUpdate->GetIBLCubemap();
 
@@ -369,6 +370,7 @@ PerScene::PerScene()
     globalResource->SetBuffer("scene", scene.get());
     globalResource->SetBuffer("camera", camera.get());
     globalResource->SetBuffer("mainLightShadow", mainLightShadow.get());
+    globalResource->SetBuffer("globalBuffer", GPUDrivenManager::Instance().GetGlobalBuffer());
 }
 
 void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)

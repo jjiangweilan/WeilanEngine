@@ -1,7 +1,7 @@
 #include "DrawList.hpp"
+#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 
 namespace Rendering
 {
@@ -53,6 +53,12 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.shaderConfig = &material->GetShaderConfig();
                         drawData.model = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
+                        uint32_t indexOffset = submesh.GetGPUMeshIndexOffset();
+                        uint32_t positionOffset = submesh.GetGPUMeshPositionOffset();
+                        uint32_t attributeOffset = submesh.GetGPUMeshAttributeOffset();
+                        drawData.invTspModel[3].x = std::bit_cast<float>(indexOffset);
+                        drawData.invTspModel[3].y = std::bit_cast<float>(positionOffset);
+                        drawData.invTspModel[3].z = std::bit_cast<float>(attributeOffset);
                         drawData.indexCount = indexCount;
                         drawData.material = material;
                         drawData.skinned = meshRenderer.IsSkinningEnabled();
@@ -95,7 +101,13 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.model = modelMatrix;
+                        uint32_t indexOffset = submesh.GetGPUMeshIndexOffset();
+                        uint32_t positionOffset = submesh.GetGPUMeshPositionOffset();
+                        uint32_t attributeOffset = submesh.GetGPUMeshAttributeOffset();
                         drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
+                        drawData.invTspModel[3].x = std::bit_cast<float>(indexOffset);
+                        drawData.invTspModel[3].y = std::bit_cast<float>(positionOffset);
+                        drawData.invTspModel[3].z = std::bit_cast<float>(attributeOffset);
                         drawData.indexCount = indexCount;
 
                         push_back(std::move(drawData));
@@ -177,8 +189,8 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
         auto shaderProgram = draw.material->GetShaderProgram();
         if (shaderProgram)
         {
-            cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-            cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+            // cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+            // cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
             if (draw.materialSet != -1 && draw.materialResource)
                 cmd.BindResource(draw.materialSet, draw.materialResource);
             if (draw.objectSet && draw.objectResource)
@@ -198,7 +210,7 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
 
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(shaderProgram, (void*)&ps);
-            cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+            cmd.Draw(draw.indexCount, 1, 0, 0);
         }
     }
 }

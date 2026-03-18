@@ -24,6 +24,7 @@
 #include <Jolt/RegisterTypes.h>
 // clang-format on
 //
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
@@ -39,6 +40,7 @@ WeilanEngine::~WeilanEngine()
     DeinitAssetDatabase();
     ShaderLibrary::Singleton().DestoryShaderLibrary();
     DeinitJoltPhysics();
+    Rendering::GPUDrivenManager::Instance().Deinit();
     gfxDriver = nullptr;
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -381,7 +383,7 @@ void WeilanEngine::PresentGameOnly(bool enable)
         interopDriver = CreateD3D11InteropDriver();
         interopDriver->Initialize(window_HWND, mainWindow.size.width, mainWindow.size.height);
     }
-    
+
     if (presentGameColorOnly)
     {
         auto intermediateTextureHandle = interopDriver->GetSharedHandle();

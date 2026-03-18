@@ -4,6 +4,7 @@
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
 #include "Engine/Driver/GfxDriver/VertexBufferBinding.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
@@ -50,6 +51,12 @@ public:
 
     std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
+    Rendering::GPUMeshHandle GetGPUMeshHandle() const;
+
+    uint32_t GetGPUMeshPositionOffset() const;
+    uint32_t GetGPUMeshIndexOffset() const;
+    uint32_t GetGPUMeshAttributeOffset() const;
+
 public:
     void SetIndices(std::vector<uint32_t>&& indices);
     void SetIndices(const std::vector<uint32_t>& indices);
@@ -76,6 +83,7 @@ public:
     const VertexAttributes& GetAttribute() const;
 
 private:
+    mutable Rendering::GPUMeshHandle gpuMeshHandle = -1;
     std::vector<uint32_t> indices;
     std::vector<glm::vec3> positions; // binding 0,
     VertexAttributes attributes;      // binding 1, interleaved

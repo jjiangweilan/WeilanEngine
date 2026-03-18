@@ -1,4 +1,5 @@
 #include "Mesh.hpp"
+#include "Engine/Core/JobSystem.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/GLB.hpp"
 #include <filesystem>
@@ -81,6 +82,7 @@ void Submesh::Apply()
 
     bindings.push_back(posBinding);
     bindings.push_back(attrBinding);
+    indexCount = indices.size();
 
     UpdateVertexDataByteSize();
     UpdateIndexDataByteSize();
@@ -191,6 +193,33 @@ bool Mesh::LoadFromFile(const char* path)
 const AABB& Mesh::GetAABB() const
 {
     return aabb;
+}
+
+Rendering::GPUMeshHandle Submesh::GetGPUMeshHandle() const
+{
+    ASSERT_IS_MAIN_THREAD
+
+    if (gpuMeshHandle == -1)
+    {
+        gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterMesh(*this);
+    }
+
+    return gpuMeshHandle;
+}
+
+uint32_t Submesh::GetGPUMeshPositionOffset() const
+{
+    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).positionOffset;
+}
+
+uint32_t Submesh::GetGPUMeshIndexOffset() const
+{
+    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).indexOffset;
+}
+
+uint32_t Submesh::GetGPUMeshAttributeOffset() const
+{
+    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).attributeOffset;
 }
 
 Mesh::~Mesh() {}

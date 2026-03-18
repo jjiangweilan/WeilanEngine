@@ -72,16 +72,6 @@ struct PerMaterial
 [Material]
 ParameterBlock<PerMaterial> perMaterial;
 
-struct PerObject
-{
-    uint positionOffset; 
-    uint vertexAttributeOffset;
-    uint indexBufferIndex;
-};
-
-[Object]
-ParameterBlock<PerObject> perObject;
-
 struct FragmentOutput
 {
     float4 color : SV_Target0;
@@ -90,16 +80,20 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(VertexInput input)
+VertexOutput SceneLitVertex(VertexInput input, uint vertexID)
 {
-    // uint32_t vertexIndex = perScene.indexBuffer.Load<uint32_t>(perObject.indexBufferIndex + vertexId);
-    // SceneObjectPositionData positionData = perScene.vertexBuffer.Load<SceneObjectPositionData>(perObject.positionOffset + vertexIndex);
-    // SceneObjectAttributeData attributeData = perScene.vertexBuffer.Load<SceneObjectAttributeData>(perObject.vertexAttributeOffset + vertexIndex);
+    uint indexOffset = asuint(pconst.invTspModel[0][3]);
+    uint positionOffset = asuint(pconst.invTspModel[1][3]);
+    uint attributeOffset = asuint(pconst.invTspModel[2][3]);
+
+    uint vertexIndex = perScene.globalBuffer.Load<uint>(indexOffset + vertexID * 4);
+    SceneObjectPositionData positionData = perScene.globalBuffer.Load<SceneObjectPositionData>(positionOffset + vertexIndex * 12);
+    SceneObjectAttributeData attributeData = perScene.globalBuffer.Load<SceneObjectAttributeData>(attributeOffset + vertexIndex * sizeof(SceneObjectAttributeData));
 
     VertexOutput output;
-    float3 vertexPos = input.GetPosition();
-    float3 normal = input.GetNormal();
-    float4 tangent = input.GetTangent();
+    float3 vertexPos = positionData.position;// input.GetPosition();
+    float3 normal = attributeData.GetNormal();
+    float4 tangent = attributeData.GetTangent();
 
     output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
 
@@ -107,7 +101,7 @@ VertexOutput SceneLitVertex(VertexInput input)
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = input.GetUV();
+    output.uv = attributeData.GetUV();
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
@@ -115,9 +109,9 @@ VertexOutput SceneLitVertex(VertexInput input)
 }
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
 {
-    return SceneLitVertex(input);
+    return SceneLitVertex(input, vertexID);
 }
 
 FragmentOutput SceneLitFragment(VertexOutput input)
