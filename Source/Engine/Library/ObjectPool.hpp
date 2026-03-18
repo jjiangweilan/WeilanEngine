@@ -1,7 +1,7 @@
 #pragma once
 #include "Assert.hpp"
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 template <class T>
 class ObjectPool;
@@ -120,6 +120,12 @@ public:
     ConstIterator cend() const { return ConstIterator(this, allocatedObjects.size()); }
 
     T& operator[](size_t index)
+    {
+        ASSERT(index < allocatedObjects.size() && "Index out of bounds");
+        return allocatedObjects[index];
+    }
+
+    T& operator[](size_t index) const
     {
         ASSERT(index < allocatedObjects.size() && "Index out of bounds");
         return allocatedObjects[index];
