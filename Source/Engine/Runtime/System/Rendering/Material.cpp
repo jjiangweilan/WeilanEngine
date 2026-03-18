@@ -449,7 +449,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
     {
         ubo.dirty = false;
         const auto& pipelineInfo = shaderProgram->GetShaderInfo();
-        auto descriptorSet = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
+        auto descriptorSet = pipelineInfo.GetDescriptorSet(targetDescriptorSet);
         if (descriptorSet == nullptr)
             return;
 
@@ -467,7 +467,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                     .debugName = "Material Uniform Buffer",
                 });
 
-                auto uboBindingName = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material)->name;
+                auto uboBindingName = pipelineInfo.GetDescriptorSet(targetDescriptorSet)->name;
                 shaderResource->SetBuffer(uboBindingName, buffer.get());
                 ubo.buffer = std::move(buffer);
             }

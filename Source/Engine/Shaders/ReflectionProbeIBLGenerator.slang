@@ -1,14 +1,8 @@
 import WeilanEngine;
 import Math;
 import Lighting;
-import Library.PerScene;
 #include "ReflectionProbeIBLGeneratorInput.hlsl"
 
-
-[Global]
-ParameterBlock<PerScene> perScene;
-
-[Material]
 ParameterBlock<ShaderInput> shaderInput;
 
 // credits: https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/

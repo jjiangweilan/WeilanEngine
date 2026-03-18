@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Engine/Core/Asset.hpp"
-#include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Driver/GfxDriver/Buffer.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/Image.hpp"
 #include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
@@ -50,6 +50,8 @@ public:
     ObjPtr<Shader> GetShader() { return shaderInUse; }
     void SetShader(Shader* shader);
     void SetShader(Shaders shader);
+
+    void OverrideDescriptorSet(Gfx::DescriptorSetSemantics set){targetDescriptorSet = set;}
 
     Gfx::ShaderProgram* GetShaderProgram();
 
@@ -141,6 +143,7 @@ private:
     ObjPtr<Shader> shaderInUse = nullptr;
     Gfx::PipelineConfig shaderConfig;
     bool overrideShaderConfig = false;
+    Gfx::DescriptorSetSemantics targetDescriptorSet = Gfx::DescriptorSetSemantics::Material;
 
     // std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, ObjPtr<Texture>> textureValues;

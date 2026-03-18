@@ -24,7 +24,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
     auto srcProbeBase = cubemapBase.get();
     MipmapGeneration(cmd, srcProbeBase->GetDescription().width, srcProbeBase->GetDescription().height, *srcProbeBase);
 
-    cmd.BindResource((int)Gfx::DescriptorSetSemantics::Material, shaderResource);
+    cmd.BindResource((int)Gfx::DescriptorSetSemantics::Global, shaderResource);
 
     cmd.BindShaderProgram(iblGenerator->GetShaderProgram(), iblGenerator->GetShaderProgram()->GetDefaultShaderConfig());
 
