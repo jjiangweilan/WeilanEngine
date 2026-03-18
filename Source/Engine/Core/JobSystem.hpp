@@ -69,3 +69,5 @@ private:
     void WorkerThread(int workerIdx);
     JobHandle ScheduleInternal(std::packaged_task<void()>&& packed);
 };
+
+#define ASSERT_IS_MAIN_THREAD ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
