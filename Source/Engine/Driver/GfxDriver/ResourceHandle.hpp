@@ -10,7 +10,7 @@ class ShaderBindingHandle
 {
 public:
     ShaderBindingHandle() : hash(0) {}
-    ShaderBindingHandle(std::string_view name) : hash(XXH3_64bits((void*)name.data(), name.size())) {}
+    ShaderBindingHandle(std::string_view name) : name(name), hash(XXH3_64bits((void*)name.data(), name.size())) {}
 
     uint64_t operator()() const { return hash; }
 
@@ -19,6 +19,7 @@ public:
     bool operator==(const ShaderBindingHandle& other) const = default;
 
 private:
+    std::string name;
     uint64_t hash;
 
     friend class std::hash<Gfx::ShaderBindingHandle>;
