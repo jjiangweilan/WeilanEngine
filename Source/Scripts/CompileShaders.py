@@ -135,8 +135,8 @@ def compute_content_hash(filepath: Path, dependencies: list[str]) -> str:
         sha256.update(f.read())
     
     for dep in sorted(dependencies):
-        dep_path = resolve_import_path(dep)
-        if dep_path and dep_path.exists():
+        dep_path = SHADER_ROOT / dep
+        if dep_path.exists():
             with open(dep_path, 'rb') as f:
                 sha256.update(f.read())
     
@@ -181,22 +181,30 @@ def collect_dependencies(filepath: Path, visited: Optional[set] = None) -> list[
     # Find imports
     for match in IMPORT_PATTERN.finditer(content):
         import_name = match.group(1)
-        dependencies.append(import_name)
         
         dep_path = resolve_import_path(import_name)
         if dep_path:
+            try:
+                rel_str = dep_path.resolve().relative_to(SHADER_ROOT.resolve()).as_posix()
+                dependencies.append(rel_str)
+            except ValueError:
+                pass
             dependencies.extend(collect_dependencies(dep_path, visited))
     
     # Find includes
     for match in INCLUDE_PATTERN.finditer(content):
         include_path = match.group(1)
-        dependencies.append(include_path)
         
         full_path = filepath.parent / include_path
         if not full_path.exists():
             full_path = SHADER_ROOT / include_path
         
         if full_path.exists():
+            try:
+                rel_str = full_path.resolve().relative_to(SHADER_ROOT.resolve()).as_posix()
+                dependencies.append(rel_str)
+            except ValueError:
+                pass
             dependencies.extend(collect_dependencies(full_path, visited))
     
     return list(set(dependencies))
