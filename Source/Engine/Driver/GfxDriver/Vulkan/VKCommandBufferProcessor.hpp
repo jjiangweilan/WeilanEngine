@@ -153,7 +153,7 @@ private:
     void CreateRenderPassNode(int visitIndex);
     // scheduling
     void FlushAllBindedSetUpdate(
-        std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+        int inflightIndex, std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
     );
     void MakeBarrierFromWritableResources(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded, const std::vector<VKWritableGPUResource>& writableResources);
     void MakeBarrierForAllDynamicBindedSetUpdate(
@@ -168,6 +168,7 @@ private:
     );
     bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
     void GoThroughRenderPass(
+        int inflightIndex,
         std::vector<VKCmd>& exectedCmds,
         VKRenderPass& renderPass,
         int& visitIndex,
@@ -183,12 +184,12 @@ private:
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
+    void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
+    void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
-    void PreExecute(VKFramePrepareData& framePrepare);
+    void PreExecute(int inflightIndex, VKFramePrepareData& framePrepare);
     void BeginRenderPass(
         VkCommandBuffer vkcmd,
         VKRenderPass* renderPass,

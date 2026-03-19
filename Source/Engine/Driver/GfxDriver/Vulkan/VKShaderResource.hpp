@@ -69,10 +69,8 @@ public:
     void Clear() override;
     void RebuildAll() override;
 
-    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
-    const std::vector<VKWritableGPUResource>& GetWritableResources(
-        uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
-    );
+    VkDescriptorSet GetDescriptorSet(int currentInflightIndex, uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
+    const std::vector<VKWritableGPUResource>& GetWritableResources(int inflightIndex, uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
 
 protected:
     enum class ShaderBindingType
@@ -142,10 +140,11 @@ protected:
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ResourceRef>> bindings;
     VkPipelineLayout layout = VK_NULL_HANDLE;
     VKSharedResource* sharedResource;
-    std::unordered_map<SetGroup, SetInfo, SetGroupHash> sets;
+    std::vector<std::unordered_map<SetGroup, SetInfo, SetGroupHash>> inflightSets;
     std::unique_ptr<VKBuffer> defaultBuffer;
     std::string name;
 
     void SetNameInternal(std::string_view name, VKShaderProgram* shader, VkDescriptorSet set, int setIndex);
+    void ClearAllSets();
 };
 } // namespace Gfx

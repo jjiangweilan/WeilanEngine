@@ -88,7 +88,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     context->swapchain = &swapchain;
     context->mainQueue = &mainQueue;
 
-    swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount);
+    swapchain.CreateOrOverrideSwapChain(surface, context->driverConfig.swapchainImageCount);
 
     // descriptor pool cache
     descriptorPoolCache = std::make_unique<VKDescriptorPoolCache>(context);
@@ -104,15 +104,15 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     context->mainCmdPool = mainCmdPool;
 
     // create inflightData
-    frameContexts.resize(driverConfig.swapchainImageCount);
+    frameContexts.resize(context->driverConfig.swapchainImageCount);
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 1;
-    ASSERT(driverConfig.swapchainImageCount + 1 <= 8);
+    rhiCmdAllocateInfo.commandBufferCount = context->driverConfig.swapchainImageCount + 1;
+    ASSERT(context->driverConfig.swapchainImageCount + 1 <= 8);
     VkCommandBuffer cmds[8];
     vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
-    for (int i = 0; i < driverConfig.swapchainImageCount + 1; i++)
+    for (int i = 0; i < context->driverConfig.swapchainImageCount + 1; i++)
     {
         VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)cmds[i], "VKDriver");
     }
@@ -122,11 +122,11 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
                                                              // records again so we need to it as signaled
     VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-    int inflightCount = driverConfig.swapchainImageCount;
+    int inflightCount = context->driverConfig.swapchainImageCount;
     frameContexts.resize(inflightCount);
     imageAcquireSemaphores.resize(inflightCount);
     presentSemaphores.resize(inflightCount);
-    for (int i = 0; i < driverConfig.swapchainImageCount; ++i)
+    for (int i = 0; i < context->driverConfig.swapchainImageCount; ++i)
     {
         frameContexts[i].cmd = cmds[i];
         frameContexts[i].swapchainIndex = i;
@@ -158,7 +158,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
             vkCreateQueryPool(device.handle, &query_pool_info, nullptr, &frameContexts[i].timestapQueryPool);
         }
     }
-    immediateCmd = cmds[driverConfig.swapchainImageCount];
+    immediateCmd = cmds[context->driverConfig.swapchainImageCount];
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
     vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSignalSemaphore);
     vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &dataUploaderWaitSemaphore);
@@ -575,8 +575,46 @@ bool VKDriver::BeginFrame()
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
 
     VKContext::Instance()->currentFrameContext = &frameContexts[currentInflightIndex];
+    VKContext::Instance()->currentInflightIndex = currentInflightIndex;
     frameCount++;
     memAllocator->NewFrame(frameCount - 1);
+
+    ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
+    WaitForCurrentInflightCmd();
+    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
+    ENGINE_END_PROFILE
+
+    frameContexts[currentInflightIndex].frameIndex = frameCount - 1;
+
+    // acquire next swapchain
+    //
+    if (needPresent)
+    {
+        ENGINE_BEGIN_PROFILE("VKDriver - Acquire Next Image");
+        VkResult acquireResult = vkAcquireNextImageKHR(
+            device.handle,
+            swapchain.handle,
+            -1,
+            imageAcquireSemaphores[currentInflightIndex],
+            VK_NULL_HANDLE,
+            &frameContexts[currentInflightIndex].swapchainIndex
+        );
+        swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
+        ENGINE_END_PROFILE
+
+        for (auto& w : extraWindows)
+        {
+            VkResult acquireResult = vkAcquireNextImageKHR(
+                device.handle,
+                w->swapchain.handle,
+                -1,
+                w->imageAcquireSemaphores[w->activeIndex],
+                VK_NULL_HANDLE,
+                &w->swapchainIndex
+            );
+            w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
+        }
+    }
 
     return true;
 }
@@ -662,43 +700,6 @@ bool VKDriver::EndFrame()
     ENGINE_BEGIN_PROFILE("VKDriver - Lock");
     std::scoped_lock lock(driverMutex);
     ENGINE_END_PROFILE
-
-    ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
-    WaitForCurrentInflightCmd();
-    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
-    ENGINE_END_PROFILE
-
-    frameContexts[currentInflightIndex].frameIndex = frameCount - 1;
-
-    // acquire next swapchain
-    //
-    if (needPresent)
-    {
-        ENGINE_BEGIN_PROFILE("VKDriver - Acquire Next Image");
-        VkResult acquireResult = vkAcquireNextImageKHR(
-            device.handle,
-            swapchain.handle,
-            -1,
-            imageAcquireSemaphores[currentInflightIndex],
-            VK_NULL_HANDLE,
-            &frameContexts[currentInflightIndex].swapchainIndex
-        );
-        swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
-        ENGINE_END_PROFILE
-
-        for (auto& w : extraWindows)
-        {
-            VkResult acquireResult = vkAcquireNextImageKHR(
-                device.handle,
-                w->swapchain.handle,
-                -1,
-                w->imageAcquireSemaphores[w->activeIndex],
-                VK_NULL_HANDLE,
-                &w->swapchainIndex
-            );
-            w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
-        }
-    }
 
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
@@ -874,7 +875,7 @@ bool VKDriver::Present(
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         surface.QuerySurfaceProperties(gpu.handle);
-        swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount);
+        swapchain.CreateOrOverrideSwapChain(surface, context->driverConfig.swapchainImageCount);
         return true;
     }
 
@@ -1513,7 +1514,7 @@ void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)
 
 Window* VKDriver::CreateExtraWindow(SDL_Window* window)
 {
-    auto newWindow = std::make_unique<VKWindow>(window, driverConfig.swapchainImageCount);
+    auto newWindow = std::make_unique<VKWindow>(window, context->driverConfig.swapchainImageCount);
     Window* tmp = newWindow.get();
     extraWindows.push_back(std::move(newWindow));
     return tmp;
@@ -1605,7 +1606,7 @@ void VKDriver::UnsetWin32WindowInteropTexture(int2 size)
 {
 #if WIN32
     needPresent = true;
-    swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount, size.x, size.y);
+    swapchain.CreateOrOverrideSwapChain(surface, context->driverConfig.swapchainImageCount, size.x, size.y);
 #endif
 }
 } // namespace Gfx

@@ -7,11 +7,12 @@
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKDriver.hpp"
+#include "VKRayTracingContext.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
-#include "VKRayTracingContext.hpp"
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+#include <list>
 
 namespace Gfx
 {
@@ -43,23 +44,39 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 void VKShaderResource::Clear()
 {
     bindings.clear();
-    sets.clear();
+    ClearAllSets();
 }
 
-VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), sets() {}
+VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), inflightSets(VKContext::Instance()->driverConfig.swapchainImageCount) {}
 
 VKShaderResource::~VKShaderResource()
 {
-    for (auto& d : sets)
-    {
-        if (d.second.descriptorPool != nullptr)
-            d.second.descriptorPool->Deallocate(d.second.set);
-    }
+    ClearAllSets();
 }
 
 void VKShaderResource::RebuildAll()
 {
-    sets.clear();
+    for (auto& sets : inflightSets)
+    {
+        for (auto& set : sets)
+        {
+            set.second.rebuild = true;
+        }
+    }
+}
+
+void VKShaderResource::ClearAllSets()
+{
+    for (auto& sets : inflightSets)
+    {
+        for (auto& d : sets)
+        {
+            if (d.second.descriptorPool != nullptr)
+                d.second.descriptorPool->Deallocate(d.second.set);
+        }
+
+        sets.clear();
+    }
 }
 
 void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer)
@@ -135,13 +152,13 @@ void VKShaderResource::Remove(ShaderBindingHandle handle)
     }
 }
 
-VkDescriptorSet VKShaderResource::GetDescriptorSet(
-    uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
-)
+VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph)
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
     SetGroup setGroup = {shaderProgram->GetUUID(), set};
+
+    auto& sets = this->inflightSets[currentInflightIndex];
 
     auto iter = sets.find(setGroup);
 
@@ -471,7 +488,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 if (resRef.type == ShaderBindingType::AccelerationStructure)
                                 {
                                     auto& asRef = std::get<AccelerationStructureRef>(resRef.res);
-                                    asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)static_cast<VKRayTracingContext*>(asRef.context)->GetNativeHandle(asRef.scene);
+                                    asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR) static_cast<VKRayTracingContext*>(asRef.context)->GetNativeHandle(asRef.scene);
                                 }
                                 else
                                 {
@@ -496,9 +513,12 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 void VKShaderResource::SetName(std::string_view name)
 {
     this->name = name;
-    for (auto& s : sets)
+    for (auto& s : inflightSets)
     {
-        SetNameInternal(name, s.second.program, s.second.set, s.second.creationSetIndex);
+        for (auto& d : s)
+        {
+            SetNameInternal(name, d.second.program, d.second.set, d.second.creationSetIndex);
+        }
     }
 }
 
@@ -524,15 +544,14 @@ void* VKShaderResource::ResourceRef::GetRef()
     return nullptr;
 }
 
-const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
-    uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph
-)
+const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(int inflightIndex, uint32_t set, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph)
 {
     SetGroup setGroup = {shaderProgram->GetUUID(), set};
+    auto& sets = inflightSets[inflightIndex];
     auto iter = sets.find(setGroup);
     if (iter == sets.end() || iter->second.rebuild)
     {
-        GetDescriptorSet(set, shaderProgram, graph);
+        GetDescriptorSet(inflightIndex, set, shaderProgram, graph);
         iter = sets.find(setGroup);
     }
 

@@ -135,11 +135,6 @@ public:
     std::unique_ptr<VKDataUploader> dataUploader;
     VkCommandPool mainCmdPool;
 
-    struct DriverConfig
-    {
-        int swapchainImageCount = 3;
-    } driverConfig;
-
     struct Instance
     {
         VkInstance handle;

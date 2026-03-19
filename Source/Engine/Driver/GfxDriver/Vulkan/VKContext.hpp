@@ -89,7 +89,6 @@ struct Swapchain
         uint32_t swapchainIndex;
     };
     std::vector<InflightData> inflightData = {};
-    uint32_t currentInflightIndex = 0;
 
     void AsWin32WindowInteropTexture(const void* sharedHandle, int2 size);
     bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);
@@ -101,6 +100,11 @@ private:
 class VKContext
 {
 public:
+    struct DriverConfig
+    {
+        int swapchainImageCount = 3;
+    } driverConfig = {};
+
     static inline VKContext* Instance() { return context; }
     VKDriver* driver;
     VkCommandPool mainCmdPool; // reference to VKDriver's mainCmdPool
@@ -116,6 +120,7 @@ public:
     VKSharedResource* sharedResource;
     VKDescriptorPoolCache* descriptorPoolCache;
 
+    int currentInflightIndex = 0;
 private:
     static VKContext* context;
     friend class VKDriver;

@@ -386,6 +386,7 @@ bool VKCommandBufferProcessor::TrackResource(
 }
 
 void VKCommandBufferProcessor::GoThroughRenderPass(
+    int inflightIndex,
     std::vector<VKCmd>& exectedCmds,
     VKRenderPass& renderPass,
     int& visitIndex,
@@ -485,11 +486,10 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         {
             ScheduleBindShaderProgram(cmd, visitIndex);
         }
-        else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed ||
-                 cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
+        else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed || cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
             MakeBarrierForAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
-            FlushAllBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
+            FlushAllBindedSetUpdate(inflightIndex, exectedCmds, shaderImageSampleIgnoreList, barrierCount);
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
         {
@@ -821,7 +821,7 @@ size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, b
 
     return barrierCount;
 }
-void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
+void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData& framePrepare)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor::PreExecute");
 
@@ -834,7 +834,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
         if (cmd.type == VKCmdType::BeginRenderPass)
         {
             auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
-            GoThroughRenderPass(executedCmds, *args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(inflightIndex, executedCmds, *args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::AsyncReadback)
         {
@@ -846,7 +846,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
 
             auto renderPass = resourceAllocator->Request(args.renderPass);
-            GoThroughRenderPass(executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::DynamicBeginRenderPass)
         {
@@ -890,7 +890,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
 
             VKRenderPass* renderPass = Request(passDescriptor);
             args.resolvedRenderPass = renderPass;
-            GoThroughRenderPass(executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
@@ -1093,7 +1093,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
             MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
-            FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
+            FlushAllBindedSetUpdate(inflightIndex, executedCmds, list, args.barrierCount);
         }
         else if (cmd.type == VKCmdType::DispatchIndirect)
         {
@@ -1103,7 +1103,7 @@ void VKCommandBufferProcessor::PreExecute(VKFramePrepareData& framePrepare)
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
             MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
-            FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
+            FlushAllBindedSetUpdate(inflightIndex, executedCmds, list, args.barrierCount);
         }
     }
 }
@@ -1117,7 +1117,7 @@ void VKCommandBufferProcessor::Execute(
     CmdBufExecutionReport& report
 )
 {
-    PreExecute(framePrepare);
+    PreExecute(inflightIndex, framePrepare);
     auto& executedCmds = framePrepare.cmds;
 
     report = CmdBufExecutionReport(); // reset report
@@ -1164,7 +1164,7 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndexed");
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     auto& args = std::get<VKDrawIndexedCmd>(cmd.args);
                     vkCmdDrawIndexed(
@@ -1182,7 +1182,7 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - Draw");
                     auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDraw(vkcmd, args.vertexCount, args.instanceCount, args.firstVertex, args.firstInstance);
                     break;
@@ -1235,7 +1235,7 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndirect");
                     auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndirect(
                         vkcmd,
@@ -1251,7 +1251,7 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndexedIndirect");
                     auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndexedIndirect(
                         vkcmd,
@@ -1551,7 +1551,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDispatchCmd>(cmd.args);
                     const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, pipeineBindingPoint);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, pipeineBindingPoint);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
 
                     auto barrierOffset = args.barrierOffset;
@@ -1571,7 +1571,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
                     const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd, pipeineBindingPoint);
+                    UpdateDescriptorSetBinding(inflightIndex, vkcmd, pipeineBindingPoint);
                     UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
 
                     auto barrierOffset = args.barrierOffset;
@@ -1815,14 +1815,14 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKC
     }
 }
 
-void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
+void VKCommandBufferProcessor::UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDescriptorSetBinding");
 
-    UpdateDescriptorSetBinding(cmd, 0, bindPoint);
-    UpdateDescriptorSetBinding(cmd, 1, bindPoint);
-    UpdateDescriptorSetBinding(cmd, 2, bindPoint);
-    UpdateDescriptorSetBinding(cmd, 3, bindPoint);
+    UpdateDescriptorSetBinding(inflightIndex, cmd, 0, bindPoint);
+    UpdateDescriptorSetBinding(inflightIndex, cmd, 1, bindPoint);
+    UpdateDescriptorSetBinding(inflightIndex, cmd, 2, bindPoint);
+    UpdateDescriptorSetBinding(inflightIndex, cmd, 3, bindPoint);
 }
 
 void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
@@ -1889,9 +1889,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
     }
 }
 
-void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
-    VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint
-)
+void VKCommandBufferProcessor::UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDescriptorSetBinding");
 
@@ -1900,7 +1898,7 @@ void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
         if (exeState.setResources[index].resource)
         {
             auto sourceSet =
-                exeState.setResources[index].resource->GetDescriptorSet(index, exeState.bindedShader, this);
+                exeState.setResources[index].resource->GetDescriptorSet(inflightIndex, index, exeState.bindedShader, this);
             if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
             {
                 vkCmdBindDescriptorSets(
@@ -2160,6 +2158,7 @@ void VKCommandBufferProcessor::MakeBarrierForAllDynamicBindedSetUpdate(
 }
 
 void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
+    int inflightIndex,
     std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
@@ -2179,7 +2178,12 @@ void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
             VKShaderResource* resource = bindSetCmd->resource;
             if (resource == nullptr)
                 continue;
-            auto& writableResources = resource->GetWritableResources(updateSet, program, this);
+            auto& writableResources = resource->GetWritableResources(
+                inflightIndex,
+                updateSet,
+                program,
+                this
+            );
             MakeBarrierFromWritableResources(shaderImageSampleIgnoreList, barrierCountAdded, writableResources);
         }
     }
