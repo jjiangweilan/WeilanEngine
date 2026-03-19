@@ -16,7 +16,10 @@ public:
 
     uint64_t GetHash() const { return hash; }
 
-    bool operator==(const ShaderBindingHandle& other) const = default;
+    bool operator==(const ShaderBindingHandle& other) const
+    {
+        return hash == other.hash;
+    }
 
 private:
     std::string name;
