@@ -583,6 +583,10 @@ bool VKDriver::BeginFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
     WaitForCurrentInflightCmd();
+
+    auto cmd = frameContexts[currentInflightIndex].cmd;
+    CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
+
     vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
@@ -710,13 +714,11 @@ bool VKDriver::EndFrame()
     );
     firstFrame = false;
 
-    // record scheduled commands
-    auto cmd = frameContexts[currentInflightIndex].cmd;
-
     ExecuteCommandBuffer(*rayTracingManager->cmdBuffer);
     rayTracingManager->cmdBuffer->Reset(true);
 
-    CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
+    auto cmd = frameContexts[currentInflightIndex].cmd;
+
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     CHECK_VK_RESULT(vkBeginCommandBuffer(cmd, &beginInfo));
