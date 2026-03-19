@@ -71,7 +71,10 @@ struct PerScene
     ConstantBuffer<Camera> camera;
     ConstantBuffer<MainLightShadow> mainLightShadow; 
 
-    ByteAddressBuffer globalBuffer; 
+    SamplerState sampler_linear_clamp;
+    SamplerState sampler_point_clamp;
+
+    ByteAddressBuffer globalBuffer;
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
 
