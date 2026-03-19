@@ -179,6 +179,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
     commandBufferProcessor = std::make_unique<VKCommandBufferProcessor>(inflightCount, rayTracingManager.get());
+    context->resourceAllocator = std::make_unique<VKResourceAllocator>(commandBufferProcessor.get());
 
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
@@ -191,6 +192,7 @@ VKDriver::~VKDriver()
 
     rayTracingManager = nullptr;
 
+    context->resourceAllocator = nullptr;
     commandBufferProcessor = nullptr;
     sharedResource = nullptr;
 

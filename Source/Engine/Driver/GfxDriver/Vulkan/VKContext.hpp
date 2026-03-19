@@ -5,7 +5,9 @@
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
 #include "VKDescriptorPool.hpp"
+#include "VKResourceAllocator.hpp"
 #include "VKSharedResource.hpp"
+#include <memory>
 namespace Gfx
 {
 class VKSwapChainImage;
@@ -119,6 +121,7 @@ public:
     VKObjectManager* objManager;
     VKSharedResource* sharedResource;
     VKDescriptorPoolCache* descriptorPoolCache;
+    std::unique_ptr<VKResourceAllocator> resourceAllocator;
 
     int currentInflightIndex = 0;
 private:

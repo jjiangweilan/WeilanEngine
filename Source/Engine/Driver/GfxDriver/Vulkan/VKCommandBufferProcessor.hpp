@@ -3,6 +3,7 @@
 #include "Engine/Driver/GfxDriver/Vulkan/VKContext.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKInflightCmd.hpp"
+#include "VKResourceAllocator.hpp"
 #include <variant>
 
 namespace Gfx
@@ -63,7 +64,7 @@ public:
     void ShaderReloaded();
 
 private:
-    class ResourceAllocator;
+    friend class VKResourceAllocator;
     struct ShaderBinding
     {
         ResourceType type;
@@ -142,9 +143,7 @@ private:
     using ShaderProgramID = UUID;
     std::unordered_map<ShaderProgramID, VKShaderResource> globalResources;
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ShaderBinding>> globalResourcePool;
-    // std::unique_ptr<VKShaderResource> globalResource;
-    //
-    std::unique_ptr<ResourceAllocator> resourceAllocator;
+
     std::unordered_map<uint64_t, DescriptorSetCacheInfo> descriptorSetCache;
     VKRayTracing::Manager* rayTracingManager;
 
@@ -181,6 +180,7 @@ private:
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res, const UUID& resUUID);
     int MakeBarrierForLastUsage(VKImage* image);
+    void RemoveImageRelatedInfo(Image* ptr);
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
