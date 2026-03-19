@@ -1,11 +1,11 @@
 #include "Engine/Library/Hash.hpp"
 #include "VKRenderPass.hpp"
 
+#include "Engine/Library/Assert.hpp"
+#include "Engine/ThirdParty/xxHash/xxhash.h"
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
-#include "Engine/Library/Assert.hpp"
-#include "Engine/ThirdParty/xxHash/xxhash.h"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
@@ -222,8 +222,19 @@ void VKShaderProgram::GeneratePipelineLayout()
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-        descriptorSetLayoutCreateInfo.flags = 0;
+
+        // enable bindless
+        descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+        const VkDescriptorBindingFlagsEXT flags =
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
+            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
+            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
+            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfoEXT binding_flags{};
+        binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
+        binding_flags.pBindingFlags = &flags;
+        descriptorSetLayoutCreateInfo.pNext = &binding_flags;
 
         const auto& descriptorSetInfos = pipelineInfo.descriptorSets[i];
 

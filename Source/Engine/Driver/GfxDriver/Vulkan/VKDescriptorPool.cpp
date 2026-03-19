@@ -104,7 +104,7 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
 {
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     createInfo.pNext = VK_NULL_HANDLE;
-    createInfo.flags = 0;
+    createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     createInfo.maxSets = createInfo.maxSets == 0 ? 2 : createInfo.maxSets * 2;
     std::vector<VkDescriptorPoolSize> poolSizesCopy = poolSizes;
     for (int i = 0; i < poolSizesCopy.size(); ++i)
