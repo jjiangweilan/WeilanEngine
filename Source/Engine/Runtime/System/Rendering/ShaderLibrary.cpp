@@ -72,8 +72,6 @@ const ShaderFeatures& ShaderLibrary::QueryShaderFeaturesImpl(const char* name)
 
 void ShaderLibrary::ReloadAllShadersImpl(bool runCompilation)
 {
-    GetGfxDriver()->WaitForIdle();
-
     struct LoadedShaderKey
     {
         std::string name;

@@ -301,6 +301,8 @@ bool AssetDatabase::RefreshShader()
     // Check if the background compilation task has finished
     if (isCompilingShaders && shaderCompileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
     {
+        GetGfxDriver()->WaitForIdle();
+
         isCompilingShaders = false;
         bool success = shaderCompileFuture.get();
         requestShaderRefreshAll = false;
