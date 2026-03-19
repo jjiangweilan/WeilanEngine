@@ -24,6 +24,9 @@ struct VKWritableGPUResource
         Buffer,
         Image
     };
+    ShaderBindingHandle handle;
+    int index;
+
     Type type;
     std::variant<ObjPtr<Image>, ObjPtr<Buffer>> data;
 
@@ -108,6 +111,17 @@ protected:
 
         std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier, AccelerationStructureRef> res = ObjPtr<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
+        // cached resolved uuid for ImageID bindings, used to skip redundant updates
+        UUID cachedResolvedDynamicImageUUID = UUID::GetEmptyUUID();
+    };
+
+    struct PendingBindingUpdate
+    {
+        // describe which set to update
+        ShaderBindingHandle handle;
+        int elementIndex;
+
+        ResourceRef resource;
     };
 
     struct SetInfo
@@ -116,8 +130,10 @@ protected:
         ObjPtr<VKDescriptorPool> descriptorPool = nullptr;
         uint32_t creationSetIndex;
         VkDescriptorSet set;
-        bool rebuild = false;
-        std::vector<VKWritableGPUResource> writableGPUResources;
+        bool fullRebuild = false;
+        std::vector<VKWritableGPUResource> writableGPUResources = {};
+
+        std::vector<PendingBindingUpdate> pendingBindingUpdates = {};
     };
 
     struct SetGroup
