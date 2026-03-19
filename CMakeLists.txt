@@ -16,9 +16,9 @@ option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk too
 option(ENABLE_ASAN "" OFF)
 
 if (MSVC)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
-add_compile_options(/Zc:__cplusplus /MP)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
+    add_compile_options(/Zc:__cplusplus /MP)
 endif(MSVC)
 
 include(CheckIPOSupported)
@@ -58,7 +58,7 @@ function(GetTargetDependenciesInternal inTarget outDependencies)
             endif()
         endforeach()
     endif()
-    
+
     # Get interface link libraries
     get_target_property(interface_libs ${target} INTERFACE_LINK_LIBRARIES)
     if(interface_libs)
@@ -77,7 +77,7 @@ function(GetTargetDependenciesInternal inTarget outDependencies)
             endif()
         endforeach()
     endif()
-    
+
     # Remove duplicates
     list(REMOVE_DUPLICATES dependencies)
 
@@ -110,6 +110,7 @@ FetchContent_Declare(Slang
     GIT_TAG "v2025.24.3"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
+    GIT_SHALLOW TRUE
 )
 set(SLANG_ENABLE_DXIL OFF)
 set(SLANG_ENABLE_GFX OFF)
@@ -138,7 +139,8 @@ FetchContent_Declare(SDL2
     GIT_TAG "release-2.30.x"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 
 if (ENABLE_ASAN)
     set(SDL_STATIC ON)
@@ -156,7 +158,8 @@ FetchContent_Declare(fmt
     GIT_TAG 11.1.3
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(FMT_DOC OFF)
 set(FMT_TEST OFF)
 set(FMT_SYSTEM_HEADERS ON)
@@ -167,7 +170,8 @@ FetchContent_Declare(SPDLOG
     GIT_TAG v1.15.1
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(SPDLOG_BUILD_EXAMPLE OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
 FetchContent_MakeAvailable(SPDLOG)
@@ -178,7 +182,8 @@ FetchContent_Declare(rapidyaml
     GIT_TAG v0.9.0_patch
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 FetchContent_MakeAvailable(rapidyaml)
 
 FetchContent_Declare(json
@@ -186,7 +191,8 @@ FetchContent_Declare(json
     GIT_TAG v3.12.0
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(JSON_BuildTests OFF)
 FetchContent_MakeAvailable(json)
 
@@ -195,7 +201,8 @@ FetchContent_Declare(glm
     GIT_TAG 1.0.1
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(GLM_BUILD_TESTS OFF)
 set(GLM_BUILD_INSTALL OFF)
 FetchContent_MakeAvailable(glm)
@@ -204,7 +211,8 @@ FetchContent_Declare(vma
     GIT_REPOSITORY "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
     GIT_TAG "v3.1.0"
     UPDATE_DISCONNECTED TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(VMA_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(vma)
 
@@ -212,9 +220,10 @@ FetchContent_Declare(volk
     GIT_REPOSITORY https://github.com/zeux/volk.git
     GIT_TAG "1.4.304"
     UPDATE_DISCONNECTED TRUE
+    GIT_SHALLOW TRUE
 )
 if (WIN32)
-   set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 endif()
 FetchContent_MakeAvailable(volk)
 
@@ -223,7 +232,8 @@ FetchContent_Declare(ktx_software
     GIT_TAG v4.3.1
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
-    )
+    GIT_SHALLOW TRUE
+)
 set(BASISU_SUPPORT_SSE "${BASISU_SUPPORT_SSE}")
 set(KTX_FEATURE_TESTS OFF)
 set(KTX_FEATURE_TOOLS OFF)
@@ -232,18 +242,20 @@ FetchContent_MakeAvailable(ktx_software)
 set(BOOST_INCLUDE_LIBRARIES unordered;lockfree;program_options)
 set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
-  Boost
-  GIT_REPOSITORY https://github.com/boostorg/boost.git
-  GIT_TAG boost-1.89.0
+    Boost
+    GIT_REPOSITORY https://github.com/boostorg/boost.git
+    GIT_TAG boost-1.89.0
+    GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(Boost)
 
 FetchContent_Declare(
-        assimp
-        GIT_REPOSITORY "https://github.com/assimp/assimp.git"
-        GIT_TAG "v6.0.2"
-        UPDATE_DISCONNECTED TRUE
-        SOURCE_SUBDIR "assimp"
+    assimp
+    GIT_REPOSITORY "https://github.com/assimp/assimp.git"
+    GIT_TAG "v6.0.2"
+    UPDATE_DISCONNECTED TRUE
+    SOURCE_SUBDIR "assimp"
+    GIT_SHALLOW TRUE
 )
 if(NOT assimp_POPULATED)
     FetchContent_MakeAvailable(assimp)
@@ -255,11 +267,12 @@ if(NOT assimp_POPULATED)
 endif()
 
 FetchContent_Declare(
-        JoltPhysics
-        GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
-        GIT_TAG "v5.5.0"
-        UPDATE_DISCONNECTED TRUE
-        SOURCE_SUBDIR "Jolt"
+    JoltPhysics
+    GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
+    GIT_TAG "v5.5.0"
+    UPDATE_DISCONNECTED TRUE
+    SOURCE_SUBDIR "Jolt"
+    GIT_SHALLOW TRUE
 )
 check_ipo_supported(RESULT IS_IPO_SUPPORTED)
 set(DOUBLE_PRECISION OFF)
@@ -281,14 +294,14 @@ set(INTERPROCEDURAL_OPTIMIZATION=${IS_IPO_SUPPORTED})
 if(NOT JoltPhysics_POPULATED)
     FetchContent_MakeAvailable(JoltPhysics)
 
-  set(PHYSICS_REPO_ROOT ${joltphysics_SOURCE_DIR})
-  include(${joltphysics_SOURCE_DIR}/Jolt/Jolt.cmake)
-  target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_PROFILE_ENABLED;JPH_DEBUG_RENDERER>")
-  target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:Debug>:JPH_PROFILE_ENABLED;JPH_DEBUG_RENDERER>")
-  if (FLOATING_POINT_EXCEPTIONS_ENABLED AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-      target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>")
-      target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:Debug>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>")
-  endif()
+    set(PHYSICS_REPO_ROOT ${joltphysics_SOURCE_DIR})
+    include(${joltphysics_SOURCE_DIR}/Jolt/Jolt.cmake)
+    target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_PROFILE_ENABLED;JPH_DEBUG_RENDERER>")
+    target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:Debug>:JPH_PROFILE_ENABLED;JPH_DEBUG_RENDERER>")
+    if (FLOATING_POINT_EXCEPTIONS_ENABLED AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>")
+        target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:Debug>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>")
+    endif()
 endif()
 
 
@@ -317,9 +330,9 @@ endif()
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PUBLIC /W1)
 
-if (NOT ENABLE_ASAN)
-    target_compile_options(WeilanEngine PUBLIC "/ZI")
-endif()
+    if (NOT ENABLE_ASAN)
+        target_compile_options(WeilanEngine PUBLIC "/ZI")
+    endif()
     target_compile_options(WeilanEngine PUBLIC "/Od")
     target_compile_options(WeilanEngine PUBLIC "/Ob0")
 endif()
@@ -336,13 +349,13 @@ target_include_directories( WeilanEngine
 
     SYSTEM
     ${Vulkan_INCLUDE_DIRS}
-    )
+)
 
 if(USE_VULKAN_SDK_TOOLS)
     target_link_directories(WeilanEngine
         PRIVATE
         $ENV{VULKAN_SDK}/Lib
-        )
+    )
 endif()
 
 target_link_libraries( WeilanEngine
@@ -361,7 +374,7 @@ target_link_libraries( WeilanEngine
     GPUOpen::VulkanMemoryAllocator
     assimp
     volk
-    )
+)
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PUBLIC dwmapi)
@@ -377,7 +390,7 @@ target_compile_definitions(
     VULKAN_HPP_NO_PROTOTYPES
     GLM_ENABLE_EXPERIMENTAL
     VK_NO_PROTOTYPES
-    )
+)
 
 find_package(Python3 REQUIRED)
 
@@ -401,8 +414,8 @@ add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/Source/Lua/weilan_api.lua"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
     DEPENDS "${CMAKE_SOURCE_DIR}/Source/Engine/CodeGen/LuaBindings_Generated.cpp"
-            "${CMAKE_SOURCE_DIR}/Source/Engine/Runtime/System/ScriptingBackend/LuaBindings.cpp"
-            "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Runtime/System/ScriptingBackend/LuaBindings.cpp"
+    "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Generating Lua Annotations"
 )
@@ -420,7 +433,7 @@ add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/Source/CompiledShader/shader_manifest.json"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
     DEPENDS ${SHADER_SOURCES}
-            "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
+    "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     COMMENT "Compiling Shaders"
 )
@@ -520,7 +533,7 @@ if (MSVC AND ENABLE_ASAN)
             if(asan_applied)
                 return()
             endif()
-            
+
             get_target_property(target_type ${target} TYPE)
             if(target_type STREQUAL "INTERFACE_LIBRARY")
                 set_target_properties(${target} PROPERTIES ASAN_APPLIED TRUE)
@@ -553,7 +566,7 @@ if (MSVC AND ENABLE_ASAN)
     if(TARGET WeilanEngineTest)
         list(APPEND ASAN_ROOTS WeilanEngineTest)
     endif()
-    
+
     foreach(root ${ASAN_ROOTS})
         ApplyASANRecursive(${root})
     endforeach()
