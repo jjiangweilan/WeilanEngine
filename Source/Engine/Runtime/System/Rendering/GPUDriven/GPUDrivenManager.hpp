@@ -4,6 +4,7 @@
 #include "Engine/Library/Allocators/VirtualTLSFAllocator.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include <mutex>
 
 class Submesh;
 namespace Rendering
@@ -106,6 +107,7 @@ public:
 
 private:
     GPUDrivenManager();
+    std::mutex mutex;
 
     // Global buffer (512MB TLSF)
     const uint8_t globalDataAlignment = 8;

@@ -55,6 +55,7 @@ GPUDrivenManager::GPUDrivenManager()
 
 GPUMeshHandle GPUDrivenManager::RegisterMesh(const Submesh& submesh)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     GPUMeshHandle handle = sceneObjectVertexDataDescriptors.AllocateRaw();
     SceneObjectVertexDataDescriptor& newDescriptor = sceneObjectVertexDataDescriptors[handle];
     AllocateForMesh(newDescriptor, submesh);
@@ -63,6 +64,7 @@ GPUMeshHandle GPUDrivenManager::RegisterMesh(const Submesh& submesh)
 
 void GPUDrivenManager::UnregisterMesh(GPUMeshHandle handle)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     SceneObjectVertexDataDescriptor& descriptor = sceneObjectVertexDataDescriptors[handle];
     globalBufferAllocator.Free(descriptor.dataAlloc);
     sceneObjectVertexDataDescriptors.FreeRaw(static_cast<int>(handle));
@@ -106,6 +108,7 @@ void GPUDrivenManager::AllocateForMesh(SceneObjectVertexDataDescriptor& descript
 
 GPUTextureHandle GPUDrivenManager::RegisterTexture(Texture& texture)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     GPUTextureHandle handle = textureSlots.AllocateRaw();
     textureSlots[handle].texture = &texture;
 
@@ -116,12 +119,14 @@ GPUTextureHandle GPUDrivenManager::RegisterTexture(Texture& texture)
 
 void GPUDrivenManager::UnregisterTexture(GPUTextureHandle handle)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     textureSlots[handle].texture = nullptr;
     textureSlots.FreeRaw(static_cast<int>(handle));
 }
 
 void GPUDrivenManager::UpdateTextureImage(GPUTextureHandle handle, Texture& texture)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     textureSlots[handle].texture = &texture;
     globalDescriptorSet->SetImage("globalTextures"_shaderBinding, static_cast<int>(handle), &texture.GetGfxImage()->GetDefaultImageView());
 }
@@ -179,6 +184,7 @@ void GPUDrivenManager::UploadMaterialData(GPUMaterialHandle handle)
 
 GPUMaterialHandle GPUDrivenManager::RegisterMaterial(const GPUMaterialData& data)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     GPUMaterialHandle handle = materialSlots.AllocateRaw();
     materialSlots[handle].data = data;
 
@@ -193,12 +199,14 @@ GPUMaterialHandle GPUDrivenManager::RegisterMaterial(const GPUMaterialData& data
 
 void GPUDrivenManager::UpdateMaterial(GPUMaterialHandle handle, const GPUMaterialData& data)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     materialSlots[handle].data = data;
     UploadMaterialData(handle);
 }
 
 void GPUDrivenManager::UnregisterMaterial(GPUMaterialHandle handle)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     materialSlots.FreeRaw(static_cast<int>(handle));
 
     gpuDrivenConfigData.materialCount = static_cast<uint32_t>(materialSlots.GetUsedCount());
@@ -258,6 +266,7 @@ void GPUDrivenManager::UploadSceneObjectData(GPUSceneObjectHandle handle)
 
 GPUSceneObjectHandle GPUDrivenManager::RegisterSceneObject(const GPUSceneObjectData& data)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     GPUSceneObjectHandle handle = sceneObjectSlots.AllocateRaw();
     sceneObjectSlots[handle].data = data;
 
@@ -272,12 +281,14 @@ GPUSceneObjectHandle GPUDrivenManager::RegisterSceneObject(const GPUSceneObjectD
 
 void GPUDrivenManager::UpdateSceneObject(GPUSceneObjectHandle handle, const GPUSceneObjectData& data)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     sceneObjectSlots[handle].data = data;
     UploadSceneObjectData(handle);
 }
 
 void GPUDrivenManager::UnregisterSceneObject(GPUSceneObjectHandle handle)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     sceneObjectSlots.FreeRaw(static_cast<int>(handle));
 
     gpuDrivenConfigData.sceneObjectCount = static_cast<uint32_t>(sceneObjectSlots.GetUsedCount());
@@ -338,6 +349,7 @@ void GPUDrivenManager::SetMainLightShadowBuffer(Gfx::Buffer* buffer)
 
 void GPUDrivenManager::UploadGPUDrivenConfig()
 {
+    std::lock_guard<std::mutex> lock(mutex);
     if (!gpuDrivenConfigDirty)
         return;
 
