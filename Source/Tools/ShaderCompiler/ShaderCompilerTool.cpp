@@ -608,8 +608,11 @@ private:
         return (int)samplerConfigs.size() - 1;
     }
 
-    json AddBindingAsResource(const std::string& name, slang::TypeLayoutReflection* typeLayout, json& set, uint32_t currentBinding)
+    json AddBindingAsResource(slang::VariableLayoutReflection* variableLayoutReflection, json& set, uint32_t currentBinding)
     {
+        const std::string& name = variableLayoutReflection->getName();
+        slang::TypeLayoutReflection* typeLayout = variableLayoutReflection->getTypeLayout();
+
         json binding;
         binding["name"] = name;
         binding["bindingNum"] = currentBinding;
@@ -674,7 +677,7 @@ private:
                 }
             case slang::TypeReflection::Kind::Resource:
                 {
-                    outBindings.push_back(AddBindingAsResource(variableLayout->getName(), variableLayout->getTypeLayout(), set, currentBinding));
+                    outBindings.push_back(AddBindingAsResource(variableLayout, set, currentBinding));
                     break;
                 }
             case slang::TypeReflection::Kind::Struct:
@@ -725,8 +728,20 @@ private:
                     if (variableLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
                     {
                         auto elementTypeLayout = variableLayout->getTypeLayout()->getElementTypeLayout();
-                        auto binding = AddBindingAsResource(variableLayout->getName(), elementTypeLayout, set, currentBinding);
-                        binding["descriptorCount"] = variableLayout->getTypeLayout()->getElementCount();
+                        auto binding = AddBindingAsResource(variableLayout, set, currentBinding);
+
+                        auto elementCount = typeLayout->getElementCount();
+                        if (elementCount == 0)
+                        {
+                            // Unbounded array: use variable descriptor count
+                            binding["isVariableDescriptorCount"] = true;
+                            binding["descriptorCount"] = 4096;
+                        }
+                        else
+                        {
+                            binding["descriptorCount"] = elementCount;
+                        }
+
                         outBindings.push_back(binding);
                     }
                     break;

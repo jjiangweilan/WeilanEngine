@@ -36,6 +36,7 @@ struct GPUFeatures
     bool textureCompressionBC = true;
     bool textureCompressionASTC4x4 = false;
 
+    bool multiDrawIndirect = false;
     bool timestampPeriod = false;
 };
 

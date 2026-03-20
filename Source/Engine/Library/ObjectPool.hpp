@@ -206,6 +206,35 @@ public:
         }
     }
 
+    // Resize the pool to exactly the given size.
+    // New slots are free; shrinking is only allowed if removed slots are unallocated.
+    void SetSize(size_t newSize)
+    {
+        size_t currentSize = allocatedObjects.size();
+
+        if (newSize < currentSize)
+        {
+            // Verify no allocated objects exist beyond newSize
+            for (size_t i = newSize; i < currentSize; ++i)
+            {
+                ASSERT(!isAllocated[i] && "Cannot shrink pool: allocated object exists beyond new size");
+            }
+
+            // Remove free indices that are >= newSize
+            std::erase_if(freeIndices, [newSize](size_t idx) { return idx >= newSize; });
+        }
+        else if (newSize > currentSize)
+        {
+            for (size_t i = currentSize; i < newSize; ++i)
+            {
+                freeIndices.push_back(i);
+            }
+        }
+
+        allocatedObjects.resize(newSize);
+        isAllocated.resize(newSize, false);
+    }
+
     size_t GetCapacity() const { return allocatedObjects.size(); }
     size_t GetFreeCount() const { return freeIndices.size(); }
     size_t GetUsedCount() const { return allocatedObjects.size() - freeIndices.size(); }

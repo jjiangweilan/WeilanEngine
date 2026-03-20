@@ -1124,6 +1124,7 @@ void VKDriver::CreatePhysicalDevice()
 
         // fill GPU features
         gpuFeatures.timestampPeriod = gpu.physicalDeviceProperties.limits.timestampPeriod;
+        gpuFeatures.multiDrawIndirect = gpu.physicalDeviceFeatures.multiDrawIndirect;
         return;
     }
 

@@ -604,6 +604,12 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
 
                 const auto& b = *pBinding;
 
+                // Skip bindings with zero descriptor count (reflected but unused by shader).
+                // This handles both regular bindings and variable-count bindless arrays
+                // that Slang reflects with count=0 when the shader doesn't access them.
+                if (b.descriptorCount == 0)
+                    continue;
+
                 // update writable GPU resources
                 if (writableGPUResources)
                 {
@@ -645,7 +651,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                 {
                     // For variable-count bindings, only write actually bound elements
                     // (PARTIALLY_BOUND flag covers unbound slots)
-                    if (binding != bindings.end())
+                    // Skip if descriptor count is 0 (shader doesn't use this binding)
+                    if (b.descriptorCount > 0 && binding != bindings.end())
                     {
                         for (auto& [elemIndex, resRef] : binding->second)
                         {
