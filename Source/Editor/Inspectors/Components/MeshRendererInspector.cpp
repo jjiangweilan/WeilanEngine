@@ -47,6 +47,12 @@ public:
             meshRenderer->EnableRayTracing(rayTracing);
         }
 
+        bool gpuObject = meshRenderer->IsGPUObject();
+        if (ImGui::Checkbox("GPU Object", &gpuObject))
+        {
+            meshRenderer->SetGPUObject(gpuObject);
+        }
+
         if (multipass)
         {
             int size = meshRenderer->GetMaterialSize();
