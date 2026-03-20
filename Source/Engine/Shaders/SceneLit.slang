@@ -22,7 +22,7 @@ struct PushConstant
 {
     float4x4 model;
     float4x4 invTspModel;
-} 
+} ;
 
 [vk_push_constant]
 PushConstant pconst;
@@ -77,8 +77,7 @@ VertexOutput SceneLitVertex(uint vertexID, uint drawIndex)
 
     if (_GPUDriven)
     {
-        // firstInstance encodes the index into objectIDs buffer
-        objectIndex = perScene.objectIDs[drawIndex];
+        objectIndex = perScene.objectIDs[asuint(pconst.model[0][0]) + drawIndex];
         GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
             perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
         modelMatrix = objData.model;

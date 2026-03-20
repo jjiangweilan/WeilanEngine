@@ -44,8 +44,8 @@ struct ObjectPoolHandle
         return index != -1 && pool != nullptr;
     }
 
-    ObjectPool<T>* pool;
-    int index;
+    ObjectPool<T>* pool = nullptr;
+    int index = -1;
 };
 
 template <class T>
@@ -65,13 +65,11 @@ public:
         }
     }
 
-    // Prevent copying (expensive and potentially dangerous with handles)
+    // Prevent copying and moving (handles store raw pool pointers)
     ObjectPool(const ObjectPool&) = delete;
     ObjectPool& operator=(const ObjectPool&) = delete;
-
-    // Allow moving
-    ObjectPool(ObjectPool&&) = default;
-    ObjectPool& operator=(ObjectPool&&) = default;
+    ObjectPool(ObjectPool&&) = delete;
+    ObjectPool& operator=(ObjectPool&&) = delete;
 
     template <bool IsConst>
     struct PoolIterator
@@ -127,7 +125,7 @@ public:
         return allocatedObjects[index];
     }
 
-    T& operator[](size_t index) const
+    const T& operator[](size_t index) const
     {
         ASSERT(index < allocatedObjects.size() && "Index out of bounds");
         return allocatedObjects[index];

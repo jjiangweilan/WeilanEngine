@@ -3,6 +3,7 @@
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
 #include "Engine/Runtime/Object/Component/ReflectionProbe.hpp"
 #include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
@@ -15,7 +16,6 @@
 #include "Engine/Runtime/System/Rendering/RenderingUtils.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 
 using namespace Rendering::Passes;
 namespace Rendering
@@ -714,8 +714,6 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
                     continue;
                 }
 
-                // Enable _GPUDriven feature to get the correct shader variant
-                material->EnableFeature("_GPUDriven");
                 auto* shaderProgram = material->GetShaderProgram();
 
                 if (shaderProgram)
@@ -816,6 +814,14 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
             cmd.BindShaderProgram(group.shaderProgram, group.config);
         }
 
+        struct Data
+        {
+            float4x4 d0 = {};
+            float4x4 d1 = {};
+        } pconst;
+        uint32_t firstDrawIndex = group.firstDrawIndex;
+        pconst.d0[0][0] = std::bit_cast<float>(firstDrawIndex);
+        cmd.SetPushConstant(group.shaderProgram, &pconst);
         cmd.DrawIndirect(
             indirectCommandBuffer.get(),
             group.firstDrawIndex * sizeof(DrawIndirectCommand),
