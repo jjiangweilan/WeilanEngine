@@ -649,11 +649,19 @@ public:
                 {
                     if (variableLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
                     {
-                        // std::string name = elementTypeLayout->getName();
-                        // maybe test for the element kind here?
                         auto elementTypeLayout = variableLayout->getTypeLayout()->getElementTypeLayout();
                         auto binding = AddBindingAsResource(variableLayout->getName(), elementTypeLayout, set, currentBinding);
-                        binding.descriptorCount = variableLayout->getTypeLayout()->getElementCount();
+                        auto elementCount = variableLayout->getTypeLayout()->getElementCount();
+                        if (elementCount == 0)
+                        {
+                            // Unbounded array: use variable descriptor count
+                            binding.isVariableDescriptorCount = true;
+                            binding.descriptorCount = 4096;
+                        }
+                        else
+                        {
+                            binding.descriptorCount = elementCount;
+                        }
                         outBindings.push_back(binding);
                     }
                     break;

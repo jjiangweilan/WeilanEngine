@@ -6,6 +6,8 @@
 template <class T>
 class ObjectPool;
 
+using ObjectPoolRawHandle = uint64_t;
+
 template <class T>
 struct ObjectPoolHandle
 {

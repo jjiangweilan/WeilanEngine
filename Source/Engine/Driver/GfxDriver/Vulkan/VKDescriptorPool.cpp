@@ -21,7 +21,28 @@ VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLay
 
     for (auto& iter : poolSizesMap)
     {
-        poolSizes.push_back({iter.first, iter.second});
+        if (iter.second > 0)
+            poolSizes.push_back({iter.first, iter.second});
+    }
+
+    // Detect variable descriptor count from binding flags
+    auto* bindingFlagsInfo = static_cast<const VkDescriptorSetLayoutBindingFlagsCreateInfo*>(layoutCreateInfo.pNext);
+    while (bindingFlagsInfo)
+    {
+        if (bindingFlagsInfo->sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO)
+        {
+            if (bindingFlagsInfo->bindingCount > 0 && bindingFlagsInfo->pBindingFlags)
+            {
+                // Check the last binding for variable descriptor count flag
+                auto lastFlags = bindingFlagsInfo->pBindingFlags[bindingFlagsInfo->bindingCount - 1];
+                if (lastFlags & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT)
+                {
+                    hasVariableDescriptorCount = true;
+                }
+            }
+            break;
+        }
+        bindingFlagsInfo = static_cast<const VkDescriptorSetLayoutBindingFlagsCreateInfo*>(bindingFlagsInfo->pNext);
     }
 
     try
@@ -54,6 +75,7 @@ VKDescriptorPool::~VKDescriptorPool()
 VKDescriptorPool::VKDescriptorPool(VKDescriptorPool&& other)
     : createInfo(other.createInfo), layout(std::exchange(other.layout, VK_NULL_HANDLE)),
       poolSizes(std::exchange(other.poolSizes, {})), context(other.context),
+      hasVariableDescriptorCount(other.hasVariableDescriptorCount),
       fullPools(std::exchange(other.fullPools, {})), freeSets(std::exchange(other.freeSets, {})),
       freePool(std::exchange(other.freePool, VK_NULL_HANDLE))
 {
@@ -63,7 +85,19 @@ VKDescriptorPool::VKDescriptorPool(VKDescriptorPool&& other)
 
 VkDescriptorSet VKDescriptorPool::Allocate()
 {
-    if (!freeSets.empty())
+    return AllocateInternal(nullptr);
+}
+
+VkDescriptorSet VKDescriptorPool::Allocate(uint32_t variableDescriptorCount)
+{
+    return AllocateInternal(&variableDescriptorCount);
+}
+
+VkDescriptorSet VKDescriptorPool::AllocateInternal(uint32_t* pVariableDescriptorCount)
+{
+    // Only reuse freed sets for non-variable-count pools,
+    // since variable-count sets may have been allocated with different counts
+    if (!hasVariableDescriptorCount && !freeSets.empty())
     {
         auto set = freeSets.back();
         freeSets.pop_back();
@@ -79,6 +113,16 @@ VkDescriptorSet VKDescriptorPool::Allocate()
     allocateInfo.descriptorPool = freePool;
     allocateInfo.descriptorSetCount = 1;
     allocateInfo.pSetLayouts = &layout;
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
+    if (hasVariableDescriptorCount && pVariableDescriptorCount)
+    {
+        variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+        variableCountInfo.descriptorSetCount = 1;
+        variableCountInfo.pDescriptorCounts = pVariableDescriptorCount;
+        allocateInfo.pNext = &variableCountInfo;
+    }
+
     VkDescriptorSet set;
     VkResult result = vkAllocateDescriptorSets(context->objManager->GetDevice(), &allocateInfo, &set);
     if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)

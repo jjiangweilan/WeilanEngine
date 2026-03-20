@@ -202,6 +202,20 @@ VKDescriptorPool* VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
     return descriptorPools[slot];
 }
 
+bool VKShaderProgram::HasVariableDescriptorCount(DescriptorSetSlot slot) const
+{
+    if (slot < perSetVariableInfo.size())
+        return perSetVariableInfo[slot].hasVariableDescriptorCount;
+    return false;
+}
+
+uint32_t VKShaderProgram::GetMaxVariableDescriptorCount(DescriptorSetSlot slot) const
+{
+    if (slot < perSetVariableInfo.size())
+        return perSetVariableInfo[slot].maxVariableDescriptorCount;
+    return 0;
+}
+
 void VKShaderProgram::GeneratePipelineLayout()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
@@ -218,6 +232,10 @@ void VKShaderProgram::GeneratePipelineLayout()
     VkSampler immutableSamplers[MaxImmutableSamplerBindings] = {};
     int immutableSamplerIndex = 0;
 
+    // Per-set binding flags storage (must outlive loop iterations for Vulkan create calls)
+    std::vector<std::vector<VkDescriptorBindingFlags>> perSetBindingFlags(pipelineInfo.descriptorSets.size());
+    perSetVariableInfo.resize(pipelineInfo.descriptorSets.size());
+
     for (uint32_t i = 0; i < layouts.size(); ++i)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
@@ -225,25 +243,51 @@ void VKShaderProgram::GeneratePipelineLayout()
 
         // enable bindless
         descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
-        const VkDescriptorBindingFlagsEXT flags =
-            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT |
-            VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT |
-            VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT_EXT |
-            VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT_EXT;
-
-        VkDescriptorSetLayoutBindingFlagsCreateInfoEXT binding_flags{};
-        binding_flags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT;
-        binding_flags.pBindingFlags = &flags;
-        descriptorSetLayoutCreateInfo.pNext = &binding_flags;
 
         const auto& descriptorSetInfos = pipelineInfo.descriptorSets[i];
 
         auto& descriptorSetLayoutBindingVector = descriptorSetLayoutBindingVectors[i];
         descriptorSetLayoutBindingVector.resize(descriptorSetInfos.bindings.size());
 
+        // Build per-binding flags array
+        auto& bindingFlagsVec = perSetBindingFlags[i];
+        bindingFlagsVec.resize(descriptorSetInfos.bindings.size(), 0);
+
+        // Check if the last binding has variable descriptor count
+        bool lastBindingIsVariable = false;
+        uint32_t maxVariableCount = 0;
+        if (!descriptorSetInfos.bindings.empty())
+        {
+            const auto& lastBinding = descriptorSetInfos.bindings.back();
+            if (lastBinding.isVariableDescriptorCount)
+            {
+                lastBindingIsVariable = true;
+                maxVariableCount = lastBinding.descriptorCount;
+            }
+        }
+        perSetVariableInfo[i] = {lastBindingIsVariable, maxVariableCount};
+
         for (size_t bindingIndex = 0; bindingIndex < descriptorSetInfos.bindings.size(); ++bindingIndex)
         {
             const auto& binding = descriptorSetInfos.bindings[bindingIndex];
+
+            // Only apply advanced binding flags to array or variable-count bindings (bindless resources).
+            // Simple single-descriptor bindings (uniform buffers, etc.) don't need these flags.
+            VkDescriptorBindingFlags perBindingFlags = 0;
+            bool isBindlessBinding = binding.descriptorCount > 1 || binding.isVariableDescriptorCount;
+            if (isBindlessBinding)
+            {
+                perBindingFlags =
+                    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                    VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+            }
+
+            // Variable descriptor count only on the last binding
+            if (bindingIndex == descriptorSetInfos.bindings.size() - 1 && lastBindingIsVariable)
+            {
+                perBindingFlags |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            }
+            bindingFlagsVec[bindingIndex] = perBindingFlags;
 
             int immutableSamplerOffset = -1;
             if (binding.descriptorType == DescriptorType::CombinedImageSampler)
@@ -275,6 +319,13 @@ void VKShaderProgram::GeneratePipelineLayout()
 
         descriptorSetLayoutCreateInfo.bindingCount = descriptorSetLayoutBindingVector.size();
         descriptorSetLayoutCreateInfo.pBindings = descriptorSetLayoutBindingVector.data();
+
+        // Attach per-binding flags
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCreateInfo{};
+        bindingFlagsCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+        bindingFlagsCreateInfo.bindingCount = bindingFlagsVec.size();
+        bindingFlagsCreateInfo.pBindingFlags = bindingFlagsVec.data();
+        descriptorSetLayoutCreateInfo.pNext = &bindingFlagsCreateInfo;
 
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);

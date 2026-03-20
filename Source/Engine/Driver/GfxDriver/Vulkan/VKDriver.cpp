@@ -1273,8 +1273,23 @@ void VKDriver::CreateDevice()
         .shaderDrawParameters = true
     };
 
+// # Enable bindless features
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
+    descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    descriptorIndexingFeatures.pNext = &shaderDrawParametersFeatures;
+    descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing = true;
+    descriptorIndexingFeatures.shaderStorageBufferArrayNonUniformIndexing = true;
+    descriptorIndexingFeatures.shaderStorageImageArrayNonUniformIndexing = true;
+    descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind = true;
+    descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind = true;
+    descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind = true;
+    descriptorIndexingFeatures.descriptorBindingUpdateUnusedWhilePending = false; // since we are creating per inflight descriptor set, we won't update descriptor set that is in use by GPU, so this feature is not necessary
+    descriptorIndexingFeatures.descriptorBindingPartiallyBound = true;
+    descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = true;
+    descriptorIndexingFeatures.runtimeDescriptorArray = true;
+
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pNext = &shaderDrawParametersFeatures;
+    deviceCreateInfo.pNext = &descriptorIndexingFeatures;
     deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 

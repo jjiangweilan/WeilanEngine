@@ -54,6 +54,8 @@ public:
     );
     VkPipeline RequestComputePipeline(int requirePushDescriptorSet);
     VKDescriptorPool* GetDescriptorPool(DescriptorSetSlot slot);
+    bool HasVariableDescriptorCount(DescriptorSetSlot slot) const;
+    uint32_t GetMaxVariableDescriptorCount(DescriptorSetSlot slot) const;
 
     // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
@@ -83,6 +85,12 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
     std::vector<VKDescriptorPool*> descriptorPools = {};
+    struct PerSetVariableInfo
+    {
+        bool hasVariableDescriptorCount = false;
+        uint32_t maxVariableDescriptorCount = 0;
+    };
+    std::vector<PerSetVariableInfo> perSetVariableInfo = {};
     ShaderPipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
 

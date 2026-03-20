@@ -75,6 +75,7 @@ struct PerScene
     SamplerState sampler_point_clamp;
 
     ByteAddressBuffer globalBuffer;
+    Texture2D globalTextures[];
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
 

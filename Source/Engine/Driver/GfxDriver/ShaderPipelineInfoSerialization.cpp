@@ -61,6 +61,7 @@ void to_json(nlohmann::json& j, const ShaderPipelineInfo::Binding& binding)
         {"descriptorType", DescriptorTypeToString(binding.descriptorType)},
         {"textureType", TextureTypeToString(binding.textureType)},
         {"isTextureArray", binding.isTextureArray},
+        {"isVariableDescriptorCount", binding.isVariableDescriptorCount},
         {"bufferMembers", binding.bufferMembers},
         {"byteSize", binding.byteSize},
         {"samplerIndex", binding.samplerIndex}
@@ -77,6 +78,7 @@ void from_json(const nlohmann::json& j, ShaderPipelineInfo::Binding& binding)
     binding.descriptorType = StringToDescriptorType(j.value("descriptorType", std::string("Invalid")));
     binding.textureType = StringToTextureType(j.value("textureType", std::string("Invalid")));
     binding.isTextureArray = j.value("isTextureArray", false);
+    binding.isVariableDescriptorCount = j.value("isVariableDescriptorCount", false);
     if (j.contains("bufferMembers"))
         binding.bufferMembers = j["bufferMembers"].get<std::vector<ShaderPipelineInfo::BufferMember>>();
     binding.byteSize = j.value("byteSize", 0u);

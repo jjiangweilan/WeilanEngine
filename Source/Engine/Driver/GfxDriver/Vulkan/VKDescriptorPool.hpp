@@ -18,6 +18,7 @@ public:
     VKDescriptorPool(VKDescriptorPool&& other);
     VkDescriptorSetLayout GetLayout() { return layout; }
     VkDescriptorSet Allocate();
+    VkDescriptorSet Allocate(uint32_t variableDescriptorCount);
 
     // TODO: we can't directly deallocate or free a set because it's probably still in use
     // maybe we can have vkdriver provide a way to register a callback to be called after each cmd is finished (test by
@@ -30,6 +31,8 @@ public:
         currFramefreeSets.clear();
     }
 
+    bool HasVariableDescriptorCount() const { return hasVariableDescriptorCount; }
+
     ~VKDescriptorPool();
 
 private:
@@ -37,6 +40,7 @@ private:
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
     std::vector<VkDescriptorPoolSize> poolSizes = {};
     RefPtr<VKContext> context;
+    bool hasVariableDescriptorCount = false;
 
     std::vector<VkDescriptorPool> fullPools{};
     std::vector<VkDescriptorSet> freeSets;
@@ -44,6 +48,7 @@ private:
     VkDescriptorPool freePool = VK_NULL_HANDLE;
 
     VkDescriptorPool CreateNewPool();
+    VkDescriptorSet AllocateInternal(uint32_t* pVariableDescriptorCount);
 };
 
 // TODO: is this bad? too many pools are created

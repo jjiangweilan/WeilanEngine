@@ -237,10 +237,22 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
     bool incrementalBuild = false;
     bool fullRebuild = false;
     std::vector<VKWritableGPUResource>* writableGPUResources;
+
+    // Helper to allocate from pool with variable descriptor count support
+    auto allocateFromPool = [&](VKDescriptorPool* pool) -> VkDescriptorSet
+    {
+        if (shaderProgram->HasVariableDescriptorCount(set))
+        {
+            uint32_t maxCount = shaderProgram->GetMaxVariableDescriptorCount(set);
+            return pool->Allocate(maxCount);
+        }
+        return pool->Allocate();
+    };
+
     if (setInfo == sets.end())
     {
         auto pool = shaderProgram->GetDescriptorPool(set);
-        VkDescriptorSet descriptorSet = pool->Allocate();
+        VkDescriptorSet descriptorSet = allocateFromPool(pool);
         finalReturn = descriptorSet;
         fullRebuild = true;
         sets[setGroup] = {shaderProgram, pool, set, finalReturn, {}, {}};
@@ -259,7 +271,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
         {
             setInfo->second.descriptorPool->Deallocate(setInfo->second.set);
             setInfo->second.descriptorPool = shaderProgram->GetDescriptorPool(set);
-            finalReturn = setInfo->second.descriptorPool->Allocate();
+            finalReturn = allocateFromPool(setInfo->second.descriptorPool);
             setInfo->second.set = finalReturn;
             setInfo->second.fullRebuild = false;
             writableGPUResources = &setInfo->second.writableGPUResources;
@@ -629,16 +641,35 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                 ShaderBindingHandle nameHash(b.name);
                 auto binding = bindings.find(nameHash);
 
-                processWriteDescriptorSet(b, 0, b.descriptorCount);
-
-                for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                if (b.isVariableDescriptorCount)
                 {
-                    ResourceRef resRef = binding != bindings.end() ? binding->second[i] : ResourceRef();
-
-                    processResourceRef(b, resRef, i);
+                    // For variable-count bindings, only write actually bound elements
+                    // (PARTIALLY_BOUND flag covers unbound slots)
+                    if (binding != bindings.end())
+                    {
+                        for (auto& [elemIndex, resRef] : binding->second)
+                        {
+                            processWriteDescriptorSet(b, elemIndex, 1);
+                            processResourceRef(b, resRef, elemIndex);
+                            writeCount += 1;
+                        }
+                    }
                 }
+                else
+                {
+                    if (b.descriptorCount == 0)
+                        continue;
 
-                writeCount += 1;
+                    processWriteDescriptorSet(b, 0, b.descriptorCount);
+
+                    for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                    {
+                        ResourceRef resRef = binding != bindings.end() ? binding->second[i] : ResourceRef();
+                        processResourceRef(b, resRef, i);
+                    }
+
+                    writeCount += 1;
+                }
             }
         }
 
