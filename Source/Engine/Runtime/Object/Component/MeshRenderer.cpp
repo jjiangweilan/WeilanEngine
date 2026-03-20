@@ -2,6 +2,7 @@
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
 
@@ -28,7 +29,8 @@ DEFINE_SERIALIZATION(
     SER(aabbMin, aabb.min),
     SER(aabbMax, aabb.max),
     SER(wantsToEnableSkinning),
-    SER(isRayTracingEnabled)
+    SER(isRayTracingEnabled),
+    SER(isGPUObject)
 );
 
 void MeshRenderer::SetMesh(Mesh* mesh)
@@ -152,11 +154,17 @@ void MeshRenderer::OnEnable()
 {
     AddToRenderingScene();
 
+    if (isGPUObject)
+        RegisterGPUSceneObjects();
+
     // InitializeForRayTracing();
 }
 
 void MeshRenderer::OnDisable()
 {
+    if (isGPUObject)
+        UnregisterGPUSceneObjects();
+
     RemoveFromRenderingScene();
 }
 
@@ -294,6 +302,9 @@ void MeshRenderer::TransformChanged()
     {
         scene->GetRenderingScene().UpdateRenderer(*this);
     }
+
+    if (isGPUObject && gpuObjectRegistered)
+        UpdateGPUSceneObjectTransforms();
 }
 
 void MeshRenderer::CheckSkeleton()
@@ -367,5 +378,142 @@ void MeshRenderer::InitializeForRayTracing()
         rayTracingInstance = instanceHandle;
 
         isRayTracingInitialized = true;
+    }
+}
+
+// --- GPU-Driven ---
+
+void MeshRenderer::SetGPUObject(bool enabled)
+{
+    if (isGPUObject == enabled)
+        return;
+
+    isGPUObject = enabled;
+
+    if (IsEnabled())
+    {
+        if (isGPUObject)
+            RegisterGPUSceneObjects();
+        else
+            UnregisterGPUSceneObjects();
+    }
+}
+
+void MeshRenderer::RegisterGPUSceneObjects()
+{
+    if (gpuObjectRegistered || meshes.empty() || materials.empty())
+        return;
+
+    auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+    auto worldMatrix = GetGameObject()->GetWorldMatrix();
+
+    int mi = 0;
+    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+    {
+        auto mesh = meshes[i].Get();
+        if (mesh == nullptr)
+            continue;
+
+        for (auto& submesh : mesh->GetSubmeshes())
+        {
+            auto material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
+            mi++;
+
+            if (material == nullptr)
+                continue;
+
+            // Ensure material is registered for GPU-driven
+            if (!material->IsGPUMaterialRegistered())
+                material->RegisterGPUMaterial();
+
+            Rendering::GPUSceneObjectData objData{};
+            objData.model = worldMatrix;
+            objData.invTspModel = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix))));
+            objData.invTspModel[3].x =
+                std::bit_cast<float>(submesh.GetGPUMeshIndexOffset());
+            objData.invTspModel[3].y =
+                std::bit_cast<float>(submesh.GetGPUMeshPositionOffset());
+            objData.invTspModel[3].z =
+                std::bit_cast<float>(submesh.GetGPUMeshAttributeOffset());
+            objData.materialIndex = static_cast<uint32_t>(material->GetGPUMaterialHandle());
+            objData.padding[0] = objData.padding[1] = objData.padding[2] = 0;
+
+            auto handle = gpuDriven.RegisterSceneObject(objData);
+            gpuSceneObjectHandles.push_back(handle);
+        }
+    }
+
+    gpuObjectRegistered = true;
+
+    // Register to GPU object list in RenderingScene
+    if (auto scene = GetScene())
+    {
+        scene->GetRenderingScene().AddGPUObjectRenderer(*this);
+    }
+}
+
+void MeshRenderer::UnregisterGPUSceneObjects()
+{
+    if (!gpuObjectRegistered)
+        return;
+
+    auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+    for (auto handle : gpuSceneObjectHandles)
+    {
+        gpuDriven.UnregisterSceneObject(handle);
+    }
+    gpuSceneObjectHandles.clear();
+    gpuObjectRegistered = false;
+
+    if (auto scene = GetScene())
+    {
+        scene->GetRenderingScene().RemoveGPUObjectRenderer(*this);
+    }
+}
+
+void MeshRenderer::UpdateGPUSceneObjectTransforms()
+{
+    if (!gpuObjectRegistered || gpuSceneObjectHandles.empty())
+        return;
+
+    auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+    auto worldMatrix = GetGameObject()->GetWorldMatrix();
+    auto invTspBase = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix))));
+
+    int handleIdx = 0;
+    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+    {
+        auto mesh = meshes[i].Get();
+        if (mesh == nullptr)
+            continue;
+
+        for (auto& submesh : mesh->GetSubmeshes())
+        {
+            if (handleIdx >= static_cast<int>(gpuSceneObjectHandles.size()))
+                break;
+
+            Rendering::GPUSceneObjectData objData{};
+            objData.model = worldMatrix;
+            objData.invTspModel = invTspBase;
+            objData.invTspModel[3].x =
+                std::bit_cast<float>(submesh.GetGPUMeshIndexOffset());
+            objData.invTspModel[3].y =
+                std::bit_cast<float>(submesh.GetGPUMeshPositionOffset());
+            objData.invTspModel[3].z =
+                std::bit_cast<float>(submesh.GetGPUMeshAttributeOffset());
+
+            // materialIndex unchanged from registration
+            int mi2 = handleIdx; // rough correspondence
+            auto material =
+                mi2 < static_cast<int>(materials.size()) ? materials[mi2].Get() : nullptr;
+            objData.materialIndex =
+                material && material->IsGPUMaterialRegistered()
+                    ? static_cast<uint32_t>(material->GetGPUMaterialHandle())
+                    : 0;
+            objData.padding[0] = objData.padding[1] = objData.padding[2] = 0;
+
+            gpuDriven.UpdateSceneObject(gpuSceneObjectHandles[handleIdx], objData);
+            handleIdx++;
+        }
     }
 }

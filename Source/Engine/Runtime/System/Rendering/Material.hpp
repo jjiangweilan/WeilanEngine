@@ -6,6 +6,7 @@
 #include "Engine/Driver/GfxDriver/Image.hpp"
 #include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
@@ -112,6 +113,13 @@ public:
     // a dirty implementation to use when a texture is reimported in editor
     static void RebuildAllMaterials();
 
+    // GPU-Driven bindless support
+    Rendering::GPUMaterialHandle GetGPUMaterialHandle() const { return gpuMaterialHandle; }
+    bool IsGPUMaterialRegistered() const { return gpuMaterialHandle != Rendering::InvalidGPUHandle; }
+    void RegisterGPUMaterial();
+    void UnregisterGPUMaterial();
+    void UpdateGPUMaterialData();
+
 private:
     struct UBO
     {
@@ -155,6 +163,9 @@ private:
     bool uploadNeeded = false;
     bool needRequestNewShader = false;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
+
+    // GPU-Driven bindless
+    Rendering::GPUMaterialHandle gpuMaterialHandle = Rendering::InvalidGPUHandle;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void WriteParameterDataToBuffer(

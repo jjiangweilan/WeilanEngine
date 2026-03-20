@@ -3,6 +3,7 @@
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Engine/Library/Image/ImageProcessing.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -44,6 +45,8 @@ Texture::Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, Gf
 
 Texture::~Texture()
 {
+    UnregisterGPUTexture();
+
     if (desc.keepData && desc.data != nullptr)
     {
         delete[] desc.data;
@@ -70,6 +73,8 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
         delete[] texDesc.data;
         texDesc.data = nullptr;
     }
+
+    RegisterGPUTexture();
 }
 
 bool IsKTX2File(ktx_uint8_t* imageData)
@@ -96,9 +101,23 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
 
 void Texture::Reload(Asset&& loaded)
 {
+    UnregisterGPUTexture();
+
     Texture* newTex = static_cast<Texture*>(&loaded);
     desc = newTex->desc;
     image = std::move(newTex->image);
+
+    // Take the new texture's GPU handle (it was registered during its creation)
+    gpuTextureHandle = newTex->gpuTextureHandle;
+    newTex->gpuTextureHandle = static_cast<ObjectPoolRawHandle>(-1);
+
+    // Re-register with the new image since the descriptor set needs updating
+    if (gpuTextureHandle != static_cast<ObjectPoolRawHandle>(-1))
+    {
+        auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+        gpuDriven.UpdateTextureImage(gpuTextureHandle, *this);
+    }
+
     Asset::Reload(std::move(loaded));
 }
 
@@ -199,6 +218,8 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     {
         throw std::runtime_error("Texture-numDimensions not implemented");
     }
+
+    RegisterGPUTexture();
 }
 
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
@@ -433,6 +454,8 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
         texDesc.data = nullptr;
     }
 
+    RegisterGPUTexture();
+
     // ConvertRawImageToKtx(desc);
 }
 
@@ -536,4 +559,21 @@ bool Texture::LoadFromFile(const char* path)
     }
 
     return true;
+}
+
+void Texture::RegisterGPUTexture()
+{
+    if (gpuTextureHandle != static_cast<ObjectPoolRawHandle>(-1) || !image)
+        return;
+
+    gpuTextureHandle = Rendering::GPUDrivenManager::Instance().RegisterTexture(*this);
+}
+
+void Texture::UnregisterGPUTexture()
+{
+    if (gpuTextureHandle == static_cast<ObjectPoolRawHandle>(-1))
+        return;
+
+    Rendering::GPUDrivenManager::Instance().UnregisterTexture(gpuTextureHandle);
+    gpuTextureHandle = static_cast<ObjectPoolRawHandle>(-1);
 }

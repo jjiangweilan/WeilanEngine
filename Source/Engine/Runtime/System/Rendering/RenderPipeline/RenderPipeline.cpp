@@ -8,12 +8,14 @@
 #include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ParticleRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingUtils.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 
 using namespace Rendering::Passes;
 namespace Rendering
@@ -68,7 +70,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     Gfx::CommandBuffer* cmd = GetCommandBuffer();
     renderingData.screenSize = screenSize;
     renderingData.screenAspect = screenSize.x / screenSize.y;
-    renderingData.globalResource = perScene.globalResource.get();
+    renderingData.globalResource = perScene.GetGlobalResource();
     renderingData.perScene = &perScene;
     cmd->BeginLabel("Render Scene", {0.623, 0.323, 0.4123, 1.0f});
     if (!FrameSetup(cmd, scene, camera, screenSize))
@@ -103,6 +105,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     ENGINE_END_PROFILE; // Bulid Scene Draw List
 
+    // Build GPU-driven indirect draw data
+    BuildGPUObjectDrawData(renderingScene);
+
     ENGINE_END_PROFILE; // RenderPipeline - Setup
 
     // Reflection Probe Updateo
@@ -116,7 +121,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     reflectionProbeUpdate->Execute(*cmd, renderingData);
     renderingData.specularCubemap = reflectionProbeUpdate->GetIBLCubemap();
 
-    cmd->BindResource(0, perScene.globalResource.get());
+    cmd->BindResource(0, perScene.GetGlobalResource());
 
     // Shadow Pass
     ENGINE_BEGIN_PROFILE("Shadow")
@@ -154,6 +159,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // draw
         std::optional<Gfx::PolygonMode> polygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
+
+        // GPU-driven indirect draw for GPU objects
+        DrawGPUObjects(*cmd, polygonMode);
+
+        // Fallback: normal draw for non-GPU objects
         sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex, polygonMode);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex, polygonMode);
 
@@ -173,7 +183,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     depthDownSamplerPass->Setup(mainDepth, downSampledDepthCopy, downSampledDepthCopyDesc);
     depthDownSamplerPass->Execute(*cmd);
 
-    cmd->BindResource(0, perScene.globalResource.get());
+    cmd->BindResource(0, perScene.GetGlobalResource());
 
     // ssao pass
     ssaoPass->Execute(cmd, hierarchyZBufferPass->GetOutputId(), downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
@@ -194,7 +204,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Shading
     cmd->BeginLabel("Shading", &labelColors.passColor[0]);
     {
-        cmd->BindResource(0, perScene.globalResource.get());
+        cmd->BindResource(0, perScene.GetGlobalResource());
         // Upload GPU Parameter
         shadingPass->UploadGPUParameter(
             shadowRenderer->GetShadowMapTexelSize(),
@@ -255,7 +265,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         };
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPassAttachments, clears);
-        cmd->BindResource(0, perScene.globalResource.get());
+        cmd->BindResource(0, perScene.GetGlobalResource());
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
 
@@ -355,22 +365,27 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
 PerScene::PerScene()
 {
-    globalResource = GetGfxDriver()->CreateShaderResource();
-
-    scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform, false, false, "Scene");
+    scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, false, "Scene");
     camera =
-        GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Camera), Gfx::BufferUsage::Uniform, false, false, "Camera");
+        GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Camera), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, false, "Camera");
     mainLightShadow = GetGfxDriver()->CreateBuffer(
         sizeof(GPUParameter::MainLightShadow),
-        Gfx::BufferUsage::Uniform,
+        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
         false,
         false,
         "MainLightShadow"
     );
-    globalResource->SetBuffer("scene", scene.get());
-    globalResource->SetBuffer("camera", camera.get());
-    globalResource->SetBuffer("mainLightShadow", mainLightShadow.get());
-    globalResource->SetBuffer("globalBuffer", GPUDrivenManager::Instance().GetGlobalBuffer());
+
+    // Bind our buffers into GPUDrivenManager's global descriptor set
+    auto& gpuDriven = GPUDrivenManager::Instance();
+    gpuDriven.SetSceneBuffer(scene.get());
+    gpuDriven.SetCameraBuffer(camera.get());
+    gpuDriven.SetMainLightShadowBuffer(mainLightShadow.get());
+}
+
+Gfx::ShaderResource* PerScene::GetGlobalResource() const
+{
+    return GPUDrivenManager::Instance().GetGlobalDescriptorSet();
 }
 
 void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
@@ -394,7 +409,7 @@ void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 
     if (!FrameSetup(cmd, scene, camera, screenSize))
         return;
 
-    cmd->BindResource(0, perScene.globalResource.get());
+    cmd->BindResource(0, perScene.GetGlobalResource());
 
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     auto finalColor = GetFinalColor();
@@ -650,6 +665,164 @@ void RenderPipeline::ExecuteRenderEvents(Gfx::CommandBuffer& cmd, Scene& scene, 
 
 void RenderPipeline::SetupGPUDrivenBindings()
 {
+}
+
+void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
+{
+    gpuObjectShaderGroups.clear();
+    gpuObjectIDs.clear();
+
+    auto gpuRenderers = renderingScene.GetGPUObjectRenderers();
+    if (gpuRenderers.empty())
+        return;
+
+    // Group by shader program. For GPU-driven, we use the _GPUDriven feature variant.
+    struct DrawEntry
+    {
+        Gfx::ShaderProgram* shaderProgram;
+        Gfx::PipelineConfig config;
+        uint32_t vertexCount;
+        uint32_t sceneObjectIndex; // index into scene object pool
+    };
+
+    // Collect all draw entries
+    std::unordered_map<Gfx::ShaderProgram*, std::vector<DrawEntry>> shaderGroupMap;
+
+    for (auto* renderer : gpuRenderers)
+    {
+        if (!renderer || !renderer->IsActiveInScene())
+            continue;
+
+        const auto& handles = renderer->GetGPUSceneObjectHandles();
+        auto meshes = renderer->GetMeshes();
+        const auto& materials = renderer->GetMaterials();
+
+        int handleIdx = 0;
+        for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+        {
+            auto mesh = meshes[i].Get();
+            if (!mesh)
+                continue;
+
+            for (auto& submesh : mesh->GetSubmeshes())
+            {
+                int mi = handleIdx;
+                auto* material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
+                if (!material || handleIdx >= static_cast<int>(handles.size()))
+                {
+                    handleIdx++;
+                    continue;
+                }
+
+                // Enable _GPUDriven feature to get the correct shader variant
+                material->EnableFeature("_GPUDriven");
+                auto* shaderProgram = material->GetShaderProgram();
+
+                if (shaderProgram)
+                {
+                    DrawEntry entry{};
+                    entry.shaderProgram = shaderProgram;
+                    entry.config = material->GetShaderConfig();
+                    entry.vertexCount = submesh.GetIndexCount();
+                    entry.sceneObjectIndex = static_cast<uint32_t>(handles[handleIdx]);
+
+                    shaderGroupMap[shaderProgram].push_back(entry);
+                }
+
+                handleIdx++;
+            }
+        }
+    }
+
+    // Build flat objectIDs + indirect commands + shader groups
+    std::vector<DrawIndirectCommand> allIndirectCmds;
+    uint32_t globalDrawIdx = 0;
+
+    for (auto& [shaderProg, entries] : shaderGroupMap)
+    {
+        GPUObjectShaderGroup group{};
+        group.shaderProgram = shaderProg;
+        group.config = entries[0].config;
+        group.firstDrawIndex = globalDrawIdx;
+        group.drawCount = static_cast<uint32_t>(entries.size());
+
+        for (auto& entry : entries)
+        {
+            DrawIndirectCommand indirectCmd{};
+            indirectCmd.vertexCount = entry.vertexCount;
+            indirectCmd.instanceCount = 1;
+            indirectCmd.firstVertex = 0;
+            // firstInstance encodes the index into objectIDs buffer
+            indirectCmd.firstInstance = globalDrawIdx;
+
+            allIndirectCmds.push_back(indirectCmd);
+            gpuObjectIDs.push_back(entry.sceneObjectIndex);
+            globalDrawIdx++;
+        }
+
+        gpuObjectShaderGroups.push_back(group);
+    }
+
+    if (allIndirectCmds.empty())
+        return;
+
+    // Upload objectIDs
+    GPUDrivenManager::Instance().UploadObjectIDs(gpuObjectIDs.data(), static_cast<uint32_t>(gpuObjectIDs.size()));
+
+    // Upload GPUDriven config (might have become dirty)
+    GPUDrivenManager::Instance().UploadGPUDrivenConfig();
+
+    // Upload indirect commands to buffer
+    uint32_t requiredSize = static_cast<uint32_t>(allIndirectCmds.size());
+    if (requiredSize > indirectCommandBufferCapacity)
+    {
+        uint32_t newCapacity = indirectCommandBufferCapacity == 0 ? 256 : indirectCommandBufferCapacity;
+        while (newCapacity < requiredSize)
+            newCapacity *= 2;
+
+        indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
+            newCapacity * sizeof(DrawIndirectCommand),
+            Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
+            true, // CPU visible for direct write
+            false,
+            "GPUDrivenIndirectCommands"
+        );
+        indirectCommandBufferCapacity = newCapacity;
+    }
+
+    // TODO: I guess write after read hazard here
+    void* mapped = indirectCommandBuffer->GetCPUVisibleAddress();
+    if (mapped)
+    {
+        memcpy(mapped, allIndirectCmds.data(), allIndirectCmds.size() * sizeof(DrawIndirectCommand));
+    }
+}
+
+void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
+{
+    if (gpuObjectShaderGroups.empty() || !indirectCommandBuffer)
+        return;
+
+    for (auto& group : gpuObjectShaderGroups)
+    {
+        if (polygonModeOverride.has_value())
+        {
+            auto modifiedConfig = *group.config;
+            modifiedConfig.polygonMode = polygonModeOverride.value();
+            cmd.BindShaderProgram(group.shaderProgram, modifiedConfig);
+        }
+        else
+        {
+            cmd.BindShaderProgram(group.shaderProgram, group.config);
+        }
+
+        cmd.DrawIndirect(
+            indirectCommandBuffer.get(),
+            group.firstDrawIndex * sizeof(DrawIndirectCommand),
+            group.drawCount,
+            sizeof(DrawIndirectCommand)
+        );
+    }
 }
 
 } // namespace Rendering

@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Driver/GfxDriver/Image.hpp"
+#include "Engine/Library/ObjectPool.hpp"
 #include <ktx.h>
 
 struct TextureDescription
@@ -70,7 +71,14 @@ public:
 
     void SaveAsCubemap(const char* filename);
 
+    // GPU bindless texture index for GPU-driven rendering.
+    // Returns the index into globalTextures[], or -1 if not registered.
+    ObjectPoolRawHandle GetGPUTextureHandle() const { return gpuTextureHandle; }
+
 private:
+    void RegisterGPUTexture();
+    void UnregisterGPUTexture();
+    ObjectPoolRawHandle gpuTextureHandle = static_cast<ObjectPoolRawHandle>(-1);
     TextureDescription desc;
     std::unique_ptr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);

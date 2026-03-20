@@ -104,6 +104,31 @@ class RenderPipeline
 
     std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 
+    // GPU-Driven indirect draw
+    struct GPUObjectShaderGroup
+    {
+        Gfx::ShaderProgram* shaderProgram = nullptr;
+        Gfx::PipelineConfig config;
+        uint32_t firstDrawIndex = 0; // offset into indirectCommands
+        uint32_t drawCount = 0;
+    };
+    std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
+    std::vector<uint32_t> gpuObjectIDs;     // flat objectID array for all groups
+    std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
+    uint32_t indirectCommandBufferCapacity = 0;
+
+    // VkDrawIndirectCommand layout (16 bytes)
+    struct DrawIndirectCommand
+    {
+        uint32_t vertexCount;
+        uint32_t instanceCount;
+        uint32_t firstVertex;
+        uint32_t firstInstance;
+    };
+
+    void BuildGPUObjectDrawData(RenderingScene& renderingScene);
+    void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt);
+
     struct ExecutionState
     {
         bool renderMainLightShadow = false;
@@ -132,7 +157,7 @@ public:
     const Gfx::ImageIdentifier& GetOutputColor();
     const auto& GetOutputDepth() { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
-    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
+    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.GetGlobalResource(); }
     void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
 private:

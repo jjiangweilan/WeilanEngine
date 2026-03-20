@@ -69,6 +69,14 @@ public:
     void EnableRayTracing(bool enabled);
     bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
 
+    // GPU-Driven rendering
+    void SetGPUObject(bool enabled);
+    bool IsGPUObject() const { return isGPUObject; }
+    const std::vector<Rendering::GPUSceneObjectHandle>& GetGPUSceneObjectHandles() const
+    {
+        return gpuSceneObjectHandles;
+    }
+
 private:
     /***** Serialized Data ******/
     std::vector<ObjPtr<Mesh>> meshes{};
@@ -78,11 +86,16 @@ private:
     AABB aabbWS{};
     bool wantsToEnableSkinning = false;
     bool isRayTracingEnabled = false;
+    bool isGPUObject = false;
 
     /**** Runtime Data *******/
     bool isRayTracingInitialized = false;
     Gfx::RayTracingMeshHandle rayTracingMesh = -1;
     Gfx::RayTracingInstanceHandle rayTracingInstance = -1;
+
+    // GPU-Driven handles (one per submesh)
+    std::vector<Rendering::GPUSceneObjectHandle> gpuSceneObjectHandles;
+    bool gpuObjectRegistered = false;
 
     bool hasSkeleton = false;
     bool aabbBoundsNeedUpdate = true;
@@ -113,4 +126,9 @@ private:
     void OnDisable() override;
     void TransformChanged() override;
     void InitializeForRayTracing();
+
+    // GPU-Driven
+    void RegisterGPUSceneObjects();
+    void UnregisterGPUSceneObjects();
+    void UpdateGPUSceneObjectTransforms();
 };

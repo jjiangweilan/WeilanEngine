@@ -36,7 +36,10 @@ Material::Material() : shaderInUse(nullptr), shaderResource(nullptr)
     SetName("new material");
 }
 
-Material::~Material() {};
+Material::~Material()
+{
+    UnregisterGPUMaterial();
+};
 
 void Material::Copy(const Material& src)
 {
@@ -630,4 +633,87 @@ void Material::CopyProperties(Material& other)
         ubo.dirty = true;
         uploadNeeded = true;
     }
+}
+
+void Material::RegisterGPUMaterial()
+{
+    if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
+        return;
+
+    Rendering::GPUMaterialData data{};
+    data.baseColorFactor = GetVector("perMaterial", "baseColorFactor");
+    data.emissive = GetVector("perMaterial", "emissive");
+    data.roughness = GetFloat("perMaterial", "roughness");
+    data.metallic = GetFloat("perMaterial", "metallic");
+    data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
+    data.baseColorTexIndex = Rendering::InvalidTextureIndex;
+    data.normalMapTexIndex = Rendering::InvalidTextureIndex;
+    data.metallicRoughnessTexIndex = Rendering::InvalidTextureIndex;
+    data.emissiveMapTexIndex = Rendering::InvalidTextureIndex;
+    data.padding = 0;
+
+    auto getTexIndex = [&](const std::string& name) -> uint32_t
+    {
+        auto it = textureValues.find(name);
+        if (it != textureValues.end() && it->second != nullptr)
+        {
+            auto handle = it->second->GetGPUTextureHandle();
+            if (handle != static_cast<Rendering::GPUTextureHandle>(-1))
+                return static_cast<uint32_t>(handle);
+        }
+        return Rendering::InvalidTextureIndex;
+    };
+
+    data.baseColorTexIndex = getTexIndex("baseColorTex");
+    data.normalMapTexIndex = getTexIndex("normalMap");
+    data.metallicRoughnessTexIndex = getTexIndex("metallicRoughnessMap");
+    data.emissiveMapTexIndex = getTexIndex("emissiveMap");
+
+    gpuMaterialHandle = Rendering::GPUDrivenManager::Instance().RegisterMaterial(data);
+}
+
+void Material::UnregisterGPUMaterial()
+{
+    if (gpuMaterialHandle == Rendering::InvalidGPUHandle)
+        return;
+
+    Rendering::GPUDrivenManager::Instance().UnregisterMaterial(gpuMaterialHandle);
+    gpuMaterialHandle = Rendering::InvalidGPUHandle;
+}
+
+void Material::UpdateGPUMaterialData()
+{
+    if (gpuMaterialHandle == Rendering::InvalidGPUHandle)
+        return;
+
+    Rendering::GPUMaterialData data{};
+    data.baseColorFactor = GetVector("perMaterial", "baseColorFactor");
+    data.emissive = GetVector("perMaterial", "emissive");
+    data.roughness = GetFloat("perMaterial", "roughness");
+    data.metallic = GetFloat("perMaterial", "metallic");
+    data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
+    data.baseColorTexIndex = Rendering::InvalidTextureIndex;
+    data.normalMapTexIndex = Rendering::InvalidTextureIndex;
+    data.metallicRoughnessTexIndex = Rendering::InvalidTextureIndex;
+    data.emissiveMapTexIndex = Rendering::InvalidTextureIndex;
+    data.padding = 0;
+
+    auto getTexIndex = [&](const std::string& name) -> uint32_t
+    {
+        auto it = textureValues.find(name);
+        if (it != textureValues.end() && it->second != nullptr)
+        {
+            auto handle = it->second->GetGPUTextureHandle();
+            if (handle != static_cast<Rendering::GPUTextureHandle>(-1))
+                return static_cast<uint32_t>(handle);
+        }
+        return Rendering::InvalidTextureIndex;
+    };
+
+    data.baseColorTexIndex = getTexIndex("baseColorTex");
+    data.normalMapTexIndex = getTexIndex("normalMap");
+    data.metallicRoughnessTexIndex = getTexIndex("metallicRoughnessMap");
+    data.emissiveMapTexIndex = getTexIndex("emissiveMap");
+
+    Rendering::GPUDrivenManager::Instance().UpdateMaterial(gpuMaterialHandle, data);
 }
