@@ -6,6 +6,7 @@
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
+#include <functional>
 #include <memory>
 class RenderingScene;
 class MeshRenderer : public Component
@@ -131,4 +132,6 @@ private:
     void RegisterGPUSceneObjects();
     void UnregisterGPUSceneObjects();
     void UpdateGPUSceneObjectTransforms();
+
+    void ApplyToGPUSceneObjects(std::function<void(const Rendering::GPUSceneObjectData&, int)> action);
 };

@@ -413,43 +413,11 @@ void MeshRenderer::RegisterGPUSceneObjects()
         return;
 
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
-    auto worldMatrix = GetGameObject()->GetWorldMatrix();
 
-    int mi = 0;
-    for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
-    {
-        auto mesh = meshes[i].Get();
-        if (mesh == nullptr)
-            continue;
-
-        for (auto& submesh : mesh->GetSubmeshes())
-        {
-            auto material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
-            mi++;
-
-            if (material == nullptr)
-                continue;
-
-            // Ensure material is registered for GPU-driven
-            if (!material->IsGPUMaterialRegistered())
-                material->RegisterGPUMaterial();
-
-            Rendering::GPUSceneObjectData objData{};
-            objData.model = worldMatrix;
-            objData.invTspModel = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix))));
-            objData.invTspModel[3].x =
-                std::bit_cast<float>(submesh.GetGPUMeshIndexOffset());
-            objData.invTspModel[3].y =
-                std::bit_cast<float>(submesh.GetGPUMeshPositionOffset());
-            objData.invTspModel[3].z =
-                std::bit_cast<float>(submesh.GetGPUMeshAttributeOffset());
-            objData.materialIndex = static_cast<uint32_t>(material->GetGPUMaterialHandle());
-            objData.padding[0] = objData.padding[1] = objData.padding[2] = 0;
-
-            auto handle = gpuDriven.RegisterSceneObject(objData);
-            gpuSceneObjectHandles.push_back(handle);
-        }
-    }
+    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int) {
+        auto handle = gpuDriven.RegisterSceneObject(objData);
+        gpuSceneObjectHandles.push_back(handle);
+    });
 
     gpuObjectRegistered = true;
 
@@ -485,9 +453,26 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
         return;
 
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+
+    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int handleIdx) {
+        if (handleIdx < static_cast<int>(gpuSceneObjectHandles.size()))
+        {
+            gpuDriven.UpdateSceneObject(gpuSceneObjectHandles[handleIdx], objData);
+        }
+    });
+}
+
+void MeshRenderer::ApplyToGPUSceneObjects(
+    std::function<void(const Rendering::GPUSceneObjectData&, int)> action
+)
+{
+    if (meshes.empty())
+        return;
+
     auto worldMatrix = GetGameObject()->GetWorldMatrix();
     auto invTspBase = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix))));
 
+    int mi = 0;
     int handleIdx = 0;
     for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
     {
@@ -497,8 +482,15 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
 
         for (auto& submesh : mesh->GetSubmeshes())
         {
-            if (handleIdx >= static_cast<int>(gpuSceneObjectHandles.size()))
-                break;
+            auto material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
+            mi++;
+
+            if (material == nullptr)
+                continue;
+
+            // Ensure material is registered for GPU-driven
+            if (!material->IsGPUMaterialRegistered())
+                material->RegisterGPUMaterial();
 
             Rendering::GPUSceneObjectData objData{};
             objData.model = worldMatrix;
@@ -509,18 +501,10 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
                 std::bit_cast<float>(submesh.GetGPUMeshPositionOffset());
             objData.invTspModel[3].z =
                 std::bit_cast<float>(submesh.GetGPUMeshAttributeOffset());
-
-            // materialIndex unchanged from registration
-            int mi2 = handleIdx; // rough correspondence
-            auto material =
-                mi2 < static_cast<int>(materials.size()) ? materials[mi2].Get() : nullptr;
-            objData.materialIndex =
-                material && material->IsGPUMaterialRegistered()
-                    ? static_cast<uint32_t>(material->GetGPUMaterialHandle())
-                    : 0;
+            objData.materialIndex = static_cast<uint32_t>(material->GetGPUMaterialHandle());
             objData.padding[0] = objData.padding[1] = objData.padding[2] = 0;
 
-            gpuDriven.UpdateSceneObject(gpuSceneObjectHandles[handleIdx], objData);
+            action(objData, handleIdx);
             handleIdx++;
         }
     }
