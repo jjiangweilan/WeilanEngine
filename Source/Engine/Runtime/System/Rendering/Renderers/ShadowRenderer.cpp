@@ -16,6 +16,7 @@ void ShadowRenderer::Init()
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(Shaders::ShadowMapObject);
     shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
+    shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven"});
 }
 
 void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
@@ -199,6 +200,26 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                         cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
 
                         cmd.Draw(draw.indexCount, 1, 0, 0);
+                    }
+
+                    if (renderingData.gpuDrivenIndirectBuffer && renderingData.gpuDrivenIndirectDrawCount > 0)
+                    {
+                        auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
+                        cmd.BindShaderProgram(programGPUDriven, programGPUDriven->GetDefaultShaderConfig());
+                        struct Data
+                        {
+                            float4x4 d0 = {};
+                            float4x4 d1 = {};
+                        } pconst;
+                        pconst.d0[0][0] = 0.0f; // firstDrawIndex is 0
+                        cmd.SetPushConstant(programGPUDriven, &pconst);
+
+                        cmd.DrawIndirect(
+                            renderingData.gpuDrivenIndirectBuffer,
+                            0,
+                            renderingData.gpuDrivenIndirectDrawCount,
+                            16 // sizeof(DrawIndirectCommand)
+                        );
                     }
                 }
                 cmd.EndRenderPass();

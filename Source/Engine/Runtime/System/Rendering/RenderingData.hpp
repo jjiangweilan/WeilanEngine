@@ -58,6 +58,8 @@ struct RenderingData
     InterleavedGradientNoise interleavedGradientNoise;
     PerScene* perScene;
     Gfx::ShaderResource* globalResource;
+    Gfx::Buffer* gpuDrivenIndirectBuffer = nullptr;
+    uint32_t gpuDrivenIndirectDrawCount = 0;
 
     Light* GetMainLight()
     {

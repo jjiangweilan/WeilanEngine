@@ -671,6 +671,7 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 {
     gpuObjectShaderGroups.clear();
     gpuObjectIDs.clear();
+    renderingData.gpuDrivenIndirectDrawCount = 0;
 
     auto gpuRenderers = renderingScene.GetGPUObjectRenderers();
     if (gpuRenderers.empty())
@@ -762,7 +763,10 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
     }
 
     if (allIndirectCmds.empty())
+    {
+        renderingData.gpuDrivenIndirectDrawCount = 0;
         return;
+    }
 
     // Upload objectIDs
     GPUDrivenManager::Instance().UploadObjectIDs(gpuObjectIDs.data(), static_cast<uint32_t>(gpuObjectIDs.size()));
@@ -794,6 +798,9 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
     {
         memcpy(mapped, allIndirectCmds.data(), allIndirectCmds.size() * sizeof(DrawIndirectCommand));
     }
+
+    renderingData.gpuDrivenIndirectBuffer = indirectCommandBuffer.get();
+    renderingData.gpuDrivenIndirectDrawCount = static_cast<uint32_t>(allIndirectCmds.size());
 }
 
 void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
