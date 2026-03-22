@@ -7,7 +7,7 @@ static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
 static extern const bool _MetallicRoughnessMap = false;
-static extern const bool _GPUDriven = false;
+static extern const bool _GPUDriven = true;
 
 interface IVertexInput
 {

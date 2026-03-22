@@ -3,6 +3,8 @@ import Library.PerScene;
 import Lighting;
 #include "Library/Grid.hlsl"
 
+static extern const bool _GPUDriven = true;
+
 interface IVertexInput
 {
     float3 GetPosition();
@@ -16,7 +18,7 @@ struct PushConstant
 {
     float4x4 model;
     float4x4 invTspModel;
-} 
+};
 
 [vk_push_constant]
 PushConstant pconst;
@@ -30,17 +32,41 @@ struct VertexOutput
     float3 bitangentWS;
     float3 positionOS; 
     float2 uv;
+    nointerpolation uint objectIndex;
 }
 
 [Global]
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID)
+VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex)
 {
-    uint indexOffset = asuint(pconst.invTspModel[0][3]);
-    uint positionOffset = asuint(pconst.invTspModel[1][3]);
-    uint attributeOffset = asuint(pconst.invTspModel[2][3]);
+    float4x4 modelMatrix;
+    float4x4 invTspModelMatrix;
+    uint indexOffset;
+    uint positionOffset;
+    uint attributeOffset;
+    uint objectIndex = 0;
+
+    if (_GPUDriven)
+    {
+        objectIndex = perScene.objectIDs[asuint(pconst.model[0][0]) + drawIndex];
+        GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
+            perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
+        modelMatrix = objData.model;
+        invTspModelMatrix = objData.invTspModel;
+        indexOffset = asuint(objData.invTspModel[0][3]);
+        positionOffset = asuint(objData.invTspModel[1][3]);
+        attributeOffset = asuint(objData.invTspModel[2][3]);
+    }
+    else
+    {
+        modelMatrix = pconst.model;
+        invTspModelMatrix = pconst.invTspModel;
+        indexOffset = asuint(pconst.invTspModel[0][3]);
+        positionOffset = asuint(pconst.invTspModel[1][3]);
+        attributeOffset = asuint(pconst.invTspModel[2][3]);
+    }
 
     uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
     SceneObjectPositionData positionData = perScene.LoadData<SceneObjectPositionData>(positionOffset, vertexIndex);
@@ -52,9 +78,9 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
     float3 normal = attributeData.normal;//ainput.GetNormal();
     float4 tangent = attributeData.tangent;// input.GetTangent();
 
-    output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
+    output.positionWS = mul(modelMatrix, float4(vertexPos, 1)).xyz;
 
-    matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.invTspModel;
+    matrix<float,3,3> model33 = (matrix<float,3,3>)invTspModelMatrix;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
@@ -62,8 +88,9 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
-    float3 scale = float3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+    float3 scale = float3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz));
     output.positionOS = vertexPos * scale;// input.GetPosition() * scale;
+    output.objectIndex = objectIndex;
 
     return output;
 }
