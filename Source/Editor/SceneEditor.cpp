@@ -223,7 +223,7 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         // middleMouseDelta x is right, y is down
         // Moving mouse right should move camera left to "drag" the world
         // Moving mouse down should move camera up
-        pos += go->GetRight() * (middleMouseDelta.x * panSpeed) + go->GetUp() * (middleMouseDelta.y * panSpeed);
+        pos -= (go->GetRight() * (middleMouseDelta.x * panSpeed) + go->GetUp() * (middleMouseDelta.y * panSpeed));
         
         go->SetPosition(pos);
     }
