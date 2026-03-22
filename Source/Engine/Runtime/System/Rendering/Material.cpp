@@ -424,6 +424,8 @@ void Material::OnLoaded()
             SetTextureInternal(kv.first, kv.second, std::nullopt);
         }
     }
+
+    RegisterGPUMaterial();
 }
 
 void Material::UBO::Serialize(Serializer* ser) const
@@ -445,6 +447,8 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 {
     if (!shaderProgram)
         return;
+
+    RegisterGPUMaterial();
 
     uploadNeeded = false;
 
