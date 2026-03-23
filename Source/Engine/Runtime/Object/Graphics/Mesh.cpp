@@ -145,6 +145,8 @@ void Submesh::Apply()
     {
         gfxBindings.push_back({GetVertexBuffer(), b.byteOffset});
     };
+
+    gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterMesh(*this);
 }
 
 const AABB& Submesh::GetAABB() const
@@ -220,6 +222,16 @@ uint32_t Submesh::GetGPUMeshIndexOffset() const
 uint32_t Submesh::GetGPUMeshAttributeOffset() const
 {
     return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).attributeOffset;
+}
+
+uint64_t Submesh::GetVertexBufferShaderDeviceAddress() const
+{
+    return Rendering::GPUDrivenManager::Instance().GetGlobalBufferShaderDeviceAddress() + GetGPUMeshPositionOffset();
+}
+
+uint64_t Submesh::GetIndexBufferShaderDeviceAddress() const
+{
+    return Rendering::GPUDrivenManager::Instance().GetGlobalBufferShaderDeviceAddress() + GetGPUMeshIndexOffset();
 }
 
 Mesh::~Mesh() {}

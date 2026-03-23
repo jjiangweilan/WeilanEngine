@@ -53,6 +53,8 @@ public:
 
     Rendering::GPUMeshHandle GetGPUMeshHandle() const;
 
+    uint64_t GetVertexBufferShaderDeviceAddress() const;
+    uint64_t GetIndexBufferShaderDeviceAddress() const;
     uint32_t GetGPUMeshPositionOffset() const;
     uint32_t GetGPUMeshIndexOffset() const;
     uint32_t GetGPUMeshAttributeOffset() const;

@@ -29,7 +29,7 @@ DEFINE_SERIALIZATION(
     SER(aabbMin, aabb.min),
     SER(aabbMax, aabb.max),
     SER(wantsToEnableSkinning),
-    SER(isRayTracingEnabled),
+    // SER(isRayTracingEnabled),
     SER(isGPUObject)
 );
 
@@ -350,6 +350,7 @@ void MeshRenderer::InitializeForRayTracing()
     auto worldMatrix = GetGameObject()->GetWorldMatrix();
     std::vector<Gfx::BlasGeometry> geometries{};
 
+    uint64_t globalBufferShaderDeviceAddress = Rendering::GPUDrivenManager::Instance().GetGlobalBufferShaderDeviceAddress();
     for (auto& mesh : meshes)
     {
         if (mesh == nullptr)
@@ -358,11 +359,11 @@ void MeshRenderer::InitializeForRayTracing()
         for (auto& submesh : mesh->GetSubmeshes())
         {
             geometries.push_back(Gfx::BlasGeometry{
-                .vertexBuffer = submesh.GetVertexBuffer(),
+                .vertexBufferShaderDeviceAddress = submesh.GetVertexBufferShaderDeviceAddress(),
                 .vertexFormat = Gfx::GfxFormat::R32G32B32_SFloat,
                 .vertexStride = sizeof(glm::vec3),
                 .maxVertex = static_cast<uint32_t>(submesh.GetPositions().size()),
-                .indexBuffer = submesh.GetIndexBuffer(),
+                .indexBufferShaderDeviceAddress = submesh.GetIndexBufferShaderDeviceAddress(),
                 .indexBufferType = submesh.GetIndexBufferType(),
                 .triangleCount = static_cast<uint32_t>(submesh.GetIndexCount() / 3),
             });
@@ -414,10 +415,10 @@ void MeshRenderer::RegisterGPUSceneObjects()
 
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
 
-    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int) {
+    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int)
+                           {
         auto handle = gpuDriven.RegisterSceneObject(objData);
-        gpuSceneObjectHandles.push_back(handle);
-    });
+        gpuSceneObjectHandles.push_back(handle); });
 
     gpuObjectRegistered = true;
 
@@ -454,12 +455,12 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
 
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
 
-    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int handleIdx) {
+    ApplyToGPUSceneObjects([&](const Rendering::GPUSceneObjectData& objData, int handleIdx)
+                           {
         if (handleIdx < static_cast<int>(gpuSceneObjectHandles.size()))
         {
             gpuDriven.UpdateSceneObject(gpuSceneObjectHandles[handleIdx], objData);
-        }
-    });
+        } });
 }
 
 void MeshRenderer::ApplyToGPUSceneObjects(
@@ -495,14 +496,10 @@ void MeshRenderer::ApplyToGPUSceneObjects(
             Rendering::GPUSceneObjectData objData{};
             objData.model = worldMatrix;
             objData.invTspModel = invTspBase;
-            objData.invTspModel[3].x =
-                std::bit_cast<float>(submesh.GetGPUMeshIndexOffset());
-            objData.invTspModel[3].y =
-                std::bit_cast<float>(submesh.GetGPUMeshPositionOffset());
-            objData.invTspModel[3].z =
-                std::bit_cast<float>(submesh.GetGPUMeshAttributeOffset());
+            objData.indexOffset = submesh.GetGPUMeshIndexOffset();
+            objData.positionOffset = submesh.GetGPUMeshPositionOffset();
+            objData.attributeOffset = submesh.GetGPUMeshAttributeOffset();
             objData.materialIndex = static_cast<uint32_t>(material->GetGPUMaterialHandle());
-            objData.padding[0] = objData.padding[1] = objData.padding[2] = 0;
 
             action(objData, handleIdx);
             handleIdx++;
