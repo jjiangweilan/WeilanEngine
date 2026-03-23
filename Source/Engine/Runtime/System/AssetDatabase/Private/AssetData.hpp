@@ -84,10 +84,16 @@ public:
     bool NeedRefresh() const;
     void UpdateLastWriteTime();
 
+    // Converts any path to one relative to projectRoot/"Assets".
+    // Engine-internal paths (not under projectRoot) are returned as _engine_internal/<relative>.
+    std::filesystem::path ToRelativeAssetPath(
+        const std::filesystem::path& path, const std::filesystem::path& projectRoot
+    );
+
     void SetAssetPath(const std::filesystem::path& path, const std::filesystem::path& assetsDirectory)
     {
-        assetPath = path;
-        absolutePath = assetsDirectory / path;
+        assetPath = ToRelativeAssetPath(path, assetsDirectory.parent_path());
+        absolutePath = assetsDirectory / assetPath;
     }
 
     std::string GetNameToUUIDKey(Asset* obj);
