@@ -12,11 +12,11 @@ using RayTracingInstanceHandle = int;
 
 struct BlasGeometry
 {
-    Buffer* vertexBuffer;
+    uint64_t vertexBufferShaderDeviceAddress;
     Gfx::GfxFormat vertexFormat;
     uint32_t vertexStride;
     uint32_t maxVertex;
-    Buffer* indexBuffer;
+    uint64_t indexBufferShaderDeviceAddress;
     Gfx::IndexBufferType indexBufferType;
     uint32_t triangleCount;
 };

@@ -35,9 +35,6 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
 
     for (const auto& geometry : geometries)
     {
-        VKBuffer* vkVertexBuffer = static_cast<VKBuffer*>(geometry.vertexBuffer);
-        VKBuffer* vkIndexBuffer = static_cast<VKBuffer*>(geometry.indexBuffer);
-
         auto vkVertexFormat = validateVertexFormat(geometry.vertexFormat);
         if (vkVertexFormat == VK_FORMAT_UNDEFINED)
         {
@@ -48,11 +45,11 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
         VkAccelerationStructureGeometryTrianglesDataKHR trianglesData{
             .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
             .vertexFormat = vkVertexFormat,
-            .vertexData = {.deviceAddress = vkVertexBuffer->GetDeviceAddress()},
+            .vertexData = {.deviceAddress = geometry.vertexBufferShaderDeviceAddress},
             .vertexStride = geometry.vertexStride,
             .maxVertex = geometry.maxVertex,
             .indexType = geometry.indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32,
-            .indexData = {.deviceAddress = vkIndexBuffer->GetDeviceAddress()}
+            .indexData = {.deviceAddress = geometry.indexBufferShaderDeviceAddress}
         };
 
         vkGeometries.push_back(VkAccelerationStructureGeometryKHR{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR, .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR, .geometry = {.triangles = trianglesData}, .flags = VK_GEOMETRY_OPAQUE_BIT_KHR});
