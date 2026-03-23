@@ -785,19 +785,14 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
         indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
             newCapacity * sizeof(DrawIndirectCommand),
             Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
-            true, // CPU visible for direct write
+            false,
             false,
             "GPUDrivenIndirectCommands"
         );
         indirectCommandBufferCapacity = newCapacity;
     }
 
-    // TODO: I guess write after read hazard here
-    void* mapped = indirectCommandBuffer->GetCPUVisibleAddress();
-    if (mapped)
-    {
-        memcpy(mapped, allIndirectCmds.data(), allIndirectCmds.size() * sizeof(DrawIndirectCommand));
-    }
+    GetGfxDriver()->UploadBuffer(*indirectCommandBuffer, (uint8_t*)allIndirectCmds.data(), static_cast<uint32_t>(allIndirectCmds.size() * sizeof(DrawIndirectCommand)));
 
     renderingData.gpuDrivenIndirectBuffer = indirectCommandBuffer.get();
     renderingData.gpuDrivenIndirectDrawCount = static_cast<uint32_t>(allIndirectCmds.size());

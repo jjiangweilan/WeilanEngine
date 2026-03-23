@@ -312,7 +312,7 @@ void GPUDrivenManager::UploadObjectIDs(const uint32_t* ids, uint32_t count)
         objectIDBuffer = GetGfxDriver()->CreateBuffer(
             newCapacity * sizeof(uint32_t),
             Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-            true,
+            false,
             false,
             "ObjectIDBuffer"
         );
@@ -320,12 +320,7 @@ void GPUDrivenManager::UploadObjectIDs(const uint32_t* ids, uint32_t count)
         globalDescriptorSet->SetBuffer("objectIDs", objectIDBuffer.get());
     }
 
-    // Write directly to mapped memory
-    void* mapped = objectIDBuffer->GetCPUVisibleAddress();
-    if (mapped)
-    {
-        memcpy(mapped, ids, count * sizeof(uint32_t));
-    }
+    GetGfxDriver()->UploadBuffer(*objectIDBuffer, (uint8_t*)ids, count * sizeof(uint32_t), 0);
 }
 
 // --- Descriptor set passthrough for scene buffers ---
