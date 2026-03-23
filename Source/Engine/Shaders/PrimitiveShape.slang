@@ -55,9 +55,9 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawInd
             perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
         modelMatrix = objData.model;
         invTspModelMatrix = objData.invTspModel;
-        indexOffset = asuint(objData.invTspModel[0][3]);
-        positionOffset = asuint(objData.invTspModel[1][3]);
-        attributeOffset = asuint(objData.invTspModel[2][3]);
+        indexOffset = objData.indexOffset;
+        positionOffset = objData.positionOffset;
+        attributeOffset = objData.attributeOffset;
     }
     else
     {

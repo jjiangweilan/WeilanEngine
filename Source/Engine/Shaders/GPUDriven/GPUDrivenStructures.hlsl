@@ -36,15 +36,14 @@ struct GPUMaterialData
 };
 
 // Per-object data stored in globalBuffer for bindless GPU-driven rendering.
-// invTspModel[0][3], [1][3], [2][3] encode mesh buffer offsets (index, position, attribute).
 struct GPUSceneObjectData
 {
     float4x4 model;
     float4x4 invTspModel;
     uint materialIndex;
-    uint padding0;
-    uint padding1;
-    uint padding2;
+    uint indexOffset;
+    uint positionOffset;
+    uint attributeOffset;
 };
 
 // Base offsets for GPU-driven data arrays within globalBuffer
