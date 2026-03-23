@@ -33,6 +33,8 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
         usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     if (HasFlag(usageIn, BufferUsage::AccelerationStructure))
         usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+    if (HasFlag(usageIn, BufferUsage::AccelerationStructureBuildInput))
+        usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     if (HasFlag(usageIn, BufferUsage::ShaderDeviceAddress))
         usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 

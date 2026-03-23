@@ -270,7 +270,7 @@ VKMemAllocator::ScratchBuffer::Block& VKMemAllocator::ScratchBuffer::CreateBlock
     }
     else if (usage == ScratchBufferUsage::HostVisibleScatchBuffer)
     {
-        blockUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        blockUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
         allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
     block.bufferUsages = blockUsage;

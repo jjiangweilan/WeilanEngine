@@ -11,7 +11,7 @@ GPUDrivenManager::GPUDrivenManager()
 {
     globalBuffer = GetGfxDriver()->CreateBuffer(
         globalBufferSize,
-        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress,
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress | Gfx::BufferUsage::AccelerationStructureBuildInput,
         false,
         true,
         "GPUDrivenGlobalBuffer"
