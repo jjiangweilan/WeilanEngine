@@ -26,12 +26,18 @@
 //
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#ifdef WEILAN_ENABLE_MCP
+#include "Engine/Runtime/MCP/MCPServer.hpp"
+#endif
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
+#ifdef WEILAN_ENABLE_MCP
+    mcpServer = nullptr;
+#endif
     editor = nullptr;
     event->Deinit();
     gfxDriver->WaitForIdle();
@@ -100,6 +106,13 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     ShaderLibrary::Singleton().WaitForShaderCompilation();
 
+#ifdef WEILAN_ENABLE_MCP
+    if (createInfo.enableMCP) {
+        mcpServer = std::make_unique<MCPServer>(8080);
+        mcpServer->Start();
+    }
+#endif
+
     editor = std::make_unique<Editor::GameEditor>(this, createInfo.projectPath.string().c_str());
     cmd = GetGfxDriver()->CreateCommandBuffer();
 
@@ -125,6 +138,9 @@ void WeilanEngine::StartEngine()
             bool offscreen = !editor->IsGameViewVisible();
 
             editor->Tick();
+#ifdef WEILAN_ENABLE_MCP
+            if (mcpServer) mcpServer->Tick();
+#endif
             gameLoop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
             editor->AfterGameLoopTick();
 

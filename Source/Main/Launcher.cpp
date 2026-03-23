@@ -18,7 +18,11 @@ public:
             DispatchArgs(*argList, i);
         }
 
-        if (!hasAction)
+        if (hasAction && !projectPath.empty())
+        {
+            LaunchEngine(projectPath.c_str());
+        }
+        else if (!hasAction)
         {
             std::cout << "No action taken, maybe you should set a project path using --project";
         }
@@ -29,23 +33,28 @@ public:
         if (args[curr] == "--project" || args[curr] == "-p")
         {
             curr++;
-            std::filesystem::path path(args[curr]);
-
-            LaunchEngine(path.string().c_str());
-
-            hasAction = true;
+            if (curr < args.size()) {
+                projectPath = args[curr];
+                hasAction = true;
+            }
+        }
+        else if (args[curr] == "--enable-mcp")
+        {
+            enableMCP = true;
         }
     }
 
-    void LaunchEngine(const char* projectPath)
+    void LaunchEngine(const char* projPath)
     {
         auto engine = std::make_unique<WeilanEngine>();
-        engine->Init({.projectPath = projectPath});
+        engine->Init({.projectPath = projPath, .enableMCP = enableMCP});
         engine->StartEngine();
     }
 
     std::unique_ptr<ArgList> argList;
     bool hasAction = false;
+    std::string projectPath;
+    bool enableMCP = false;
 };
 
 #undef main

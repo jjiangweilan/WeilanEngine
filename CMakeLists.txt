@@ -18,7 +18,7 @@ option(ENABLE_ASAN "" OFF)
 if (MSVC)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
-    add_compile_options(/Zc:__cplusplus /MP)
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus> $<$<COMPILE_LANGUAGE:CXX>:/MP>)
 endif(MSVC)
 
 include(CheckIPOSupported)
@@ -239,7 +239,11 @@ set(KTX_FEATURE_TESTS OFF)
 set(KTX_FEATURE_TOOLS OFF)
 FetchContent_MakeAvailable(ktx_software)
 
+option(ENABLE_MCP "Enable the MCP Server integration" OFF)
 set(BOOST_INCLUDE_LIBRARIES unordered;lockfree;program_options)
+if(ENABLE_MCP)
+    list(APPEND BOOST_INCLUDE_LIBRARIES beast asio)
+endif()
 set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
     Boost
@@ -375,6 +379,11 @@ target_link_libraries( WeilanEngine
     assimp
     volk
 )
+
+if(ENABLE_MCP)
+    target_link_libraries(WeilanEngine PUBLIC Boost::beast Boost::asio)
+    target_compile_definitions(WeilanEngine PUBLIC WEILAN_ENABLE_MCP)
+endif()
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PUBLIC dwmapi)

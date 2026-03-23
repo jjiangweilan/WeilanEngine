@@ -17,6 +17,7 @@ namespace Editor
 {
 class GameEditor;
 }
+class MCPServer;
 // class Physics;
 class WeilanEngine
 {
@@ -28,6 +29,7 @@ public:
     struct CreateInfo
     {
         std::filesystem::path projectPath;
+        bool enableMCP = false;
     };
 
     void Init(const CreateInfo& createInfo);
@@ -62,6 +64,9 @@ public:
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<LuaBackend> luaBackend;
+#ifdef WEILAN_ENABLE_MCP
+    std::unique_ptr<MCPServer> mcpServer;
+#endif
 
 private:
     struct MainWindow
