@@ -2,9 +2,9 @@
 #include "Engine/Core/Object.hpp"
 #include "Engine/Driver/GfxDriver/CompiledSpv.hpp"
 #include "Engine/Driver/GfxDriver/VertexAttributes.hpp"
-#include "GfxEnums.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/UUID.hpp"
+#include "GfxEnums.hpp"
 #include <unordered_map>
 namespace Gfx
 {
@@ -35,6 +35,7 @@ public:
     virtual void SetDebugName(const char* name) = 0;
     virtual size_t GetSize() const = 0;
     virtual void* CreateBuffer(const CreateInfo& createInfo) = 0;
+    virtual uint64_t GetShaderDeviceAddress() = 0;
 
     const UUID& GetUUID() { return uuid; }
     BufferUsageFlags GetUsages() { return bufferUsages; }

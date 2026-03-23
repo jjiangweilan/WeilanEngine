@@ -26,7 +26,9 @@ public:
     void* CreateBuffer(const CreateInfo& createInfo) override;
     inline VkBuffer GetHandle() const { return buffer; }
 
-    VkDeviceAddress GetDeviceAddress();
+    uint64_t GetShaderDeviceAddress() override { return static_cast<uint64_t>(GetVKShaderDeviceAddress()); }
+
+    VkDeviceAddress GetVKShaderDeviceAddress();
 
 private:
     std::string name;

@@ -173,7 +173,7 @@ void* VKBuffer::GetCPUVisibleAddress()
     return allocationInfo.pMappedData;
 }
 
-VkDeviceAddress VKBuffer::GetDeviceAddress()
+VkDeviceAddress VKBuffer::GetVKShaderDeviceAddress()
 {
     if (deviceAddress == -1)
     {
