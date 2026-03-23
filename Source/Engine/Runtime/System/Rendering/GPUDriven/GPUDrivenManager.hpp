@@ -37,9 +37,11 @@ struct GPUMaterialData
 struct GPUSceneObjectData
 {
     glm::mat4 model;
-    glm::mat4 invTspModel; // [3].xyz encodes mesh offsets (index, position, attribute)
+    glm::mat4 invTspModel;
     uint32_t materialIndex;
-    uint32_t padding[3];
+    uint32_t indexOffset;
+    uint32_t positionOffset;
+    uint32_t attributeOffset;
 };
 
 // C++ mirror of GPUDrivenConfig in GPUDrivenStructures.hlsl
@@ -57,6 +59,8 @@ public:
     struct SceneObjectVertexDataDescriptor
     {
         VirtualTLSFAllocator::Allocation dataAlloc;
+
+        // offset into the global buffer (the values contain the dataAlloc.offset)
         uint32_t indexOffset = 0;
         uint32_t positionOffset = 0;
         uint32_t attributeOffset = 0;
@@ -82,6 +86,8 @@ public:
     GPUSceneObjectHandle RegisterSceneObject(const GPUSceneObjectData& data);
     void UpdateSceneObject(GPUSceneObjectHandle handle, const GPUSceneObjectData& data);
     void UnregisterSceneObject(GPUSceneObjectHandle handle);
+
+    uint64_t GetGlobalBufferShaderDeviceAddress();
 
     const SceneObjectVertexDataDescriptor& GetSceneObjectVertexDataDescriptor(GPUMeshHandle handle)
     {
@@ -114,6 +120,7 @@ private:
     uint32_t globalBufferSize = 512 * 1024 * 1024;
     VirtualTLSFAllocator globalBufferAllocator{globalBufferSize};
     std::unique_ptr<Gfx::Buffer> globalBuffer;
+    uint64_t globalBufferShaderDeviceAddress = 0;
 
     // Global descriptor set (set 0)
     std::unique_ptr<Gfx::ShaderResource> globalDescriptorSet;
@@ -123,7 +130,6 @@ private:
     std::unique_ptr<Gfx::Buffer> gpuDrivenConfigBuffer;
     bool gpuDrivenConfigDirty = true;
 
-    // Object ID buffer (per-frame, CPU-visible)
     std::unique_ptr<Gfx::Buffer> objectIDBuffer;
     uint32_t objectIDBufferCapacity = 0;
     static constexpr uint32_t InitialObjectIDCapacity = 1024;

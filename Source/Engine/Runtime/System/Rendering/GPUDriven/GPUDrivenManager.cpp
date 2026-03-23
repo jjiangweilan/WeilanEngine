@@ -11,7 +11,7 @@ GPUDrivenManager::GPUDrivenManager()
 {
     globalBuffer = GetGfxDriver()->CreateBuffer(
         globalBufferSize,
-        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress,
         false,
         true,
         "GPUDrivenGlobalBuffer"
@@ -144,7 +144,9 @@ void GPUDrivenManager::EnsureMaterialCapacity(uint32_t requiredCount)
 
     VirtualTLSFAllocator::Allocation newAlloc{};
     globalBufferAllocator.Allocate(
-        newCapacity * sizeof(GPUMaterialData), globalDataAlignment, newAlloc
+        newCapacity * sizeof(GPUMaterialData),
+        globalDataAlignment,
+        newAlloc
     );
 
     // Free old allocation if any
@@ -165,7 +167,10 @@ void GPUDrivenManager::EnsureMaterialCapacity(uint32_t requiredCount)
         uint32_t poolIndex = static_cast<uint32_t>(it.index);
         uint32_t offset = static_cast<uint32_t>(materialBlockAlloc.offset) + poolIndex * sizeof(GPUMaterialData);
         GetGfxDriver()->UploadBuffer(
-            *globalBuffer, reinterpret_cast<uint8_t*>(&it->data), sizeof(GPUMaterialData), offset
+            *globalBuffer,
+            reinterpret_cast<uint8_t*>(&it->data),
+            sizeof(GPUMaterialData),
+            offset
         );
     }
 }
@@ -226,7 +231,9 @@ void GPUDrivenManager::EnsureSceneObjectCapacity(uint32_t requiredCount)
 
     VirtualTLSFAllocator::Allocation newAlloc{};
     globalBufferAllocator.Allocate(
-        newCapacity * sizeof(GPUSceneObjectData), globalDataAlignment, newAlloc
+        newCapacity * sizeof(GPUSceneObjectData),
+        globalDataAlignment,
+        newAlloc
     );
 
     if (sceneObjectBlockAlloc.IsValid())
@@ -247,7 +254,10 @@ void GPUDrivenManager::EnsureSceneObjectCapacity(uint32_t requiredCount)
         uint32_t offset =
             static_cast<uint32_t>(sceneObjectBlockAlloc.offset) + poolIndex * sizeof(GPUSceneObjectData);
         GetGfxDriver()->UploadBuffer(
-            *globalBuffer, reinterpret_cast<uint8_t*>(&it->data), sizeof(GPUSceneObjectData), offset
+            *globalBuffer,
+            reinterpret_cast<uint8_t*>(&it->data),
+            sizeof(GPUSceneObjectData),
+            offset
         );
     }
 }
@@ -373,5 +383,10 @@ std::unique_ptr<GPUDrivenManager>& GPUDrivenManager::GetInstanceInternal()
 {
     static std::unique_ptr<GPUDrivenManager> instance = std::unique_ptr<GPUDrivenManager>(new GPUDrivenManager());
     return instance;
+}
+
+uint64_t GPUDrivenManager::GetGlobalBufferShaderDeviceAddress()
+{
+    return globalBuffer->GetShaderDeviceAddress();
 }
 } // namespace Rendering
