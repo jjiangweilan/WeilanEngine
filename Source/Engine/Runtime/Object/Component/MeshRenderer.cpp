@@ -157,7 +157,7 @@ void MeshRenderer::OnEnable()
     if (isGPUObject)
         RegisterGPUSceneObjects();
 
-    InitializeForRayTracing();
+    // InitializeForRayTracing();
 }
 
 void MeshRenderer::OnDisable()
