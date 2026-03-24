@@ -1,6 +1,7 @@
 #include "Profiler.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "NoOpProfiler.hpp"
+#include <spdlog/spdlog.h>
 
 IProfiler& Profiler::GetSingleton()
 {
@@ -111,9 +112,24 @@ void Profiler::BeginFrameManual(uint64_t timestamp)
 }
 void Profiler::EndFrameManual(uint64_t timestamp)
 {
-
     if (actuallyPaused)
         return;
+
+    if (activeScopes.size() > 1)
+    {
+        std::string unclosedNames;
+        std::stack<ProfileScope*> temp = activeScopes;
+        while (temp.size() > 1)
+        {
+            if (!unclosedNames.empty())
+                unclosedNames += ", ";
+            unclosedNames += temp.top()->label;
+            temp.pop();
+        }
+        spdlog::error("Profiler::EndFrameManual: unclosed scope(s): {}", unclosedNames);
+        while (activeScopes.size() > 1)
+            EndManual(timestamp);
+    }
 
     EndManual(timestamp);
 

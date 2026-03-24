@@ -1195,7 +1195,7 @@ void GameEditor::Tick()
     endEvents.TickBegin();
     endPopup.TickBegin();
 
-    ENGINE_BEGIN_PROFILE("Before Game Tick")
+    ENGINE_SCOPED_PROFILE("Before Game Tick")
     if (engine->event->GetWindowClose().state)
     {
         gameView->Deinit(); // stop playing the game
@@ -1219,7 +1219,7 @@ void GameEditor::Tick()
 
 void GameEditor::AfterGameLoopTick()
 {
-    ENGINE_BEGIN_PROFILE("After Game Tick");
+    ENGINE_SCOPED_PROFILE("After Game Tick");
     endPopup.TickEnd();
     endEvents.TickEnd();
 }
