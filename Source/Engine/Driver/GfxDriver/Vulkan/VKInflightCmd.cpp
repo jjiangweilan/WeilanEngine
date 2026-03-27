@@ -6,9 +6,8 @@ namespace Gfx
 void VKFramePrepareData::AppendVKCommandBuffer(VKCommandBuffer* cmd)
 {
     cmds.insert(cmds.end(), std::move_iterator(cmd->cmds.begin()), std::move_iterator(cmd->cmds.end()));
-    readbacks = std::move(cmd->readbacks);
+    readbacks.splice(readbacks.end(), cmd->readbacks);
 
-    cmd->readbacks.clear();
     cmd->cmds.clear();
 }
 

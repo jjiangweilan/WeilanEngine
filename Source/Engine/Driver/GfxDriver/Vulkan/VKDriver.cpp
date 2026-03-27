@@ -757,7 +757,8 @@ bool VKDriver::EndFrame()
     );
     ENGINE_END_PROFILE // Render Graph Execution
 
-        ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer") CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
+    ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer");
+    CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE // Vulkan End Command Buffer
 
         int signalSemaphoreCount = 0;
@@ -1274,7 +1275,7 @@ void VKDriver::CreateDevice()
         .shaderDrawParameters = true
     };
 
-// # Enable bindless features
+    // # Enable bindless features
     VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures{};
     descriptorIndexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
     descriptorIndexingFeatures.pNext = &shaderDrawParametersFeatures;
@@ -1299,10 +1300,10 @@ void VKDriver::CreateDevice()
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
-        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,  // The one you need
-        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,    // Usually needed with AS
-        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME // Required dependency for RT
-                                                       // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
