@@ -128,6 +128,7 @@ public:
         int sampleCount = 4;
         bool debug_ssilOutput = false;
         float jitterScale = 1.0f;
+        float sampleJitterScale = 1.0f;
         float2 debugPoint;
         float filter1DepthDiffSigma = 1.0f;
         float filter2DepthDiffSigma = 1.0f;
@@ -141,6 +142,7 @@ public:
             SER(sampleCount),
             SER(debug_ssilOutput),
             SER(jitterScale),
+            SER(sampleJitterScale),
             SER(debugPoint),
             SER(filter1DepthDiffSigma),
             SER(filter2DepthDiffSigma)

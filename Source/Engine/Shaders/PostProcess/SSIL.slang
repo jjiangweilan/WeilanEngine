@@ -17,7 +17,7 @@ import Lighting;
 #define DEBUG_DRAW 0
 
 // 0 or 1
-#define SSIL_USE_SHARED_SAMPLES 1
+#define SSIL_USE_SHARED_SAMPLES 0
 
 #define SSIL_SHARED_SAMPLES_SUBSLICE_COUNT 2
 
@@ -36,6 +36,7 @@ struct SSILParameter
     float sliceCount;
     float sampleCount;
     float jitterScale;
+    float sampleJitterScale;
     float debug_ssilOutput;
     float oneMeterPixelSize;
     float2 debugPoint;
@@ -56,12 +57,24 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<SSILParameter> perMaterial;
 
-float4 GetPositionVS(float2 uv)
+struct SSILPassData
 {
-    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).x;
-    float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
-    return float4(posVS.xyz / posVS.w, depth);
-}
+    __init(float2 uv)
+    {
+        float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).x;
+        float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
+        float4 posWS = mul(perScene.camera.invNDCToWorld, float4(uv * 2 - 1, depth, 1.0));
+
+        this.positionWS = posWS.xyz / posWS.w;
+        this.positionVS = posVS.xyz / posVS.w;
+        this.depth = depth;
+    }
+
+    float3 positionWS;
+    float3 positionVS;
+
+    float depth;
+};
 
 float3 GetNormalVS(float2 uv)
 {
@@ -82,14 +95,17 @@ static Context3D context;
 static ContextGather debugGatherContext;
 #endif
 
+#if SSIL_USE_SHARED_SAMPLES
 groupshared float3 g_sharedSamples[64];
+#endif
 
 float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 {
+    SSILPassData passData = SSILPassData(uv);
+
     // main algorithm
-    float4 fragPosVS = GetPositionVS(uv);
-    float3 posVS = fragPosVS.xyz;
-    float fragDepth = fragPosVS.w;
+    float3 posVS = passData.positionVS;
+    float fragDepth = passData.depth;
     
     if (fragDepth < 0.0000001)
     {
@@ -111,12 +127,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
     // float3 binormaVS = cross(upVS, tangentVS);
 
-#if SSIL_USE_SHARED_SAMPLES
-    float jitter = randf(((int)screenPos.x) / 2, ((int)screenPos.y) / 2) * perMaterial.jitterScale;
-#else
-    float jitter = randf((int)screenPos.x, (int)screenPos.y) * perMaterial.jitterScale;
-#endif
-    
+    float jitter = randf(int(100 * (passData.positionWS.x + passData.positionWS.z)), int(100 * passData.positionWS.y));
 
 #if DEBUG_DRAW
     if (debug)
@@ -132,6 +143,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     const float Nbits = 32;
     uint lastBits = 0; // For debug display
     uint bits_i = 0;
+    float lightSamples = 0;
 
 #if SSIL_USE_SHARED_SAMPLES
     uint sliceIndex = groupIndex % 4;
@@ -142,9 +154,9 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     {
 
 #if SSIL_USE_SHARED_SAMPLES
-        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter) / SSIL_SLICE_COUNT;
+        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter  * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
 #else
-        float phi = SSIL_PI * float(sliceIndex + jitter) / SSIL_SLICE_COUNT;
+        float phi = SSIL_PI * float(sliceIndex + jitter * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
 #endif
 
         float2 sampleDir = normalize(float2(cos(phi), -sin(phi)));
@@ -162,8 +174,11 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float3 samplePosVS = posVS + dirDelta * sampleIndex * directionFixed;
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
+                sampleUV += (randf(screenPos.x, screenPos.y) * 2 - 1) * axis.xy * perMaterial.sampleJitterScale;
                 float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
+#if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
+#endif
                 GroupMemoryBarrierWithGroupSync();
 
                 if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
@@ -198,7 +213,9 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                     float3 lighting = perMaterial.colorTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 0).xyz;
                     float3 normal = GetNormalVS(sampleUV);
                     float3 l = normalize(frontVS.xyz - posVS);
-                    indirectLight = indirectLight + countbits(bits_j & ~bits_i) / Nbits * lighting * dot(normal, l) * dot(normalVS, -l);
+                    float giWeight = countbits(bits_j & ~bits_i) / Nbits * dot(normal, l) * dot(normalVS, -l);
+                    indirectLight = indirectLight + giWeight * lighting;
+                    lightSamples += 1;
 
                     // ao
                     bits_i = bits_i | bits_j;
@@ -265,9 +282,13 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 
 [shader("compute")]
     [numthreads(64, 1, 1)]
-void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 pixelCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
+    if (all(pixelCoord == uint2(157, 103)))
+    {
+        printf("Processing pixel: (%d, %d)\n", dispatchThreadID.x, dispatchThreadID.y);
+    }
 
     if (pixelCoord.x >= perMaterial.rtSize.x || pixelCoord.y >= perMaterial.rtSize.y)
         return;

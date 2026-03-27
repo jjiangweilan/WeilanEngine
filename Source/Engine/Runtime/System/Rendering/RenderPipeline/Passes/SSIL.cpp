@@ -8,7 +8,7 @@ namespace Rendering::Passes
 {
 SSIL::BilateralFilterPass::BilateralFilterPass()
 {
-    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale), {"_2x2_BILATERAL_UPSCALE", "_USE_BOX_FILTER_FOR_PIXEL_DISTANCE"});
+    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale));
     mat.SetShader(shader);
     mat.SetName("SSIL_BilateralFilter_Material");
 }
@@ -123,6 +123,7 @@ void SSIL::Execute(
     mat.SetFloat("sliceCount", (float)setting->ssil.sliceCount);
     mat.SetFloat("sampleCount", (float)setting->ssil.sampleCount);
     mat.SetFloat("jitterScale", setting->ssil.jitterScale);
+    mat.SetFloat("sampleJitterScale", setting->ssil.sampleJitterScale);
     mat.SetFloat("debug_ssilOutput", setting->ssil.debug_ssilOutput ? 1.0f : 0.0f);
     mat.SetVector("debugPoint", float4(setting->ssil.debugPoint, 0, 0));
 

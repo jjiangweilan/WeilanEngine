@@ -2,9 +2,6 @@
 name: BilateralUpscale
 #endif
 
-static extern const bool _2x2_BILATERAL_UPSCALE = false;
-static extern const bool _USE_BOX_FILTER_FOR_PIXEL_DISTANCE = false;
-
 import WeilanEngine;
 import Library.PerScene;
 import Library.CommonUtils;
@@ -28,15 +25,9 @@ void AccumulateBilateralWeight(
     float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.camera.cameraZBufferParams);
 
     float2 currHighResPixel = lowResUv * input.highResTexSize.xy;
-    float g = 0;
-    if (_USE_BOX_FILTER_FOR_PIXEL_DISTANCE)
-    {
-        g = 1.0f;
-    }
-    else
-    {
-        g = Gaussian_v0(length(currHighResPixel - float2(highResPixel)), input.integerCoordSigma);
-    }
+
+    const float integerCoordSigma = 2.0f;//input.integerCoordSigma;
+    float g = Gaussian_v0(length(currHighResPixel - float2(highResPixel)), integerCoordSigma);
     float j = Gaussian_v0(linearLowResDepth - linearHighResDepth, input.depthDiffSigma);
     float weight = max(g * j, 0.000001);
 
@@ -63,30 +54,14 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint2 lowResPixel = pixel / 2;
     float2 lowResCentralUv = (lowResPixel + 0.5f) * (input.lowResTexSize.zw);
 
-    const int KernelSize = (int)input.kernelScale;
+    const int KernelSize = 1;//(int)input.kernelScale;
 
-    if (_2x2_BILATERAL_UPSCALE)
+    for (int x = -KernelSize; x <= KernelSize; x++)
     {
-        for (int x = 0; x < 2; x++)
+        for (int y = -KernelSize; y <= KernelSize; y++)
         {
-            for (int y = 0; y < 2; y++)
-            {
-                int actualX = x * 2 - 1;
-                int actualY = y * 2 - 1;
-                float2 lowResUv = lowResCentralUv + float2(actualX, actualY) * input.lowResTexSize.zw;
-                AccumulateBilateralWeight(lowResUv, pixel, linearHighResDepth, KernelSize, output, totalWeights);
-            }
-        }
-    }
-    else
-    {
-        for (int x = -KernelSize; x <= KernelSize; x++)
-        {
-            for (int y = -KernelSize; y <= KernelSize; y++)
-            {
-                float2 lowResUv = lowResCentralUv + float2(x, y) * input.lowResTexSize.zw;
-                AccumulateBilateralWeight(lowResUv, pixel, linearHighResDepth, KernelSize, output, totalWeights);
-            }
+            float2 lowResUv = lowResCentralUv + float2(x, y) * input.lowResTexSize.zw;
+            AccumulateBilateralWeight(lowResUv, pixel, linearHighResDepth, KernelSize, output, totalWeights);
         }
     }
 
