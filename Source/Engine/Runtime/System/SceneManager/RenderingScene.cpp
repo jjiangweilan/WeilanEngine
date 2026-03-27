@@ -239,7 +239,7 @@ void RenderingScene::Tick()
 {
     if (rayTracingScene == 0 && rayTracingContext != nullptr)
     {
-        rayTracingScene = rayTracingContext->CreateScene(1024);
+        rayTracingScene = rayTracingContext->CreateScene(8192);
     }
 
     for (auto m : meshRenderers)

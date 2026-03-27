@@ -247,7 +247,10 @@ void Manager::BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHa
 
     uint32_t instanceCount = static_cast<uint32_t>(instanceHandles.size());
     if (instanceCount == 0 || instanceCount > tlas.instanceCount)
+    {
+        spdlog::warn("Instance count is zero so it({}) exceeds the maximum instance count {} for this TLAS", instanceCount, tlas.instanceCount);
         return;
+    }
 
     auto instanceDataBuffer = allocator->AllocateScratchBuffer(sizeof(VkAccelerationStructureInstanceKHR) * instanceCount, 16, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::HostVisibleScatchBuffer);
     void* mappedData = instanceDataBuffer.mappedData;

@@ -86,7 +86,7 @@ private:
     AABB aabb{};
     AABB aabbWS{};
     bool wantsToEnableSkinning = false;
-    bool isRayTracingEnabled = false;
+    bool isRayTracingEnabled = true;
     bool isGPUObject = true;
 
     /**** Runtime Data *******/
