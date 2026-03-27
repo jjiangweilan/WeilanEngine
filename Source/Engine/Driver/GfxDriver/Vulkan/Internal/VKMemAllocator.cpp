@@ -126,7 +126,7 @@ void VKMemAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
     pendingBuffers.push_back({buffer, allocation, -1});
 }
 
-void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
+void VKMemAllocator::DestroyImage(VkImage image, VmaAllocation allocation)
 {
     pendingImages.push_back({image, allocation, -1});
 }
@@ -234,6 +234,7 @@ void VKMemAllocator::ScratchBuffer::FrameFinished(int frameIndex)
         if (block.frameIndex <= frameIndex)
         {
             block.offset = 0;
+            block.inflight = false;
         }
     }
 
@@ -292,6 +293,8 @@ VKMemAllocator::ScratchBuffer::Block& VKMemAllocator::ScratchBuffer::CreateBlock
     VkBufferDeviceAddressInfo addressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
     addressInfo.buffer = block.buffer;
     block.deviceAddress = vkGetBufferDeviceAddress(device, &addressInfo);
+    block.usage = usage;
+    block.lifetime = 0;
 
     blocks.push_back(block);
     return blocks.back();

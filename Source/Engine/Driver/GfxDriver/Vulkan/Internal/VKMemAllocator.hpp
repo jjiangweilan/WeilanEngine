@@ -108,7 +108,7 @@ public:
         VmaAllocationInfo* allocationInfo = nullptr
     );
     void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);
-    void DestoryImage(VkImage image, VmaAllocation allocation);
+    void DestroyImage(VkImage image, VmaAllocation allocation);
 
     void DestroyPendingResources(bool destroyAll = false);
 

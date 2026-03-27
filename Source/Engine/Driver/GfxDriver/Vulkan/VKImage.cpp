@@ -75,7 +75,7 @@ VKImage::~VKImage()
     imageView = nullptr;
     imageViewForShaderResource = nullptr;
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
-        VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
+        VKContext::Instance()->allocator->DestroyImage(image_vk, allocation_vma);
 
     // spdlog::info("VKImage is destoryed {}", GetName());
 }
