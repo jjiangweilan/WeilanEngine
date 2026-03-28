@@ -11,7 +11,7 @@ GPUDrivenManager::GPUDrivenManager()
 {
     globalBuffer = GetGfxDriver()->CreateBuffer(
         globalBufferSize,
-        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress | Gfx::BufferUsage::AccelerationStructureBuildInput,
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::ShaderDeviceAddress | Gfx::BufferUsage::AccelerationStructureBuildInput | Gfx::BufferUsage::Index,
         false,
         true,
         "GPUDrivenGlobalBuffer"
@@ -20,63 +20,69 @@ GPUDrivenManager::GPUDrivenManager()
     // Create global descriptor set (set 0)
     globalDescriptorSet = GetGfxDriver()->CreateShaderResource();
     globalDescriptorSet->SetBuffer("globalBuffer", globalBuffer.get());
-
-    // GPUDriven config uniform buffer
-    gpuDrivenConfigBuffer = GetGfxDriver()->CreateBuffer(
-        sizeof(GPUDrivenConfig),
-        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
-        false,
-        false,
-        "GPUDrivenConfig"
-    );
-    globalDescriptorSet->SetBuffer("gpuDrivenConfig", gpuDrivenConfigBuffer.get());
-
-    // Object ID buffer (initial capacity)
-    objectIDBufferCapacity = InitialObjectIDCapacity;
-    objectIDBuffer = GetGfxDriver()->CreateBuffer(
-        objectIDBufferCapacity * sizeof(uint32_t),
-        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-        true,
-        false,
-        "ObjectIDBuffer"
-    );
-    globalDescriptorSet->SetBuffer("objectIDs", objectIDBuffer.get());
-
-    // Pre-allocate material block in globalBuffer
-    EnsureMaterialCapacity(InitialMaterialCapacity);
-
-    // Pre-allocate scene object block in globalBuffer
-    EnsureSceneObjectCapacity(InitialSceneObjectCapacity);
-
-    UploadGPUDrivenConfig();
 }
 
-// --- Mesh registration (existing) ---
-
-GPUMeshHandle GPUDrivenManager::RegisterMesh(const Submesh& submesh)
+GpuRenderDataListHandle GPUDrivenManager::RegisterRenderDataList(const std::vector<GpuRenderData>& data)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    GPUMeshHandle handle = sceneObjectVertexDataDescriptors.AllocateRaw();
-    SceneObjectVertexDataDescriptor& newDescriptor = sceneObjectVertexDataDescriptors[handle];
+    GpuRenderDataListHandle handle = renderDataListDescriptors.AllocateRaw();
+
+    if (data.empty())
+        return handle;
+
+    auto& descriptor = renderDataListDescriptors[handle];
+
+    globalBufferAllocator.Allocate(sizeof(GpuRenderData) * data.size(), globalDataAlignment, descriptor.dataAlloc);
+    descriptor.renderDataList = data;
+
+    GetGfxDriver()->UploadBuffer(
+        *globalBuffer,
+        reinterpret_cast<uint8_t*>(descriptor.renderDataList.data()),
+        sizeof(GpuRenderData) * data.size(),
+        descriptor.dataAlloc.offset
+    );
+
+    return handle;
+}
+
+void GPUDrivenManager::UnregisterRenderDataList(GpuRenderDataListHandle handle)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+
+    auto& descriptor = renderDataListDescriptors[handle];
+    globalBufferAllocator.Free(descriptor.dataAlloc);
+    renderDataListDescriptors.FreeRaw(static_cast<int>(handle));
+}
+
+GpuGeometryHandle GPUDrivenManager::RegisterGeometry(const Submesh& submesh)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    GpuGeometryHandle handle = geometryDescriptors.AllocateRaw();
+    GpuGeometryDescriptor& newDescriptor = geometryDescriptors[handle];
     AllocateForMesh(newDescriptor, submesh);
     return handle;
 }
 
-void GPUDrivenManager::UnregisterMesh(GPUMeshHandle handle)
+void GPUDrivenManager::UnregisterGeometry(GpuGeometryHandle handle)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    SceneObjectVertexDataDescriptor& descriptor = sceneObjectVertexDataDescriptors[handle];
+    GpuGeometryDescriptor& descriptor = geometryDescriptors[handle];
     globalBufferAllocator.Free(descriptor.dataAlloc);
-    sceneObjectVertexDataDescriptors.FreeRaw(static_cast<int>(handle));
+    geometryDescriptors.FreeRaw(static_cast<int>(handle));
 }
 
-void GPUDrivenManager::AllocateForMesh(SceneObjectVertexDataDescriptor& descriptor, const Submesh& submesh)
+void GPUDrivenManager::AllocateForMesh(GpuGeometryDescriptor& descriptor, const Submesh& submesh)
 {
     auto vertexByteSize = submesh.GetVertexDataByteSize();
     auto indexByteSize = submesh.GetIndexDataByteSize();
 
+    // The GpuGeometry header struct is stored first so the shader can read it
+    // via LoadData<GpuGeometry>(renderData.geometryOffset).
+    constexpr uint32_t geometryHeaderSize = sizeof(GpuGeometry);
+    static_assert(sizeof(GpuGeometry) % 16 == 0, "GpuGeometry must be 16-byte aligned");
+
     ThreadLocalAllocator tempAllocator;
-    auto totalSize = vertexByteSize + indexByteSize;
+    auto totalSize = geometryHeaderSize + indexByteSize + vertexByteSize;
 
     uint8_t* staging = (uint8_t*)tempAllocator.allocate(totalSize, globalDataAlignment);
     globalBufferAllocator.Allocate(totalSize, globalDataAlignment, descriptor.dataAlloc);
@@ -85,20 +91,25 @@ void GPUDrivenManager::AllocateForMesh(SceneObjectVertexDataDescriptor& descript
     const float3* positions = submesh.GetPositions().data();
     const unsigned char* attributes = submesh.GetAttribute().GetData().data();
 
-    uint32_t sizeOffset = 0;
+    // Offsets into globalBuffer for each region (header is at dataAlloc.offset).
+    uint32_t sizeOffset = geometryHeaderSize;
 
-    memcpy(staging, indices, indexByteSize);
-    descriptor.indexOffset = descriptor.dataAlloc.offset;
+    descriptor.geometry.indexCount = submesh.GetIndexCount();
+    descriptor.geometry.indexOffset = descriptor.dataAlloc.offset + sizeOffset;
+    memcpy(staging + sizeOffset, indices, indexByteSize);
     sizeOffset += indexByteSize;
 
     uint32_t positionSize = submesh.GetPositions().size() * 3 * sizeof(float);
+    descriptor.geometry.positionOffset = descriptor.dataAlloc.offset + sizeOffset;
     memcpy(staging + sizeOffset, positions, positionSize);
-    descriptor.positionOffset = descriptor.dataAlloc.offset + sizeOffset;
     sizeOffset += positionSize;
 
     uint32_t attributeSize = submesh.GetAttribute().GetSize();
-    descriptor.attributeOffset = descriptor.dataAlloc.offset + sizeOffset;
+    descriptor.geometry.attributeOffset = descriptor.dataAlloc.offset + sizeOffset;
     memcpy(staging + sizeOffset, attributes, attributeSize);
+
+    // Write the fully-populated GpuGeometry header at the start of the block.
+    memcpy(staging, &descriptor.geometry, geometryHeaderSize);
 
     GetGfxDriver()
         ->UploadBuffer(*globalBuffer, (uint8_t*)staging, totalSize, descriptor.dataAlloc.offset);
@@ -133,204 +144,88 @@ void GPUDrivenManager::UpdateTextureImage(GPUTextureHandle handle, Texture& text
 
 // --- Material registration ---
 
-void GPUDrivenManager::EnsureMaterialCapacity(uint32_t requiredCount)
+void GPUDrivenManager::UploadMaterial(GPUMaterialHandle handle)
 {
-    if (requiredCount <= materialBlockCapacity)
-        return;
+    auto& descriptor = materialDescriptortors[handle];
 
-    uint32_t newCapacity = materialBlockCapacity == 0 ? InitialMaterialCapacity : materialBlockCapacity;
-    while (newCapacity < requiredCount)
-        newCapacity *= 2;
-
-    VirtualTLSFAllocator::Allocation newAlloc{};
-    globalBufferAllocator.Allocate(
-        newCapacity * sizeof(GPUMaterialData),
-        globalDataAlignment,
-        newAlloc
-    );
-
-    // Free old allocation if any
-    if (materialBlockAlloc.IsValid())
-    {
-        globalBufferAllocator.Free(materialBlockAlloc);
-    }
-
-    materialBlockAlloc = newAlloc;
-    materialBlockCapacity = newCapacity;
-
-    gpuDrivenConfigData.materialDataBaseOffset = static_cast<uint32_t>(materialBlockAlloc.offset);
-    gpuDrivenConfigDirty = true;
-
-    // Re-upload all existing materials to new location using actual pool indices
-    for (auto it = materialSlots.begin(); it != materialSlots.end(); ++it)
-    {
-        uint32_t poolIndex = static_cast<uint32_t>(it.index);
-        uint32_t offset = static_cast<uint32_t>(materialBlockAlloc.offset) + poolIndex * sizeof(GPUMaterialData);
-        GetGfxDriver()->UploadBuffer(
-            *globalBuffer,
-            reinterpret_cast<uint8_t*>(&it->data),
-            sizeof(GPUMaterialData),
-            offset
-        );
-    }
-}
-
-void GPUDrivenManager::UploadMaterialData(GPUMaterialHandle handle)
-{
-    uint32_t offset =
-        static_cast<uint32_t>(materialBlockAlloc.offset) + static_cast<uint32_t>(handle) * sizeof(GPUMaterialData);
     GetGfxDriver()->UploadBuffer(
         *globalBuffer,
-        reinterpret_cast<uint8_t*>(&materialSlots[handle].data),
-        sizeof(GPUMaterialData),
-        offset
+        reinterpret_cast<uint8_t*>(&descriptor.materialData),
+        sizeof(GpuMaterial),
+        descriptor.dataAlloc.offset
     );
 }
 
-GPUMaterialHandle GPUDrivenManager::RegisterMaterial(const GPUMaterialData& data)
+GPUMaterialHandle GPUDrivenManager::RegisterMaterial(const GpuMaterial& data)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    GPUMaterialHandle handle = materialSlots.AllocateRaw();
-    materialSlots[handle].data = data;
 
-    EnsureMaterialCapacity(static_cast<uint32_t>(handle) + 1);
-    UploadMaterialData(handle);
-
-    gpuDrivenConfigData.materialCount = static_cast<uint32_t>(materialSlots.GetUsedCount());
-    gpuDrivenConfigDirty = true;
+    GPUMaterialHandle handle = materialDescriptortors.AllocateRaw();
+    globalBufferAllocator.Allocate(sizeof(GpuMaterial), globalDataAlignment, materialDescriptortors[handle].dataAlloc);
+    materialDescriptortors[handle].materialData = data;
+    UploadMaterial(handle);
 
     return handle;
 }
 
-void GPUDrivenManager::UpdateMaterial(GPUMaterialHandle handle, const GPUMaterialData& data)
+void GPUDrivenManager::UpdateMaterial(GPUMaterialHandle handle, const GpuMaterial& data)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    materialSlots[handle].data = data;
-    UploadMaterialData(handle);
+    materialDescriptortors[handle].materialData = data;
+    UploadMaterial(handle);
 }
 
 void GPUDrivenManager::UnregisterMaterial(GPUMaterialHandle handle)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    materialSlots.FreeRaw(static_cast<int>(handle));
-
-    gpuDrivenConfigData.materialCount = static_cast<uint32_t>(materialSlots.GetUsedCount());
-    gpuDrivenConfigDirty = true;
+    globalBufferAllocator.Free(materialDescriptortors[handle].dataAlloc);
+    materialDescriptortors.FreeRaw(static_cast<int>(handle));
 }
 
-// --- Scene object registration ---
-
-void GPUDrivenManager::EnsureSceneObjectCapacity(uint32_t requiredCount)
+void GPUDrivenManager::UploadObject(GpuObjectHandle handle)
 {
-    if (requiredCount <= sceneObjectBlockCapacity)
-        return;
+    auto& descriptor = objectDescriptors[handle];
 
-    uint32_t newCapacity = sceneObjectBlockCapacity == 0 ? InitialSceneObjectCapacity : sceneObjectBlockCapacity;
-    while (newCapacity < requiredCount)
-        newCapacity *= 2;
-
-    VirtualTLSFAllocator::Allocation newAlloc{};
-    globalBufferAllocator.Allocate(
-        newCapacity * sizeof(GPUSceneObjectData),
-        globalDataAlignment,
-        newAlloc
-    );
-
-    if (sceneObjectBlockAlloc.IsValid())
-    {
-        globalBufferAllocator.Free(sceneObjectBlockAlloc);
-    }
-
-    sceneObjectBlockAlloc = newAlloc;
-    sceneObjectBlockCapacity = newCapacity;
-
-    gpuDrivenConfigData.sceneObjectDataBaseOffset = static_cast<uint32_t>(sceneObjectBlockAlloc.offset);
-    gpuDrivenConfigDirty = true;
-
-    // Re-upload all existing scene objects to new location using actual pool indices
-    for (auto it = sceneObjectSlots.begin(); it != sceneObjectSlots.end(); ++it)
-    {
-        uint32_t poolIndex = static_cast<uint32_t>(it.index);
-        uint32_t offset =
-            static_cast<uint32_t>(sceneObjectBlockAlloc.offset) + poolIndex * sizeof(GPUSceneObjectData);
-        GetGfxDriver()->UploadBuffer(
-            *globalBuffer,
-            reinterpret_cast<uint8_t*>(&it->data),
-            sizeof(GPUSceneObjectData),
-            offset
-        );
-    }
-}
-
-void GPUDrivenManager::UploadSceneObjectData(GPUSceneObjectHandle handle)
-{
-    uint32_t offset = static_cast<uint32_t>(sceneObjectBlockAlloc.offset) +
-                      static_cast<uint32_t>(handle) * sizeof(GPUSceneObjectData);
     GetGfxDriver()->UploadBuffer(
         *globalBuffer,
-        reinterpret_cast<uint8_t*>(&sceneObjectSlots[handle].data),
-        sizeof(GPUSceneObjectData),
-        offset
+        reinterpret_cast<uint8_t*>(&descriptor.gpuObject),
+        sizeof(GpuObject),
+        descriptor.dataAlloc.offset
     );
 }
 
-GPUSceneObjectHandle GPUDrivenManager::RegisterSceneObject(const GPUSceneObjectData& data)
+GpuObjectHandle GPUDrivenManager::RegisterObject(
+    const float4x4& modell,
+    const float4x4& invTspModel,
+    GpuRenderDataListHandle renderDataListHandle
+)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    GPUSceneObjectHandle handle = sceneObjectSlots.AllocateRaw();
-    sceneObjectSlots[handle].data = data;
 
-    EnsureSceneObjectCapacity(static_cast<uint32_t>(handle) + 1);
-    UploadSceneObjectData(handle);
-
-    gpuDrivenConfigData.sceneObjectCount = static_cast<uint32_t>(sceneObjectSlots.GetUsedCount());
-    gpuDrivenConfigDirty = true;
+    GpuObjectHandle handle = objectDescriptors.AllocateRaw();
+    auto& descriptor = objectDescriptors[handle];
+    auto& renderDataList = renderDataListDescriptors[renderDataListHandle];
+    descriptor.gpuObject = GpuObject{modell, invTspModel, static_cast<uint32_t>(renderDataList.renderDataList.size()), static_cast<uint32_t>(renderDataList.dataAlloc.offset)};
+    descriptor.renderDataListHandle = renderDataListHandle;
+    globalBufferAllocator.Allocate(sizeof(GpuObject), globalDataAlignment, descriptor.dataAlloc);
+    UploadObject(handle);
 
     return handle;
 }
 
-void GPUDrivenManager::UpdateSceneObject(GPUSceneObjectHandle handle, const GPUSceneObjectData& data)
+void GPUDrivenManager::UpdateObject(GpuObjectHandle handle, const GpuObject& data)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    sceneObjectSlots[handle].data = data;
-    UploadSceneObjectData(handle);
+    objectDescriptors[handle].gpuObject = data;
+    UploadObject(handle);
 }
 
-void GPUDrivenManager::UnregisterSceneObject(GPUSceneObjectHandle handle)
+void GPUDrivenManager::UnregisterObject(GpuObjectHandle handle)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    sceneObjectSlots.FreeRaw(static_cast<int>(handle));
-
-    gpuDrivenConfigData.sceneObjectCount = static_cast<uint32_t>(sceneObjectSlots.GetUsedCount());
+    globalBufferAllocator.Free(objectDescriptors[handle].dataAlloc);
+    objectDescriptors.FreeRaw(static_cast<int>(handle));
     gpuDrivenConfigDirty = true;
-}
-
-// --- Object ID buffer ---
-
-void GPUDrivenManager::UploadObjectIDs(const uint32_t* ids, uint32_t count)
-{
-    if (count == 0)
-        return;
-
-    // Grow buffer if needed
-    if (count > objectIDBufferCapacity)
-    {
-        uint32_t newCapacity = objectIDBufferCapacity;
-        while (newCapacity < count)
-            newCapacity *= 2;
-
-        objectIDBuffer = GetGfxDriver()->CreateBuffer(
-            newCapacity * sizeof(uint32_t),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-            false,
-            false,
-            "ObjectIDBuffer"
-        );
-        objectIDBufferCapacity = newCapacity;
-        globalDescriptorSet->SetBuffer("objectIDs", objectIDBuffer.get());
-    }
-
-    GetGfxDriver()->UploadBuffer(*objectIDBuffer, (uint8_t*)ids, count * sizeof(uint32_t), 0);
 }
 
 // --- Descriptor set passthrough for scene buffers ---
@@ -350,21 +245,9 @@ void GPUDrivenManager::SetMainLightShadowBuffer(Gfx::Buffer* buffer)
     globalDescriptorSet->SetBuffer("mainLightShadow", buffer);
 }
 
-// --- Config upload ---
-
-void GPUDrivenManager::UploadGPUDrivenConfig()
+void GPUDrivenManager::SetObjectOffsetBuffer(Gfx::Buffer* buffer)
 {
-    std::lock_guard<std::mutex> lock(mutex);
-    if (!gpuDrivenConfigDirty)
-        return;
-
-    gpuDrivenConfigDirty = false;
-    GetGfxDriver()->UploadBuffer(
-        *gpuDrivenConfigBuffer,
-        reinterpret_cast<uint8_t*>(&gpuDrivenConfigData),
-        sizeof(GPUDrivenConfig),
-        0
-    );
+    globalDescriptorSet->SetBuffer("gpuObjectOffsets", buffer);
 }
 
 // --- Lifecycle ---

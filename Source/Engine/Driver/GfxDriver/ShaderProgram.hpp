@@ -17,7 +17,7 @@ struct ShaderResourceLayout
 class ShaderProgram : public Object
 {
 public:
-    ShaderProgram(bool isCompute) : isCompute(isCompute) {}
+    ShaderProgram(bool isCompute) : isCompute(isCompute), shaderID(globalShaderID++) {}
     virtual ~ShaderProgram() {};
     virtual const PipelineConfig& GetDefaultShaderConfig() = 0;
     virtual const std::string& GetName() const = 0;
@@ -25,9 +25,12 @@ public:
     virtual int GetBindingNum(Gfx::DescriptorSetSemantics descriptorSet, std::string_view name) = 0;
     bool IsCompute() { return isCompute; }
     const UUID& GetUUID() const { return uuid; }
+    uint32_t GetShaderID() const { return shaderID; }
 
 protected:
     bool isCompute;
     UUID uuid;
+    uint32_t shaderID;
+    static std::atomic_uint32_t globalShaderID;
 };
 } // namespace Gfx

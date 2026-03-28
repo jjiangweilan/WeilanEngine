@@ -73,9 +73,23 @@ public:
     // GPU-Driven rendering
     void SetGPUObject(bool enabled);
     bool IsGPUObject() const { return isGPUObject; }
-    const std::vector<Rendering::GPUSceneObjectHandle>& GetGPUSceneObjectHandles() const
+    const Rendering::GpuObjectDescriptor& GetGpuObjectDescriptor() const
     {
-        return gpuSceneObjectHandles;
+        return gpuObjectDescriptor;
+    }
+
+    const Rendering::GpuRenderDataListDescriptor& GetGpuRenderDataListDescriptor() const
+    {
+        return gpuRenderDataListDescriptor;
+    }
+
+    const Rendering::GpuGeometryDescriptor& GetGpuGeometry(int index) const
+    {
+        if (index >= 0 && index < gpuGeometries.size())
+            return gpuGeometries[index];
+
+        static Rendering::GpuGeometryDescriptor g{};
+        return g;
     }
 
 private:
@@ -95,7 +109,11 @@ private:
     Gfx::RayTracingInstanceHandle rayTracingInstance = -1;
 
     // GPU-Driven handles (one per submesh)
-    std::vector<Rendering::GPUSceneObjectHandle> gpuSceneObjectHandles;
+    Rendering::GpuRenderDataListHandle renderDataListHandle;
+    Rendering::GpuObjectHandle gpuObjectHandle;
+    Rendering::GpuObjectDescriptor gpuObjectDescriptor;
+    Rendering::GpuRenderDataListDescriptor gpuRenderDataListDescriptor;
+    std::vector<Rendering::GpuGeometryDescriptor> gpuGeometries;
     bool gpuObjectRegistered = false;
 
     bool hasSkeleton = false;
@@ -133,5 +151,5 @@ private:
     void UnregisterGPUSceneObjects();
     void UpdateGPUSceneObjectTransforms();
 
-    void ApplyToGPUSceneObjects(std::function<void(const Rendering::GPUSceneObjectData&, int)> action);
+    void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);
 };

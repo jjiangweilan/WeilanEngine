@@ -32,7 +32,7 @@ RenderPipeline::RenderPipeline()
     cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
     colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
-    // rayTracingTestPass = AddRenderPipelinePass<Passes::RayTracingTestPass>();
+    rayTracingTestPass = AddRenderPipelinePass<Passes::RayTracingTestPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     ssilPass = AddRenderPipelinePass<Passes::SSIL>();
@@ -161,6 +161,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         std::optional<Gfx::PolygonMode> polygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
 
         // GPU-driven indirect draw for GPU objects
+
+        cmd->BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
         DrawGPUObjects(*cmd, polygonMode);
 
         // Fallback: normal draw for non-GPU objects
@@ -312,14 +314,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     fogPass->Execute(*cmd, mainColor, depthCopy, renderingScene.GetSceneEnvironmentData().fogPassParameters);
 
     // Ray Tracing Test
-    // rayTracingTestPass->Execute(
-    //     *cmd,
-    //     depthCopy,
-    //     scene.GetRenderingScene().GetRayTracingSceneHandle(),
-    //     scene.GetRenderingScene().GetRayTracingContext(),
-    //     GetPerSceneGPUResource(),
-    //     mainRTSize
-    // );
+    rayTracingTestPass->Execute(
+        *cmd,
+        depthCopy,
+        scene.GetRenderingScene().GetRayTracingSceneHandle(),
+        scene.GetRenderingScene().GetRayTracingContext(),
+        GetPerSceneGPUResource(),
+        mainRTSize
+    );
 
     if (setting->postProcess.bloom.enabled)
     {
@@ -670,7 +672,7 @@ void RenderPipeline::SetupGPUDrivenBindings()
 void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 {
     gpuObjectShaderGroups.clear();
-    gpuObjectIDs.clear();
+    gpuObjectOffsets.clear();
     renderingData.gpuDrivenIndirectDrawCount = 0;
 
     auto gpuRenderers = renderingScene.GetGPUObjectRenderers();
@@ -682,84 +684,77 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
     {
         Gfx::ShaderProgram* shaderProgram;
         Gfx::PipelineConfig config;
-        uint32_t vertexCount;
-        uint32_t sceneObjectIndex; // index into scene object pool
     };
 
-    // Collect all draw entries
-    std::unordered_map<Gfx::ShaderProgram*, std::vector<DrawEntry>> shaderGroupMap;
+    // matching the structure in BuildIndirectDraw.slang
+    struct DrawInfo
+    {
+        uint32_t indexCount;
+        uint32_t firstIndex;
+        uint32_t firstInstance;
+
+        const Gfx::PipelineConfig* config;
+        uint32_t objectOffset;
+    };
+    std::unordered_map<Gfx::ShaderProgram*, std::vector<DrawInfo>> gpuObjectShaderGroupsMap{};
 
     for (auto* renderer : gpuRenderers)
     {
         if (!renderer || !renderer->IsActiveInScene())
             continue;
 
-        const auto& handles = renderer->GetGPUSceneObjectHandles();
+        const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
+        const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
+
         auto meshes = renderer->GetMeshes();
         const auto& materials = renderer->GetMaterials();
 
-        int handleIdx = 0;
-        for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
+        int renderDataListIndex = 0;
+        for (const auto& renderData : gpuRenderDataListDescriptor.renderDataList)
         {
-            auto mesh = meshes[i].Get();
-            if (!mesh)
-                continue;
-
-            for (auto& submesh : mesh->GetSubmeshes())
+            for (auto& mat : renderer->GetMaterials())
             {
-                int mi = handleIdx;
-                auto* material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
-                if (!material || handleIdx >= static_cast<int>(handles.size()))
+                if (mat)
                 {
-                    handleIdx++;
-                    continue;
+                    if (mat->GetShaderProgram()->GetShaderID() == renderData.shaderID)
+                    {
+                        auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
+                        auto& groups = gpuObjectShaderGroupsMap[mat->GetShaderProgram()];
+
+                        groups.push_back(DrawInfo{
+                            .indexCount = geometryDescriptor.geometry.indexCount,
+                            .firstIndex = static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)),
+                            .firstInstance = static_cast<uint32_t>(renderDataListIndex),
+                            .config = &mat->GetShaderConfig(),
+                            .objectOffset = static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)
+                            });
+                    }
                 }
-
-                auto* shaderProgram = material->GetShaderProgram();
-
-                if (shaderProgram)
-                {
-                    DrawEntry entry{};
-                    entry.shaderProgram = shaderProgram;
-                    entry.config = material->GetShaderConfig();
-                    entry.vertexCount = submesh.GetIndexCount();
-                    entry.sceneObjectIndex = static_cast<uint32_t>(handles[handleIdx]);
-
-                    shaderGroupMap[shaderProgram].push_back(entry);
-                }
-
-                handleIdx++;
             }
+
+            renderDataListIndex += 1;
         }
     }
 
-    // Build flat objectIDs + indirect commands + shader groups
-    std::vector<DrawIndirectCommand> allIndirectCmds;
-    uint32_t globalDrawIdx = 0;
+    std::vector<DrawIndexedIndirectCommand> allIndirectCmds{};
+    std::vector<uint32_t> allIndirectCmdsExtra{};
 
-    for (auto& [shaderProg, entries] : shaderGroupMap)
+    uint32_t currentDrawIndex = 0;
+    for (auto& [shaderProgram, drawCommands] : gpuObjectShaderGroupsMap)
     {
-        GPUObjectShaderGroup group{};
-        group.shaderProgram = shaderProg;
-        group.config = entries[0].config;
-        group.firstDrawIndex = globalDrawIdx;
-        group.drawCount = static_cast<uint32_t>(entries.size());
-
-        for (auto& entry : entries)
+        for (auto& cmd : drawCommands)
         {
-            DrawIndirectCommand indirectCmd{};
-            indirectCmd.vertexCount = entry.vertexCount;
-            indirectCmd.instanceCount = 1;
-            indirectCmd.firstVertex = 0;
-            // firstInstance encodes the index into objectIDs buffer
-            indirectCmd.firstInstance = globalDrawIdx;
-
-            allIndirectCmds.push_back(indirectCmd);
-            gpuObjectIDs.push_back(entry.sceneObjectIndex);
-            globalDrawIdx++;
+            allIndirectCmds.push_back({
+                .indexCount = cmd.indexCount,
+                .instanceCount = 1,
+                .firstIndex = cmd.firstIndex,
+                .vertexOffset = 0,
+                .firstInstance = cmd.firstInstance });
+            allIndirectCmdsExtra.push_back(cmd.objectOffset);
         }
 
-        gpuObjectShaderGroups.push_back(group);
+        gpuObjectShaderGroups.push_back({shaderProgram, currentDrawIndex, static_cast<uint32_t>(drawCommands.size())});
+        currentDrawIndex += drawCommands.size();
     }
 
     if (allIndirectCmds.empty())
@@ -767,12 +762,6 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
         renderingData.gpuDrivenIndirectDrawCount = 0;
         return;
     }
-
-    // Upload objectIDs
-    GPUDrivenManager::Instance().UploadObjectIDs(gpuObjectIDs.data(), static_cast<uint32_t>(gpuObjectIDs.size()));
-
-    // Upload GPUDriven config (might have become dirty)
-    GPUDrivenManager::Instance().UploadGPUDrivenConfig();
 
     // Upload indirect commands to buffer
     uint32_t requiredSize = static_cast<uint32_t>(allIndirectCmds.size());
@@ -783,21 +772,31 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
             newCapacity *= 2;
 
         indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
-            newCapacity * sizeof(DrawIndirectCommand),
-            Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
+            newCapacity * sizeof(DrawIndexedIndirectCommand),
+            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
             false,
             false,
             "GPUDrivenIndirectCommands"
         );
+
+        indirectCommandExtraBuffer = GetGfxDriver()->CreateBuffer(
+            newCapacity * sizeof(uint32_t),
+            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+            false,
+            false,
+            "GPUDrivenIndirectCommands Extra"
+        );
         indirectCommandBufferCapacity = newCapacity;
+        GPUDrivenManager::Instance().SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
     }
 
-    GetGfxDriver()->UploadBuffer(*indirectCommandBuffer, (uint8_t*)allIndirectCmds.data(), static_cast<uint32_t>(allIndirectCmds.size() * sizeof(DrawIndirectCommand)));
+    GetGfxDriver()->UploadBuffer(*indirectCommandBuffer, (uint8_t*)allIndirectCmds.data(), static_cast<uint32_t>(allIndirectCmds.size() * sizeof(DrawIndexedIndirectCommand)));
+    GetGfxDriver()->UploadBuffer(*indirectCommandExtraBuffer, (uint8_t*)allIndirectCmdsExtra.data(), static_cast<uint32_t>(allIndirectCmdsExtra.size() * sizeof(uint32_t)));
 
     renderingData.gpuDrivenIndirectBuffer = indirectCommandBuffer.get();
     renderingData.gpuDrivenIndirectDrawCount = static_cast<uint32_t>(allIndirectCmds.size());
 }
-
+ 
 void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
 {
     if (gpuObjectShaderGroups.empty() || !indirectCommandBuffer)
@@ -807,13 +806,13 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
     {
         if (polygonModeOverride.has_value())
         {
-            auto modifiedConfig = *group.config;
+            auto modifiedConfig = *group.shaderProgram->GetDefaultShaderConfig();
             modifiedConfig.polygonMode = polygonModeOverride.value();
             cmd.BindShaderProgram(group.shaderProgram, modifiedConfig);
         }
         else
         {
-            cmd.BindShaderProgram(group.shaderProgram, group.config);
+            cmd.BindShaderProgram(group.shaderProgram, group.shaderProgram->GetDefaultShaderConfig());
         }
 
         struct Data
@@ -824,11 +823,11 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
         uint32_t firstDrawIndex = group.firstDrawIndex;
         pconst.d0[0][0] = std::bit_cast<float>(firstDrawIndex);
         cmd.SetPushConstant(group.shaderProgram, &pconst);
-        cmd.DrawIndirect(
+        cmd.DrawIndexedIndirect(
             indirectCommandBuffer.get(),
-            group.firstDrawIndex * sizeof(DrawIndirectCommand),
+            group.firstDrawIndex * sizeof(DrawIndexedIndirectCommand),
             group.drawCount,
-            sizeof(DrawIndirectCommand)
+            sizeof(DrawIndexedIndirectCommand)
         );
     }
 }

@@ -1,8 +1,8 @@
 #include "ShaderProgram.hpp"
 
-
 namespace Gfx
 {
+std::atomic_uint32_t ShaderProgram::globalShaderID = 0;
 // bool StencilOpState::operator==(const StencilOpState& other) const noexcept
 // {
 //     return failOp == other.failOp && passOp == other.passOp && depthFailOp == other.depthFailOp &&

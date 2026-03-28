@@ -206,19 +206,22 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                     {
                         auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
                         cmd.BindShaderProgram(programGPUDriven, programGPUDriven->GetDefaultShaderConfig());
-                        struct Data
+
+                        // Bind global index buffer for GPU-driven rendering
+                        cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
+
+                        // Set push constant for GPU-driven draw
+                        struct PushConstant
                         {
-                            float4x4 d0 = {};
-                            float4x4 d1 = {};
-                        } pconst;
-                        pconst.d0[0][0] = 0.0f; // firstDrawIndex is 0
+                            uint32_t firstGpuObjectOffset;
+                        } pconst = { 0 }; // Currently we only have one group for all GPU objects
                         cmd.SetPushConstant(programGPUDriven, &pconst);
 
-                        cmd.DrawIndirect(
+                        cmd.DrawIndexedIndirect(
                             renderingData.gpuDrivenIndirectBuffer,
                             0,
                             renderingData.gpuDrivenIndirectDrawCount,
-                            16 // sizeof(DrawIndirectCommand)
+                            20 // sizeof(DrawIndexedIndirectCommand)
                         );
                     }
                 }

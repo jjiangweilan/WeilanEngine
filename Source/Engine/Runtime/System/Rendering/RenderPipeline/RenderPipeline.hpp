@@ -17,9 +17,9 @@
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
+#include "Passes/LightingCombinePass.hpp"
 #include "Passes/SSAO.hpp"
 #include "Passes/SSIL.hpp"
-#include "Passes/LightingCombinePass.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "Passes/StaticMotionVectorPass.hpp"
@@ -108,21 +108,21 @@ class RenderPipeline
     struct GPUObjectShaderGroup
     {
         Gfx::ShaderProgram* shaderProgram = nullptr;
-        Gfx::PipelineConfig config;
         uint32_t firstDrawIndex = 0; // offset into indirectCommands
         uint32_t drawCount = 0;
     };
     std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
-    std::vector<uint32_t> gpuObjectIDs;     // flat objectID array for all groups
+    std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
     std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
+    std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
     uint32_t indirectCommandBufferCapacity = 0;
 
-    // VkDrawIndirectCommand layout (16 bytes)
-    struct DrawIndirectCommand
+    struct DrawIndexedIndirectCommand
     {
-        uint32_t vertexCount;
+        uint32_t indexCount;
         uint32_t instanceCount;
-        uint32_t firstVertex;
+        uint32_t firstIndex;
+        int32_t vertexOffset;
         uint32_t firstInstance;
     };
 

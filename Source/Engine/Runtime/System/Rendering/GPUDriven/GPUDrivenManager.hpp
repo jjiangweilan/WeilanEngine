@@ -10,16 +10,16 @@ class Submesh;
 namespace Rendering
 {
 
-using GPUMeshHandle = ObjectPoolRawHandle;
+using GpuGeometryHandle = ObjectPoolRawHandle;
 using GPUTextureHandle = ObjectPoolRawHandle;
 using GPUMaterialHandle = ObjectPoolRawHandle;
-using GPUSceneObjectHandle = ObjectPoolRawHandle;
+using GpuObjectHandle = ObjectPoolRawHandle;
+using GpuRenderDataListHandle = ObjectPoolRawHandle;
 
-constexpr GPUMeshHandle InvalidGPUHandle = static_cast<GPUMeshHandle>(-1);
+constexpr GpuGeometryHandle InvalidGPUHandle = static_cast<GpuGeometryHandle>(-1);
 constexpr uint32_t InvalidTextureIndex = 0xFFFFFFFF;
 
-// C++ mirror of GPUMaterialData in GPUDrivenStructures.hlsl
-struct GPUMaterialData
+struct GpuMaterial
 {
     glm::vec4 baseColorFactor;
     glm::vec4 emissive;
@@ -30,93 +30,147 @@ struct GPUMaterialData
     uint32_t normalMapTexIndex;
     uint32_t metallicRoughnessTexIndex;
     uint32_t emissiveMapTexIndex;
-    uint32_t padding;
+    uint32_t shaderHash;
 };
 
-// C++ mirror of GPUSceneObjectData in GPUDrivenStructures.hlsl
-struct GPUSceneObjectData
+struct GpuGeometry
 {
-    glm::mat4 model;
-    glm::mat4 invTspModel;
-    uint32_t materialIndex;
+    uint32_t indexCount;
     uint32_t indexOffset;
     uint32_t positionOffset;
     uint32_t attributeOffset;
 };
 
-// C++ mirror of GPUDrivenConfig in GPUDrivenStructures.hlsl
-struct GPUDrivenConfig
+struct GpuRenderData
 {
-    uint32_t materialDataBaseOffset;
-    uint32_t sceneObjectDataBaseOffset;
-    uint32_t sceneObjectCount;
-    uint32_t materialCount;
+    uint32_t geometryOffset;
+    uint32_t materialOffset;
+    uint32_t shaderID;
+    uint32_t padding0;
+};
+
+struct GpuObject
+{
+    float4x4 model;
+    float4x4 invTspModel;
+    uint32_t renderDataCount;
+    uint32_t pRenderDataOffset;
+    uint32_t padding0;
+    uint32_t padding1;
+};
+
+struct GpuMaterialDescriptor
+{
+    VirtualTLSFAllocator::Allocation dataAlloc;
+
+    GpuMaterial materialData;
+};
+
+struct GpuRenderDataListDescriptor
+{
+    VirtualTLSFAllocator::Allocation dataAlloc;
+
+    struct GpuRenderDataHandles
+    {
+        Rendering::GpuGeometryHandle geometryHandle;
+        Rendering::GpuGeometryHandle materialHandle;
+    };
+
+    std::vector<GpuRenderDataHandles> renderDataHandles;
+    std::vector<GpuRenderData> renderDataList;
+};
+
+struct GpuObjectDescriptor
+{
+    VirtualTLSFAllocator::Allocation dataAlloc;
+
+    GpuRenderDataListHandle renderDataListHandle;
+    GpuObject gpuObject;
+};
+
+struct GpuGeometryDescriptor
+{
+    VirtualTLSFAllocator::Allocation dataAlloc;
+
+    GpuGeometry geometry;
 };
 
 class GPUDrivenManager
 {
 public:
-    struct SceneObjectVertexDataDescriptor
-    {
-        VirtualTLSFAllocator::Allocation dataAlloc;
-
-        // offset into the global buffer (the values contain the dataAlloc.offset)
-        uint32_t indexOffset = 0;
-        uint32_t positionOffset = 0;
-        uint32_t attributeOffset = 0;
-    };
-
     static GPUDrivenManager& Instance();
 
     // Mesh registration (existing)
-    GPUMeshHandle RegisterMesh(const Submesh& submesh);
-    void UnregisterMesh(GPUMeshHandle handle);
+    GpuGeometryHandle RegisterGeometry(const Submesh& submesh);
+    void UnregisterGeometry(GpuGeometryHandle handle);
 
     // Texture registration (bindless globalTextures[])
     GPUTextureHandle RegisterTexture(Texture& texture);
-    void UnregisterTexture(GPUTextureHandle handle);
     void UpdateTextureImage(GPUTextureHandle handle, Texture& texture);
+    void UnregisterTexture(GPUTextureHandle handle);
 
     // Material registration (data stored in globalBuffer)
-    GPUMaterialHandle RegisterMaterial(const GPUMaterialData& data);
-    void UpdateMaterial(GPUMaterialHandle handle, const GPUMaterialData& data);
+    GPUMaterialHandle RegisterMaterial(const GpuMaterial& data);
+    void UpdateMaterial(GPUMaterialHandle handle, const GpuMaterial& data);
     void UnregisterMaterial(GPUMaterialHandle handle);
 
     // Scene object registration (data stored in globalBuffer)
-    GPUSceneObjectHandle RegisterSceneObject(const GPUSceneObjectData& data);
-    void UpdateSceneObject(GPUSceneObjectHandle handle, const GPUSceneObjectData& data);
-    void UnregisterSceneObject(GPUSceneObjectHandle handle);
+    GpuObjectHandle RegisterObject(
+        const float4x4& modell,
+        const float4x4& invTspModel,
+        GpuRenderDataListHandle renderDataListHandle
+    );
+    void UpdateObject(GpuObjectHandle handle, const GpuObject& data);
+    void UnregisterObject(GpuObjectHandle handle);
+
+    GpuRenderDataListHandle RegisterRenderDataList(const std::vector<GpuRenderData>& data);
+    void UnregisterRenderDataList(GpuRenderDataListHandle handle);
 
     uint64_t GetGlobalBufferShaderDeviceAddress();
 
-    const SceneObjectVertexDataDescriptor& GetSceneObjectVertexDataDescriptor(GPUMeshHandle handle)
+    GpuGeometryDescriptor GetGeometryDescriptor(GpuGeometryHandle handle)
     {
-        return sceneObjectVertexDataDescriptors[handle];
+        std::lock_guard<std::mutex> lock(mutex);
+        return geometryDescriptors[handle];
+    }
+
+    GpuObjectDescriptor GetObjectDescriptor(GpuObjectHandle handle)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return objectDescriptors[handle];
+    }
+
+    GpuMaterialDescriptor GetMaterialDescriptor(GPUMaterialHandle handle)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return materialDescriptortors[handle];
+    }
+
+    GpuRenderDataListDescriptor GetRenderDataListDescriptor(GpuRenderDataListHandle handle)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return renderDataListDescriptors[handle];
     }
 
     Gfx::Buffer* GetGlobalBuffer() { return globalBuffer.get(); }
     Gfx::ShaderResource* GetGlobalDescriptorSet() { return globalDescriptorSet.get(); }
     Gfx::Buffer* GetGPUDrivenConfigBuffer() { return gpuDrivenConfigBuffer.get(); }
-    Gfx::Buffer* GetObjectIDBuffer() { return objectIDBuffer.get(); }
-
-    // Update the object ID buffer for the current frame. Called by RenderPipeline.
-    void UploadObjectIDs(const uint32_t* ids, uint32_t count);
 
     // Bind camera/scene/shadow buffers into the global descriptor set.
     // Ownership of these buffers remains with the caller (PerScene).
     void SetSceneBuffer(Gfx::Buffer* buffer);
     void SetCameraBuffer(Gfx::Buffer* buffer);
     void SetMainLightShadowBuffer(Gfx::Buffer* buffer);
+    void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
 
     void Deinit();
-    void UploadGPUDrivenConfig();
 
 private:
     GPUDrivenManager();
     std::mutex mutex;
 
     // Global buffer (512MB TLSF)
-    const uint8_t globalDataAlignment = 8;
+    const uint8_t globalDataAlignment = 16;
     uint32_t globalBufferSize = 512 * 1024 * 1024;
     VirtualTLSFAllocator globalBufferAllocator{globalBufferSize};
     std::unique_ptr<Gfx::Buffer> globalBuffer;
@@ -126,17 +180,21 @@ private:
     std::unique_ptr<Gfx::ShaderResource> globalDescriptorSet;
 
     // GPUDriven config buffer
-    GPUDrivenConfig gpuDrivenConfigData{};
     std::unique_ptr<Gfx::Buffer> gpuDrivenConfigBuffer;
     bool gpuDrivenConfigDirty = true;
 
-    std::unique_ptr<Gfx::Buffer> objectIDBuffer;
-    uint32_t objectIDBufferCapacity = 0;
-    static constexpr uint32_t InitialObjectIDCapacity = 1024;
-
     // Mesh data
-    ObjectPool<SceneObjectVertexDataDescriptor> sceneObjectVertexDataDescriptors;
-    void AllocateForMesh(SceneObjectVertexDataDescriptor& descriptor, const Submesh& submesh);
+    ObjectPool<GpuGeometryDescriptor> geometryDescriptors;
+    void AllocateForMesh(GpuGeometryDescriptor& descriptor, const Submesh& submesh);
+
+    ObjectPool<GpuMaterialDescriptor> materialDescriptortors;
+    void UploadMaterial(GPUMaterialHandle handle);
+
+    ObjectPool<GpuObjectDescriptor> objectDescriptors;
+    void UploadObject(GpuObjectHandle handle);
+
+    ObjectPool<GpuRenderDataListDescriptor> renderDataListDescriptors;
+    void UploadRenderData(GpuRenderDataListHandle handle);
 
     // Texture data (bindless array)
     struct TextureSlot
@@ -144,30 +202,6 @@ private:
         Texture* texture = nullptr;
     };
     ObjectPool<TextureSlot> textureSlots;
-
-    // Material data (contiguous region in globalBuffer)
-    struct MaterialSlot
-    {
-        GPUMaterialData data{};
-    };
-    ObjectPool<MaterialSlot> materialSlots;
-    VirtualTLSFAllocator::Allocation materialBlockAlloc{};
-    uint32_t materialBlockCapacity = 0;
-    static constexpr uint32_t InitialMaterialCapacity = 256;
-    void EnsureMaterialCapacity(uint32_t requiredCount);
-    void UploadMaterialData(GPUMaterialHandle handle);
-
-    // Scene object data (contiguous region in globalBuffer)
-    struct SceneObjectSlot
-    {
-        GPUSceneObjectData data{};
-    };
-    ObjectPool<SceneObjectSlot> sceneObjectSlots;
-    VirtualTLSFAllocator::Allocation sceneObjectBlockAlloc{};
-    uint32_t sceneObjectBlockCapacity = 0;
-    static constexpr uint32_t InitialSceneObjectCapacity = 1024;
-    void EnsureSceneObjectCapacity(uint32_t requiredCount);
-    void UploadSceneObjectData(GPUSceneObjectHandle handle);
 
     static std::unique_ptr<GPUDrivenManager>& GetInstanceInternal();
 };

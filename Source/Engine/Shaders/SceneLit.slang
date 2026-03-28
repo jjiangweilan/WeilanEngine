@@ -20,9 +20,8 @@ interface IVertexInput
 
 struct PushConstant
 {
-    float4x4 model;
-    float4x4 invTspModel;
-} ;
+    uint firstGpuObjectOffset;
+};
 
 [vk_push_constant]
 PushConstant pconst;
@@ -35,28 +34,12 @@ struct VertexOutput
     float3 tangentWS;
     float3 bitangentWS;
     float2 uv;
-    nointerpolation uint objectIndex;
-}
+    nointerpolation uint objectOffset;
+    nointerpolation uint renderDataIndex;
+};
 
 [Global]
 ParameterBlock<PerScene> perScene;
-
-struct PerMaterial
-{
-    float4 baseColorFactor;
-    float4 emissive;
-    float roughness;
-    float metallic;
-    float alphaCutoff;
-
-    Sampler2D baseColorTex;
-    Sampler2D normalMap;
-    Sampler2D metallicRoughnessMap;
-    Sampler2D emissiveMap;
-};
-
-[Material]
-ParameterBlock<PerMaterial> perMaterial;
 
 struct FragmentOutput
 {
@@ -66,39 +49,34 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(uint vertexID, uint drawIndex)
+VertexOutput SceneLitVertex(uint vertexID, uint drawIndex, uint renderDataIndex)
 {
     float4x4 modelMatrix;
     float4x4 invTspModelMatrix;
-    uint indexOffset;
     uint positionOffset;
     uint attributeOffset;
-    uint objectIndex = 0;
+    uint objectOffset = 0;
 
-    if (_GPUDriven)
-    {
-        objectIndex = perScene.objectIDs[asuint(pconst.model[0][0]) + drawIndex];
-        GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
-            perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
-        modelMatrix = objData.model;
-        invTspModelMatrix = objData.invTspModel;
-        indexOffset = objData.indexOffset;
-        positionOffset = objData.positionOffset;
-        attributeOffset = objData.attributeOffset;
-    }
-    else
-    {
-        modelMatrix = pconst.model;
-        invTspModelMatrix = pconst.invTspModel;
-        indexOffset = asuint(pconst.invTspModel[0][3]);
-        positionOffset = asuint(pconst.invTspModel[1][3]);
-        attributeOffset = asuint(pconst.invTspModel[2][3]);
-    }
+    // prepare data
+    objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
+    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
 
-    uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
-    SceneObjectPositionData positionData = perScene.LoadData<SceneObjectPositionData>(positionOffset, vertexIndex);
+    // GpuObjectNew objData = perScene.LoadData<GpuObjectNew>(objectOffset);
+
+    modelMatrix = objData.model;
+    invTspModelMatrix = objData.invTspModel;
+
+    positionOffset = geometry.positionOffset;
+    attributeOffset = geometry.attributeOffset;
+
+    // vertex fetch
+    uint vertexIndex = vertexID;
+    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexIndex);
     SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
 
+    // calculation
     VertexOutput output;
     float3 vertexPos = positionData.position;
     float3 normal = attributeData.GetNormal();
@@ -111,7 +89,8 @@ VertexOutput SceneLitVertex(uint vertexID, uint drawIndex)
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = attributeData.GetUV();
-    output.objectIndex = objectIndex;
+    output.objectOffset = objectOffset;
+    output.renderDataIndex = renderDataIndex;
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
@@ -119,9 +98,9 @@ VertexOutput SceneLitVertex(uint vertexID, uint drawIndex)
 }
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex)
+VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint geometryOffset : SV_InstanceID)
 {
-    return SceneLitVertex(vertexID, drawIndex);
+    return SceneLitVertex(vertexID, drawIndex, geometryOffset);
 }
 
 FragmentOutput SceneLitFragment(VertexOutput input)
@@ -137,10 +116,9 @@ FragmentOutput SceneLitFragment(VertexOutput input)
 
     if (_GPUDriven)
     {
-        GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
-            perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, input.objectIndex);
-        GPUMaterialData matData = perScene.LoadData<GPUMaterialData>(
-            perScene.gpuDrivenConfig.materialDataBaseOffset, objData.materialIndex);
+        GpuObject objData = perScene.LoadData<GpuObject>(input.objectOffset);
+        GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, input.renderDataIndex);
+        GPUMaterialData matData = perScene.LoadData<GPUMaterialData>(renderData.materialOffset);
 
         baseColor = matData.baseColorFactor;
         if (matData.baseColorTexIndex != 0xFFFFFFFF)
@@ -182,44 +160,6 @@ FragmentOutput SceneLitFragment(VertexOutput input)
                 perScene.sampler_linear_clamp, input.uv);
         }
         emission *= matData.emissive;
-    }
-    else
-    {
-        baseColor = perMaterial.baseColorFactor;
-        if (_BaseColorMap)
-        {
-            baseColor *= perMaterial.baseColorTex.Sample(input.uv);
-        }
-
-        if (_AlphaClip)
-        {
-            if (baseColor.a < perMaterial.alphaCutoff)
-                discard;
-        }
-
-        metallic = perMaterial.metallic;
-        roughness = perMaterial.roughness;
-        if (_MetallicRoughnessMap)
-        {
-            float2 metallicRoughness = float2(roughness, metallic) * perMaterial.metallicRoughnessMap.Sample(input.uv).gb;
-            metallic = metallicRoughness.y;
-            roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
-        }
-        else
-            roughness = clamp(roughness, 0.01, 0.99f);
-
-        normalSample = float3(0, 0, 1);
-        if (_NormalMap)
-        {
-            normalSample = perMaterial.normalMap.Sample(input.uv).xyz * 2 - 1;
-        }
-
-        emission = float4(0, 0, 0, 0);
-        if (_EmissiveMap)
-        {
-            emission = perMaterial.emissiveMap.Sample(input.uv);
-        }
-        emission *= perMaterial.emissive;
     }
 
     float3x3 TBN = transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS)));

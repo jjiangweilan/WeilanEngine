@@ -14,15 +14,6 @@ interface IVertexInput
     float4 GetBone();
 }
 
-struct PushConstant
-{
-    float4x4 model;
-    float4x4 invTspModel;
-};
-
-[vk_push_constant]
-PushConstant pconst;
-
 struct VertexOutput
 {
     float4 position : SV_Position;
@@ -32,44 +23,41 @@ struct VertexOutput
     float3 bitangentWS;
     float3 positionOS; 
     float2 uv;
-    nointerpolation uint objectIndex;
+    nointerpolation uint objectOffset;
 }
+
+struct PushConstant
+{
+    uint firstGpuObjectOffset;
+};
+[vk_push_constant]
+PushConstant pconst;
 
 [Global]
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex)
+VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
     float4x4 modelMatrix;
     float4x4 invTspModelMatrix;
     uint indexOffset;
     uint positionOffset;
     uint attributeOffset;
-    uint objectIndex = 0;
+    uint objectOffset = 0;
 
-    if (_GPUDriven)
-    {
-        objectIndex = perScene.objectIDs[asuint(pconst.model[0][0]) + drawIndex];
-        GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
-            perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
-        modelMatrix = objData.model;
-        invTspModelMatrix = objData.invTspModel;
-        indexOffset = objData.indexOffset;
-        positionOffset = objData.positionOffset;
-        attributeOffset = objData.attributeOffset;
-    }
-    else
-    {
-        modelMatrix = pconst.model;
-        invTspModelMatrix = pconst.invTspModel;
-        indexOffset = asuint(pconst.invTspModel[0][3]);
-        positionOffset = asuint(pconst.invTspModel[1][3]);
-        attributeOffset = asuint(pconst.invTspModel[2][3]);
-    }
+    objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
+    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+    modelMatrix = objData.model;
+    invTspModelMatrix = objData.invTspModel;
+    indexOffset = geometry.indexOffset;
+    positionOffset = geometry.positionOffset;
+    attributeOffset = geometry.attributeOffset;
 
     uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
-    SceneObjectPositionData positionData = perScene.LoadData<SceneObjectPositionData>(positionOffset, vertexIndex);
+    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexIndex);
     SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
 
     VertexOutput output;
@@ -90,7 +78,7 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawInd
 
     float3 scale = float3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz));
     output.positionOS = vertexPos * scale;// input.GetPosition() * scale;
-    output.objectIndex = objectIndex;
+    output.objectOffset = objectOffset;
 
     return output;
 }

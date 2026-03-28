@@ -51,13 +51,18 @@ public:
 
     std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
-    Rendering::GPUMeshHandle GetGPUMeshHandle() const;
+    Rendering::GpuGeometryHandle GetGPUGeometryHandle() const;
 
     uint64_t GetVertexBufferShaderDeviceAddress() const;
     uint64_t GetIndexBufferShaderDeviceAddress() const;
     uint32_t GetGPUMeshPositionOffset() const;
     uint32_t GetGPUMeshIndexOffset() const;
+    uint32_t GetGpuGeometryOffset() const { return Rendering::GPUDrivenManager::Instance().GetGeometryDescriptor(GetGPUGeometryHandle()).dataAlloc.offset; }
     uint32_t GetGPUMeshAttributeOffset() const;
+    Rendering::GpuGeometryDescriptor GetGpuGeometry() const
+    {
+        return Rendering::GPUDrivenManager::Instance().GetGeometryDescriptor(GetGPUGeometryHandle());
+    }
 
 public:
     void SetIndices(std::vector<uint32_t>&& indices);
@@ -85,7 +90,7 @@ public:
     const VertexAttributes& GetAttribute() const;
 
 private:
-    mutable Rendering::GPUMeshHandle gpuMeshHandle = -1;
+    mutable Rendering::GpuGeometryHandle gpuMeshHandle = -1;
     std::vector<uint32_t> indices;
     std::vector<glm::vec3> positions; // binding 0,
     VertexAttributes attributes;      // binding 1, interleaved

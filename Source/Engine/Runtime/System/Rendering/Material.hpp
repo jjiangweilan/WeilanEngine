@@ -52,7 +52,7 @@ public:
     void SetShader(Shader* shader);
     void SetShader(Shaders shader);
 
-    void OverrideDescriptorSet(Gfx::DescriptorSetSemantics set){targetDescriptorSet = set;}
+    void OverrideDescriptorSet(Gfx::DescriptorSetSemantics set) { targetDescriptorSet = set; }
 
     Gfx::ShaderProgram* GetShaderProgram();
 
@@ -114,6 +114,7 @@ public:
     static void RebuildAllMaterials();
 
     // GPU-Driven bindless support
+    uint32_t GetGpuMaterialOffset() { return Rendering::GPUDrivenManager::Instance().GetMaterialDescriptor(gpuMaterialHandle).dataAlloc.offset; }
     Rendering::GPUMaterialHandle GetGPUMaterialHandle() const { return gpuMaterialHandle; }
     bool IsGPUMaterialRegistered() const { return gpuMaterialHandle != Rendering::InvalidGPUHandle; }
     void RegisterGPUMaterial();

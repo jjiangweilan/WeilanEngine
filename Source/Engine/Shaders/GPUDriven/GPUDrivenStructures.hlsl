@@ -1,6 +1,6 @@
 #pragma once
 
-struct SceneObjectPositionData
+struct GpuGeometryPositionData
 {
     float3 position;
 
@@ -32,25 +32,32 @@ struct GPUMaterialData
     uint normalMapTexIndex;
     uint metallicRoughnessTexIndex;
     uint emissiveMapTexIndex;
-    uint padding;
+    uint shaderHash;
 };
 
-// Per-object data stored in globalBuffer for bindless GPU-driven rendering.
-struct GPUSceneObjectData
+// geometry data stored in globalBuffer for bindless GPU-driven rendering.
+struct GpuGeometry
 {
-    float4x4 model;
-    float4x4 invTspModel;
-    uint materialIndex;
+    uint indexCount;
     uint indexOffset;
     uint positionOffset;
     uint attributeOffset;
 };
 
-// Base offsets for GPU-driven data arrays within globalBuffer
-struct GPUDrivenConfig
+struct GpuRenderData
 {
-    uint materialDataBaseOffset;
-    uint sceneObjectDataBaseOffset;
-    uint sceneObjectCount;
-    uint materialCount;
+    uint geometryOffset;
+    uint materialOffset;
+    uint shaderID;
+    uint padding0;
+};
+
+struct GpuObject
+{
+    float4x4 model;
+    float4x4 invTspModel;
+    uint renderDataCount;
+    uint pRenderDataOffset;
+    uint padding0;
+    uint padding1;
 };

@@ -11,59 +11,38 @@ dynamicState:
 
 static extern const bool _GPUDriven = false;
 
-struct Transform
+struct PushConstant
 {
-    matrix<float, 4,4> model;
-    matrix<float, 4,4> invTspModel; // only for global buffer offset data stored in the fourth column
+    uint firstGpuObjectOffset;
 };
 
-[vk::push_constant]
-Transform transform;
-
-struct VertexInput
-{
-    float3 position;
-}
+[vk_push_constant]
+PushConstant pconst;
 
 struct VertexOutput
 {
     float4 position : SV_Position;
-}
+};
 
 ParameterBlock<PerScene> perScene;
 ParameterBlock<ShadowPass> shadowPass;
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex)
+VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
     float4x4 modelMatrix;
-    float4x4 invTspModelMatrix;
-    uint indexOffset;
-    uint positionOffset;
-    uint objectIndex = 0;
 
-    if (_GPUDriven)
-    {
-        objectIndex = perScene.objectIDs[asuint(transform.model[0][0]) + drawIndex];
-        GPUSceneObjectData objData = perScene.LoadData<GPUSceneObjectData>(
-            perScene.gpuDrivenConfig.sceneObjectDataBaseOffset, objectIndex);
-        modelMatrix = objData.model;
-        invTspModelMatrix = objData.invTspModel;
-        indexOffset = objData.indexOffset;
-        positionOffset = objData.positionOffset;
-    }
-    else
-    {
-        modelMatrix = transform.model;
-        invTspModelMatrix = transform.invTspModel;
-        indexOffset = asuint(transform.invTspModel[0][3]);
-        positionOffset = asuint(transform.invTspModel[1][3]);
-    }
+    uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
+    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
 
-    uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
-    VertexInput input = perScene.LoadData<VertexInput>(positionOffset, vertexIndex);
+    modelMatrix = objData.model;
+    uint positionOffset = geometry.positionOffset;
 
-    float3 positionWS = float3(mul(modelMatrix, float4(input.position, 1.0)).xyz);
+    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexID);
+
+    float3 positionWS = mul(modelMatrix, float4(positionData.position, 1.0)).xyz;
 
     VertexOutput output;
     output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));

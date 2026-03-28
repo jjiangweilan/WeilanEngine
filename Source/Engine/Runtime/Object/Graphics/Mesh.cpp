@@ -146,7 +146,7 @@ void Submesh::Apply()
         gfxBindings.push_back({GetVertexBuffer(), b.byteOffset});
     };
 
-    gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterMesh(*this);
+    gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterGeometry(*this);
 }
 
 const AABB& Submesh::GetAABB() const
@@ -197,13 +197,13 @@ const AABB& Mesh::GetAABB() const
     return aabb;
 }
 
-Rendering::GPUMeshHandle Submesh::GetGPUMeshHandle() const
+Rendering::GpuGeometryHandle Submesh::GetGPUGeometryHandle() const
 {
     ASSERT_IS_MAIN_THREAD
 
     if (gpuMeshHandle == -1)
     {
-        gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterMesh(*this);
+        gpuMeshHandle = Rendering::GPUDrivenManager::Instance().RegisterGeometry(*this);
     }
 
     return gpuMeshHandle;
@@ -211,17 +211,17 @@ Rendering::GPUMeshHandle Submesh::GetGPUMeshHandle() const
 
 uint32_t Submesh::GetGPUMeshPositionOffset() const
 {
-    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).positionOffset;
+    return Rendering::GPUDrivenManager::Instance().GetGeometryDescriptor(GetGPUGeometryHandle()).geometry.positionOffset;
 }
 
 uint32_t Submesh::GetGPUMeshIndexOffset() const
 {
-    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).indexOffset;
+    return Rendering::GPUDrivenManager::Instance().GetGeometryDescriptor(GetGPUGeometryHandle()).geometry.indexOffset;
 }
 
 uint32_t Submesh::GetGPUMeshAttributeOffset() const
 {
-    return Rendering::GPUDrivenManager::Instance().GetSceneObjectVertexDataDescriptor(GetGPUMeshHandle()).attributeOffset;
+    return Rendering::GPUDrivenManager::Instance().GetGeometryDescriptor(GetGPUGeometryHandle()).geometry.attributeOffset;
 }
 
 uint64_t Submesh::GetVertexBufferShaderDeviceAddress() const

@@ -75,8 +75,7 @@ struct PerScene
     SamplerState sampler_point_clamp;
 
     ByteAddressBuffer globalBuffer;
-    ConstantBuffer<GPUDrivenConfig> gpuDrivenConfig;
-    StructuredBuffer<uint> objectIDs;
+    StructuredBuffer<uint> gpuObjectOffsets;
     Texture2D globalTextures[];
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
