@@ -1,8 +1,7 @@
 
 struct Param
 {
-[format("r8")]
-RWTexture2D<float> tex;
+RWTexture2D<float2> tex;
 };
 
 ParameterBlock<Param> param;
@@ -17,7 +16,7 @@ void Main(uint3 id : SV_DispatchThreadID)
     param.tex.GetDimensions(width, height);
     if (any(id.xy >= uint2(width, height)))
         return;
-    param.tex[id.xy] = IGN(id.x, id.y);
+    param.tex[id.xy] = float2(IGN(id.x, id.y), IGN(id.x + id.y, id.x - id.y));
 }
 
 

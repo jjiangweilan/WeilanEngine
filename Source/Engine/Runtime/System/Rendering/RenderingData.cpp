@@ -6,7 +6,7 @@ Gfx::Image* InterleavedGradientNoise::GetNoiseTexture() const
 {
     if (interleavedGradientNoise == nullptr)
     {
-        Gfx::ImageDescription interleavedGradientNoiseDesc(32, 32, 1, Gfx::GfxFormat::R8_UNorm);
+        Gfx::ImageDescription interleavedGradientNoiseDesc(128, 128, 1, Gfx::GfxFormat::R8G8B8A8_UNorm);
         interleavedGradientNoise = GetGfxDriver()->CreateImage(
             interleavedGradientNoiseDesc,
             Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage
