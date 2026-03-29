@@ -610,7 +610,14 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
 
             auto renderPass = VKContext::Instance()->resourceAllocator->Request(args.renderPass);
-            GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            if (renderPass != nullptr)
+            {
+                GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            }
+            else
+            {
+                SPDLOG_ERROR("VKCommandBufferProcessor: failed to request render pass {}", args.renderPass.GetName());
+            }
         }
         else if (cmd.type == VKCmdType::DynamicBeginRenderPass)
         {
@@ -619,6 +626,11 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
 
             std::optional<SubpassAttachment> depthAttachmentDescription = std::nullopt;
             auto lastImage = ImageIdentifier_GetImage(imgs.back().image, this);
+            if (lastImage == nullptr)
+            {
+                SPDLOG_ERROR("VKCommandBufferProcessor: failed to resolve last image for DynamicBeginRenderPass");
+                continue;
+            }
             bool hasDepth = !imgs.empty() && IsDepthStencilFormat(lastImage->GetDescription().format);
             if (hasDepth)
             {
@@ -697,6 +709,11 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKBlitCmd>(cmd.args);
+            if (args.from == nullptr || args.to == nullptr)
+            {
+                SPDLOG_ERROR("VKCommandBufferProcessor: blit source or destination is null");
+                continue;
+            }
             Gfx::ImageSubresourceRange srcRange{
                 .aspectMask = Gfx::MapVKImageAspect(args.to->GetDefaultSubresourceRange().aspectMask),
                 .baseMipLevel = args.blitOp.srcMip.value_or(0),

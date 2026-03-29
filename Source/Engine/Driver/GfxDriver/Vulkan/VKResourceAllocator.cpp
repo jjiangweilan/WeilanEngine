@@ -92,6 +92,11 @@ VKRenderPass* VKResourceAllocator::Request(RenderPass& renderPass)
                 const auto& id = attachments[color.attachmentIndex];
                 auto idType = id.GetType();
                 Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
+                if (image == nullptr && idType != ImageIdentifier::Type::ImageView)
+                {
+                    SPDLOG_ERROR("VKResourceAllocator: failed to resolve color attachment image for index {} in render pass {}", color.attachmentIndex, renderPass.GetName());
+                    continue;
+                }
                 Gfx::VKImageView* imageView = idType == ImageIdentifier::Type::ImageView
                                                   ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                   : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
@@ -120,24 +125,31 @@ VKRenderPass* VKResourceAllocator::Request(RenderPass& renderPass)
                 const auto& id = attachments[subpass.depth.attachmentIndex];
                 auto idType = id.GetType();
                 Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
-                Gfx::VKImageView* imageView = idType == ImageIdentifier::Type::ImageView
-                                                  ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
-                                                  : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
-                imageReferences.push_back(image);
-
-                if (idType == ImageIdentifier::Type::ImageView)
+                if (image == nullptr && idType != ImageIdentifier::Type::ImageView)
                 {
-                    imageViewReferences.push_back(imageView);
+                    SPDLOG_ERROR("VKResourceAllocator: failed to resolve depth attachment image for index {} in render pass {}", subpass.depth.attachmentIndex, renderPass.GetName());
                 }
+                else
+                {
+                    Gfx::VKImageView* imageView = idType == ImageIdentifier::Type::ImageView
+                                                      ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
+                                                      : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
+                    imageReferences.push_back(image);
 
-                depth = Attachment{
-                    imageView,
-                    Gfx::MultiSampling::Sample_Count_1,
-                    subpass.depth.loadOp,
-                    subpass.depth.storeOp,
-                    subpass.depth.stencilLoadOp,
-                    subpass.depth.stencilStoreOp,
-                };
+                    if (idType == ImageIdentifier::Type::ImageView)
+                    {
+                        imageViewReferences.push_back(imageView);
+                    }
+
+                    depth = Attachment{
+                        imageView,
+                        Gfx::MultiSampling::Sample_Count_1,
+                        subpass.depth.loadOp,
+                        subpass.depth.storeOp,
+                        subpass.depth.stencilLoadOp,
+                        subpass.depth.stencilStoreOp,
+                    };
+                }
             }
 
             renderPassObj->AddSubpass(colors, depth);
