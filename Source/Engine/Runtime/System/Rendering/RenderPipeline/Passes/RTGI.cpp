@@ -39,7 +39,7 @@ void RTGI::Execute(
     mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
-    mat.SetTexture("ignNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
+    mat.SetTexture("noiseTex", renderingData.blueNoise.GetNoiseTexture());
     mat.SetTexture("outRtgiTex", GetGfxDriver()->GetImageFromRenderGraph(rtgi));
 
     mat.SetVector("rtSize", glm::float4(width, height, 1.0f / width, 1.0f / height));

@@ -35,6 +35,15 @@ private:
     mutable Material interleavedGradientNoiseMat;
 };
 
+struct BlueNoise
+{
+    Gfx::Image* GetNoiseTexture() const;
+
+private:
+    mutable std::unique_ptr<Gfx::Image> blueNoise;
+    mutable Material blueNoiseMat;
+};
+
 struct RenderingData
 {
     PipelineGPUBufferAllocator* pipelineAllocator;
@@ -56,6 +65,7 @@ struct RenderingData
     float2 screenSize;
     float screenAspect;
     InterleavedGradientNoise interleavedGradientNoise;
+    BlueNoise blueNoise;
     PerScene* perScene;
     Gfx::ShaderResource* globalResource;
     Gfx::Buffer* gpuDrivenIndirectBuffer = nullptr;

@@ -12,7 +12,7 @@ struct RTGIParameter
     Texture2D depthTex;
     Texture2D normalTex;
     Texture2D albedoTex;
-    Texture2D<float4> ignNoise;
+    Texture2D<float4> noiseTex;
     RWTexture2D<float4> outRtgiTex;
     SamplerState sampler_point_clamp;
     SamplerState sampler_linear_clamp;
@@ -72,11 +72,11 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 posWS = posWS4.xyz / posWS4.w;
     float3 normalWS = normalize(GetNormalWS(uv));
 
-    // Get blue noise
+    // Get noise
     float jitter1 = randf(int(100 * posWS.x), int(100 * posWS.y));
     float jitter2 = randf(int(100 * posWS.y), int(100 * posWS.z));
     float2 noiseUV = float2(pixelCoord.x % 128, pixelCoord.y % 128) / 128.0;
-    float2 randVal = perMaterial.ignNoise.SampleLevel(perMaterial.sampler_point_repeat, noiseUV, 0).xy;
+    float2 randVal = perMaterial.noiseTex.SampleLevel(perMaterial.sampler_point_repeat, noiseUV, 0).xy;
     randVal = frac(randVal + float2(jitter1, jitter2));
 
     float3 rayDir = GetCosineWeightedDirection(normalWS, randVal);

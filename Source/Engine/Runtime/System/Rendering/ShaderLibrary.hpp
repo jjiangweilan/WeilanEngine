@@ -31,6 +31,7 @@
                          Do(SimpleColor, "SimpleColor"), Do(Skybox, "Skybox"),                               \
                          Do(ColorGrading, "ColorGrading"),                                                   \
                          Do(InterleavedGradientNoise, "InterleavedGradientNoise"),                           \
+                         Do(BlueNoise, "BlueNoise"),                                                         \
                          Do(Particle, "Particles/Particle"), Do(Blit, "Blit"),                               \
                          Do(BilateralUpScale, "BilateralUpScale"),                                           \
                          Do(DepthDownSampler, "DepthDownSampler"),                                           \
