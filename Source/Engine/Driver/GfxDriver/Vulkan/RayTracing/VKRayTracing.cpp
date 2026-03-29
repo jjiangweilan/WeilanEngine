@@ -106,7 +106,7 @@ RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
     return blasHandle;
 }
 
-RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform)
+RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform, uint32_t customIndex)
 {
     auto device = VKContext::Instance()->device;
     auto& blas = blasPool[mesh];
@@ -123,7 +123,7 @@ RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm:
 
     VkAccelerationStructureInstanceKHR instance{
         .transform = tm,
-        .instanceCustomIndex = 0,
+        .instanceCustomIndex = customIndex,
         .mask = 0xFF,
         .instanceShaderBindingTableRecordOffset = 0,
         .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,

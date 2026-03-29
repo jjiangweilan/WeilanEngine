@@ -22,7 +22,7 @@ public:
 
     RayTracingMeshHandle CreateBLAS(std::span<BlasGeometry> geometries);
 
-    RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform);
+    RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform, uint32_t customIndex);
 
     void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances);
 

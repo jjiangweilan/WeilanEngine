@@ -66,6 +66,11 @@ public:
         SetImage(ShaderBindingHandle(name), imageView);
     }
 
+    void SetAccelerationStructure(std::string_view name, int index, RayTracingContext* context, RayTracingSceneHandle scene)
+    {
+        SetAccelerationStructure(ShaderBindingHandle(name), index, context, scene);
+    }
+
 
     virtual ~ShaderResource(){};
 

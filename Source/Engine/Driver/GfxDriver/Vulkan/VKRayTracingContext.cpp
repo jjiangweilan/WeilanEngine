@@ -15,10 +15,10 @@ RayTracingMeshHandle VKRayTracingContext::CreateBLAS(std::span<BlasGeometry> geo
     return manager->CreateBLAS(geometries);
 }
 
-RayTracingInstanceHandle VKRayTracingContext::CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform)
+RayTracingInstanceHandle VKRayTracingContext::CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform, uint32_t customIndex)
 {
     std::scoped_lock lock(driverMutex);
-    return manager->CreateInstance(mesh, initialTransform);
+    return manager->CreateInstance(mesh, initialTransform, customIndex);
 }
 
 void VKRayTracingContext::BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances)

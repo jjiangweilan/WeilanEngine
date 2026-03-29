@@ -26,7 +26,7 @@ class RayTracingContext
 public:
     virtual RayTracingSceneHandle CreateScene(uint32_t maxInstanceCount) = 0;
     virtual RayTracingMeshHandle CreateBLAS(std::span<BlasGeometry> geometries) = 0;
-    virtual RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform) = 0;
+    virtual RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform, uint32_t customIndex) = 0;
     virtual void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances) = 0;
 
     virtual ~RayTracingContext() = default;

@@ -33,6 +33,8 @@ GfxFormat MapStringToGfxFormat(std::string_view name)
         return GfxFormat::R16G16B16A16_UNorm;
     else if (name == "R8G8B8A8_UNorm")
         return GfxFormat::R8G8B8A8_UNorm;
+    else if (name == "R8G8_UNorm")
+        return GfxFormat::R8G8_UNorm;
     else if (name == "B8G8R8A8_UNorm")
         return GfxFormat::B8G8R8A8_UNorm;
     else if (name == "B8G8R8A8_SRGB")
