@@ -151,7 +151,7 @@ private:
     void ChangeGameScreenResolution(glm::ivec2 resolution);
     void FocusOnObject(Camera& camera, GameObject& gameObject);
     Camera* GetCurrentlyActiveCamera();
-    void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed);
+    bool EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed);
     void RenderObjectToOutlineRT(Gfx::CommandBuffer& cmd, GameObject*& go, int colorType);
     void DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* sceneImage, const Gfx::ImageIdentifier* gameImage, const Gfx::ImageIdentifier* gameDepthImage);
 };

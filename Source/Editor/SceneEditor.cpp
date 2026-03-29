@@ -105,18 +105,20 @@ void SceneEditor::Init(EditorContext* editorContext)
     ChangeGameScreenResolution({256, 256});
 }
 
-void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
+bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
     // If the ImGui window is not hovered, exit the function
     if (!ImGui::IsWindowHovered())
-        return;
+        return false;
 
     // Get the mouse delta for the right mouse button
     auto mouseDelta = mouseTrack.GetMouseDelta(ImGuiMouseButton_Right);
     auto middleMouseDelta = middleMouseTrack.GetMouseDelta(ImGuiMouseButton_Middle);
     bool isMouseRightButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
     bool isMiddleButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
-    
+
+    bool moved = false;
+
     // Retrieve the game object associated with the editor camera
     auto go = editorCamera.GetGameObject();
     auto pos = go->GetPosition();
@@ -154,6 +156,7 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         float zoomSpeed = editorCameraSpeed * 0.5f;
         pos += forward * zoomSpeed * mouseWheel;
         go->SetPosition(pos);
+        moved = true;
     }
 
     if (isMouseRightButtonDown)
@@ -196,36 +199,48 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         }
 
         // Update the position of the game object
-        pos += dir;
-        go->SetPosition(pos);
+        if (glm::length2(dir) > 0.0f)
+        {
+            pos += dir;
+            go->SetPosition(pos);
+            moved = true;
+        }
 
         // Calculate camera rotation based on mouse movement
-        float pitchDelta = 25.0f * glm::radians(mouseDelta.y) * Time::DeltaTime();
-        float yawDelta = -25.0f * glm::radians(mouseDelta.x) * Time::DeltaTime();
+        if (glm::length2(mouseDelta) > 0.0f)
+        {
+            float pitchDelta = 25.0f * glm::radians(mouseDelta.y) * Time::DeltaTime();
+            float yawDelta = -25.0f * glm::radians(mouseDelta.x) * Time::DeltaTime();
 
-        glm::quat currentRot = go->GetRotation();
-        
-        // Pitch rotates around the local X axis (right)
-        glm::quat pitchQuat = glm::angleAxis(pitchDelta, glm::vec3(1.0f, 0.0f, 0.0f));
-        // Yaw rotates around the global Y axis (up)
-        glm::quat yawQuat = glm::angleAxis(yawDelta, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::quat currentRot = go->GetRotation();
 
-        // Applying yaw globally (left multiply) and pitch locally (right multiply)
-        go->SetRotation(glm::normalize(yawQuat * currentRot * pitchQuat));
+            // Pitch rotates around the local X axis (right)
+            glm::quat pitchQuat = glm::angleAxis(pitchDelta, glm::vec3(1.0f, 0.0f, 0.0f));
+            // Yaw rotates around the global Y axis (up)
+            glm::quat yawQuat = glm::angleAxis(yawDelta, glm::vec3(0.0f, 1.0f, 0.0f));
+
+            // Applying yaw globally (left multiply) and pitch locally (right multiply)
+            go->SetRotation(glm::normalize(yawQuat * currentRot * pitchQuat));
+            moved = true;
+        }
     }
     else if (isMiddleButtonDown)
     {
-        // Handle panning movement when the middle mouse button is held down
-        float panSpeed = editorCameraSpeed * 0.05f;
+        if (glm::length2(middleMouseDelta) > 0.0f)
+        {
+            // Handle panning movement when the middle mouse button is held down
+            float panSpeed = editorCameraSpeed * 0.05f;
 
-        pos = go->GetPosition();
-        
-        // middleMouseDelta x is right, y is down
-        // Moving mouse right should move camera left to "drag" the world
-        // Moving mouse down should move camera up
-        pos -= (go->GetRight() * (middleMouseDelta.x * panSpeed) + go->GetUp() * (middleMouseDelta.y * panSpeed));
-        
-        go->SetPosition(pos);
+            pos = go->GetPosition();
+
+            // middleMouseDelta x is right, y is down
+            // Moving mouse right should move camera left to "drag" the world
+            // Moving mouse down should move camera up
+            pos -= (go->GetRight() * (middleMouseDelta.x * panSpeed) + go->GetUp() * (middleMouseDelta.y * panSpeed));
+
+            go->SetPosition(pos);
+            moved = true;
+        }
     }
 
     if (!isMouseRightButtonDown)
@@ -236,6 +251,8 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     // Print the current position of the editor camera to the HUD
     pos = editorCamera.GetGameObject()->GetPosition();
     HudDebug::Print(fmt::format("{}, {}, {}", pos.x, pos.y, pos.z));
+
+    return moved;
 }
 
 void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
@@ -294,6 +311,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 
 bool SceneEditor::Tick()
 {
+    bool cameraDirty = false;
     auto scene = SceneManager::GetActiveScene();
     if (scene == nullptr)
         return false;
@@ -396,11 +414,14 @@ bool SceneEditor::Tick()
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
         {
             if (auto mainCam = editorCamera)
+            {
                 FocusOnObject(*mainCam, *go);
+                cameraDirty = true;
+            }
         }
     }
 
-    EditorCameraWalkAround(*editorCamera, editorCameraSpeed);
+    cameraDirty |= EditorCameraWalkAround(*editorCamera, editorCameraSpeed);
 
     // create scene color if it's null or if the window size is changed
     const auto contentMax = ImGui::GetWindowContentRegionMax();
@@ -647,6 +668,7 @@ bool SceneEditor::Tick()
                 view = glm::inverse(invView);
 
                 bool disableDragging = !activeViewGizmos;
+                auto viewBefore = view;
                 ImGuizmo::ViewManipulate(
                     &view[0][0],
                     distance,
@@ -656,10 +678,13 @@ bool SceneEditor::Tick()
                     disableDragging
                 );
 
-                invView = glm::inverse(view);
-                invView[2] = -invView[2];
-                view = glm::inverse(invView);
-                mainCam->SetViewMatrix(view);
+                if (cameraDirty || viewBefore != view)
+                {
+                    invView = glm::inverse(view);
+                    invView[2] = -invView[2];
+                    view = glm::inverse(invView);
+                    mainCam->SetViewMatrix(view);
+                }
 
                 // Projection mode toggle under the view gizmo
                 {
