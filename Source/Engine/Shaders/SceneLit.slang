@@ -118,7 +118,7 @@ FragmentOutput SceneLitFragment(VertexOutput input)
     {
         GpuObject objData = perScene.LoadData<GpuObject>(input.objectOffset);
         GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, input.renderDataIndex);
-        GPUMaterialData matData = perScene.LoadData<GPUMaterialData>(renderData.materialOffset);
+        GpuMaterial matData = perScene.LoadData<GpuMaterial>(renderData.materialOffset);
 
         baseColor = matData.baseColorFactor;
         if (matData.baseColorTexIndex != 0xFFFFFFFF)

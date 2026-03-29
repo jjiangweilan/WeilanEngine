@@ -21,7 +21,7 @@ struct SceneObjectAttributeData
 // Material data stored in globalBuffer for bindless GPU-driven rendering.
 // Texture fields are indices into globalTextures[].
 // 0xFFFFFFFF means no texture bound.
-struct GPUMaterialData
+struct GpuMaterial
 {
     float4 baseColorFactor;
     float4 emissive;
