@@ -882,7 +882,7 @@ void SceneEditor::RenderObjectToOutlineRT(Gfx::CommandBuffer& cmd, GameObject*& 
             memcpy(&ps.model, draw.GetPushConstant().data(), sizeof(float4x4));
             ps.color = float4(colorType);
 
-            cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&ps);
+            cmd.SetPushConstant(outlineRawColorPassShader->GetShaderProgram(), (void*)&ps);
             cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
         }
     }
