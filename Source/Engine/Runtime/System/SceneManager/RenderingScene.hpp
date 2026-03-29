@@ -210,16 +210,23 @@ public:
     Gfx::RayTracingSceneHandle GetRayTracingSceneHandle() { return rayTracingScene; }
 
     Gfx::RayTracingMeshHandle CreateBLAS(std::span<Gfx::BlasGeometry> geometries);
-    Gfx::RayTracingInstanceHandle CreateInstance(Gfx::RayTracingMeshHandle mesh, glm::float4x3 transform);
+    Gfx::RayTracingInstanceHandle CreateInstance(MeshRenderer* renderer, Gfx::RayTracingMeshHandle mesh, glm::float4x3 transform);
 
     void Tick();
 
 private:
+    struct RTInstance
+    {
+        Gfx::RayTracingInstanceHandle handle;
+        MeshRenderer* renderer;
+    };
+
     Scene* scene;
     RenderingObjectList renderingObjects;
     std::unique_ptr<Gfx::RayTracingContext> rayTracingContext;
     Gfx::RayTracingSceneHandle rayTracingScene = 0;
-    std::vector<Gfx::RayTracingInstanceHandle> rayTracingInstances;
+    std::vector<RTInstance> rayTracingInstances;
+    std::unique_ptr<Gfx::Buffer> rtObjectOffsetsBuffer;
     bool needsTLASRebuild = false;
 
     template <class T>

@@ -76,6 +76,7 @@ struct PerScene
 
     ByteAddressBuffer globalBuffer;
     StructuredBuffer<uint> gpuObjectOffsets;
+    StructuredBuffer<uint> rtObjectOffsets;
     Texture2D globalTextures[];
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }

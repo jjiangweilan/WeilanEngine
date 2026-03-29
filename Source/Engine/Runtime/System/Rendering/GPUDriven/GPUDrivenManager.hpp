@@ -162,6 +162,7 @@ public:
     void SetCameraBuffer(Gfx::Buffer* buffer);
     void SetMainLightShadowBuffer(Gfx::Buffer* buffer);
     void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
+    void SetRTObjectOffsetBuffer(Gfx::Buffer* buffer);
 
     void Deinit();
 

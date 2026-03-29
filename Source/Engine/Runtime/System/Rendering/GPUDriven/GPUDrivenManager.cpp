@@ -250,6 +250,11 @@ void GPUDrivenManager::SetObjectOffsetBuffer(Gfx::Buffer* buffer)
     globalDescriptorSet->SetBuffer("gpuObjectOffsets", buffer);
 }
 
+void GPUDrivenManager::SetRTObjectOffsetBuffer(Gfx::Buffer* buffer)
+{
+    globalDescriptorSet->SetBuffer("rtObjectOffsets", buffer);
+}
+
 // --- Lifecycle ---
 
 GPUDrivenManager& GPUDrivenManager::Instance()

@@ -375,7 +375,7 @@ void MeshRenderer::InitializeForRayTracing()
         auto meshHandle = renderingScene.CreateBLAS(geometries);
         rayTracingMesh = meshHandle;
 
-        auto instanceHandle = renderingScene.CreateInstance(meshHandle, worldMatrix);
+        auto instanceHandle = renderingScene.CreateInstance(this, meshHandle, worldMatrix);
         rayTracingInstance = instanceHandle;
 
         isRayTracingInitialized = true;

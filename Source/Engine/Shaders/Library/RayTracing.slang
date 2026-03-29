@@ -22,7 +22,7 @@ public struct RayHitVertexData
  */
 public RayHitVertexData GetHitVertexData(
     ByteAddressBuffer globalBuffer,
-    StructuredBuffer<uint> gpuObjectOffsets,
+    StructuredBuffer<uint> rtObjectOffsets,
     uint instanceID, 
     uint geometryIndex, 
     uint primitiveIndex, 
@@ -32,7 +32,7 @@ public RayHitVertexData GetHitVertexData(
     float3 bary3 = float3(1.0 - bary2.x - bary2.y, bary2.x, bary2.y);
 
     // 2. Locate the object and its render data
-    uint objectOffset = gpuObjectOffsets[instanceID];
+    uint objectOffset = rtObjectOffsets[instanceID];
     GpuObject obj = globalBuffer.Load<GpuObject>(objectOffset);
     
     // GeometryIndex maps directly to the array of render data for this object
