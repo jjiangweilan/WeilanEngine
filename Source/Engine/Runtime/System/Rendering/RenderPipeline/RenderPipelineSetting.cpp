@@ -15,7 +15,8 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(RenderPipelineSetting, frustumCull),
     TYPE_REFLECTION_MEM(RenderPipelineSetting, shadowFrustumCull),
     TYPE_REFLECTION_MEM(RenderPipelineSetting, debugDraw),
-    TYPE_REFLECTION_MEM(RenderPipelineSetting, ssil)
+    TYPE_REFLECTION_MEM(RenderPipelineSetting, ssil),
+    TYPE_REFLECTION_MEM(RenderPipelineSetting, rtgi)
 );
 
 DEFINE_SERIALIZATION(
@@ -29,6 +30,7 @@ DEFINE_SERIALIZATION(
     SER(frustumCull),
     SER(shadowFrustumCull),
     SER(ssil),
+    SER(rtgi),
     SER(debugDraw)
 )
 } // namespace Rendering

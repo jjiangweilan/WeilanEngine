@@ -148,5 +148,16 @@ public:
             SER(filter2DepthDiffSigma)
         )
     } ssil;
+
+    struct RTGI
+    {
+        bool enabled = false;
+        bool debug_rtgiOutput = false;
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(debug_rtgiOutput)
+        )
+    } rtgi;
 };
 } // namespace Rendering
