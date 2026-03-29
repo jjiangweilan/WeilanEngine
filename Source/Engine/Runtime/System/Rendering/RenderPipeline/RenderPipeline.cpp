@@ -38,6 +38,7 @@ RenderPipeline::RenderPipeline()
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     ssilPass = AddRenderPipelinePass<Passes::SSIL>();
+    rtgiPass = AddRenderPipelinePass<Passes::RTGI>();
     lightingCombinePass = AddRenderPipelinePass<Passes::LightingCombinePass>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
@@ -250,11 +251,34 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel(); // Shading
 
-    // ssil pass
+    // GI passes
+    const Gfx::ImageIdentifier* ssilOutput = nullptr;
+    const Gfx::ImageIdentifier* rtgiOutput = nullptr;
+
     if (setting->ssil.enabled)
     {
         ssilPass->Execute(cmd, colorCopy, hierarchyZBufferPass->GetOutputId(), albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
-        lightingCombinePass->Execute(cmd, ssilPass->GetOutputId(), albedoGBuffer, mainColor, renderingData);
+        ssilOutput = &ssilPass->GetOutputId();
+    }
+
+    if (setting->rtgi.enabled)
+    {
+        rtgiPass->Execute(
+            cmd,
+            hierarchyZBufferPass->GetOutputId(),
+            albedoGBuffer,
+            normalGBuffer,
+            setting.Get(),
+            renderingData,
+            scene.GetRenderingScene().GetRayTracingSceneHandle(),
+            scene.GetRenderingScene().GetRayTracingContext()
+        );
+        rtgiOutput = &rtgiPass->GetOutputId();
+    }
+
+    if (ssilOutput || rtgiOutput)
+    {
+        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, albedoGBuffer, mainColor, renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects

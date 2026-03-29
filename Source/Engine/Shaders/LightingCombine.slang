@@ -7,9 +7,10 @@ import WeilanEngine;
 struct Input
 {
     float2 texelSize;
-    float2 ssilTexelSize;
+    float4 flags; // x: hasSSIL, y: hasRTGI
 
     Texture2D ssil;
+    Texture2D rtgiTex;
     Texture2D albedoTex;
     [format("rgba16f")]
     RWTexture2D<float4> colorTex;
@@ -27,13 +28,21 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint2 coord = dispatchThreadID.xy;
 
     float2 uv = (float2(coord) + 0.5) * texelSize;
-    float3 ssil = input.ssil.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
     float3 albedo = input.albedoTex.Load(int3(coord, 0)).rgb;
-    
     float4 currentColor = input.colorTex[coord];
-    
-    // Add SSIL contribution (ssil * albedo)
-    float3 newColor = currentColor.rgb + (ssil * albedo);
-    
+    float3 newColor = currentColor.rgb;
+
+    if (input.flags.x > 0.5)
+    {
+        float3 ssil = input.ssil.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
+        newColor += (ssil * albedo);
+    }
+
+    if (input.flags.y > 0.5)
+    {
+        float3 rtgi = input.rtgiTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
+        newColor += rtgi; // RTGI is already modulated by albedo and direct light in the RTGI pass
+    }
+
     input.colorTex[coord] = float4(newColor, currentColor.a);
 }

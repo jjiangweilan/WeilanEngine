@@ -14,7 +14,8 @@ LightingCombinePass::LightingCombinePass()
 
 void LightingCombinePass::Execute(
     Gfx::CommandBuffer* cmd,
-    const Gfx::ImageIdentifier& ssil,
+    const Gfx::ImageIdentifier* ssil,
+    const Gfx::ImageIdentifier* rtgi,
     const Gfx::ImageIdentifier& albedoTex,
     const Gfx::ImageIdentifier& colorTex,
     RenderingData& renderingData
@@ -25,13 +26,37 @@ void LightingCombinePass::Execute(
     int width = renderingData.screenSize.x;
     int height = renderingData.screenSize.y;
 
-    auto ssilImg = GetGfxDriver()->GetImageFromRenderGraph(ssil);
-    mat.SetTexture("ssil", ssilImg);
-    mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
+    auto albedoImg = GetGfxDriver()->GetImageFromRenderGraph(albedoTex);
+    
+    int hasSSIL = 0;
+    if (ssil)
+    {
+        auto ssilImg = GetGfxDriver()->GetImageFromRenderGraph(*ssil);
+        mat.SetTexture("ssil", ssilImg);
+        hasSSIL = 1;
+    }
+    else
+    {
+        mat.SetTexture("ssil", albedoImg); // dummy
+    }
+
+    int hasRTGI = 0;
+    if (rtgi)
+    {
+        auto rtgiImg = GetGfxDriver()->GetImageFromRenderGraph(*rtgi);
+        mat.SetTexture("rtgiTex", rtgiImg);
+        hasRTGI = 1;
+    }
+    else
+    {
+        mat.SetTexture("rtgiTex", albedoImg); // dummy
+    }
+
+    mat.SetTexture("albedoTex", albedoImg);
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
 
     mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, 0.0f, 0.0f));
-    mat.SetVector("ssilTexelSize", glm::float4(1.0f / ssilImg->GetDescription().width, 1.0f / ssilImg->GetDescription().height, 0.0f, 0.0f));
+    mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, 0.0f, 0.0f));
 
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(0, mat.GetShaderResource());
