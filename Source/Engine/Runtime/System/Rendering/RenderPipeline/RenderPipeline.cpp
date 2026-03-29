@@ -16,6 +16,8 @@
 #include "Engine/Runtime/System/Rendering/RenderingUtils.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include <algorithm>
+#include <bit>
 
 using namespace Rendering::Passes;
 namespace Rendering
@@ -673,31 +675,16 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 {
     gpuObjectShaderGroups.clear();
     gpuObjectOffsets.clear();
+    flatDrawInfos.clear();
+    allIndirectCmds.clear();
+    allIndirectCmdsExtra.clear();
     renderingData.gpuDrivenIndirectDrawCount = 0;
 
     auto gpuRenderers = renderingScene.GetGPUObjectRenderers();
     if (gpuRenderers.empty())
         return;
 
-    // Group by shader program. For GPU-driven, we use the _GPUDriven feature variant.
-    struct DrawEntry
-    {
-        Gfx::ShaderProgram* shaderProgram;
-        Gfx::PipelineConfig config;
-    };
-
-    // matching the structure in BuildIndirectDraw.slang
-    struct DrawInfo
-    {
-        uint32_t indexCount;
-        uint32_t firstIndex;
-        uint32_t firstInstance;
-
-        const Gfx::PipelineConfig* config;
-        uint32_t objectOffset;
-    };
-    std::unordered_map<Gfx::ShaderProgram*, std::vector<DrawInfo>> gpuObjectShaderGroupsMap{};
-
+    // 1. Gather all draw commands into a flat array using direct material indexing
     for (auto* renderer : gpuRenderers)
     {
         if (!renderer || !renderer->IsActiveInScene())
@@ -705,62 +692,58 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 
         const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
         const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
-
-        auto meshes = renderer->GetMeshes();
         const auto& materials = renderer->GetMaterials();
 
         int renderDataListIndex = 0;
         for (const auto& renderData : gpuRenderDataListDescriptor.renderDataList)
         {
-            for (auto& mat : renderer->GetMaterials())
+            if (renderDataListIndex < materials.size())
             {
+                auto& mat = materials[renderDataListIndex];
                 if (mat)
                 {
-                    if (mat->GetShaderProgram()->GetShaderID() == renderData.shaderID)
-                    {
-                        auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
-                        auto& groups = gpuObjectShaderGroupsMap[mat->GetShaderProgram()];
+                    auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
 
-                        groups.push_back(DrawInfo{
-                            .indexCount = geometryDescriptor.geometry.indexCount,
-                            .firstIndex = static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)),
-                            .firstInstance = static_cast<uint32_t>(renderDataListIndex),
-                            .config = &mat->GetShaderConfig(),
-                            .objectOffset = static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)
-                            });
-                    }
+                    flatDrawInfos.push_back({mat->GetShaderProgram(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
                 }
             }
-
             renderDataListIndex += 1;
         }
     }
 
-    std::vector<DrawIndexedIndirectCommand> allIndirectCmds{};
-    std::vector<uint32_t> allIndirectCmdsExtra{};
+    if (flatDrawInfos.empty())
+        return;
 
-    uint32_t currentDrawIndex = 0;
-    for (auto& [shaderProgram, drawCommands] : gpuObjectShaderGroupsMap)
+    // 2. Sort the flat array by ShaderProgram pointer to group them together
+    std::sort(flatDrawInfos.begin(), flatDrawInfos.end(), [](const FlatDrawInfo& a, const FlatDrawInfo& b)
+              { return a.shaderProgram < b.shaderProgram; });
+
+    // 3. Build the indirect command buffers and shader groups in a single pass
+    Gfx::ShaderProgram* currentShader = nullptr;
+    uint32_t currentGroupStart = 0;
+
+    for (size_t i = 0; i < flatDrawInfos.size(); ++i)
     {
-        for (auto& cmd : drawCommands)
+        const auto& info = flatDrawInfos[i];
+
+        if (info.shaderProgram != currentShader)
         {
-            allIndirectCmds.push_back({
-                .indexCount = cmd.indexCount,
-                .instanceCount = 1,
-                .firstIndex = cmd.firstIndex,
-                .vertexOffset = 0,
-                .firstInstance = cmd.firstInstance });
-            allIndirectCmdsExtra.push_back(cmd.objectOffset);
+            if (currentShader != nullptr)
+            {
+                gpuObjectShaderGroups.push_back({currentShader, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart)});
+            }
+            currentShader = info.shaderProgram;
+            currentGroupStart = static_cast<uint32_t>(i);
         }
 
-        gpuObjectShaderGroups.push_back({shaderProgram, currentDrawIndex, static_cast<uint32_t>(drawCommands.size())});
-        currentDrawIndex += drawCommands.size();
+        allIndirectCmds.push_back({.indexCount = info.indexCount, .instanceCount = 1, .firstIndex = info.firstIndex, .vertexOffset = 0, .firstInstance = info.firstInstance});
+        allIndirectCmdsExtra.push_back(info.objectOffset);
     }
 
-    if (allIndirectCmds.empty())
+    // Push the final group
+    if (currentShader != nullptr)
     {
-        renderingData.gpuDrivenIndirectDrawCount = 0;
-        return;
+        gpuObjectShaderGroups.push_back({currentShader, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart)});
     }
 
     // Upload indirect commands to buffer
@@ -796,7 +779,7 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
     renderingData.gpuDrivenIndirectBuffer = indirectCommandBuffer.get();
     renderingData.gpuDrivenIndirectDrawCount = static_cast<uint32_t>(allIndirectCmds.size());
 }
- 
+
 void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
 {
     if (gpuObjectShaderGroups.empty() || !indirectCommandBuffer)

@@ -1,5 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
+import Library.RayTracing;
 import Math;
 
 #if CONFIG
@@ -66,17 +67,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         lightDir = normalize(perScene.scene.lights[0].position.xyz - positionWS.xyz);
     }
 
-    RayDesc ray;
-    ray.Origin = positionWS.xyz + lightDir * 0.01; // Offset to avoid acne
-    ray.Direction = lightDir;
-    ray.TMin = 0.001;
-    ray.TMax = 10000.0;
-
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-    q.TraceRayInline(perMaterial.sceneBVH, RAY_FLAG_NONE, 0xFF, ray);
-    q.Proceed();
-
-    if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    float3 rayOrigin = positionWS.xyz + lightDir * 0.01;
+    if (TraceVisibilityRay(perMaterial.sceneBVH, rayOrigin, lightDir))
     {
         return float4(0, 0, 0, 1); // Shadow
     }

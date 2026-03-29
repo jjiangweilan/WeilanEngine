@@ -152,10 +152,10 @@ void MeshRenderer::RemoveFromRenderingScene()
 
 void MeshRenderer::OnEnable()
 {
-    AddToRenderingScene();
-
     if (isGPUObject)
         RegisterGPUSceneObjects();
+    else
+        AddToRenderingScene();
 
     InitializeForRayTracing();
 }
@@ -164,8 +164,8 @@ void MeshRenderer::OnDisable()
 {
     if (isGPUObject)
         UnregisterGPUSceneObjects();
-
-    RemoveFromRenderingScene();
+    else
+        RemoveFromRenderingScene();
 }
 
 AABB MeshRenderer::GetAABB()
@@ -402,9 +402,15 @@ void MeshRenderer::SetGPUObject(bool enabled)
     if (IsEnabled())
     {
         if (isGPUObject)
+        {
+            RemoveFromRenderingScene();
             RegisterGPUSceneObjects();
+        }
         else
+        {
+            AddToRenderingScene();
             UnregisterGPUSceneObjects();
+        }
     }
 }
 

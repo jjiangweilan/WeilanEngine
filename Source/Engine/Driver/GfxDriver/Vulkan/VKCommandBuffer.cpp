@@ -1,4 +1,5 @@
 #include "VKCommandBuffer.hpp"
+#include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKRenderPass.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKShaderProgram.hpp"
@@ -444,6 +445,8 @@ void VKCommandBuffer::BeginLabel(std::string_view label, const glm::float4& colo
         beginLabelStarted = false;
         return;
     }
+
+    ENGINE_BEGIN_PROFILE(label);
     VKBeginLabelCmd cmd{};
     currentLabel = label;
 
@@ -455,6 +458,8 @@ void VKCommandBuffer::BeginLabel(std::string_view label, const glm::float4& colo
 
 void VKCommandBuffer::BeginLabel(std::string_view label, float color[4])
 {
+    ENGINE_BEGIN_PROFILE(label);
+
     VKBeginLabelCmd cmd{};
 
     cmd.label = std::string(label);
@@ -464,6 +469,8 @@ void VKCommandBuffer::BeginLabel(std::string_view label, float color[4])
 }
 void VKCommandBuffer::EndLabel()
 {
+    ENGINE_END_PROFILE;
+
     VKCmd cmd{VKCmdType::EndLabel};
 
     cmds.push_back(cmd);

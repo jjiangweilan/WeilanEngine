@@ -111,11 +111,6 @@ class RenderPipeline
         uint32_t firstDrawIndex = 0; // offset into indirectCommands
         uint32_t drawCount = 0;
     };
-    std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
-    std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
-    std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
-    std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
-    uint32_t indirectCommandBufferCapacity = 0;
 
     struct DrawIndexedIndirectCommand
     {
@@ -125,6 +120,24 @@ class RenderPipeline
         int32_t vertexOffset;
         uint32_t firstInstance;
     };
+
+    struct FlatDrawInfo
+    {
+        Gfx::ShaderProgram* shaderProgram;
+        uint32_t indexCount;
+        uint32_t firstIndex;
+        uint32_t firstInstance;
+        uint32_t objectOffset;
+    };
+
+    std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
+    std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
+    std::vector<FlatDrawInfo> flatDrawInfos;
+    std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
+    std::vector<uint32_t> allIndirectCmdsExtra;
+    std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
+    std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
+    uint32_t indirectCommandBufferCapacity = 0;
 
     void BuildGPUObjectDrawData(RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt);
