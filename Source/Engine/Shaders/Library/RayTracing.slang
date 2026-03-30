@@ -36,7 +36,7 @@ public RayHitVertexData GetHitVertexData(
     GpuObject obj = globalBuffer.Load<GpuObject>(objectOffset);
     
     // GeometryIndex maps directly to the array of render data for this object
-    uint renderDataOffset = obj.pRenderDataOffset + geometryIndex * 16; // GpuRenderData is 16 bytes
+    uint renderDataOffset = obj.pRenderDataOffset + geometryIndex * sizeof(GpuRenderData); // GpuRenderData is 16 bytes
     GpuRenderData renderData = globalBuffer.Load<GpuRenderData>(renderDataOffset);
     
     // Load the geometry header which contains offsets for indices and vertices
@@ -84,7 +84,7 @@ public bool TraceVisibilityRay(
     ray.TMax = tMax;
 
     RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-    q.TraceRayInline(bvh, RAY_FLAG_NONE, 0xFF, ray);
+    q.TraceRayInline(bvh, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
     q.Proceed();
 
     return q.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
