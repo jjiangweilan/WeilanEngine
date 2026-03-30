@@ -534,6 +534,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
 
     // update scene parameters
     sceneParam.time = Time::TimeSinceLaunch();
+    sceneParam.frameIndex = static_cast<float>(frameIndex++);
     {
         Light* mainLight = nullptr;
         ENGINE_BEGIN_PROFILE("Get Active Lights")
@@ -728,7 +729,7 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
                 {
                     auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
 
-                    flatDrawInfos.push_back({mat->GetShaderProgram(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
+                    flatDrawInfos.push_back({mat->GetShaderProgram(), &mat->GetShaderConfig(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
                 }
             }
             renderDataListIndex += 1;
@@ -740,23 +741,25 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 
     // 2. Sort the flat array by ShaderProgram pointer to group them together
     std::sort(flatDrawInfos.begin(), flatDrawInfos.end(), [](const FlatDrawInfo& a, const FlatDrawInfo& b)
-              { return a.shaderProgram < b.shaderProgram; });
+              { return std::tie(a.shaderProgram, a.pipelineConfig) < std::tie(a.shaderProgram, b.pipelineConfig); });
 
     // 3. Build the indirect command buffers and shader groups in a single pass
     Gfx::ShaderProgram* currentShader = nullptr;
+    const Gfx::PipelineConfig* currentConfig = nullptr;
     uint32_t currentGroupStart = 0;
 
     for (size_t i = 0; i < flatDrawInfos.size(); ++i)
     {
         const auto& info = flatDrawInfos[i];
 
-        if (info.shaderProgram != currentShader)
+        if (info.shaderProgram != currentShader || info.pipelineConfig != currentConfig)
         {
-            if (currentShader != nullptr)
+            if (currentShader != nullptr && currentConfig != nullptr)
             {
-                gpuObjectShaderGroups.push_back({currentShader, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart)});
+                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart)});
             }
             currentShader = info.shaderProgram;
+            currentConfig = info.pipelineConfig;
             currentGroupStart = static_cast<uint32_t>(i);
         }
 
@@ -767,7 +770,7 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
     // Push the final group
     if (currentShader != nullptr)
     {
-        gpuObjectShaderGroups.push_back({currentShader, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart)});
+        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart)});
     }
 
     // Upload indirect commands to buffer
@@ -813,13 +816,13 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
     {
         if (polygonModeOverride.has_value())
         {
-            auto modifiedConfig = *group.shaderProgram->GetDefaultShaderConfig();
+            auto modifiedConfig = **group.pipelineConfig;
             modifiedConfig.polygonMode = polygonModeOverride.value();
             cmd.BindShaderProgram(group.shaderProgram, modifiedConfig);
         }
         else
         {
-            cmd.BindShaderProgram(group.shaderProgram, group.shaderProgram->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(group.shaderProgram, *group.pipelineConfig);
         }
 
         struct Data
