@@ -9,6 +9,7 @@ ContactShadowPass::ContactShadowPass()
 {
     shader = ShaderLibrary::GetShader(Shaders::ContactShadow);
     mat.SetShader(shader);
+    outputID = *EngineInternalResources::GetWhiteTexture().GetGfxImage();
 }
 
 Gfx::ImageIdentifier& ContactShadowPass::GetOutputId()
