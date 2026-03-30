@@ -26,8 +26,10 @@ RenderPipeline::RenderPipeline()
 {
     particleRenderer = std::make_unique<ParticleRenderer>();
     shadowRenderer = std::make_unique<ShadowRenderer>();
+    pointLightShadowRenderer = std::make_unique<PointLightShadowRenderer>();
     fogPass = std::make_unique<Passes::FogPass>();
     shadowRenderer->Init();
+    pointLightShadowRenderer->Init();
 
     reflectionProbeUpdate = AddRenderPipelinePass<ReflectionProbeUpdate>();
     shadingPass = AddRenderPipelinePass<Passes::ShadingPass>();
@@ -48,6 +50,7 @@ RenderPipeline::RenderPipeline()
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
+    renderingData.gpuObjectShaderGroups = &gpuObjectShaderGroups;
 
     Gfx::SubpassAttachment skyboxOnlyPassAttachment[] = {
         {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
@@ -131,6 +134,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     shadowRenderer->Execute(*cmd, renderingData);
     ENGINE_END_PROFILE; // Shadow
 
+    // Point Light Shadow Pass
+    if (renderingData.pointLightShadowIndex >= 0)
+    {
+        auto pointLight = renderingData.lights[renderingData.pointLightShadowIndex];
+        pointLightShadowRenderer->Setup(*pointLight, renderingData);
+        pointLightShadowRenderer->Execute(*cmd, renderingData);
+    }
+
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);
     {
@@ -211,11 +222,30 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         cmd->BindResource(0, perScene.GetGlobalResource());
         // Upload GPU Parameter
-        shadingPass->UploadGPUParameter(
-            shadowRenderer->GetShadowMapTexelSize(),
-            setting->shadowMap.constantBias / 1000.0f,
-            setting->shadowMap.normalBias
-        );
+        {
+            int plShadowIdx = -1;
+            float plFarPlane = 0.0f;
+            float plDepthBias = 0.0f;
+            glm::vec3 plLightPos = {0, 0, 0};
+
+            if (renderingData.pointLightShadowIndex >= 0)
+            {
+                plShadowIdx = renderingData.pointLightShadowIndex;
+                plFarPlane = pointLightShadowRenderer->GetFarPlane();
+                plDepthBias = pointLightShadowRenderer->GetDepthBias();
+                plLightPos = pointLightShadowRenderer->GetLightPosition();
+            }
+
+            shadingPass->UploadGPUParameter(
+                shadowRenderer->GetShadowMapTexelSize(),
+                setting->shadowMap.constantBias / 1000.0f,
+                setting->shadowMap.normalBias,
+                plShadowIdx,
+                plFarPlane,
+                plDepthBias,
+                plLightPos
+            );
+        }
 
         cmd->Blit(mainDepth, depthCopy);
 
@@ -242,6 +272,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             &contactShadowPass->GetOutputId(),
             diffuseCube,
             specularCube,
+            renderingData.pointLightShadowIndex >= 0 ? pointLightShadowRenderer->GetShadowCubemapView() : nullptr,
             renderingData
         );
 
@@ -541,6 +572,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         ENGINE_BEGIN_PROFILE("Get Active Lights")
         renderingData.lights = scene.GetActiveLights();
         renderingData.mainLightIndex = -1;
+        renderingData.pointLightShadowIndex = -1;
         ENGINE_END_PROFILE
         auto& lights = renderingData.lights;
 
@@ -570,8 +602,15 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                     {
                         glm::vec3 pos = model[3];
                         sceneParam.lights[i].position = {pos, 1};
+                        sceneParam.lights[i].range = lights[i]->GetRange();
                         sceneParam.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
                         sceneParam.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
+
+                        // track first point light with shadow enabled
+                        if (renderingData.pointLightShadowIndex < 0 && lights[i]->IsPointLightShadowEnabled())
+                        {
+                            renderingData.pointLightShadowIndex = i;
+                        }
                         break;
                     }
             }
@@ -729,8 +768,8 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
                 if (mat)
                 {
                     auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
-
-                    flatDrawInfos.push_back({mat->GetShaderProgram(), &mat->GetShaderConfig(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
+                    auto& config = mat->GetShaderConfig();
+                    flatDrawInfos.push_back({mat->GetShaderProgram(), &config, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
                 }
             }
             renderDataListIndex += 1;
@@ -742,18 +781,19 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
 
     // 2. Sort the flat array by ShaderProgram pointer to group them together
     std::sort(flatDrawInfos.begin(), flatDrawInfos.end(), [](const FlatDrawInfo& a, const FlatDrawInfo& b)
-              { return std::tie(a.shaderProgram, a.pipelineConfig) < std::tie(a.shaderProgram, b.pipelineConfig); });
+              { return std::tie(a.shaderProgram, a.pipelineConfigHash) < std::tie(a.shaderProgram, b.pipelineConfigHash); });
 
     // 3. Build the indirect command buffers and shader groups in a single pass
     Gfx::ShaderProgram* currentShader = nullptr;
     const Gfx::PipelineConfig* currentConfig = nullptr;
+    size_t currentConfigHash = 0;
     uint32_t currentGroupStart = 0;
 
     for (size_t i = 0; i < flatDrawInfos.size(); ++i)
     {
         const auto& info = flatDrawInfos[i];
 
-        if (info.shaderProgram != currentShader || info.pipelineConfig != currentConfig)
+        if (info.shaderProgram != currentShader || info.pipelineConfigHash != currentConfigHash)
         {
             if (currentShader != nullptr && currentConfig != nullptr)
             {
@@ -761,6 +801,7 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
             }
             currentShader = info.shaderProgram;
             currentConfig = info.pipelineConfig;
+            currentConfigHash = currentConfig != nullptr ? currentConfig->GetHash() : 0;
             currentGroupStart = static_cast<uint32_t>(i);
         }
 

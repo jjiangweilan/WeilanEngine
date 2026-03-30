@@ -116,3 +116,20 @@ float GetShadowAttenuation(float3 objPos, float3 objNormal, float shadowBias, fl
     return primaryShadow;
 }
 
+float GetPointLightShadowAttenuation(
+    float3 objPos,
+    float3 lightPos,
+    float farPlane,
+    float depthBias,
+    TextureCube shadowCubemap,
+    SamplerComparisonState shadowSampler)
+{
+    float3 fragToLight = objPos - lightPos;
+    // Standard linear depth: stored = d_occ/far, ref = d_frag/far - bias
+    // GREATER_OR_EQUAL: stored >= ref → lit (occluder at or beyond fragment)
+    float dist = length(fragToLight);
+    float ref = (dist / farPlane - depthBias);
+    ref = 1  - clamp(ref, 0.0f, 1.0f);
+    float result = shadowCubemap.SampleCmpLevelZero(shadowSampler, normalize(fragToLight), ref);
+    return result;
+}

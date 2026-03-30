@@ -37,6 +37,7 @@ void ShadingPass::Execute(
     Gfx::ImageIdentifier* contactShadowMap,
     Gfx::ImageView* diffuseCube,
     Gfx::ImageView* specularCube,
+    Gfx::ImageView* pointLightShadowMap,
     RenderingData& renderingData
 )
 {
@@ -53,6 +54,8 @@ void ShadingPass::Execute(
         gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube);
     if (specularCube)
         gpuResource->SetImage("specularCube"_shaderBinding, specularCube);
+    if (pointLightShadowMap)
+        gpuResource->SetImage("pointLightShadowMap"_shaderBinding, pointLightShadowMap);
 
     cmd.BindResource(1, gpuResource.get());
     cmd.BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
@@ -62,13 +65,20 @@ void ShadingPass::Execute(
 void ShadingPass::UploadGPUParameter(
     float4 shadowMapTexelSize,
     float shadowConstantBias,
-    float shadowNormalBias
+    float shadowNormalBias,
+    int pointLightShadowLightIndex,
+    float pointLightShadowFarPlane,
+    float pointLightShadowDepthBias,
+    glm::vec3 pointLightShadowLightPos
 )
 {
     cpuParameter = GPUParameter::DeferredPBRShadingInput{
         .shadowMapTexelSize = shadowMapTexelSize,
         .shadowConstantBias = shadowConstantBias,
-        .shadowNormalBias = shadowNormalBias
+        .shadowNormalBias = shadowNormalBias,
+        .pointLightShadowLightIndex = pointLightShadowLightIndex,
+        .pointLightShadowFarPlane = pointLightShadowFarPlane,
+        .pointLightShadowLightPosAndBias = {pointLightShadowLightPos.x, pointLightShadowLightPos.y, pointLightShadowLightPos.z, pointLightShadowDepthBias}
     };
 
     GetGfxDriver()->UploadBuffer(

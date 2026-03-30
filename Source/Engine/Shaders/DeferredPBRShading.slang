@@ -65,6 +65,8 @@ struct DeferredInput
     SamplerState sampler_point_clamp;
     SamplerState sampler_linear_clamp;
     SamplerComparisonState samplerShadow_clamp;
+    SamplerComparisonState samplerShadow;
+    TextureCube pointLightShadowMap;
 }
 
 ParameterBlock<PerScene> perScene;
@@ -157,6 +159,15 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 
     // Add direct lightings
     float3 color = float3(0, 0, 0);
+
+    PointLightShadowData pointLightShadowData;
+    pointLightShadowData.shadowMap = perMaterial.pointLightShadowMap;
+    pointLightShadowData.shadowSampler = perMaterial.samplerShadow;
+    pointLightShadowData.lightIndex = perMaterial.input.pointLightShadowLightIndex;
+    pointLightShadowData.farPlane = perMaterial.input.pointLightShadowFarPlane;
+    pointLightShadowData.depthBias = perMaterial.input.pointLightShadowLightPosAndBias.w;
+    pointLightShadowData.lightPosition = perMaterial.input.pointLightShadowLightPosAndBias.xyz;
+
     for (int i = 0; i < perScene.scene.lightCount; ++i)
     {
         color += StandardLightShading(
@@ -165,7 +176,9 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         input.uv,
         perScene.scene.lights[i],
         perScene.camera,
-        perScene.mainLightShadow, shadingObject, mainLightShadowData, gi, perMaterial.contactShadowMap);
+        perScene.mainLightShadow, shadingObject, mainLightShadowData, gi, perMaterial.contactShadowMap,
+        i,
+        pointLightShadowData);
     }
 
     // IBL

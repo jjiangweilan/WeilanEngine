@@ -171,6 +171,16 @@ float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic,
     return brdf;
 }
 
+struct PointLightShadowData
+{
+    TextureCube shadowMap;
+    SamplerComparisonState shadowSampler;
+    int   lightIndex;
+    float farPlane;
+    float depthBias;
+    float3 lightPosition;
+};
+
 float3 StandardLightShading_DirectLightOnly(
         SamplerState linearClamp,
         SamplerState pointClamp,
@@ -217,7 +227,9 @@ float3 StandardLightShading(
         ShadingObject object,
         MainLightShadowData mainLightShadowData,
         GI gi,
-        Texture2D contactShadowMap)
+        Texture2D contactShadowMap,
+        int lightIndex,
+        PointLightShadowData pointLightShadowData)
 {
         float4 lightPos = light.position;
         float3 objPos = object.positionWS;
@@ -239,9 +251,18 @@ float3 StandardLightShading(
         if (lightPos.a != 0) 
         {
             falloff = PointLightInverseSquareFalloff(distance(lightPos.xyz, object.positionWS.xyz),  light.pointLightTerm2);
+
+            // point light shadow
+            if (lightIndex == pointLightShadowData.lightIndex && pointLightShadowData.farPlane > 0)
+            {
+                falloff *= GetPointLightShadowAttenuation(
+                    objPos, pointLightShadowData.lightPosition,
+                    pointLightShadowData.farPlane, pointLightShadowData.depthBias,
+                    pointLightShadowData.shadowMap, pointLightShadowData.shadowSampler);
+            }
         }
 
-        float3 lighting = inputLight * (kd * object.baseColor / M_PI * gi.ao + specularBrdf) * falloff; // this looks wrong for metal, metal shouldn't diffuse too much
+        float3 lighting = inputLight * (kd * object.baseColor / M_PI * gi.ao + specularBrdf) * falloff;// this looks wrong for metal, metal shouldn't diffuse too much
         // possible solution https://bruop.github.io/ibl/
         // const float DIELECTRIC_SPECULAR = 0.04;
         // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)

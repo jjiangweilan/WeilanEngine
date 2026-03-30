@@ -1,6 +1,6 @@
 #pragma once
-#include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include "Engine/Runtime/System/Rendering/DrawList.hpp"
 #include "Engine/Runtime/System/Rendering/GPUParameter.hpp"
 #include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
@@ -44,6 +44,15 @@ private:
     mutable Material blueNoiseMat;
 };
 
+// GPU-Driven indirect draw
+struct GPUObjectShaderGroup
+{
+    Gfx::ShaderProgram* shaderProgram = nullptr;
+    const Gfx::PipelineConfig* pipelineConfig = nullptr;
+    uint32_t firstDrawIndex = 0; // offset into indirectCommands
+    uint32_t drawCount = 0;
+};
+
 struct RenderingData
 {
     PipelineGPUBufferAllocator* pipelineAllocator;
@@ -62,12 +71,15 @@ struct RenderingData
     Gfx::Image* specularCubemap;
     std::vector<Light*> lights{};
     int mainLightIndex;
+    int pointLightShadowIndex = -1;
     float2 screenSize;
     float screenAspect;
     InterleavedGradientNoise interleavedGradientNoise;
     BlueNoise blueNoise;
     PerScene* perScene;
     Gfx::ShaderResource* globalResource;
+
+    std::vector<GPUObjectShaderGroup>* gpuObjectShaderGroups;
     Gfx::Buffer* gpuDrivenIndirectBuffer = nullptr;
     uint32_t gpuDrivenIndirectDrawCount = 0;
 

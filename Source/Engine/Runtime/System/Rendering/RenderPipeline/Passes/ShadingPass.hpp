@@ -26,13 +26,18 @@ public:
         Gfx::ImageIdentifier* contactShadowMap,
         Gfx::ImageView* diffuseCube,
         Gfx::ImageView* specularCube,
+        Gfx::ImageView* pointLightShadowMap,
         RenderingData& renderingData
     );
 
     void UploadGPUParameter(
         float4 shadowMapTexelSize,
         float shadowConstantBias,
-        float shadowNormalBias
+        float shadowNormalBias,
+        int pointLightShadowLightIndex,
+        float pointLightShadowFarPlane,
+        float pointLightShadowDepthBias,
+        glm::vec3 pointLightShadowLightPos
     );
 
     void OnInit(RenderingData* renderingData) override;

@@ -27,6 +27,7 @@
                          Do(PostProcess_HierarchyZBuffer_Downsample, "HierarchyZBuffer_Downsample"),         \
                          Do(ShadowMapObject, "ShadowMapObject"),                                             \
                          Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                               \
+                         Do(PointLightShadowMapObject, "PointLightShadowMapObject"),                         \
                          Do(ScreenSpaceShadow, "ScreenSpaceShadow"), Do(FXAA, "FXAA"),                       \
                          Do(PrimitiveShape, "PrimitiveShape"),                                               \
                          Do(SimpleForwardLit, "SimpleForwardLit"),                                           \

@@ -10,6 +10,7 @@
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/PointLightShadowRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ShadowRenderer.hpp"
 #include "Passes/BloomPass.hpp"
 #include "Passes/CloudPass.hpp"
@@ -58,6 +59,7 @@ class RenderPipeline
 {
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
+    std::unique_ptr<PointLightShadowRenderer> pointLightShadowRenderer;
     std::unique_ptr<Passes::FogPass> fogPass;
 
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
@@ -105,15 +107,6 @@ class RenderPipeline
 
     std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 
-    // GPU-Driven indirect draw
-    struct GPUObjectShaderGroup
-    {
-        Gfx::ShaderProgram* shaderProgram = nullptr;
-        const Gfx::PipelineConfig* pipelineConfig = nullptr;
-        uint32_t firstDrawIndex = 0; // offset into indirectCommands
-        uint32_t drawCount = 0;
-    };
-
     struct DrawIndexedIndirectCommand
     {
         uint32_t indexCount;
@@ -127,6 +120,7 @@ class RenderPipeline
     {
         Gfx::ShaderProgram* shaderProgram;
         const Gfx::PipelineConfig* pipelineConfig;
+        size_t pipelineConfigHash;
         uint32_t indexCount;
         uint32_t firstIndex;
         uint32_t firstInstance;
