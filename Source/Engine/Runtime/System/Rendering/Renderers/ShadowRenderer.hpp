@@ -44,5 +44,7 @@ private:
 
     const float shadowMapWidth = 4096.0f;
     const glm::float4 shadowMapTexelSize = {1 / shadowMapWidth, 1 / shadowMapWidth, shadowMapWidth, shadowMapWidth};
+
+    void ResetShadowmap(float shadowMapSizeScale, int cascadeCount);
 };
 } // namespace Rendering

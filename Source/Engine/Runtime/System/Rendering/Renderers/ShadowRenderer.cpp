@@ -17,6 +17,8 @@ void ShadowRenderer::Init()
     shadowMapShader = ShaderLibrary::GetShader(Shaders::ShadowMapObject);
     shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
     shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven"});
+
+    ResetShadowmap(1.0f, 4);
 }
 
 void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
@@ -37,28 +39,33 @@ void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
 
     if (reconfigShadowMap || shadowMap == nullptr)
     {
-        shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z * shadowMapSizeScale, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
+        ResetShadowmap(shadowMapSizeScale, cascadeCount);
+    }
+}
 
-        shadowMap = GetGfxDriver()->CreateImage(
-            shadowDescription,
-            Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
+void ShadowRenderer::ResetShadowmap(float shadowMapSizeScale, int cascadeCount)
+{
+    shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z * shadowMapSizeScale, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
+
+    shadowMap = GetGfxDriver()->CreateImage(
+        shadowDescription,
+        Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
+    );
+    shadowMapId = *shadowMap;
+
+    pass.SetAttachment(0, shadowMapId);
+
+    for (int i = 0; i < cascadeCount; ++i)
+    {
+        auto cascadeBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::ShadowPass), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst);
+        cascadeBuffers.push_back(std::move(cascadeBuffer));
+
+        GPUParameter::ShadowPass shadowPass{(float)i};
+        GetGfxDriver()->UploadBuffer(
+            *cascadeBuffers[i],
+            (uint8_t*)&shadowPass,
+            sizeof(GPUParameter::ShadowPass)
         );
-        shadowMapId = *shadowMap;
-
-        pass.SetAttachment(0, shadowMapId);
-
-        for (int i = 0; i < cascadeCount; ++i)
-        {
-            auto cascadeBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::ShadowPass), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst);
-            cascadeBuffers.push_back(std::move(cascadeBuffer));
-
-            GPUParameter::ShadowPass shadowPass{(float)i};
-            GetGfxDriver()->UploadBuffer(
-                *cascadeBuffers[i],
-                (uint8_t*)&shadowPass,
-                sizeof(GPUParameter::ShadowPass)
-            );
-        }
     }
 }
 
@@ -204,25 +211,28 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
 
                     if (renderingData.gpuDrivenIndirectBuffer && renderingData.gpuDrivenIndirectDrawCount > 0)
                     {
-                        auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
-                        cmd.BindShaderProgram(programGPUDriven, programGPUDriven->GetDefaultShaderConfig());
-
-                        // Bind global index buffer for GPU-driven rendering
-                        cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
-
-                        // Set push constant for GPU-driven draw
-                        struct PushConstant
+                        for (auto& group : *renderingData.gpuObjectShaderGroups)
                         {
-                            uint32_t firstGpuObjectOffset;
-                        } pconst = { 0 }; // Currently we only have one group for all GPU objects
-                        cmd.SetPushConstant(programGPUDriven, &pconst);
+                            auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
+                            cmd.BindShaderProgram(programGPUDriven, *group.pipelineConfig);
 
-                        cmd.DrawIndexedIndirect(
-                            renderingData.gpuDrivenIndirectBuffer,
-                            0,
-                            renderingData.gpuDrivenIndirectDrawCount,
-                            20 // sizeof(DrawIndexedIndirectCommand)
-                        );
+                            // Bind global index buffer for GPU-driven rendering
+                            cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
+
+                            // Set push constant for GPU-driven draw
+                            struct PushConstant
+                            {
+                                uint32_t firstGpuObjectOffset;
+                            } pconst = {group.firstDrawIndex}; // Currently we only have one group for all GPU objects
+                            cmd.SetPushConstant(programGPUDriven, &pconst);
+
+                            cmd.DrawIndexedIndirect(
+                                renderingData.gpuDrivenIndirectBuffer,
+                                group.firstDrawIndex * 20,
+                                group.drawCount,
+                                20 // sizeof(DrawIndexedIndirectCommand)
+                            );
+                        }
                     }
                 }
                 cmd.EndRenderPass();

@@ -39,6 +39,15 @@ struct GpuGeometry
     uint32_t indexOffset;
     uint32_t positionOffset;
     uint32_t attributeOffset;
+
+    uint32_t attributeStride;
+    uint32_t attributeFlags;
+    uint32_t padding0;
+    uint32_t padding1;
+
+    static uint32_t GetNormalBit() { return 0x1; }
+    static uint32_t GetTangentBit() { return 0x2; }
+    static uint32_t GetHasUVBit() { return 0x4; }
 };
 
 struct GpuRenderData

@@ -69,6 +69,19 @@ public:
         return false;
     }
 
+    bool HasSemantics(VertexAttributeSemantics semantic, int index) const
+    {
+        for (auto& a : attributes)
+        {
+            if (a.semanticName == semantic && a.semanticIndex == index)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 private:
     std::vector<Attribute> attributes;
     mutable uint64_t hash = 0;
