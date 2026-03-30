@@ -29,6 +29,7 @@ class Light : public Component
     float pointLightTerm2 = 1.8f;
     float shadowDistance = 100.0;
     bool enableCascadedShadow = true;
+    bool enablePointLightShadow = true;
     std::vector<ShadowCascade> shadowCascades = {};
 
     struct
@@ -98,6 +99,8 @@ public:
     void SetCascadeShadowSplits(const std::vector<ShadowCascade>& cascades) { shadowCascades = cascades; }
     const std::vector<ShadowCascade>& GetShadowCascadeSplits() const { return shadowCascades; }
     bool IsCascadeShadowEnabled() const { return enableCascadedShadow; }
+    bool IsPointLightShadowEnabled() const { return enablePointLightShadow; }
+    void SetPointLightShadowEnabled(bool enabled) { enablePointLightShadow = enabled; }
     int GetCascadeCount() const { return static_cast<int>(shadowCascades.size()); }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;

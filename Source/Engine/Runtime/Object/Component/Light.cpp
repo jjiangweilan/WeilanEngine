@@ -16,7 +16,8 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(Light, lightType),
     TYPE_REFLECTION_MEM(Light, shadowDistance),
     TYPE_REFLECTION_MEM(Light, depthBias),
-    TYPE_REFLECTION_MEM(Light, depthSlopeBias)
+    TYPE_REFLECTION_MEM(Light, depthSlopeBias),
+    TYPE_REFLECTION_MEM(Light, enablePointLightShadow)
 );
 Light::Light() : Component(nullptr) {}
 
@@ -73,6 +74,7 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("shadowDistance", shadowDistance);
     s->Serialize("depthBias", depthBias);
     s->Serialize("depthSlopeBias", depthSlopeBias);
+    s->Serialize("enablePointLightShadow", enablePointLightShadow);
     s->Serialize("enableCascadedShadow", enableCascadedShadow);
     s->Serialize("cascadeCount", static_cast<int>(shadowCascades.size()));
     for (size_t i = 0; i < shadowCascades.size(); ++i)
@@ -97,6 +99,7 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("shadowDistance", shadowDistance);
     s->Deserialize("depthBias", depthBias);
     s->Deserialize("depthSlopeBias", depthSlopeBias);
+    s->Deserialize("enablePointLightShadow", enablePointLightShadow);
     s->Deserialize("enableCascadedShadow", enableCascadedShadow);
     int cascadeCount = 0;
     s->Deserialize("cascadeCount", cascadeCount);

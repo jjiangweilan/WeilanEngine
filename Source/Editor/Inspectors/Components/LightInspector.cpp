@@ -61,10 +61,23 @@ public:
 
         if (light->GetLightType() == LightType::Point)
         {
+            float range = light->GetRange();
+            if (EditorGUI::DragFloat("Range", &range, 0.1f, 0.0f, 10000.0f))
+            {
+                light->SetRange(range);
+            }
+
             float v1 = light->GetPointLightDistance();
             if (EditorGUI::DragFloat("Point Light Distance", &v1))
             {
                 light->SetPointLightDistance(v1);
+            }
+
+            EditorGUI::SeparatorTextLabeled("Point Light Shadow");
+            bool shadowEnabled = light->IsPointLightShadowEnabled();
+            if (ImGui::Checkbox("Enable Point Light Shadow", &shadowEnabled))
+            {
+                light->SetPointLightShadowEnabled(shadowEnabled);
             }
         }
 

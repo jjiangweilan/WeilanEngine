@@ -234,7 +234,7 @@ void GetLights(GameObject* go, std::vector<Light*>& lights)
     }
 
     auto light = go->GetComponent<Light>();
-    if (light != nullptr)
+    if (light != nullptr && light->IsActiveInScene())
     {
         lights.push_back(light);
     }
