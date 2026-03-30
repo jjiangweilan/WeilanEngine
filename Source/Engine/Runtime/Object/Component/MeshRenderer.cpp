@@ -419,6 +419,7 @@ void MeshRenderer::RegisterGPUSceneObjects()
     if (gpuObjectRegistered || meshes.empty() || materials.empty())
         return;
 
+    gpuGeometries.clear();
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
 
     if (meshes.empty())
