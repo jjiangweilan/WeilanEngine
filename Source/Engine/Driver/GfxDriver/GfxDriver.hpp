@@ -148,6 +148,10 @@ public:
     ) = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
+    // Clears the image to the given color and transitions it to SHADER_READ_ONLY_OPTIMAL.
+    // Useful for initializing history images (e.g. GI temporal buffers) on the first frame.
+    virtual void InitGfxImage(Gfx::Image& image, glm::vec4 color) = 0;
+
     virtual Window* CreateExtraWindow(SDL_Window* window) = 0;
     virtual void DestroyExtraWindow(Window* window) = 0;
 

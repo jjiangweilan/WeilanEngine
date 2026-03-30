@@ -539,6 +539,77 @@ void VKDriver::GenerateMipmaps(SRef<VKImage> image)
     );
 }
 
+void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
+{
+    std::scoped_lock lock(driverMutex);
+    internalPendingCommands.push_back(
+        [imageRef = static_cast<VKImage&>(image).GetSRef<VKImage>(), color](VkCommandBuffer cmd)
+        {
+            auto* image = imageRef.Get();
+            if (image == nullptr)
+                return;
+
+            VkImageSubresourceRange range{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .baseArrayLayer = 0,
+                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+            };
+
+            // Transition UNDEFINED -> TRANSFER_DST_OPTIMAL
+            VkImageMemoryBarrier toTransferDst{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            toTransferDst.srcAccessMask = VK_ACCESS_NONE;
+            toTransferDst.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            toTransferDst.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            toTransferDst.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            toTransferDst.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toTransferDst.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toTransferDst.image = image->GetImage();
+            toTransferDst.subresourceRange = range;
+            vkCmdPipelineBarrier(
+                cmd,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                0, nullptr, 0, nullptr,
+                1, &toTransferDst
+            );
+
+            VkClearColorValue clearValue{.float32 = {color.r, color.g, color.b, color.a}};
+            vkCmdClearColorImage(cmd, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
+
+            // Transition TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
+            VkImageMemoryBarrier toShaderRead{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            toShaderRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            toShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            toShaderRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toShaderRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            toShaderRead.image = image->GetImage();
+            toShaderRead.subresourceRange = range;
+            vkCmdPipelineBarrier(
+                cmd,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                VK_DEPENDENCY_BY_REGION_BIT,
+                0, nullptr, 0, nullptr,
+                1, &toShaderRead
+            );
+
+            VkImageSubresourceRange trackRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = image->GetDescription().mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount = image->GetDescription().GetLayer(),
+            };
+            image->SetLayout(trackRange, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        }
+    );
+}
+
 std::unique_ptr<ImageView> VKDriver::CreateImageView(const ImageView::CreateInfo& createInfo)
 {
     return std::unique_ptr<ImageView>(new VKImageView(createInfo));

@@ -113,6 +113,7 @@ public:
     {
         GenerateMipmaps(static_cast<VKImage&>(image).GetSRef<VKImage>());
     }
+    void InitGfxImage(Gfx::Image& image, glm::vec4 color) override;
     bool BeginFrame() override;
     bool EndFrame() override;
 
