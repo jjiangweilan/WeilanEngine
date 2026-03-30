@@ -301,16 +301,16 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
         default: break;
     }
 
-    if (range.layerCount > 1 || option.type == Gfx::ImageViewOption::Type::Array)
+    if (option.type == Gfx::ImageViewOption::Type::Cubemap) // prioritize Cubemap
+    {
+        imageViewType = ImageViewType::Cubemap;
+    }
+    else if (range.layerCount > 1 || option.type == Gfx::ImageViewOption::Type::Array)
     {
         if (imageViewType == ImageViewType::Image_2D)
             imageViewType = ImageViewType::Image_2D_Array;
         else if (imageViewType == ImageViewType::Image_1D)
             imageViewType = ImageViewType::Image_1D_Array;
-    }
-    else if (option.type == Gfx::ImageViewOption::Type::Cubemap)
-    {
-        imageViewType = ImageViewType::Cubemap;
     }
 
     ImageView::CreateInfo imageViewCreateInfo{
