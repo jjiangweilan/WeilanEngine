@@ -37,7 +37,7 @@ PushConstant pconst;
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
+VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
     float4x4 modelMatrix;
     float4x4 invTspModelMatrix;
@@ -47,24 +47,13 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawInd
     uint objectOffset = 0;
 
     objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
-    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
-    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
-    modelMatrix = objData.model;
-    invTspModelMatrix = objData.invTspModel;
-    indexOffset = geometry.indexOffset;
-    positionOffset = geometry.positionOffset;
-    attributeOffset = geometry.attributeOffset;
-
-    uint vertexIndex = perScene.LoadData<uint>(indexOffset, vertexID);
-    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexIndex);
-    SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
+    ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
 
     VertexOutput output;
-    float3 vertexPos = positionData.position;// input.GetPosition();
+    float3 vertexPos = entity.GetPosition();// input.GetPosition();
 
-    float3 normal = attributeData.normal;//ainput.GetNormal();
-    float4 tangent = attributeData.tangent;// input.GetTangent();
+    float3 normal = entity.GetNormal();//ainput.GetNormal();
+    float4 tangent = entity.GetTangent();// input.GetTangent();
 
     output.positionWS = mul(modelMatrix, float4(vertexPos, 1)).xyz;
 
@@ -72,7 +61,7 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawInd
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = attributeData.uv;// input.GetUV();
+    output.uv = entity.GetUV();// input.GetUV();
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 

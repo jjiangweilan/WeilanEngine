@@ -1,9 +1,5 @@
 #pragma once
 
-#if GPU_RESOURCE
-#include "GPUDriven/GPUDrivenStructures.hlsl"
-#endif
-
 #define MAX_LIGHT_COUNT 128
 
 struct Light
@@ -134,5 +130,128 @@ struct PerScene
     }
 #endif
 };
-// test comment
-// another test comment
+
+#if GPU_RESOURCE
+struct GpuGeometryPositionData
+{
+    float3 position;
+
+    float3 GetPosition() { return position; }
+};
+
+struct SceneObjectAttributeData
+{
+    float3 normal;
+    float4 tangent;
+    float2 uv;
+
+    float3 GetNormal() { return normal; }
+    float4 GetTangent() { return tangent; }
+    float2 GetUV() { return uv; }
+};
+
+// Material data stored in globalBuffer for bindless GPU-driven rendering.
+// Texture fields are indices into globalTextures[].
+// 0xFFFFFFFF means no texture bound.
+struct GpuMaterial
+{
+    float4 baseColorFactor;
+    float4 emissive;
+    float roughness;
+    float metallic;
+    float alphaCutoff;
+    uint baseColorTexIndex;
+    uint normalMapTexIndex;
+    uint metallicRoughnessTexIndex;
+    uint emissiveMapTexIndex;
+    uint shaderHash;
+};
+
+// geometry data stored in globalBuffer for bindless GPU-driven rendering.
+struct GpuGeometry
+{
+    uint indexCount;
+    uint indexOffset;
+    uint positionOffset;
+    uint attributeOffset;
+    uint attributeStride;
+    uint attributeFlags;
+    uint padding0;
+    uint padding1;
+
+    bool HasNormal() { return (attributeFlags & 0x1) != 0; }
+    bool HasTangent() { return (attributeFlags & 0x2) != 0; }
+    bool HasUV() { return (attributeFlags & 0x4) != 0; }
+};
+
+struct GpuRenderData
+{
+    uint geometryOffset;
+    uint materialOffset;
+    uint shaderID;
+    uint padding0;
+};
+
+struct GpuObject
+{
+    float4x4 model;
+    float4x4 invTspModel;
+    uint renderDataCount;
+    uint pRenderDataOffset;
+    uint padding0;
+    uint padding1;
+};
+
+struct ObjectEntity
+{
+    float4x4 GetModelMatrix() {return modelMatrix;}
+    float4x4 GetInvModelMatrix() {return invTspModelMatrix;}
+    float3 GetPosition() {return position;}
+    float3 GetNormal() {return normal;}
+    float4 GetTangent() {return tangent;}
+    float2 GetUV() {return uv;}
+
+    float4x4 modelMatrix;
+    float4x4 invTspModelMatrix;
+    float3 position;
+    float3 normal;
+    float4 tangent;
+    float2 uv;
+
+    __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint vertexIndex)
+    {
+        GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
+        GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+        GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+
+        modelMatrix = objData.model;
+        invTspModelMatrix = objData.invTspModel;
+
+        uint positionOffset = geometry.positionOffset;
+        uint attributeOffset = geometry.attributeOffset;
+
+        GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexIndex);
+        position = positionData.GetPosition(); 
+
+        uint vertexOffset = geometry.attributeStride * vertexIndex;
+        bool hasNormal = geometry.HasNormal();
+        bool hasTangent = geometry.HasTangent();
+        bool hasUV = geometry.HasUV();
+        if (hasNormal)
+            normal = perScene.LoadData<float3>(attributeOffset + vertexOffset);
+        else
+            normal = float3(0,1,0);
+
+        if (hasTangent)
+            tangent = perScene.LoadData<float4>(attributeOffset + (hasNormal ? sizeof(float3) : 0) + vertexOffset);
+        else
+            tangent = float4(1,0,0,1);
+
+        if (hasUV)
+            uv = perScene.LoadData<float2>(attributeOffset + (hasNormal ? sizeof(float3) : 0) + (hasTangent ? sizeof(float4) : 0) + vertexOffset);
+        else
+            uv = float2(0,0);
+    }
+
+};
+#endif

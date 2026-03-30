@@ -28,21 +28,16 @@ ParameterBlock<PerScene> perScene;
 ParameterBlock<ShadowPass> shadowPass;
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
+VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
     float4x4 modelMatrix;
 
     uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
-    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
-    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+    ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
 
-    modelMatrix = objData.model;
-    uint positionOffset = geometry.positionOffset;
+    modelMatrix = entity.GetModelMatrix();
 
-    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexID);
-
-    float3 positionWS = mul(modelMatrix, float4(positionData.position, 1.0)).xyz;
+    float3 positionWS = mul(modelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
 
     VertexOutput output;
     output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));

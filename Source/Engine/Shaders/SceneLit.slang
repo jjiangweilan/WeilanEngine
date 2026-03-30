@@ -49,38 +49,21 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(uint vertexID, uint drawIndex, uint renderDataIndex)
+VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex, uint renderDataIndex)
 {
-    float4x4 modelMatrix;
-    float4x4 invTspModelMatrix;
-    uint positionOffset;
-    uint attributeOffset;
-    uint objectOffset = 0;
-
-    // prepare data
-    objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
-    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
-    GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+    uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
 
     // GpuObjectNew objData = perScene.LoadData<GpuObjectNew>(objectOffset);
 
-    modelMatrix = objData.model;
-    invTspModelMatrix = objData.invTspModel;
-
-    positionOffset = geometry.positionOffset;
-    attributeOffset = geometry.attributeOffset;
-
-    // vertex fetch
-    uint vertexIndex = vertexID;
-    GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(positionOffset, vertexIndex);
-    SceneObjectAttributeData attributeData = perScene.LoadData<SceneObjectAttributeData>(attributeOffset, vertexIndex);
+    float4x4 modelMatrix = entity.GetModelMatrix();
+    float4x4 invTspModelMatrix = entity.GetInvModelMatrix();
 
     // calculation
     VertexOutput output;
-    float3 vertexPos = positionData.position;
-    float3 normal = attributeData.GetNormal();
-    float4 tangent = attributeData.GetTangent();
+    float3 vertexPos = entity.GetPosition();
+    float3 normal = entity.GetNormal();
+    float4 tangent = entity.GetTangent();
 
     output.positionWS = mul(modelMatrix, float4(vertexPos, 1)).xyz;
 
@@ -88,7 +71,7 @@ VertexOutput SceneLitVertex(uint vertexID, uint drawIndex, uint renderDataIndex)
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = attributeData.GetUV();
+    output.uv = entity.GetUV();
     output.objectOffset = objectOffset;
     output.renderDataIndex = renderDataIndex;
 
