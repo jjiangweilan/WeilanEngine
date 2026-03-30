@@ -290,17 +290,11 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
     if (incrementalBuild || fullRebuild)
     {
         // create resources and write it to descriptor set
-        VkWriteDescriptorSet writes[64];
-        VkDescriptorBufferInfo bufferInfos[64];
-        VkDescriptorImageInfo imageInfos[64];
-        VkWriteDescriptorSetAccelerationStructureKHR asWrites[64];
-        VkAccelerationStructureKHR asHandles[64];
-        uint32_t bufferWriteIndex = 0;
-        uint32_t imageWriteIndex = 0;
-        uint32_t asWriteCount = 0;
-        uint32_t asHandleIndex = 0;
-        uint32_t asHandleWriteIndex = 0;
-        uint32_t writeCount = 0;
+        std::vector<VkWriteDescriptorSet> writes;
+        std::vector<VkDescriptorBufferInfo> bufferInfos;
+        std::vector<VkDescriptorImageInfo> imageInfos;
+        std::vector<VkWriteDescriptorSetAccelerationStructureKHR> asWrites;
+        std::vector<VkAccelerationStructureKHR> asHandles;
 
         auto& shaderInfo = shaderProgram->GetShaderInfo();
         const auto& descriptorSet = shaderInfo.descriptorSets[set];
@@ -312,7 +306,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                 case DescriptorType::UniformBuffer:
                 case DescriptorType::StorageBuffer:
                     {
-                        VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                        bufferInfos.push_back({});
+                        VkDescriptorBufferInfo& bufferInfo = bufferInfos.back();
                         VKBuffer* buffer = nullptr;
                         if (resRef.type != ShaderBindingType::Buffer || resRef.GetRef() == nullptr)
                         {
@@ -378,14 +373,16 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                             if (b.isTextureArray)
                             {
                                 auto& imageView = sharedResource->GetDefaultStoargeImage2D()->GetImageView(Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Color, true});
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfos.push_back({});
+                                VkDescriptorImageInfo& imageInfo = imageInfos.back();
                                 imageInfo.sampler = VK_NULL_HANDLE;
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                 imageInfo.imageView = static_cast<VKImageView&>(imageView).GetHandle();
                             }
                             else
                             {
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfos.push_back({});
+                                VkDescriptorImageInfo& imageInfo = imageInfos.back();
                                 imageInfo.sampler = VK_NULL_HANDLE;
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                 imageInfo.imageView =
@@ -416,7 +413,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
 
                             writableGPUResources->push_back(gpuResource);
 
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            imageInfos.push_back({});
+                            VkDescriptorImageInfo& imageInfo = imageInfos.back();
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             if (resRef.GetRef() != nullptr && (resRef.type == ShaderBindingType::ImageView))
@@ -457,7 +455,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
 
                         if (b.textureType == TextureType::Tex2D || b.textureType == TextureType::Tex3D)
                         {
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            imageInfos.push_back({});
+                            VkDescriptorImageInfo& imageInfo = imageInfos.back();
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             imageInfo.sampler = b.descriptorType == DescriptorType::SampledImage
                                                     ? sharedResource->GetDefaultSampler()
@@ -478,7 +477,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                         }
                         else if (b.textureType == TextureType::TexCube)
                         {
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            imageInfos.push_back({});
+                            VkDescriptorImageInfo& imageInfo = imageInfos.back();
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
 
@@ -517,7 +517,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                             descriptorSet.samplerConfigs[b.samplerIndex]
                         );
                         VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
-                        VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                        imageInfos.push_back({});
+                        VkDescriptorImageInfo& imageInfo = imageInfos.back();
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfo.sampler = sampler;
                         imageInfo.imageView = VK_NULL_HANDLE;
@@ -528,11 +529,11 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                         if (resRef.type == ShaderBindingType::AccelerationStructure)
                         {
                             auto& asRef = std::get<AccelerationStructureRef>(resRef.res);
-                            asHandles[asHandleWriteIndex++] = (VkAccelerationStructureKHR) static_cast<VKRayTracingContext*>(asRef.context)->GetNativeHandle(asRef.scene);
+                            asHandles.push_back((VkAccelerationStructureKHR) static_cast<VKRayTracingContext*>(asRef.context)->GetNativeHandle(asRef.scene));
                         }
                         else
                         {
-                            asHandles[asHandleWriteIndex++] = VK_NULL_HANDLE;
+                            asHandles.push_back(VK_NULL_HANDLE);
                         }
                         break;
                     }
@@ -542,25 +543,26 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
 
         auto processWriteDescriptorSet = [&](const Gfx::ShaderPipelineInfo::Binding& b, uint32_t dstArrayElement, uint32_t descriptorCount)
         {
-            writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[writeCount].pNext = VK_NULL_HANDLE;
-            writes[writeCount].dstSet = finalReturn;
-            writes[writeCount].descriptorType = MapDescriptorType(b.descriptorType);
-            writes[writeCount].dstBinding = b.bindingNum;
-            writes[writeCount].dstArrayElement = dstArrayElement;
-            writes[writeCount].descriptorCount = descriptorCount;
-            writes[writeCount].pImageInfo = VK_NULL_HANDLE;
-            writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
-            writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
+            VkWriteDescriptorSet w{};
+            w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            w.pNext = VK_NULL_HANDLE;
+            w.dstSet = finalReturn;
+            w.descriptorType = MapDescriptorType(b.descriptorType);
+            w.dstBinding = b.bindingNum;
+            w.dstArrayElement = dstArrayElement;
+            w.descriptorCount = descriptorCount;
+            w.pImageInfo = VK_NULL_HANDLE;
+            w.pBufferInfo = VK_NULL_HANDLE;
+            w.pTexelBufferView = VK_NULL_HANDLE;
 
-            // points the starting address of the write infos
+            // store index as fake pointer; patched to real pointer before vkUpdateDescriptorSets
             switch (b.descriptorType)
             {
                 case DescriptorType::UniformBuffer:
                 case DescriptorType::StorageBuffer:
                 case DescriptorType::UniformBufferDynamic:
                 case DescriptorType::StorageBufferDynamic:
-                    writes[writeCount].pBufferInfo = &bufferInfos[bufferWriteIndex];
+                    w.pBufferInfo = (VkDescriptorBufferInfo*)(uintptr_t)bufferInfos.size();
                     break;
                 case DescriptorType::CombinedImageSampler:
                 case DescriptorType::StorageImage:
@@ -568,22 +570,24 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                 case DescriptorType::UniformTexelBuffer:
                 case DescriptorType::StorageTexelBuffer:
                 case DescriptorType::Sampler:
-                    writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex];
+                    w.pImageInfo = (VkDescriptorImageInfo*)(uintptr_t)imageInfos.size();
                     break;
                 case DescriptorType::AccelerationStructure:
                     {
-                        auto& asWrite = asWrites[asWriteCount++];
+                        VkWriteDescriptorSetAccelerationStructureKHR asWrite{};
                         asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
                         asWrite.pNext = VK_NULL_HANDLE;
                         asWrite.accelerationStructureCount = descriptorCount;
-                        asWrite.pAccelerationStructures = &asHandles[asHandleIndex];
-                        writes[writeCount].pNext = &asWrite;
-                        asHandleIndex += descriptorCount;
+                        asWrite.pAccelerationStructures = (VkAccelerationStructureKHR*)(uintptr_t)asHandles.size();
+                        asWrites.push_back(asWrite);
+                        w.pNext = (void*)(uintptr_t)(asWrites.size() - 1);
                     }
                     break;
                 case DescriptorType::InputAttachment:
                 case DescriptorType::Invalid: break;
             }
+
+            writes.push_back(w);
         };
 
         if (incrementalBuild)
@@ -629,8 +633,6 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                 // update descriptor sets
                 processWriteDescriptorSet(b, pendingBindingUpdate.elementIndex, 1);
                 processResourceRef(b, pendingBindingUpdate.resource, pendingBindingUpdate.elementIndex);
-
-                writeCount += 1;
             }
 
             setInfo->second.pendingBindingUpdates.clear();
@@ -658,7 +660,6 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                         {
                             processWriteDescriptorSet(b, elemIndex, 1);
                             processResourceRef(b, resRef, elemIndex);
-                            writeCount += 1;
                         }
                     }
                 }
@@ -669,18 +670,43 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
 
                     processWriteDescriptorSet(b, 0, b.descriptorCount);
 
-                    for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                    for (int i = 0; i < writes.back().descriptorCount; ++i)
                     {
                         ResourceRef resRef = binding != bindings.end() ? binding->second[i] : ResourceRef();
                         processResourceRef(b, resRef, i);
                     }
-
-                    writeCount += 1;
                 }
             }
         }
 
-        vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
+        // patch fake-pointer indices into real pointers now that vectors are stable
+        for (auto& asw : asWrites)
+            asw.pAccelerationStructures = asHandles.data() + (uintptr_t)asw.pAccelerationStructures;
+        for (auto& w : writes)
+        {
+            switch (w.descriptorType)
+            {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+                    w.pBufferInfo = bufferInfos.data() + (uintptr_t)w.pBufferInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
+                    w.pImageInfo = imageInfos.data() + (uintptr_t)w.pImageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                    w.pNext = asWrites.data() + (uintptr_t)w.pNext;
+                    break;
+                default: break;
+            }
+        }
+        vkUpdateDescriptorSets(GetDevice(), (uint32_t)writes.size(), writes.data(), 0, VK_NULL_HANDLE);
     }
 
     return finalReturn;

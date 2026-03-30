@@ -1939,7 +1939,9 @@ void VKCommandBufferProcessor::MakeBarrierForAllDynamicBindedSetUpdate(
 
 void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
     int inflightIndex,
-    std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+    std::vector<VKCmd>& cmds,
+    std::vector<VKImage*>& shaderImageSampleIgnoreList,
+    int& barrierCountAdded
 )
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: FlushAllBindedSetUpdate");
@@ -2065,20 +2067,15 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
     VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram
 )
 {
+    dynamicBindingCache_writes.clear();
+    dynamicBindingCache_bufferInfos.clear();
+    dynamicBindingCache_imageInfos.clear();
+    dynamicBinding_asWrites.clear();
+    dynamicBinding_asHandles.clear();
+
     auto& shaderInfo = shaderProgram->GetShaderInfo();
     std::vector<VKWritableGPUResource> writableGPUResources{};
     auto sharedResource = VKContext::Instance()->sharedResource;
-
-    VkWriteDescriptorSet writes[64];
-    VkDescriptorBufferInfo bufferInfos[64];
-    VkDescriptorImageInfo imageInfos[64];
-    VkWriteDescriptorSetAccelerationStructureKHR asWrites[64];
-    VkAccelerationStructureKHR asHandles[64];
-    uint32_t bufferWriteIndex = 0;
-    uint32_t imageWriteIndex = 0;
-    uint32_t writeCount = 0;
-    uint32_t asWriteCount = 0;
-    uint32_t asHandleIndex = 0;
 
     if (shaderInfo.descriptorSets.size() <= set)
         return;
@@ -2087,16 +2084,17 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
     {
         for (const auto& b : descriptorSet.bindings)
         {
-            writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[writeCount].pNext = VK_NULL_HANDLE;
-            writes[writeCount].dstSet = VK_NULL_HANDLE;
-            writes[writeCount].descriptorType = MapDescriptorType(b.descriptorType);
-            writes[writeCount].dstBinding = b.bindingNum;
-            writes[writeCount].dstArrayElement = 0;
-            writes[writeCount].descriptorCount = b.descriptorCount;
-            writes[writeCount].pImageInfo = VK_NULL_HANDLE;
-            writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
-            writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
+            VkWriteDescriptorSet w{};
+            w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            w.pNext = VK_NULL_HANDLE;
+            w.dstSet = VK_NULL_HANDLE;
+            w.descriptorType = MapDescriptorType(b.descriptorType);
+            w.dstBinding = b.bindingNum;
+            w.dstArrayElement = 0;
+            w.descriptorCount = b.descriptorCount;
+            w.pImageInfo = VK_NULL_HANDLE;
+            w.pBufferInfo = VK_NULL_HANDLE;
+            w.pTexelBufferView = VK_NULL_HANDLE;
 
             auto& bindings = dynamicBindResourceCmd.bindings;
             auto binding = std::ranges::find_if(
@@ -2105,27 +2103,34 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                 { return binding.name == b.name; }
             );
 
+            // store index as fake pointer; patched to real pointer before RequestDescriptorSet
             switch (b.descriptorType)
             {
                 case DescriptorType::UniformBuffer:
                 case DescriptorType::StorageBuffer:
-                    writes[writeCount].pBufferInfo = &bufferInfos[bufferWriteIndex];
+                    w.pBufferInfo = (VkDescriptorBufferInfo*)(uintptr_t)dynamicBindingCache_bufferInfos.size();
                     break;
                 case DescriptorType::CombinedImageSampler:
                 case DescriptorType::StorageImage:
                 case DescriptorType::SampledImage:
-                case DescriptorType::Sampler: writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex]; break;
+                case DescriptorType::Sampler:
+                    w.pImageInfo = (VkDescriptorImageInfo*)(uintptr_t)dynamicBindingCache_imageInfos.size();
+                    break;
                 case DescriptorType::AccelerationStructure:
                     {
-                        auto& asWrite = asWrites[asWriteCount++];
+                        VkWriteDescriptorSetAccelerationStructureKHR asWrite{};
                         asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
                         asWrite.pNext = VK_NULL_HANDLE;
                         asWrite.accelerationStructureCount = b.descriptorCount;
-                        asWrite.pAccelerationStructures = &asHandles[asHandleIndex];
-                        writes[writeCount].pNext = &asWrite;
-                        asHandleIndex += b.descriptorCount;
+                        asWrite.pAccelerationStructures = (VkAccelerationStructureKHR*)(uintptr_t)dynamicBinding_asHandles.size();
+                        dynamicBinding_asWrites.push_back(asWrite);
+                        w.pNext = (void*)(uintptr_t)(dynamicBinding_asWrites.size() - 1);
                     }
+                    break;
+                default: break;
             }
+
+            dynamicBindingCache_writes.push_back(w);
 
             VKImageView* imageView = nullptr;
             VKBuffer* buffer = nullptr;
@@ -2136,14 +2141,15 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                 GetImageViewOrBufferOrAccelerationStructure(*binding, imageView, buffer, asRef);
             }
 
-            for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+            for (int i = 0; i < (int)dynamicBindingCache_writes.back().descriptorCount; ++i)
             {
                 switch (b.descriptorType)
                 {
                     case DescriptorType::UniformBuffer:
                     case DescriptorType::StorageBuffer:
                         {
-                            VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                            dynamicBindingCache_bufferInfos.push_back({});
+                            VkDescriptorBufferInfo& bufferInfo = dynamicBindingCache_bufferInfos.back();
                             VKBuffer* bufferUsed = nullptr;
                             if (buffer == nullptr)
                             {
@@ -2170,14 +2176,16 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                                 if (b.isTextureArray)
                                 {
                                     auto& imageView = sharedResource->GetDefaultStoargeImage2D()->GetImageView(Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Color, true});
-                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    dynamicBindingCache_imageInfos.push_back({});
+                                    VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                                     imageInfo.sampler = VK_NULL_HANDLE;
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                     imageInfo.imageView = static_cast<VKImageView&>(imageView).GetHandle();
                                 }
                                 else
                                 {
-                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    dynamicBindingCache_imageInfos.push_back({});
+                                    VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                                     imageInfo.sampler = VK_NULL_HANDLE;
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                     imageInfo.imageView =
@@ -2199,7 +2207,8 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
 
                                 writableGPUResources.push_back(gpuResource);
 
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                dynamicBindingCache_imageInfos.push_back({});
+                                VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                 imageInfo.sampler = sharedResource->GetDefaultSampler();
                                 if (imageView != nullptr)
@@ -2222,7 +2231,8 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                         {
                             if (b.textureType == TextureType::Tex2D || b.textureType == TextureType::Tex3D)
                             {
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                dynamicBindingCache_imageInfos.push_back({});
+                                VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                 imageInfo.sampler = b.descriptorType == DescriptorType::SampledImage
                                                         ? sharedResource->GetDefaultSampler()
@@ -2243,7 +2253,8 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                             }
                             else if (b.textureType == TextureType::TexCube)
                             {
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                dynamicBindingCache_imageInfos.push_back({});
+                                VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                 imageInfo.sampler = sharedResource->GetDefaultSampler();
 
@@ -2280,7 +2291,8 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                                 descriptorSet.samplerConfigs[b.samplerIndex]
                             );
                             VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            dynamicBindingCache_imageInfos.push_back({});
+                            VkDescriptorImageInfo& imageInfo = dynamicBindingCache_imageInfos.back();
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             imageInfo.sampler = sampler;
                             imageInfo.imageView = VK_NULL_HANDLE;
@@ -2291,22 +2303,44 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                             if (asRef.context != nullptr)
                             {
                                 auto rayTracingContext = static_cast<VKRayTracingContext*>(asRef.context);
-                                asHandles[asHandleIndex - b.descriptorCount + i] = (VkAccelerationStructureKHR)rayTracingContext->GetNativeHandle(asRef.scene);
+                                dynamicBinding_asHandles.push_back((VkAccelerationStructureKHR)rayTracingContext->GetNativeHandle(asRef.scene));
                             }
                             else
                             {
-                                asHandles[asHandleIndex - b.descriptorCount + i] = VK_NULL_HANDLE;
+                                dynamicBinding_asHandles.push_back(VK_NULL_HANDLE);
                             }
                             break;
                         }
                     default: ASSERT(0 && "Not implemented"); break;
                 }
             }
-
-            writeCount += 1;
         }
 
-        VkDescriptorSet finalSet = RequestDescriptorSet({writes, writeCount}, set, shaderProgram);
+        // patch fake-pointer indices into real pointers now that vectors are stable
+        for (auto& asw : dynamicBinding_asWrites)
+            asw.pAccelerationStructures = dynamicBinding_asHandles.data() + (uintptr_t)asw.pAccelerationStructures;
+        for (auto& w : dynamicBindingCache_writes)
+        {
+            switch (w.descriptorType)
+            {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                    w.pBufferInfo = dynamicBindingCache_bufferInfos.data() + (uintptr_t)w.pBufferInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                case VK_DESCRIPTOR_TYPE_SAMPLER:
+                    w.pImageInfo = dynamicBindingCache_imageInfos.data() + (uintptr_t)w.pImageInfo;
+                    break;
+                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+                    w.pNext = dynamicBinding_asWrites.data() + (uintptr_t)w.pNext;
+                    break;
+                default: break;
+            }
+        }
+
+        VkDescriptorSet finalSet = RequestDescriptorSet(dynamicBindingCache_writes, set, shaderProgram);
         vkCmdBindDescriptorSets(
             cmd,
             bindPoint,

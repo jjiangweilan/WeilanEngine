@@ -140,6 +140,12 @@ private:
     std::vector<VkMemoryBarrier> memoryBarriers;
     std::vector<std::shared_ptr<AsyncReadbackHandle>> asyncReadbacks;
 
+    std::vector<VkWriteDescriptorSet> dynamicBindingCache_writes;
+    std::vector<VkDescriptorBufferInfo> dynamicBindingCache_bufferInfos;
+    std::vector<VkDescriptorImageInfo> dynamicBindingCache_imageInfos;
+    std::vector<VkWriteDescriptorSetAccelerationStructureKHR> dynamicBinding_asWrites;
+    std::vector<VkAccelerationStructureKHR> dynamicBinding_asHandles;
+
     using ShaderProgramID = UUID;
     std::unordered_map<ShaderProgramID, VKShaderResource> globalResources;
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ShaderBinding>> globalResourcePool;
