@@ -154,9 +154,27 @@ public:
         bool enabled = false;
         bool debug_rtgiOutput = false;
 
+        struct SVGF
+        {
+            float temporalAlpha = 0.1f;
+            int atrousIterations = 4;
+            float sigmaDepth = 1.0f;
+            float sigmaNormal = 128.0f;
+            float sigmaLuminance = 4.0f;
+
+            INLINE_DEFINE_SERIALIZABLE(
+                SER(temporalAlpha),
+                SER(atrousIterations),
+                SER(sigmaDepth),
+                SER(sigmaNormal),
+                SER(sigmaLuminance)
+            )
+        } svgf;
+
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
-            SER(debug_rtgiOutput)
+            SER(debug_rtgiOutput),
+            SER(svgf)
         )
     } rtgi;
 };

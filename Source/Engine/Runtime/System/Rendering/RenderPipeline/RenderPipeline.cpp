@@ -268,6 +268,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             hierarchyZBufferPass->GetOutputId(),
             albedoGBuffer,
             normalGBuffer,
+            staticMotionVectorPass->GetOutputId(),
             setting.Get(),
             renderingData,
             scene.GetRenderingScene().GetRayTracingSceneHandle(),
