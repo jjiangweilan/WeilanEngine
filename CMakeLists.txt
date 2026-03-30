@@ -240,7 +240,7 @@ set(KTX_FEATURE_TOOLS OFF)
 FetchContent_MakeAvailable(ktx_software)
 
 option(ENABLE_MCP "Enable the MCP Server integration" OFF)
-set(BOOST_INCLUDE_LIBRARIES unordered;lockfree;program_options)
+set(BOOST_INCLUDE_LIBRARIES unordered;lockfree;program_options;container)
 if(ENABLE_MCP)
     list(APPEND BOOST_INCLUDE_LIBRARIES beast asio)
 endif()
@@ -374,6 +374,7 @@ target_link_libraries( WeilanEngine
     Boost::unordered
     Boost::lockfree
     Boost::program_options
+    Boost::container
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp
