@@ -70,7 +70,6 @@ class RenderPipeline
     Gfx::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::ImageIdentifier maskGBuffer = "maskGBuffer";
-    Gfx::ImageIdentifier motionVector = "StaticMotionVector";
     Gfx::ImageIdentifier finalColor;
     /**
      * @brief used as id for the final output color. Because GetOutputColor is returning a reference, I cached the value here. Maybe GetOutputColor should return by value
@@ -110,6 +109,7 @@ class RenderPipeline
     struct GPUObjectShaderGroup
     {
         Gfx::ShaderProgram* shaderProgram = nullptr;
+        const Gfx::PipelineConfig* pipelineConfig = nullptr;
         uint32_t firstDrawIndex = 0; // offset into indirectCommands
         uint32_t drawCount = 0;
     };
@@ -126,6 +126,7 @@ class RenderPipeline
     struct FlatDrawInfo
     {
         Gfx::ShaderProgram* shaderProgram;
+        const Gfx::PipelineConfig* pipelineConfig;
         uint32_t indexCount;
         uint32_t firstIndex;
         uint32_t firstInstance;
@@ -150,6 +151,7 @@ class RenderPipeline
     } state{};
 
     PerScene perScene;
+    uint32_t frameIndex = 0;
 
     struct
     {
