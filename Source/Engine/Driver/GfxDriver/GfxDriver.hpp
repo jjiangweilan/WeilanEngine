@@ -164,7 +164,7 @@ public:
     );
 
     bool IsRenderDocInitialized() const { return renderDocAPI != nullptr; }
-    void InitializeRenderDoc();
+    void InitializeRenderDoc(bool enableValidation = false);
     virtual void CaptureFrameRenderDoc() = 0;
 
 private:

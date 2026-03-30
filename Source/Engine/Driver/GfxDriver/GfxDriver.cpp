@@ -66,7 +66,7 @@ std::unique_ptr<Buffer> GfxDriver::CreateBuffer(
     return CreateBuffer(Gfx::Buffer::CreateInfo{usages, size, visibleInCPU, debugName, gpuWrite});
 }
 
-void GfxDriver::InitializeRenderDoc()
+void GfxDriver::InitializeRenderDoc(bool enableValidation)
 {
 #if __WIN32__
 
@@ -80,6 +80,10 @@ void GfxDriver::InitializeRenderDoc()
             (pRENDERDOC_GetAPI)GetProcAddress(renderdocModule->mod, "RENDERDOC_GetAPI");
         int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_6_0, (void**)&renderDocAPI);
         ASSERT(ret == 1);
+        if (enableValidation)
+        {
+            renderDocAPI->SetCaptureOptionU32(eRENDERDOC_Option_APIValidation, 1);
+        }
         renderDocAPI->MaskOverlayBits(0, 0);
         spdlog::info("RenderDoc initialized");
     }

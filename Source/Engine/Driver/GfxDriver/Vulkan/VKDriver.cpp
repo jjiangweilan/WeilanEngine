@@ -65,7 +65,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
 #if ENGINE_DEV_BUILD
     if (createInfo.enableRenderDoc)
-        InitializeRenderDoc();
+        InitializeRenderDoc(createInfo.enableGfxDriverValidation);
 #endif
 
     window = createInfo.window;
