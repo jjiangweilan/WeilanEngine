@@ -310,6 +310,15 @@ private:
             aiString texName;
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
 
+            int wrapU = aiTextureMapMode_Wrap; // Default to Wrap/Repeat
+            int wrapV = aiTextureMapMode_Wrap;
+
+            // Query U wrapping
+            if (AI_SUCCESS == material->Get(AI_MATKEY_MAPPINGMODE_U(type, 0), wrapU))
+            {
+                // wrapU now contains the enum value
+            }
+
             auto tex = AssetDatabase::Singleton()->LoadAssetAsync_Experimental(
                 absoluteAssetPath.parent_path() / texName.C_Str()
             );
