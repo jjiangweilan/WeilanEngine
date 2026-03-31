@@ -54,8 +54,6 @@ VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex, uint renderDataInd
     uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
     ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
 
-    // GpuObjectNew objData = perScene.LoadData<GpuObjectNew>(objectOffset);
-
     float4x4 modelMatrix = entity.GetModelMatrix();
     float4x4 invTspModelMatrix = entity.GetInvModelMatrix();
 

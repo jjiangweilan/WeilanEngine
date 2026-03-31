@@ -234,21 +234,22 @@ struct ObjectEntity
         position = positionData.GetPosition(); 
 
         uint vertexOffset = geometry.attributeStride * vertexIndex;
+        attributeOffset += vertexOffset;
         bool hasNormal = geometry.HasNormal();
         bool hasTangent = geometry.HasTangent();
         bool hasUV = geometry.HasUV();
         if (hasNormal)
-            normal = perScene.LoadData<float3>(attributeOffset + vertexOffset);
+            normal = perScene.LoadData<float3>(attributeOffset);
         else
             normal = float3(0,1,0);
 
         if (hasTangent)
-            tangent = perScene.LoadData<float4>(attributeOffset + (hasNormal ? sizeof(float3) : 0) + vertexOffset);
+            tangent = perScene.LoadData<float4>(attributeOffset + (hasNormal ? 12 : 0));
         else
             tangent = float4(1,0,0,1);
 
         if (hasUV)
-            uv = perScene.LoadData<float2>(attributeOffset + (hasNormal ? sizeof(float3) : 0) + (hasTangent ? sizeof(float4) : 0) + vertexOffset);
+            uv = perScene.LoadData<float2>(attributeOffset + (hasNormal ? 12 : 0) + (hasTangent ? 16 : 0));
         else
             uv = float2(0,0);
     }
