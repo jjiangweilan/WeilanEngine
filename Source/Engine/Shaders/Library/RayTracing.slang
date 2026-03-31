@@ -7,6 +7,16 @@ public struct RayHitVertexData
     public float3 position;
     public float3 normal;
     public float2 uv;
+
+    public RayHitVertexData TransformToWorld(float4x4 modelMatrix, float3x3 invTspModelMatrix)
+    {
+        RayHitVertexData rayHitVertexData;
+
+        rayHitVertexData.position = mul(modelMatrix, float4(this.position, 1.0)).xyz;
+        rayHitVertexData.normal = normalize(mul(invTspModelMatrix, this.normal));
+        rayHitVertexData.uv = this.uv;
+        return rayHitVertexData;
+    }
 };
 
 /**
@@ -63,6 +73,8 @@ public RayHitVertexData GetHitVertexData(
     result.position = p0.position * bary3.x + p1.position * bary3.y + p2.position * bary3.z;
     result.normal   = normalize(a0.normal * bary3.x + a1.normal * bary3.y + a2.normal * bary3.z);
     result.uv       = a0.uv * bary3.x + a1.uv * bary3.y + a2.uv * bary3.z;
+
+    result = result.TransformToWorld(obj.model, (float3x3)obj.invTspModel);
 
     return result;
 }
