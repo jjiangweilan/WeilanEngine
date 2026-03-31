@@ -38,6 +38,8 @@ void PointLightShadowRenderer::Init()
 
     shadowMapShader = ShaderLibrary::GetShader(Shaders::PointLightShadowMapObject);
     shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::PointLightShadowMapObject, {"_GPUDriven"});
+
+    CreateCubemapResources();
 }
 
 void PointLightShadowRenderer::CreateCubemapResources()
@@ -75,6 +77,8 @@ void PointLightShadowRenderer::CreateCubemapResources()
         faceViews[i] = GetGfxDriver()->CreateImageView(createInfo);
     }
 
+    GetGfxDriver()->InitGfxImage(*shadowCubemap, float4(1, 1, 1, 1));
+
     // Cubemap sampling view (all 6 faces, type Cubemap)
     cubemapSamplingView = &shadowCubemap->GetImageView(
         Gfx::ImageViewOption{0, 1, 0, 6, Gfx::ImageAspect::Depth, Gfx::ImageViewOption::Type::Cubemap}
@@ -108,11 +112,6 @@ glm::mat4 PointLightShadowRenderer::GetFaceViewProjection(
 
 void PointLightShadowRenderer::Setup(Light& light, RenderingData& renderingData)
 {
-    if (!initialized)
-    {
-        CreateCubemapResources();
-    }
-
     currentFarPlane = light.GetRange();
     currentDepthBias = 0.005f;
     glm::mat4 model = light.GetGameObject()->GetWorldMatrix();
