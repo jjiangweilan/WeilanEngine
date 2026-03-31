@@ -549,8 +549,14 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
             if (image == nullptr)
                 return;
 
+            bool isDepth = IsDepthStencilFormat(image->GetDescription().format);
+            bool hasStencil = HasStencil(image->GetDescription().format);
+            VkImageAspectFlags aspectMask = isDepth
+                                                ? (VK_IMAGE_ASPECT_DEPTH_BIT | (hasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0u))
+                                                : VK_IMAGE_ASPECT_COLOR_BIT;
+
             VkImageSubresourceRange range{
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask = aspectMask,
                 .baseMipLevel = 0,
                 .levelCount = VK_REMAINING_MIP_LEVELS,
                 .baseArrayLayer = 0,
@@ -572,19 +578,49 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
-                0, nullptr, 0, nullptr,
-                1, &toTransferDst
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &toTransferDst
             );
 
-            VkClearColorValue clearValue{.float32 = {color.r, color.g, color.b, color.a}};
-            vkCmdClearColorImage(cmd, image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
+            if (isDepth)
+            {
+                VkClearDepthStencilValue clearValue{.depth = color.r, .stencil = 0};
+                vkCmdClearDepthStencilImage(
+                    cmd,
+                    image->GetImage(),
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    &clearValue,
+                    1,
+                    &range
+                );
+            }
+            else
+            {
+                VkClearColorValue clearValue{.float32 = {color.r, color.g, color.b, color.a}};
+                vkCmdClearColorImage(
+                    cmd,
+                    image->GetImage(),
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    &clearValue,
+                    1,
+                    &range
+                );
+            }
 
-            // Transition TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
+            // Transition TRANSFER_DST_OPTIMAL -> read-optimal layout
+            VkImageLayout finalLayout = isDepth
+                                            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                                            : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
             VkImageMemoryBarrier toShaderRead{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
             toShaderRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             toShaderRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
             toShaderRead.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            toShaderRead.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            toShaderRead.newLayout = finalLayout;
             toShaderRead.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             toShaderRead.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             toShaderRead.image = image->GetImage();
@@ -594,18 +630,22 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
-                0, nullptr, 0, nullptr,
-                1, &toShaderRead
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &toShaderRead
             );
 
             VkImageSubresourceRange trackRange{
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask = aspectMask,
                 .baseMipLevel = 0,
                 .levelCount = image->GetDescription().mipLevels,
                 .baseArrayLayer = 0,
                 .layerCount = image->GetDescription().GetLayer(),
             };
-            image->SetLayout(trackRange, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            image->SetLayout(trackRange, finalLayout);
         }
     );
 }
@@ -828,7 +868,7 @@ bool VKDriver::EndFrame()
     );
     ENGINE_END_PROFILE // Render Graph Execution
 
-    ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer");
+        ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer");
     CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE // Vulkan End Command Buffer
 
