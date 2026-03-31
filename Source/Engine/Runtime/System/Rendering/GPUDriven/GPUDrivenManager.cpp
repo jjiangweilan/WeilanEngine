@@ -110,23 +110,24 @@ void GPUDrivenManager::AllocateForMesh(GpuGeometryDescriptor& descriptor, const 
 
     uint32_t attributeStride = 0;
     descriptor.geometry.attributeFlags = 0;
-    if (submesh.GetAttribute().HasSemantics(VertexAttributeSemantics::Normal, 0))
+    VertexAttributes::Attribute attr;
+    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Normal, 0, attr))
     {
         // If the mesh doesn't have normals, we can compute them on the fly in the shader.
         descriptor.geometry.attributeFlags |= GpuGeometry::GetNormalBit();
-        attributeStride += 12;
+        attributeStride += attr.size;
     }
-    if (submesh.GetAttribute().HasSemantics(VertexAttributeSemantics::Tangent, 0))
+    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Tangent, 0, attr))
     {
         // If the mesh doesn't have tangents, we can compute them on the fly in the shader.
         descriptor.geometry.attributeFlags |= GpuGeometry::GetTangentBit();
-        attributeStride += 16;
+        attributeStride += attr.size;
     }
-    if (submesh.GetAttribute().HasSemantics(VertexAttributeSemantics::Texcoord, 0))
+    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Texcoord, 0, attr))
     {
         // If the mesh doesn't have UVs, we can use a default value in the shader.
         descriptor.geometry.attributeFlags |= GpuGeometry::GetHasUVBit();
-        attributeStride += 8;
+        attributeStride += attr.size;
     }
     descriptor.geometry.attributeStride = attributeStride;
 
