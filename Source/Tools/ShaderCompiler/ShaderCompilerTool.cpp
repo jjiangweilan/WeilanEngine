@@ -578,17 +578,23 @@ private:
         std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
 
         bool pointFilter = lowerName.find("point") != std::string::npos;
-        bool clampSampleToBorder = lowerName.find("border") != std::string::npos;
-        bool clampSample = lowerName.find("clamp") != std::string::npos;
+        bool mirrorClamp = lowerName.find("mirrorclamp") != std::string::npos;
+        bool clampSampleToBorder = !mirrorClamp && lowerName.find("border") != std::string::npos;
+        bool clampSample = !mirrorClamp && lowerName.find("clamp") != std::string::npos;
+        bool mirrorRepeat = !mirrorClamp && lowerName.find("mirror") != std::string::npos;
 
-        std::string samplerTypeName = typeLayout->getName();
+        std::string samplerTypeName = (typeLayout && typeLayout->getName()) ? typeLayout->getName() : "";
         config["enableCompare"] = (samplerTypeName == "SamplerComparisonState");
         config["anisotropic"] = false;
 
-        if (clampSampleToBorder)
+        if (mirrorClamp)
+            config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "MirrorClampToEdge";
+        else if (clampSampleToBorder)
             config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "ClampToBorder";
         else if (clampSample)
             config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "ClampToEdge";
+        else if (mirrorRepeat)
+            config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "MirroredRepeat";
         else
             config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "Repeat";
 
@@ -635,7 +641,17 @@ private:
 
         binding["bufferMembers"] = json::array();
         binding["byteSize"] = 0;
-        binding["samplerIndex"] = AddSamplerConfig(set, typeLayout->getType(), name);
+
+        // For array types, use the element type for sampler config so getName() returns the
+        // element type name (e.g. "SamplerState") rather than the array type (which may be null).
+        slang::TypeReflection* samplerConfigType = typeLayout->getType();
+        if (typeLayout->getKind() == slang::TypeReflection::Kind::Array)
+        {
+            auto* elemTypeLayout = typeLayout->getElementTypeLayout();
+            if (elemTypeLayout)
+                samplerConfigType = elemTypeLayout->getType();
+        }
+        binding["samplerIndex"] = AddSamplerConfig(set, samplerConfigType, name);
 
         return binding;
     }
