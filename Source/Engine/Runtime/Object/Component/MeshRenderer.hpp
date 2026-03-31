@@ -72,7 +72,7 @@ public:
 
     // GPU-Driven rendering
     void SetGPUObject(bool enabled);
-    bool IsGPUObject() const { return isGPUObject; }
+    bool IsActiveGPUObject() const { return isGPUObject && gpuObjectRegistered; }
     const Rendering::GpuObjectDescriptor& GetGpuObjectDescriptor() const
     {
         return gpuObjectDescriptor;
