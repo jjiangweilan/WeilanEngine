@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/ImageView.hpp"
+#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
 #include "GfxEnums.hpp"
 #include "RayTracingContext.hpp"
-#include "Engine/Core/Ptr.hpp"
 #include "ResourceHandle.hpp"
-#include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Sampler.hpp"
 #include "StorageBuffer.hpp"
 #include <string>
 #include <unordered_map>
@@ -38,6 +39,10 @@ public:
     {
         SetImage(handle, 0, imageId);
     }
+    void SetSampler(ShaderBindingHandle handle, Gfx::Sampler* sampler)
+    {
+        SetSampler(handle, 0, sampler);
+    }
 
     virtual void Remove(ShaderBindingHandle handle) = 0;
 
@@ -45,6 +50,7 @@ public:
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) = 0;
+    virtual void SetSampler(ShaderBindingHandle handle, int index, Gfx::Sampler* sampler) = 0;
     virtual void SetAccelerationStructure(ShaderBindingHandle handle, int index, RayTracingContext* context, RayTracingSceneHandle scene) = 0;
     virtual void RebuildAll() = 0;
     virtual void Clear() = 0;
@@ -65,14 +71,21 @@ public:
     {
         SetImage(ShaderBindingHandle(name), imageView);
     }
+    void SetSampler(std::string_view name, int index, Gfx::Sampler* sampler)
+    {
+        SetSampler(ShaderBindingHandle(name), index, sampler);
+    }
+    void SetSampler(std::string_view name, Gfx::Sampler* sampler)
+    {
+        SetSampler(ShaderBindingHandle(name), 0, sampler);
+    }
 
     void SetAccelerationStructure(std::string_view name, int index, RayTracingContext* context, RayTracingSceneHandle scene)
     {
         SetAccelerationStructure(ShaderBindingHandle(name), index, context, scene);
     }
 
-
-    virtual ~ShaderResource(){};
+    virtual ~ShaderResource() {};
 
 protected:
 };

@@ -13,6 +13,7 @@
 #include "Image.hpp"
 #include "ImageView.hpp"
 #include "RayTracingContext.hpp"
+#include "Sampler.hpp"
 #include "Semaphore.hpp"
 #include "Window.hpp"
 
@@ -92,6 +93,7 @@ public:
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ShaderResource> CreateShaderResource() = 0;
+    virtual std::unique_ptr<Sampler> CreateSampler(const Sampler::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<RenderPass_Deprecated> CreateRenderPass() = 0;
     virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass_Deprecated> renderPass) = 0;
     virtual std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
