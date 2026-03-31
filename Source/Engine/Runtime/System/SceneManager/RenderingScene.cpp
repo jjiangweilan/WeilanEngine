@@ -11,7 +11,13 @@
 
 SceneEnvironmentData& RenderingScene::GetSceneEnvironmentData()
 {
-    static SceneEnvironmentData defaultData;
+    static SceneEnvironmentData defaultData{
+        .fogPassParameters =
+            {
+                .enabled = false
+            }
+    };
+
     if (sceneEnvironment)
     {
         return sceneEnvironment->data;
