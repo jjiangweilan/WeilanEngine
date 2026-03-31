@@ -47,7 +47,8 @@ void VKShaderResource::Clear()
     ClearAllSets();
 }
 
-VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), inflightSets(VKContext::Instance()->driverConfig.swapchainImageCount) {}
+VKShaderResource::VKShaderResource()
+    : sharedResource(VKContext::Instance()->sharedResource), inflightSets(VKContext::Instance()->driverConfig.swapchainImageCount) {}
 
 VKShaderResource::~VKShaderResource()
 {
@@ -192,6 +193,27 @@ void VKShaderResource::SetAccelerationStructure(ShaderBindingHandle handle, int 
     {
         binding = {newRef, ShaderBindingType::AccelerationStructure};
         ResourceRef ref = {newRef, ShaderBindingType::AccelerationStructure};
+
+        for (auto& inflightSet : inflightSets)
+        {
+            for (auto& set : inflightSet)
+            {
+                set.second.pendingBindingUpdates.push_back({handle, index, ref});
+            }
+        }
+    }
+}
+
+void VKShaderResource::SetSampler(ShaderBindingHandle handle, int index, Gfx::Sampler* sampler)
+{
+    auto& binding = bindings[handle][index];
+    if (binding.GetRef() != sampler)
+    {
+        ResourceRef ref = {ObjPtr<Gfx::Sampler>(sampler), ShaderBindingType::Sampler};
+        if (sampler == nullptr)
+            bindings.erase(handle);
+        else
+            bindings[handle][index] = ref;
 
         for (auto& inflightSet : inflightSets)
         {
@@ -513,14 +535,24 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                     }
                 case DescriptorType::Sampler:
                     {
-                        auto createInfo = SamplerCachePool::GenerateSamplerCreateInfo(
-                            descriptorSet.samplerConfigs[b.samplerIndex]
-                        );
-                        VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
+                        VkSampler vkSampler = VK_NULL_HANDLE;
+                        if (resRef.type == ShaderBindingType::Sampler)
+                        {
+                            auto* s = static_cast<VKSampler*>(std::get<ObjPtr<Gfx::Sampler>>(resRef.res).Get());
+                            if (s)
+                                vkSampler = s->GetVkSampler();
+                        }
+                        if (vkSampler == VK_NULL_HANDLE)
+                        {
+                            auto createInfo = SamplerCachePool::GenerateSamplerCreateInfo(
+                                descriptorSet.samplerConfigs[b.samplerIndex]
+                            );
+                            vkSampler = SamplerCachePool::RequestSampler(createInfo);
+                        }
                         imageInfos.push_back({});
                         VkDescriptorImageInfo& imageInfo = imageInfos.back();
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfo.sampler = sampler;
+                        imageInfo.sampler = vkSampler;
                         imageInfo.imageView = VK_NULL_HANDLE;
                         break;
                     }
@@ -741,6 +773,8 @@ void* VKShaderResource::ResourceRef::GetRef()
         return std::get<ObjPtr<Buffer>>(res).Get();
     else if (type == ShaderBindingType::ImageView)
         return std::get<ObjPtr<ImageView>>(res).Get();
+    else if (type == ShaderBindingType::Sampler)
+        return std::get<ObjPtr<Gfx::Sampler>>(res).Get();
     // not doing for ImageID because the underlying image may change
 
     return nullptr;

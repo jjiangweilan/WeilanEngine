@@ -4,6 +4,7 @@
 #include "Engine/Driver/GfxDriver/Vulkan/VKImageView.hpp"
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
+#include "VKSampler.hpp"
 #include "VKShaderInfo.hpp"
 #include "VKSharedResource.hpp"
 #include <unordered_map>
@@ -67,6 +68,7 @@ public:
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
     void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) override;
+    void SetSampler(ShaderBindingHandle handle, int index, Gfx::Sampler* sampler) override;
     void SetAccelerationStructure(ShaderBindingHandle handle, int index, RayTracingContext* context, RayTracingSceneHandle scene) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
@@ -83,6 +85,7 @@ protected:
         Buffer,
         ImageID,
         AccelerationStructure,
+        Sampler,
     };
 
     struct ResourceRef
@@ -99,6 +102,8 @@ protected:
                 return true;
             else if (type == ShaderBindingType::AccelerationStructure)
                 return true;
+            else if (type == ShaderBindingType::Sampler)
+                return std::get<ObjPtr<Gfx::Sampler>>(res) != nullptr;
 
             return false;
         }
@@ -109,7 +114,7 @@ protected:
 
         const Gfx::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::ImageIdentifier>(res) : Gfx::ImageIdentifier::GetEmpty(); }
 
-        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier, AccelerationStructureRef> res = ObjPtr<ImageView>(nullptr);
+        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier, AccelerationStructureRef, ObjPtr<Gfx::Sampler>> res = ObjPtr<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
         // cached resolved uuid for ImageID bindings, used to skip redundant updates
         UUID cachedResolvedDynamicImageUUID = UUID::GetEmptyUUID();

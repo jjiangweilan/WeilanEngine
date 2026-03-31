@@ -18,6 +18,7 @@
 #include "VKImageView.hpp"
 #include "VKRayTracingContext.hpp"
 #include "VKRenderPass.hpp"
+#include "VKSampler.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
@@ -665,6 +666,12 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 {
     std::scoped_lock lock(driverMutex);
     return std::make_unique<VKShaderResource>();
+}
+
+std::unique_ptr<Sampler> VKDriver::CreateSampler(const Sampler::CreateInfo& createInfo)
+{
+    std::scoped_lock lock(driverMutex);
+    return std::make_unique<VKSampler>(createInfo);
 }
 
 bool VKDriver::BeginFrame()
