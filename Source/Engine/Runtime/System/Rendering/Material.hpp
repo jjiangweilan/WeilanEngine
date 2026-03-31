@@ -73,6 +73,7 @@ public:
     void SetTexture_Lua(const std::string& param, const ObjPtr<Texture>& texture) { return SetTexture(param, texture, std::nullopt); }
 
     void RawSetTexture(const std::string& param, const ObjPtr<Texture>& texture);
+    void SetTextureSamplerIndex(const std::string& bindingName, uint32_t samplerIndex);
     void SetTexture(const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt);
     void SetTexture(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
@@ -156,6 +157,7 @@ private:
 
     // std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, ObjPtr<Texture>> textureValues;
+    std::unordered_map<std::string, uint32_t> textureSamplerIndices;
     std::unordered_map<std::string, std::optional<Gfx::ImageViewOption>> textureImageViewOptions;
     std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;

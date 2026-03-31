@@ -20,6 +20,42 @@ GPUDrivenManager::GPUDrivenManager()
     // Create global descriptor set (set 0)
     globalDescriptorSet = GetGfxDriver()->CreateShaderResource();
     globalDescriptorSet->SetBuffer("globalBuffer", globalBuffer.get());
+
+    // Create global sampler table matching PerScene.hlsl globalSamplers[10].
+    // Layout: index = addressMode * 2 + filterMode
+    //   addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3
+    //   filterMode:  Nearest=0, Linear=1
+    //   Indices 8 and 9 are fallbacks for MirrorClampToEdge (unsupported), mapped to ClampToEdge.
+    using AM = Gfx::SamplerAddressMode;
+    using FM = Gfx::FilterMode;
+    struct SamplerDesc
+    {
+        AM addr;
+        FM filter;
+    };
+    const SamplerDesc descs[GlobalSamplerCount] = {
+        {AM::Repeat, FM::Nearest},         // 0 point_repeat
+        {AM::Repeat, FM::Linear},          // 1 linear_repeat
+        {AM::MirroredRepeat, FM::Nearest}, // 2 point_mirror
+        {AM::MirroredRepeat, FM::Linear},  // 3 linear_mirror
+        {AM::ClampToEdge, FM::Nearest},    // 4 point_clamp
+        {AM::ClampToEdge, FM::Linear},     // 5 linear_clamp
+        {AM::ClampToBorder, FM::Nearest},  // 6 point_border
+        {AM::ClampToBorder, FM::Linear},   // 7 linear_border
+        {AM::ClampToEdge, FM::Nearest},    // 8 fallback for MirrorClampToEdge (Nearest)
+        {AM::ClampToEdge, FM::Linear},     // 9 fallback for MirrorClampToEdge (Linear)
+    };
+    for (int i = 0; i < GlobalSamplerCount; ++i)
+    {
+        Gfx::Sampler::CreateInfo ci{};
+        ci.addressModeU = descs[i].addr;
+        ci.addressModeV = descs[i].addr;
+        ci.addressModeW = descs[i].addr;
+        ci.minFilter = descs[i].filter;
+        ci.magFilter = descs[i].filter;
+        globalSamplers[i] = GetGfxDriver()->CreateSampler(ci);
+        globalDescriptorSet->SetSampler("globalSamplers", i, globalSamplers[i].get());
+    }
 }
 
 GpuRenderDataListHandle GPUDrivenManager::RegisterRenderDataList(const std::vector<GpuRenderData>& data)

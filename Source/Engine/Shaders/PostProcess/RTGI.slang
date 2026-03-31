@@ -114,10 +114,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         GpuMaterial matData = perScene.GetGlobalBuffer().Load<GpuMaterial>(renderData.materialOffset);
 
         float4 albedo = matData.baseColorFactor;
-        if (matData.baseColorTexIndex != 0xFFFFFFFF)
+        if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
         {
-            Texture2D tex = perScene.globalTextures[matData.baseColorTexIndex];
-            albedo *= tex.SampleLevel(perMaterial.sampler_linear_repeat, hitData.uv, 0);
+            Texture2D tex = perScene.globalTextures[matData.baseColorTexIndex.x];
+            albedo *= tex.SampleLevel(perScene.GetGlobalSampler(matData.baseColorTexIndex.y), hitData.uv, 0);
         }
 
         // Direct light evaluation at hit point
@@ -140,10 +140,6 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                     indirectLight = (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl;
                 }
             }
-        }
-        else
-        {
-             indirectLight = 0; // fallback
         }
     }
     else

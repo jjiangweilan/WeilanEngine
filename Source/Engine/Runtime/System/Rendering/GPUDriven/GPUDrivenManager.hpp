@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Driver/GfxDriver/Sampler.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Library/Allocators/VirtualTLSFAllocator.hpp"
 #include "Engine/Library/ObjectPool.hpp"
@@ -26,11 +27,12 @@ struct GpuMaterial
     float roughness;
     float metallic;
     float alphaCutoff;
-    uint32_t baseColorTexIndex;
-    uint32_t normalMapTexIndex;
-    uint32_t metallicRoughnessTexIndex;
-    uint32_t emissiveMapTexIndex;
+    glm::uvec2 baseColorTexIndex;
+    glm::uvec2 normalMapTexIndex;
+    glm::uvec2 metallicRoughnessTexIndex;
+    glm::uvec2 emissiveMapTexIndex;
     uint32_t shaderHash;
+    uint32_t _pad0;
 };
 
 struct GpuGeometry
@@ -188,6 +190,14 @@ private:
 
     // Global descriptor set (set 0)
     std::unique_ptr<Gfx::ShaderResource> globalDescriptorSet;
+
+    // Global sampler table (matches PerScene.hlsl globalSamplers[10])
+    // Layout: index = addressMode * 2 + filterMode
+    //   addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3
+    //   filterMode:  Nearest=0, Linear=1
+    //   Indices 8/9 are fallback for MirrorClampToEdge (maps to ClampToEdge)
+    static constexpr int GlobalSamplerCount = 10;
+    std::unique_ptr<Gfx::Sampler> globalSamplers[GlobalSamplerCount];
 
     // GPUDriven config buffer
     std::unique_ptr<Gfx::Buffer> gpuDrivenConfigBuffer;

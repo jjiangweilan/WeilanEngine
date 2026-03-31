@@ -69,8 +69,10 @@ struct PerScene
     ConstantBuffer<Camera> camera;
     ConstantBuffer<MainLightShadow> mainLightShadow; 
 
-    SamplerState sampler_linear_clamp;
-    SamplerState sampler_point_clamp;
+    // Global sampler table: index = addressMode*2 + filterMode
+    // addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3, MirrorClampToEdge=4(fallback)
+    // filterMode:  Nearest=0, Linear=1
+    SamplerState globalSamplers[10];
 
     ByteAddressBuffer globalBuffer;
     StructuredBuffer<uint> gpuObjectOffsets;
@@ -78,6 +80,11 @@ struct PerScene
     Texture2D globalTextures[];
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
+
+    SamplerState GetGlobalSampler(uint index)
+    {
+        return globalSamplers[min(index, 9u)];
+    }
 
     T LoadData<T>(uint byteOffset)
     {
@@ -160,11 +167,12 @@ struct GpuMaterial
     float roughness;
     float metallic;
     float alphaCutoff;
-    uint baseColorTexIndex;
-    uint normalMapTexIndex;
-    uint metallicRoughnessTexIndex;
-    uint emissiveMapTexIndex;
+    uint2 baseColorTexIndex;
+    uint2 normalMapTexIndex;
+    uint2 metallicRoughnessTexIndex;
+    uint2 emissiveMapTexIndex;
     uint shaderHash;
+    uint _pad0;
 };
 
 // geometry data stored in globalBuffer for bindless GPU-driven rendering.

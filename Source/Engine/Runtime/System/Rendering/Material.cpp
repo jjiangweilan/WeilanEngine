@@ -1,9 +1,9 @@
 #include "Material.hpp"
-#include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/Driver/GfxDriver/ShaderProgram.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
@@ -30,7 +30,8 @@ Material::Material(ObjPtr<Shader> shader)
     SetShaderNoProtection(shader);
 }
 
-Material::Material() : shaderInUse(nullptr), shaderResource(nullptr)
+Material::Material()
+    : shaderInUse(nullptr), shaderResource(nullptr)
 {
     shaderResource = GetGfxDriver()->CreateShaderResource();
     SetName("new material");
@@ -639,6 +640,11 @@ void Material::CopyProperties(Material& other)
     }
 }
 
+void Material::SetTextureSamplerIndex(const std::string& bindingName, uint32_t samplerIndex)
+{
+    textureSamplerIndices[bindingName] = samplerIndex;
+}
+
 void Material::RegisterGPUMaterial()
 {
     if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
@@ -650,28 +656,34 @@ void Material::RegisterGPUMaterial()
     data.roughness = GetFloat("perMaterial", "roughness");
     data.metallic = GetFloat("perMaterial", "metallic");
     data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
-    data.baseColorTexIndex = Rendering::InvalidTextureIndex;
-    data.normalMapTexIndex = Rendering::InvalidTextureIndex;
-    data.metallicRoughnessTexIndex = Rendering::InvalidTextureIndex;
-    data.emissiveMapTexIndex = Rendering::InvalidTextureIndex;
+    data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.emissiveMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.shaderHash = 0;
 
-    auto getTexIndex = [&](const std::string& name) -> uint32_t
+    auto getTexAndSamplerIndex = [&](const std::string& name) -> glm::uvec2
     {
         auto it = textureValues.find(name);
         if (it != textureValues.end() && it->second != nullptr)
         {
             auto handle = it->second->GetGPUTextureHandle();
             if (handle != static_cast<Rendering::GPUTextureHandle>(-1))
-                return static_cast<uint32_t>(handle);
+            {
+                uint32_t samplerIdx = 1; // default: Linear+Repeat
+                auto sit = textureSamplerIndices.find(name);
+                if (sit != textureSamplerIndices.end())
+                    samplerIdx = sit->second;
+                return glm::uvec2(static_cast<uint32_t>(handle), samplerIdx);
+            }
         }
-        return Rendering::InvalidTextureIndex;
+        return glm::uvec2(Rendering::InvalidTextureIndex, 1);
     };
 
-    data.baseColorTexIndex = getTexIndex("baseColorTex");
-    data.normalMapTexIndex = getTexIndex("normalMap");
-    data.metallicRoughnessTexIndex = getTexIndex("metallicRoughnessMap");
-    data.emissiveMapTexIndex = getTexIndex("emissiveMap");
+    data.baseColorTexIndex = getTexAndSamplerIndex("baseColorTex");
+    data.normalMapTexIndex = getTexAndSamplerIndex("normalMap");
+    data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
+    data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
 
     gpuMaterialHandle = Rendering::GPUDrivenManager::Instance().RegisterMaterial(data);
 }
@@ -696,28 +708,34 @@ void Material::UpdateGPUMaterialData()
     data.roughness = GetFloat("perMaterial", "roughness");
     data.metallic = GetFloat("perMaterial", "metallic");
     data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
-    data.baseColorTexIndex = Rendering::InvalidTextureIndex;
-    data.normalMapTexIndex = Rendering::InvalidTextureIndex;
-    data.metallicRoughnessTexIndex = Rendering::InvalidTextureIndex;
-    data.emissiveMapTexIndex = Rendering::InvalidTextureIndex;
+    data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.emissiveMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.shaderHash = 0;
 
-    auto getTexIndex = [&](const std::string& name) -> uint32_t
+    auto getTexAndSamplerIndex = [&](const std::string& name) -> glm::uvec2
     {
         auto it = textureValues.find(name);
         if (it != textureValues.end() && it->second != nullptr)
         {
             auto handle = it->second->GetGPUTextureHandle();
             if (handle != static_cast<Rendering::GPUTextureHandle>(-1))
-                return static_cast<uint32_t>(handle);
+            {
+                uint32_t samplerIdx = 1; // default: Linear+Repeat
+                auto sit = textureSamplerIndices.find(name);
+                if (sit != textureSamplerIndices.end())
+                    samplerIdx = sit->second;
+                return glm::uvec2(static_cast<uint32_t>(handle), samplerIdx);
+            }
         }
-        return Rendering::InvalidTextureIndex;
+        return glm::uvec2(Rendering::InvalidTextureIndex, 1);
     };
 
-    data.baseColorTexIndex = getTexIndex("baseColorTex");
-    data.normalMapTexIndex = getTexIndex("normalMap");
-    data.metallicRoughnessTexIndex = getTexIndex("metallicRoughnessMap");
-    data.emissiveMapTexIndex = getTexIndex("emissiveMap");
+    data.baseColorTexIndex = getTexAndSamplerIndex("baseColorTex");
+    data.normalMapTexIndex = getTexAndSamplerIndex("normalMap");
+    data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
+    data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
 
     Rendering::GPUDrivenManager::Instance().UpdateMaterial(gpuMaterialHandle, data);
 }

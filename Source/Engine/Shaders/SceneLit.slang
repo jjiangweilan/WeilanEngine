@@ -102,10 +102,10 @@ FragmentOutput SceneLitFragment(VertexOutput input)
         GpuMaterial matData = perScene.LoadData<GpuMaterial>(renderData.materialOffset);
 
         baseColor = matData.baseColorFactor;
-        if (matData.baseColorTexIndex != 0xFFFFFFFF)
+        if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
         {
-            baseColor *= perScene.globalTextures[matData.baseColorTexIndex].Sample(
-                perScene.sampler_linear_clamp, input.uv);
+            baseColor *= perScene.globalTextures[matData.baseColorTexIndex.x].Sample(
+                perScene.GetGlobalSampler(matData.baseColorTexIndex.y), input.uv);
         }
 
         if (_AlphaClip)
@@ -116,11 +116,11 @@ FragmentOutput SceneLitFragment(VertexOutput input)
 
         metallic = matData.metallic;
         roughness = matData.roughness;
-        if (matData.metallicRoughnessTexIndex != 0xFFFFFFFF)
+        if (matData.metallicRoughnessTexIndex.x != 0xFFFFFFFF)
         {
             float2 metallicRoughness = float2(roughness, metallic) *
-                perScene.globalTextures[matData.metallicRoughnessTexIndex].Sample(
-                    perScene.sampler_linear_clamp, input.uv).gb;
+                perScene.globalTextures[matData.metallicRoughnessTexIndex.x].Sample(
+                    perScene.GetGlobalSampler(matData.metallicRoughnessTexIndex.y), input.uv).gb;
             metallic = metallicRoughness.y;
             roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
         }
@@ -128,17 +128,17 @@ FragmentOutput SceneLitFragment(VertexOutput input)
             roughness = clamp(roughness, 0.01, 0.99f);
 
         normalSample = float3(0, 0, 1);
-        if (matData.normalMapTexIndex != 0xFFFFFFFF)
+        if (matData.normalMapTexIndex.x != 0xFFFFFFFF)
         {
-            normalSample = perScene.globalTextures[matData.normalMapTexIndex].Sample(
-                perScene.sampler_linear_clamp, input.uv).xyz * 2 - 1;
+            normalSample = perScene.globalTextures[matData.normalMapTexIndex.x].Sample(
+                perScene.GetGlobalSampler(matData.normalMapTexIndex.y), input.uv).xyz * 2 - 1;
         }
 
         emission = float4(0, 0, 0, 0);
-        if (matData.emissiveMapTexIndex != 0xFFFFFFFF)
+        if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
         {
-            emission = perScene.globalTextures[matData.emissiveMapTexIndex].Sample(
-                perScene.sampler_linear_clamp, input.uv);
+            emission = perScene.globalTextures[matData.emissiveMapTexIndex.x].Sample(
+                perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), input.uv);
         }
         emission *= matData.emissive;
     }
