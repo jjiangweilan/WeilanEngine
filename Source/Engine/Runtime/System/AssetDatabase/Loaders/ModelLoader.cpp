@@ -310,20 +310,83 @@ private:
             aiString texName;
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
 
-            int wrapU = aiTextureMapMode_Wrap; // Default to Wrap/Repeat
+            // --- Address mode ---
+            int wrapU = aiTextureMapMode_Wrap;
             int wrapV = aiTextureMapMode_Wrap;
+            material->Get(AI_MATKEY_MAPPINGMODE_U(type, 0), wrapU);
+            material->Get(AI_MATKEY_MAPPINGMODE_V(type, 0), wrapV);
+            if (wrapV != wrapU)
+                spdlog::warn("ModelLoader: texture '{}' binding '{}' has different U ({}) and V ({}) wrap modes; using U mode.", texName.C_Str(), bindingName, wrapU, wrapV);
 
-            // Query U wrapping
-            if (AI_SUCCESS == material->Get(AI_MATKEY_MAPPINGMODE_U(type, 0), wrapU))
+            // --- Filter mode ---
+            int filterMin = 9729; // default: GL_LINEAR
+            int filterMag = 9729;
+            bool hasMin = (AI_SUCCESS == material->Get(AI_MATKEY_GLTF_MAPPINGFILTER_MIN(type, 0), filterMin));
+            bool hasMag = (AI_SUCCESS == material->Get(AI_MATKEY_GLTF_MAPPINGFILTER_MAG(type, 0), filterMag));
+            if (!hasMin)
+                filterMin = 9729; // default to Linear
+                                  //
+
+            // check for mismatched layer filter modes, because we only support using the same filter mode for both min and mag (and ignore mipmap filter mode if specified)
             {
-                // wrapU now contains the enum value
+                if (filterMin == 9728)
+                {
+                    if (filterMag == 9728 || filterMag == 9985 || filterMag == 9987)
+                    {
+                        spdlog::warn("ModelLoader: texture '{}' binding '{}' has different MIN ({}) and MAG ({}) filter modes; using MIN mode.", texName.C_Str(), bindingName, filterMin, filterMag);
+                    }
+                }
+
+                if (filterMag == 9728)
+                {
+                    if (filterMin == 9728 || filterMin == 9985 || filterMin == 9987)
+                    {
+                        spdlog::warn("ModelLoader: texture '{}' binding '{}' has different MIN ({}) and MAG ({}) filter modes; using MIN mode.", texName.C_Str(), bindingName, filterMin, filterMag);
+                    }
+                }
             }
+
+            // check for nearest mip filter
+            if (filterMag == 9984 || filterMag == 9985 || filterMin == 9984 || filterMin == 9985)
+            {
+                spdlog::warn("ModelLoader: texture '{}' binding '{}' uses mipmap filter mode ({} for MIN, {} for MAG); nearest mipmap point filter are not supported, mipmap is currently hardcoded to linear filter", texName.C_Str(), bindingName, filterMin, filterMag);
+            }
+
+            // Compute address mode index (0=Repeat,1=MirroredRepeat,2=ClampToEdge,3=ClampToBorder)
+            uint32_t addrIdx = 0;
+            switch (wrapU)
+            {
+                case aiTextureMapMode_Wrap: addrIdx = 0; break;   // Repeat
+                case aiTextureMapMode_Clamp: addrIdx = 2; break;  // ClampToEdge
+                case aiTextureMapMode_Decal: addrIdx = 3; break;  // ClampToBorder
+                case aiTextureMapMode_Mirror: addrIdx = 1; break; // MirroredRepeat
+                default:
+                    spdlog::warn("ModelLoader: texture '{}' binding '{}' unknown wrap mode {}; defaulting to Repeat.", texName.C_Str(), bindingName, wrapU);
+                    addrIdx = 0;
+                    break;
+            }
+
+            // Compute filter mode index (0=Nearest, 1=Linear)
+            uint32_t filterIdx = 1; // default Linear
+            switch (filterMin)
+            {
+                case 9728:
+                case 9984:
+                case 9986: filterIdx = 0; break; // Nearest variants
+                case 9729:
+                case 9985:
+                case 9987: filterIdx = 1; break; // Linear variants
+                default: filterIdx = 1; break;
+            }
+
+            uint32_t samplerIndex = addrIdx * 2 + filterIdx;
 
             auto tex = AssetDatabase::Singleton()->LoadAssetAsync_Experimental(
                 absoluteAssetPath.parent_path() / texName.C_Str()
             );
 
             mat->RawSetTexture(bindingName, ObjPtr<Texture>(std::move(tex)));
+            mat->SetTextureSamplerIndex(bindingName, samplerIndex);
             mat->EnableFeature(keyword);
             return true;
         }
