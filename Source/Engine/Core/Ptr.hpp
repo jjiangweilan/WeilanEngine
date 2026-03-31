@@ -106,14 +106,10 @@ public:
             return nullptr;
         }
 
-        // we can't ensure abstract class
-        if constexpr (!std::is_same_v<T, Object> && !std::is_same_v<T, Component> && !std::is_abstract_v<T>)
+        if (!obj->GetTypeInfo()->SubclassOf(ObjectRegistry::GetObjectTypeInfo(T::StaticGetObjectTypeID())))
         {
-            if (T::StaticGetObjectTypeID() != obj->GetObjectTypeID())
-            {
-                spdlog::critical("Invalid handle detected,  this shouldn't happen");
-                return nullptr;
-            }
+            spdlog::critical("Invalid handle detected,  this shouldn't happen");
+            return nullptr;
         }
 #endif
 

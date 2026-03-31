@@ -129,6 +129,18 @@ class PropertyIterator
         map_iterator currentIter;
     };
 
+    bool SubclassOf(const ObjectTypeInfo* other) const
+    {
+        const ObjectTypeInfo* current = this;
+        while (current)
+        {
+            if (current == other)
+                return true;
+            current = current->GetParentTypeInfo();
+        }
+        return false;
+    }
+
     const ObjectTypeInfo* GetParentTypeInfo() const { return parentTypeInfo; }
     const std::string& GetTypeName() const { return typeName; }
     const UUID& GetTypeID() const { return typeID; }
