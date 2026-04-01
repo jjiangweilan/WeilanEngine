@@ -18,6 +18,11 @@ struct ColorAttribute
 {
 };
 
+[__AttributeUsage(_AttributeTargets.Var)]
+struct TextureAttribute
+{
+};
+
 [__AttributeUsage(_AttributeTargets.Struct)]
 struct MaterialUILayoutAttribute
 {

@@ -25,6 +25,12 @@ namespace Editor
                 continue;
             }
 
+            if (lowerAttr == "texture")
+            {
+                info.isTexture = true;
+                continue;
+            }
+
             // Regex for Range(min, max) - match "range" or "rangeattribute"
             static std::regex rangeRegex(R"((range|rangeattribute)\s*\(\s*([+-]?([0-9]*[.])?[0-9]+)\s*,\s*([+-]?([0-9]*[.])?[0-9]+)\s*\))", std::regex_constants::icase);
             std::smatch rangeMatch;

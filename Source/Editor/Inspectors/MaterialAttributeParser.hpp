@@ -25,6 +25,7 @@ namespace Editor
     {
         std::optional<Range> range;
         bool isColor = false;
+        bool isTexture = false;
         std::optional<Group> group;
         std::optional<Tooltip> tooltip;
     };

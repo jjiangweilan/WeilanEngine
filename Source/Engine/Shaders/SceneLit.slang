@@ -7,6 +7,7 @@ static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
 static extern const bool _MetallicRoughnessMap = false;
+static extern const bool _GPUDriven = true;
 
 [MaterialUILayout]
 struct SceneLitUI
@@ -25,6 +26,18 @@ struct SceneLitUI
 
     [Color, Group("Emission")]
     float3 emissive;
+
+    [Texture, Group("Textures")]
+    int baseColorTex;
+
+    [Texture, Group("Textures")]
+    int normalMap;
+
+    [Texture, Group("Textures")]
+    int metallicRoughnessMap;
+
+    [Texture, Group("Textures")]
+    int emissiveMap;
 };
 
 interface IVertexInput

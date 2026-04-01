@@ -4,6 +4,7 @@
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Driver/GfxDriver/ShaderProgram.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Editor/Inspectors/InspectorRegistry.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
@@ -61,7 +62,7 @@ public:
             }
         }
 
-        DrawMaterialProperties(shader);
+        DrawMaterialProperties(shader, editor);
 
         if (ImGui::TreeNode("Auto Inspector"))
         {
@@ -79,7 +80,7 @@ private:
         const Gfx::ShaderPipelineInfo::Binding* binding = nullptr;
     };
 
-    void DrawMaterialProperties(Gfx::ShaderProgram* shader)
+    void DrawMaterialProperties(Gfx::ShaderProgram* shader, GameEditor& editor)
     {
         if (shader)
         {
@@ -157,7 +158,7 @@ private:
 
             for (const auto& item : ungrouped)
             {
-                DrawProperty(item, features);
+                DrawProperty(item, features, editor);
             }
 
             for (auto& [groupName, items] : groups)
@@ -166,22 +167,22 @@ private:
                 {
                     for (const auto& item : items)
                     {
-                        DrawProperty(item, features);
+                        DrawProperty(item, features, editor);
                     }
                 }
             }
         }
     }
 
-    void DrawProperty(const PropertyItem& item, const ShaderFeatures& features)
+    void DrawProperty(const PropertyItem& item, const ShaderFeatures& features, GameEditor& editor)
     {
-        if (item.member)
+        if (item.info.isTexture || (item.binding && !item.member))
+        {
+            DrawTextureProperty(item, features, editor);
+        }
+        else if (item.member)
         {
             DrawBufferMember(item);
-        }
-        else if (item.binding)
-        {
-            DrawTextureProperty(item, features);
         }
 
         if (item.info.tooltip && ImGui::IsItemHovered())
@@ -258,14 +259,28 @@ private:
         }
     }
 
-    void DrawTextureProperty(const PropertyItem& item, const ShaderFeatures& features)
+    void DrawTextureProperty(const PropertyItem& item, const ShaderFeatures& features, GameEditor& editor)
     {
-        const auto& binding = *item.binding;
-        auto texture = target->GetTexture(binding.name);
-        auto newTexture = EditorGUI::TextureField(binding.name, texture);
+        auto texture = target->GetTexture(item.name);
+        auto newTexture = EditorGUI::TextureField(item.name, texture);
         if (newTexture != texture)
         {
-            SetTexture(binding.name, newTexture, features);
+            SetTexture(item.name, newTexture, features);
+            texture = newTexture;
+        }
+
+        if (texture)
+        {
+            if (ImGui::TreeNode(("Inspect " + texture->GetName()).c_str()))
+            {
+                auto inspector = InspectorRegistry::GetInspector(*texture);
+                if (inspector->GetTarget() != texture)
+                {
+                    inspector->OnEnable(*texture);
+                }
+                inspector->DrawInspector(editor);
+                ImGui::TreePop();
+            }
         }
     }
 

@@ -33,9 +33,9 @@ def find_shader_compiler_tool() -> Path:
     """Find ShaderCompilerTool executable in build directory."""
     # Check common build output locations
     possible_paths = [
+        BUILD_DIR / "RelWithDebInfo" / "ShaderCompilerTool.exe",
         BUILD_DIR / "Release" / "ShaderCompilerTool.exe",
         BUILD_DIR / "Debug" / "ShaderCompilerTool.exe",
-        BUILD_DIR / "RelWithDebInfo" / "ShaderCompilerTool.exe",
         BUILD_DIR / "ShaderCompilerTool.exe",
         BUILD_DIR / "ShaderCompilerTool",
         BUILD_DIR / "Release" / "ShaderCompilerTool",
