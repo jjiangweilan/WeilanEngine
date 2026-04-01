@@ -20,17 +20,13 @@ struct RTGIParameter
     SamplerState sampler_linear_repeat;
 
     RaytracingAccelerationStructure sceneBVH;
+    TextureCube environmentMap;
 };
 
 [Global]
 ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<RTGIParameter> perMaterial;
-
-float randf(int x, int y) {
-    float f = 1.0f;
-    return modf(52.9829189 * modf(0.06711056 * float(x) + 0.00583715 * float(y), f), f);
-}
 
 // Generate cosine weighted direction over hemisphere
 float3 GetCosineWeightedDirection(float3 normal, float2 u)
@@ -73,13 +69,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 normalWS = normalize(GetNormalWS(uv));
 
     // Get noise — add golden-ratio temporal offset so each frame shoots a different ray
-    float jitter1 = randf(int(100 * posWS.x), int(100 * posWS.y));
-    float jitter2 = randf(int(100 * posWS.y), int(100 * posWS.z));
-    float2 noiseUV = float2(pixelCoord.x % 128, pixelCoord.y % 128) / 128.0;
-    float2 randVal = perMaterial.noiseTex.SampleLevel(perMaterial.sampler_point_repeat, noiseUV, 0).xy;
-    randVal = frac(randVal + float2(jitter1, jitter2));
     // Decorrelate frames using the R2 low-discrepancy sequence (golden ratio + plastic constant).
     // Period = 8 frames — standard for 1-SPP real-time GI denoising.
+    float2 randVal = perMaterial.noiseTex[pixelCoord % 128].xy;
     float2 temporalOffset = frac(float(uint(perScene.scene.frameIndex) % 8u) * float2(0.7548776662, 0.5698402910));
     randVal = frac(randVal + temporalOffset);
 
@@ -120,6 +112,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             albedo *= tex.SampleLevel(perScene.GetGlobalSampler(matData.baseColorTexIndex.y), hitData.uv, 0);
         }
 
+        float3 emissive = matData.emissive.rgb;
+        if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
+        {
+            Texture2D tex = perScene.globalTextures[matData.emissiveMapTexIndex.x];
+            emissive *= tex.SampleLevel(perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), hitData.uv, 0).rgb;
+        }
+        indirectLight += emissive;
+
         // Direct light evaluation at hit point
         Light mainLight = perScene.GetMainLight();
         if (mainLight.lightColor.a > 0.0) // If there is a light
@@ -137,14 +137,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                 bool inShadow = TraceVisibilityRay(perMaterial.sceneBVH, shadowOrigin, lightDir, 0.01, 10000.0);
                 if (!inShadow)
                 {
-                    indirectLight = (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl;
+                    indirectLight += (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl;
                 }
             }
         }
     }
     else
     {
-        indirectLight = 0; // Fallback sky color
+        indirectLight = perMaterial.environmentMap.SampleLevel(perMaterial.sampler_linear_clamp, rayDir, 0).rgb;
     }
 
     perMaterial.outRtgiTex[pixelCoord] = float4(indirectLight, 1.0);

@@ -12,6 +12,7 @@ RTGI::RTGI()
 {
     rtgiShader = ShaderLibrary::GetShader(Shaders::PostProcess_RTGI);
     temporalShader = ShaderLibrary::GetShader(Shaders::PostProcess_RTGI_Temporal);
+    variancePrefilterShader = ShaderLibrary::GetShader(Shaders::PostProcess_RTGI_VariancePrefilter);
     atrousShader = ShaderLibrary::GetShader(Shaders::PostProcess_RTGI_ATrous);
 
     mat.SetShader(rtgiShader);
@@ -47,9 +48,17 @@ void RTGI::EnsureHistoryBuffers(int width, int height)
     );
     historyDepth->SetName("RTGI_HistoryDepth");
 
+    Gfx::ImageDescription normalHistoryDesc(width, height, Gfx::GfxFormat::A2B10G10R10_UNorm); // Matches G-Buffer normal format
+    historyNormal = GetGfxDriver()->CreateImage(
+        normalHistoryDesc,
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment
+    );
+    historyNormal->SetName("RTGI_HistoryNormal");
+
     GetGfxDriver()->InitGfxImage(*historyColor, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historyMoments, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historyDepth, float4(0, 0, 0, 0));
+    GetGfxDriver()->InitGfxImage(*historyNormal, float4(0, 1, 0, 0)); // Default normal pointing up
 }
 
 void RTGI::Execute(
@@ -90,6 +99,7 @@ void RTGI::Execute(
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("noiseTex", renderingData.blueNoise.GetNoiseTexture());
+    mat.SetTexture("environmentMap", renderingData.specularCubemap);
     mat.SetTexture("outRtgiTex", GetGfxDriver()->GetImageFromRenderGraph(rtgiRaw));
     mat.SetVector("rtSize", rtSize);
 
@@ -125,6 +135,7 @@ void RTGI::Execute(
     temporalMat.SetTexture("motionVecTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
     temporalMat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     temporalMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    temporalMat.SetTexture("historyNormalTex", historyNormal.get());
     temporalMat.SetTexture("outAccumulated", GetGfxDriver()->GetImageFromRenderGraph(rtgiAccumulated));
     temporalMat.SetTexture("outMoments", GetGfxDriver()->GetImageFromRenderGraph(momentsOut));
     temporalMat.SetVector("rtgiParams", rtSize);
@@ -134,6 +145,28 @@ void RTGI::Execute(
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(temporalMat.GetSet(Gfx::DescriptorSetSemantics::Material), temporalMat.GetShaderResource());
     cmd->BindShaderProgram(temporalProgram, temporalProgram->GetDefaultShaderConfig());
+    cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+    cmd->EndLabel();
+
+    // -------------------------------------------------------------------------
+    // Pass 2.5: Variance pre-filter — 3x3 Gaussian on variance to stabilize it
+    // -------------------------------------------------------------------------
+    cmd->BeginLabel("RTGI_VariancePrefilter", {0.4, 0.4, 0.8, 1.0});
+
+    cmd->AllocateAttachment(rtgiPrefiltered, colorDesc);
+
+    renderingData.pipelineAllocator->AllocateBuffer(variancePrefilterParamBuffer, sizeof(glm::float4));
+    variancePrefilterParamBuffer.Write(&rtSize, sizeof(glm::float4));
+
+    cmd->BindResource(0, {
+                             Gfx::DynamicBinding("perMaterial", *variancePrefilterParamBuffer.GetBuffer()),
+                             Gfx::DynamicBinding("inTex", *GetGfxDriver()->GetImageFromRenderGraph(rtgiAccumulated)),
+                             Gfx::DynamicBinding("outTex", *GetGfxDriver()->GetImageFromRenderGraph(rtgiPrefiltered)),
+                         });
+
+    auto* variancePrefilterProgram = variancePrefilterShader->GetShaderProgram();
+    cmd->BindShaderProgram(variancePrefilterProgram, variancePrefilterProgram->GetDefaultShaderConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     cmd->EndLabel();
@@ -154,7 +187,7 @@ void RTGI::Execute(
         glm::float4 filterParams;
     };
 
-    Gfx::ImageIdentifier* src = &rtgiAccumulated;
+    Gfx::ImageIdentifier* src = &rtgiPrefiltered;
     Gfx::ImageIdentifier* dst = &rtgiPong;
 
     int iterations = glm::clamp(svgf.atrousIterations, 1, 5);
@@ -183,9 +216,9 @@ void RTGI::Execute(
         cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
         std::swap(src, dst);
-        // After the first iteration dst would point back to rtgiAccumulated;
-        // redirect to rtgiPing to avoid overwriting the first-pass source.
-        if (dst == &rtgiAccumulated)
+        // After the first iteration dst would point back to rtgiPrefiltered;
+        // redirect to rtgiPing to avoid overwriting the source.
+        if (dst == &rtgiPrefiltered)
             dst = &rtgiPing;
     }
 
@@ -200,9 +233,11 @@ void RTGI::Execute(
     Gfx::Image* finalImage = GetGfxDriver()->GetImageFromRenderGraph(*src);
     Gfx::Image* momentsImage = GetGfxDriver()->GetImageFromRenderGraph(momentsOut);
     Gfx::Image* hizImage = GetGfxDriver()->GetImageFromRenderGraph(hizTex);
+    Gfx::Image* currentNormalImage = GetGfxDriver()->GetImageFromRenderGraph(normalTex);
 
     cmd->Blit(Gfx::ImageIdentifier(*finalImage), Gfx::ImageIdentifier(*historyColor));
     cmd->Blit(Gfx::ImageIdentifier(*momentsImage), Gfx::ImageIdentifier(*historyMoments));
+    cmd->Blit(Gfx::ImageIdentifier(*currentNormalImage), Gfx::ImageIdentifier(*historyNormal));
 
     // Copy mip 0 of HZB to the single-mip history depth buffer
     Gfx::BlitOp depthBlitOp;

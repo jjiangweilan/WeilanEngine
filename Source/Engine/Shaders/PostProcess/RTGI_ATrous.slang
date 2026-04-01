@@ -95,8 +95,8 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float depthDiff = abs(centerDepth - sampleDepth) / (sigmaD * max(centerDepth, 1e-4) + 1e-5);
             float wDepth    = exp(-depthDiff);
 
-            // Normal edge-stopping: raised cosine
-            float wNormal = pow(max(0.0, dot(centerNormal, sampleNormal)), sigmaN);
+            // Normal edge-stopping: raised cosine, made more forgiving on curved surfaces
+            float wNormal = pow(max(0.0, dot(centerNormal, sampleNormal)), sigmaN * 0.5);
 
             // Luminance edge-stopping guided by variance
             float lumDiff = abs(centerLum - sampleLum);

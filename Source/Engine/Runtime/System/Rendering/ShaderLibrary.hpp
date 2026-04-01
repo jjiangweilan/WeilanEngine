@@ -20,6 +20,7 @@
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \
                          Do(PostProcess_RTGI_Temporal, "PostProcess/RTGI_Temporal"),                         \
                          Do(PostProcess_RTGI_ATrous, "PostProcess/RTGI_ATrous"),                             \
+                         Do(PostProcess_RTGI_VariancePrefilter, "PostProcess/RTGI_VariancePrefilter"),       \
                          Do(LightingCombine, "LightingCombine"),                                             \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \

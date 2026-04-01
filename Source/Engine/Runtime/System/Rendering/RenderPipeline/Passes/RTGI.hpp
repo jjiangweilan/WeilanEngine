@@ -42,6 +42,10 @@ private:
     Shader* temporalShader;
     Material temporalMat;
 
+    // SVGF variance pre-filter pass
+    Shader* variancePrefilterShader;
+    PipelineGPUBuffer variancePrefilterParamBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("RTGI_VariancePrefilterParam", PipelineGPUBufferUsage::Uniform);
+
     // SVGF à-trous spatial filter pass
     Shader* atrousShader;
 
@@ -54,6 +58,7 @@ private:
     // Transient per-frame render targets
     Gfx::ImageIdentifier rtgiRaw          = "RTGI_Raw";
     Gfx::ImageIdentifier rtgiAccumulated  = "RTGI_Accumulated";
+    Gfx::ImageIdentifier rtgiPrefiltered  = "RTGI_Prefiltered";
     Gfx::ImageIdentifier momentsOut       = "RTGI_Moments";
     Gfx::ImageIdentifier rtgiPing         = "RTGI_Ping";
     Gfx::ImageIdentifier rtgiPong         = "RTGI_Pong";
@@ -65,6 +70,7 @@ private:
     std::unique_ptr<Gfx::Image> historyColor;
     std::unique_ptr<Gfx::Image> historyMoments; // RGBA: m1, m2, accumCount, unused
     std::unique_ptr<Gfx::Image> historyDepth;   // previous-frame depth (R32G32_SFloat, matches HZB)
+    std::unique_ptr<Gfx::Image> historyNormal;  // previous-frame normal (matches G-Buffer format)
     glm::int2 historySize = {0, 0};
     bool historyValid = false;
 

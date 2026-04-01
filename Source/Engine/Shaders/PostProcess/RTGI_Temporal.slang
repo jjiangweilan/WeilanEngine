@@ -15,6 +15,7 @@ struct RTGITemporalParameter
     Texture2D          depthTex;
     Texture2D          historyDepthTex;   // previous-frame depth
     Texture2D          normalTex;
+    Texture2D          historyNormalTex;
 
     RWTexture2D<float4> outAccumulated; // RGB = blended radiance, A = variance
     RWTexture2D<float4> outMoments;     // R = m1, G = m2, B = accumCount
@@ -62,16 +63,23 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float depthCurrRaw = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).r;
     float depthCurrLin = LinearEyeDepth(depthCurrRaw, perScene.camera.cameraZBufferParams);
 
+    // Current normal
+    float3 currentNormal = DecodeGBufferNormal(perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).rgb);
+
     // Disocclusion: compare current depth against previous-frame depth at reprojected UV
     bool outOfBounds = any(prevUV < 0.0) || any(prevUV > 1.0);
     bool depthFail   = false;
+    bool normalFail  = false;
     if (!outOfBounds)
     {
         float depthPrevRaw = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).r;
         float depthPrevLin = LinearEyeDepth(depthPrevRaw, perScene.camera.cameraZBufferParams);
         depthFail = depthCurrLin > 0.01 && (abs(depthCurrLin - depthPrevLin) / (depthCurrLin + 1e-5)) > 0.1;
+
+        float3 historyNormal = DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).rgb);
+        normalFail = dot(currentNormal, historyNormal) < 0.9;
     }
-    bool disoccluded = outOfBounds || depthFail;
+    bool disoccluded = outOfBounds || depthFail || normalFail;
 
     // Per-pixel accumulation count — ramps alpha from 1.0 down to temporalAlpha over N frames
     float4 histMomAll     = perMaterial.historyMomentsTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0);
@@ -83,6 +91,24 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     // Sample history color (bilinear for smoother reprojection)
     float3 histColor = perMaterial.historyColorTex.SampleLevel(perMaterial.sampler_linear_clamp, prevUV, 0).rgb;
+
+    // 3x3 neighborhood clamping for histColor
+    float3 minColor = currentColor;
+    float3 maxColor = currentColor;
+    for (int i = -1; i <= 1; ++i)
+    {
+        for (int j = -1; j <= 1; ++j)
+        {
+            if (i == 0 && j == 0) continue;
+            int2 sampleCoord = (int2)pixelCoord + int2(i, j);
+            sampleCoord = clamp(sampleCoord, int2(0, 0), int2((int)width - 1, (int)height - 1));
+            float3 neighborColor = perMaterial.rtgiRawTex[sampleCoord].rgb;
+            minColor = min(minColor, neighborColor);
+            maxColor = max(maxColor, neighborColor);
+        }
+    }
+    histColor = clamp(histColor, minColor, maxColor);
+
     float2 histMom   = histMomAll.rg;
 
     // Temporally blend color and moments
