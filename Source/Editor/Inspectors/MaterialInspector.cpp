@@ -11,6 +11,8 @@
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <map>
 #include <limits>
+#include <algorithm>
+#include <cctype>
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
@@ -226,101 +228,70 @@ private:
     {
         const auto& binding = *item.binding;
         auto texture = target->GetTexture(binding.name);
-        if (texture != nullptr)
+        auto newTexture = EditorGUI::TextureField(binding.name, texture);
+        if (newTexture != texture)
         {
-            ImGui::Text("Texture: %s", binding.name.c_str());
-            ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-            {
-                EditorState::SelectObject(texture);
-            }
-            std::filesystem::path path;
-
-            auto regionMin = ImGui::GetItemRectMin();
-            auto regionMax = ImGui::GetItemRectMax();
-            if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
-            {
-                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                if (tex)
-                    SetTexture(binding.name, tex);
-            }
-
-            ImGui::SameLine();
-            if (ImGui::Button("x"))
-            {
-                SetTexture(binding.name, nullptr);
-            }
-        }
-        else
-        {
-            ImGui::Button(binding.name.c_str());
-            std::filesystem::path path;
-            if (EditorGUI::DragDropTarget(path))
-            {
-                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                if (tex)
-                    SetTexture(binding.name, tex);
-            }
+            SetTexture(binding.name, newTexture);
         }
     }
 
 private:
     static const char _register;
-    char featureToEnable[256];
-
-    glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
-    {
-        float imageWidth = width;
-        float imageHeight = height;
-
-        // shrink width
-        if (imageWidth > contentWidth)
-        {
-            float ratio = contentWidth / (float)imageWidth;
-            imageWidth = contentWidth;
-            imageHeight *= ratio;
-        }
-
-        if (imageHeight > contentHeight)
-        {
-            float ratio = contentHeight / (float)imageHeight;
-            imageHeight = contentHeight;
-            imageWidth *= ratio;
-        }
-
-        return {imageWidth, imageHeight};
-    }
 
     void SetTexture(const std::string& param, Texture* tex)
     {
         target->SetTexture(param, tex);
-        if (param == "baseColorTex")
+
+        auto shader = target->GetShaderProgram();
+        if (!shader)
+            return;
+
+        const ShaderFeatures& features = ShaderLibrary::QueryShaderFeatures(shader->GetName().c_str());
+
+        std::string featureName = "";
+
+        static const std::map<std::string, std::string> explicitMap = {
+            {"baseColorTex", "_BaseColorMap"},
+            {"normalMap", "_NormalMap"},
+            {"emissiveMap", "_EmissiveMap"},
+            {"metallicRoughnessMap", "_MetallicRoughnessMap"}};
+
+        auto it = explicitMap.find(param);
+        if (it != explicitMap.end())
         {
-            if (tex != nullptr)
-                target->EnableFeature("_BaseColorMap");
-            else
-                target->DisableFeature("_BaseColorMap");
+            featureName = it->second;
         }
-        else if (param == "normalMap")
+        else
         {
-            if (tex != nullptr)
-                target->EnableFeature("_NormalMap");
+            std::string conventionName = "_" + param;
+            if (features.featureToBitMask.count(conventionName))
+            {
+                featureName = conventionName;
+            }
             else
-                target->DisableFeature("_NormalMap");
+            {
+                std::string lowerConvention = conventionName;
+                std::transform(lowerConvention.begin(), lowerConvention.end(), lowerConvention.begin(), ::tolower);
+
+                for (const auto& f : features.featureToBitMask)
+                {
+                    std::string lowerF = f.first;
+                    std::transform(lowerF.begin(), lowerF.end(), lowerF.begin(), ::tolower);
+                    if (lowerF == lowerConvention)
+                    {
+                        featureName = f.first;
+                        break;
+                    }
+                }
+            }
         }
-        else if (param == "emissiveMap")
+
+        if (!featureName.empty() && features.featureToBitMask.count(featureName))
         {
             if (tex != nullptr)
-                target->EnableFeature("_EmissiveMap");
+                target->EnableFeature(featureName);
             else
-                target->DisableFeature("_EmissiveMap");
-        }
-        else if (param == "metallicRoughnessMap")
-        {
-            if (tex != nullptr)
-                target->EnableFeature("_MetallicRoughnessMap");
-            else
-                target->DisableFeature("_MetallicRoughnessMap");
+                target->DisableFeature(featureName);
         }
     }
 };
