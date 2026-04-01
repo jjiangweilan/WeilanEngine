@@ -6,7 +6,11 @@
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "MaterialAttributeParser.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <map>
+#include <limits>
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
@@ -27,17 +31,21 @@ public:
             target->SetShader(picked);
         }
 
+        if (shaderName[0] != '\0')
         {
-            bool alphaClip = target->IsFeatureEnabled("_AlphaClip");
-            if (ImGui::Checkbox("Alpha Clip", &alphaClip))
+            const ShaderFeatures& features = ShaderLibrary::QueryShaderFeatures(shaderName);
+            for (const auto& feature : features.toggleFeatures)
             {
-                if (alphaClip)
-                    target->EnableFeature("_AlphaClip");
-                else
-                    target->DisableFeature("_AlphaClip");
+                bool enabled = target->IsFeatureEnabled(feature.name);
+                if (ImGui::Checkbox(feature.name.c_str(), &enabled))
+                {
+                    if (enabled)
+                        target->EnableFeature(feature.name);
+                    else
+                        target->DisableFeature(feature.name);
+                }
             }
         }
-
 
         {
             auto cfgPtr = target->GetShaderConfig();
@@ -51,7 +59,7 @@ public:
             }
         }
 
-        Draw(shader);
+        DrawMaterialProperties(shader);
 
         if (ImGui::TreeNode("Auto Inspector"))
         {
@@ -60,7 +68,16 @@ public:
         }
     }
 
-    void Draw(Gfx::ShaderProgram* shader)
+private:
+    struct PropertyItem
+    {
+        std::string name;
+        MaterialAttributeInfo info;
+        const Gfx::ShaderPipelineInfo::BufferMember* member = nullptr;
+        const Gfx::ShaderPipelineInfo::Binding* binding = nullptr;
+    };
+
+    void DrawMaterialProperties(Gfx::ShaderProgram* shader)
     {
         if (shader)
         {
@@ -68,113 +85,181 @@ public:
             auto set = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
             if (set)
             {
-                const auto binding = set->GetBinding(0);
-                if (binding)
+                std::map<std::string, std::vector<PropertyItem>> groups;
+                std::vector<PropertyItem> ungrouped;
+
+                for (const auto& binding : set->bindings)
                 {
-                    for (auto member : binding->bufferMembers)
+                    if (binding.descriptorType == Gfx::DescriptorType::UniformBuffer)
                     {
-                        if (member.IsVector())
+                        for (const auto& member : binding.bufferMembers)
                         {
-                            glm::float4 val = target->GetVector("", member.name);
-
-                            if (member.rowCount == 4)
-                            {
-                                if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
-                                {
-                                    target->SetVector("", member.name, val);
-                                }
-                            }
-                            if (member.rowCount == 3)
-                            {
-                                if (ImGui::DragFloat3(member.name.c_str(), &val[0]))
-                                {
-                                    target->SetVector("", member.name, val);
-                                }
-                            }
-                            else if (member.rowCount == 2)
-                            {
-                                if (ImGui::DragFloat2(member.name.c_str(), &val[0]))
-                                {
-                                    target->SetVector("", member.name, val);
-                                }
-                            }
-                        }
-                        else if (member.IsElement())
-                        {
-                            float val = target->GetFloat("", member.name);
-
-                            if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
-                            {
-                                if (ImGui::DragFloat(member.name.c_str(), &val))
-                                {
-                                    target->SetFloat("", member.name, val);
-                                }
-                            }
-                            else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Int)
-                            {
-                                int ival = val;
-                                if (ImGui::DragInt(member.name.c_str(), &ival))
-                                {
-                                    target->SetFloat("", member.name, val);
-                                }
-                            }
-                            else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::UInt)
-                            {
-                                int ival = val;
-                                if (ImGui::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
-                                {
-                                    target->SetFloat("", member.name, val);
-                                }
-                            }
+                            PropertyItem item;
+                            item.name = member.name;
+                            item.info = ParseAttributes(member.attributes);
+                            item.member = &member;
+                            if (item.info.group)
+                                groups[item.info.group->name].push_back(item);
+                            else
+                                ungrouped.push_back(item);
                         }
                     }
-                }
-
-                for (int i = 0; i < set->GetBindingCount(); ++i)
-                {
-                    const auto& binding = set->GetBinding(i);
-                    if (binding->descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
-                        binding->descriptorType == Gfx::DescriptorType::SampledImage)
+                    else if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+                             binding.descriptorType == Gfx::DescriptorType::SampledImage)
                     {
-                        auto texture = target->GetTexture(binding->name);
-                        if (texture != nullptr)
-                        {
-                            ImGui::Text("Texture: %s", binding->name.c_str());
-                            ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
-                            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
-                            {
-                                EditorState::SelectObject(texture);
-                            }
-                            std::filesystem::path path;
-
-                            auto regionMin = ImGui::GetItemRectMin();
-                            auto regionMax = ImGui::GetItemRectMax();
-                            if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
-                            {
-                                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                                if (tex)
-                                    SetTexture(binding->name, tex);
-                            }
-
-                            ImGui::SameLine();
-                            if (ImGui::Button("x"))
-                            {
-                                SetTexture(binding->name, nullptr);
-                            }
-                        }
+                        PropertyItem item;
+                        item.name = binding.name;
+                        // For now textures don't have attributes on Binding
+                        item.binding = &binding;
+                        if (item.info.group)
+                            groups[item.info.group->name].push_back(item);
                         else
+                            ungrouped.push_back(item);
+                    }
+                }
+
+                for (const auto& item : ungrouped)
+                {
+                    DrawProperty(item);
+                }
+
+                for (auto& [groupName, items] : groups)
+                {
+                    if (ImGui::CollapsingHeader(groupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+                    {
+                        for (const auto& item : items)
                         {
-                            ImGui::Button(binding->name.c_str());
-                            std::filesystem::path path;
-                            if (EditorGUI::DragDropTarget(path))
-                            {
-                                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
-                                if (tex)
-                                    SetTexture(binding->name, tex);
-                            }
+                            DrawProperty(item);
                         }
                     }
                 }
+            }
+        }
+    }
+
+    void DrawProperty(const PropertyItem& item)
+    {
+        if (item.member)
+        {
+            DrawBufferMember(item);
+        }
+        else if (item.binding)
+        {
+            DrawTextureProperty(item);
+        }
+
+        if (item.info.tooltip && ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s", item.info.tooltip->text.c_str());
+        }
+    }
+
+    void DrawBufferMember(const PropertyItem& item)
+    {
+        const auto& member = *item.member;
+        const auto& info = item.info;
+
+        if (member.IsVector())
+        {
+            glm::vec4 val = target->GetVector("", member.name);
+            bool changed = false;
+
+            if (info.isColor)
+            {
+                if (member.rowCount == 3)
+                    changed = ImGui::ColorEdit3(member.name.c_str(), &val[0]);
+                else if (member.rowCount == 4)
+                    changed = ImGui::ColorEdit4(member.name.c_str(), &val[0]);
+            }
+            else
+            {
+                if (member.rowCount == 2)
+                    changed = ImGui::DragFloat2(member.name.c_str(), &val[0]);
+                else if (member.rowCount == 3)
+                    changed = ImGui::DragFloat3(member.name.c_str(), &val[0]);
+                else if (member.rowCount == 4)
+                    changed = ImGui::DragFloat4(member.name.c_str(), &val[0]);
+            }
+
+            if (changed)
+                target->SetVector("", member.name, val);
+        }
+        else if (member.IsElement())
+        {
+            float val = target->GetFloat("", member.name);
+            bool changed = false;
+
+            if (info.range)
+            {
+                changed = ImGui::SliderFloat(member.name.c_str(), &val, info.range->min, info.range->max);
+            }
+            else
+            {
+                if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
+                    changed = ImGui::DragFloat(member.name.c_str(), &val);
+                else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::Int)
+                {
+                    int ival = (int)val;
+                    if (ImGui::DragInt(member.name.c_str(), &ival))
+                    {
+                        val = (float)ival;
+                        changed = true;
+                    }
+                }
+                else if (member.type == Gfx::ShaderPipelineInfo::MemberDataType::UInt)
+                {
+                    int ival = (int)val;
+                    if (ImGui::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
+                    {
+                        val = (float)ival;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed)
+                target->SetFloat("", member.name, val);
+        }
+    }
+
+    void DrawTextureProperty(const PropertyItem& item)
+    {
+        const auto& binding = *item.binding;
+        auto texture = target->GetTexture(binding.name);
+        if (texture != nullptr)
+        {
+            ImGui::Text("Texture: %s", binding.name.c_str());
+            ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+            {
+                EditorState::SelectObject(texture);
+            }
+            std::filesystem::path path;
+
+            auto regionMin = ImGui::GetItemRectMin();
+            auto regionMax = ImGui::GetItemRectMax();
+            if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
+            {
+                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                if (tex)
+                    SetTexture(binding.name, tex);
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("x"))
+            {
+                SetTexture(binding.name, nullptr);
+            }
+        }
+        else
+        {
+            ImGui::Button(binding.name.c_str());
+            std::filesystem::path path;
+            if (EditorGUI::DragDropTarget(path))
+            {
+                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                if (tex)
+                    SetTexture(binding.name, tex);
             }
         }
     }

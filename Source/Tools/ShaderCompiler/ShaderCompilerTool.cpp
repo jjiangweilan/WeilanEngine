@@ -509,6 +509,51 @@ private:
         }
     }
 
+    std::string GetAttributeString(auto* attribute)
+    {
+        std::string attrStr = attribute->getName();
+        uint32_t argCount = attribute->getArgumentCount();
+        if (argCount > 0)
+        {
+            attrStr += "(";
+            for (uint32_t i = 0; i < argCount; ++i)
+            {
+                if (i > 0) attrStr += ", ";
+
+                size_t stringLen = 0;
+                const char* stringVal = attribute->getArgumentValueString(i, &stringLen);
+                if (stringVal)
+                {
+                    attrStr += "\"";
+                    attrStr += stringVal;
+                    attrStr += "\"";
+                }
+                else
+                {
+                    int32_t intVal = 0;
+                    float floatVal = 0.0f;
+                    if (attribute->getArgumentValueInt(i, &intVal) == SLANG_OK)
+                    {
+                        if (attribute->getArgumentValueFloat(i, &floatVal) == SLANG_OK && (float)intVal != floatVal)
+                        {
+                            attrStr += fmt::format("{}", floatVal);
+                        }
+                        else
+                        {
+                            attrStr += std::to_string(intVal);
+                        }
+                    }
+                    else if (attribute->getArgumentValueFloat(i, &floatVal) == SLANG_OK)
+                    {
+                        attrStr += fmt::format("{}", floatVal);
+                    }
+                }
+            }
+            attrStr += ")";
+        }
+        return attrStr;
+    }
+
     json CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
     {
         json members = json::array();
@@ -562,7 +607,7 @@ private:
             auto variable = field->getVariable();
             for (unsigned i = 0; i < variable->getUserAttributeCount(); ++i)
             {
-                member["attributes"].push_back(variable->getUserAttributeByIndex(i)->getName());
+                member["attributes"].push_back(GetAttributeString(variable->getUserAttributeByIndex(i)));
             }
 
             members.push_back(member);
