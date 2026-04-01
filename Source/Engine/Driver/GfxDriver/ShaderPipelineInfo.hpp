@@ -168,6 +168,8 @@ struct ShaderPipelineInfo
 
     ShaderDynamicStateFlags shaderDynamicStateFlags = ShaderDynamicState::None;
 
+    std::vector<BufferMember> uiPropertySchema;
+
     const DescriptorSet* GetDescriptorSet(DescriptorSetSemantics semantics) const
     {
         for (int i = 0; i < descriptorSets.size(); ++i)

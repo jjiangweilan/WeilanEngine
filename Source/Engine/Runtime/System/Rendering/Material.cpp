@@ -651,11 +651,11 @@ void Material::RegisterGPUMaterial()
         return;
 
     Rendering::GpuMaterial data{};
-    data.baseColorFactor = GetVector("perMaterial", "baseColorFactor");
-    data.emissive = GetVector("perMaterial", "emissive");
-    data.roughness = GetFloat("perMaterial", "roughness");
-    data.metallic = GetFloat("perMaterial", "metallic");
-    data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
+    data.baseColorFactor = GetVector("", "baseColorFactor");
+    data.emissive = GetVector("", "emissive");
+    data.roughness = GetFloat("", "roughness");
+    data.metallic = GetFloat("", "metallic");
+    data.alphaCutoff = GetFloat("", "alphaCutoff");
     data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
@@ -703,11 +703,11 @@ void Material::UpdateGPUMaterialData()
         return;
 
     Rendering::GpuMaterial data{};
-    data.baseColorFactor = GetVector("perMaterial", "baseColorFactor");
-    data.emissive = GetVector("perMaterial", "emissive");
-    data.roughness = GetFloat("perMaterial", "roughness");
-    data.metallic = GetFloat("perMaterial", "metallic");
-    data.alphaCutoff = GetFloat("perMaterial", "alphaCutoff");
+    data.baseColorFactor = GetVector("", "baseColorFactor");
+    data.emissive = GetVector("", "emissive");
+    data.roughness = GetFloat("", "roughness");
+    data.metallic = GetFloat("", "metallic");
+    data.alphaCutoff = GetFloat("", "alphaCutoff");
     data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);

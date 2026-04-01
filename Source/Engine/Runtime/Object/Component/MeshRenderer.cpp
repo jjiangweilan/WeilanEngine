@@ -391,14 +391,6 @@ void MeshRenderer::SetGPUObject(bool enabled)
 
     isGPUObject = enabled;
 
-    for (auto& mat : materials)
-    {
-        if (isGPUObject)
-            mat->EnableFeature("_GPUDriven");
-        else
-            mat->DisableFeature("_GPUDriven");
-    }
-
     if (IsEnabled())
     {
         if (isGPUObject)

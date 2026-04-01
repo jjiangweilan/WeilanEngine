@@ -3,8 +3,6 @@ import Library.PerScene;
 import Lighting;
 #include "Library/Grid.hlsl"
 
-static extern const bool _GPUDriven = true;
-
 interface IVertexInput
 {
     float3 GetPosition();

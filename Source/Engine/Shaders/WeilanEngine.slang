@@ -17,3 +17,27 @@ struct ObjectAttribute
 struct ColorAttribute
 {
 };
+
+[__AttributeUsage(_AttributeTargets.Struct)]
+struct MaterialUILayoutAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct GroupAttribute
+{
+    string name;
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct RangeAttribute
+{
+    float min;
+    float max;
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
+struct TooltipAttribute
+{
+    string text;
+};

@@ -11,8 +11,6 @@ depth:
     writeEnable: true
 #endif
 
-static extern const bool _GPUDriven = false;
-
 struct PushConstant
 {
     uint firstGpuObjectOffset;

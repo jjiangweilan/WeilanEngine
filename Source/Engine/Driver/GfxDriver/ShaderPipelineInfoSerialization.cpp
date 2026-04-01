@@ -196,7 +196,8 @@ void to_json(nlohmann::json& j, const ShaderPipelineInfo& info)
         {"fragmentOutputs", info.fragmentOutputs},
         {"descriptorSets", info.descriptorSets},
         {"pushConstants", info.pushConstants},
-        {"shaderDynamicStateFlags", info.shaderDynamicStateFlags}
+        {"shaderDynamicStateFlags", info.shaderDynamicStateFlags},
+        {"uiPropertySchema", info.uiPropertySchema}
     };
 }
 
@@ -215,6 +216,8 @@ void from_json(const nlohmann::json& j, ShaderPipelineInfo& info)
         info.descriptorSets = j["descriptorSets"].get<std::vector<ShaderPipelineInfo::DescriptorSet>>();
     if (j.contains("pushConstants"))
         info.pushConstants = j["pushConstants"].get<std::vector<ShaderPipelineInfo::PushConstant>>();
+    if (j.contains("uiPropertySchema"))
+        info.uiPropertySchema = j["uiPropertySchema"].get<std::vector<ShaderPipelineInfo::BufferMember>>();
     info.shaderDynamicStateFlags = static_cast<ShaderDynamicStateFlags>(j.value("shaderDynamicStateFlags", 0));
 }
 

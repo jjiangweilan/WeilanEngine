@@ -7,7 +7,25 @@ static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
 static extern const bool _MetallicRoughnessMap = false;
-static extern const bool _GPUDriven = true;
+
+[MaterialUILayout]
+struct SceneLitUI
+{
+    [Color, Group("Surface")]
+    float3 baseColorFactor;
+
+    [Range(0, 1), Group("Surface")]
+    float roughness;
+
+    [Range(0, 1), Group("Surface")]
+    float metallic;
+
+    [Range(0, 1), Group("Surface")]
+    float alphaCutoff;
+
+    [Color, Group("Emission")]
+    float3 emissive;
+};
 
 interface IVertexInput
 {
@@ -95,53 +113,50 @@ FragmentOutput SceneLitFragment(VertexOutput input)
     float3 normalSample;
     float4 emission;
 
-    if (_GPUDriven)
+    GpuObject objData = perScene.LoadData<GpuObject>(input.objectOffset);
+    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, input.renderDataIndex);
+    GpuMaterial matData = perScene.LoadData<GpuMaterial>(renderData.materialOffset);
+
+    baseColor = matData.baseColorFactor;
+    if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
     {
-        GpuObject objData = perScene.LoadData<GpuObject>(input.objectOffset);
-        GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, input.renderDataIndex);
-        GpuMaterial matData = perScene.LoadData<GpuMaterial>(renderData.materialOffset);
-
-        baseColor = matData.baseColorFactor;
-        if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
-        {
-            baseColor *= perScene.globalTextures[matData.baseColorTexIndex.x].Sample(
-                perScene.GetGlobalSampler(matData.baseColorTexIndex.y), input.uv);
-        }
-
-        if (_AlphaClip)
-        {
-            if (baseColor.a < matData.alphaCutoff)
-                discard;
-        }
-
-        metallic = matData.metallic;
-        roughness = matData.roughness;
-        if (matData.metallicRoughnessTexIndex.x != 0xFFFFFFFF)
-        {
-            float2 metallicRoughness = float2(roughness, metallic) *
-                perScene.globalTextures[matData.metallicRoughnessTexIndex.x].Sample(
-                    perScene.GetGlobalSampler(matData.metallicRoughnessTexIndex.y), input.uv).gb;
-            metallic = metallicRoughness.y;
-            roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
-        }
-        else
-            roughness = clamp(roughness, 0.01, 0.99f);
-
-        normalSample = float3(0, 0, 1);
-        if (matData.normalMapTexIndex.x != 0xFFFFFFFF)
-        {
-            normalSample = perScene.globalTextures[matData.normalMapTexIndex.x].Sample(
-                perScene.GetGlobalSampler(matData.normalMapTexIndex.y), input.uv).xyz * 2 - 1;
-        }
-
-        emission = float4(0, 0, 0, 0);
-        if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
-        {
-            emission = perScene.globalTextures[matData.emissiveMapTexIndex.x].Sample(
-                perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), input.uv);
-        }
-        emission *= matData.emissive;
+        baseColor *= perScene.globalTextures[matData.baseColorTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.baseColorTexIndex.y), input.uv);
     }
+
+    if (_AlphaClip)
+    {
+        if (baseColor.a < matData.alphaCutoff)
+            discard;
+    }
+
+    metallic = matData.metallic;
+    roughness = matData.roughness;
+    if (matData.metallicRoughnessTexIndex.x != 0xFFFFFFFF)
+    {
+        float2 metallicRoughness = float2(roughness, metallic) *
+            perScene.globalTextures[matData.metallicRoughnessTexIndex.x].Sample(
+                perScene.GetGlobalSampler(matData.metallicRoughnessTexIndex.y), input.uv).gb;
+        metallic = metallicRoughness.y;
+        roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
+    }
+    else
+    roughness = clamp(roughness, 0.01, 0.99f);
+
+    normalSample = float3(0, 0, 1);
+    if (matData.normalMapTexIndex.x != 0xFFFFFFFF)
+    {
+        normalSample = perScene.globalTextures[matData.normalMapTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.normalMapTexIndex.y), input.uv).xyz * 2 - 1;
+    }
+
+    emission = float4(0, 0, 0, 0);
+    if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
+    {
+        emission = perScene.globalTextures[matData.emissiveMapTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), input.uv);
+    }
+    emission *= matData.emissive;
 
     float3x3 TBN = transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS)));
 
@@ -160,27 +175,3 @@ FragmentOutput FragmentMain(VertexOutput input)
 {
     return SceneLitFragment(input);
 }
-
-// struct GIBakeOutput
-// {
-//     float4 albedo : SV_Target0;
-//     float4 normal : SV_Target1;
-// }
-// 
-// struct ProbeInfo
-// {
-//     float4 position;
-// };
-// 
-// [vk_binding(0,3)]
-// ParameterBlock<ProbeInfo> probeInfos;
-// 
-// [shader("fragment")]
-// GIBakeOutput GIMicroGBuffer(VertexInput input)
-// {
-//     GIBakeOutput output;
-//     output.albedo = float4(0);
-//     output.normal = float4(0);
-// 
-//     return output;
-// }

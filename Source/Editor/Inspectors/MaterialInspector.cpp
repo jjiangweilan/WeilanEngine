@@ -83,13 +83,48 @@ private:
     {
         if (shader)
         {
+            const ShaderFeatures& features = ShaderLibrary::QueryShaderFeatures(shader->GetName().c_str());
             auto& pipelineInfo = shader->GetShaderInfo();
             auto set = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
-            if (set)
-            {
-                std::map<std::string, std::vector<PropertyItem>> groups;
-                std::vector<PropertyItem> ungrouped;
 
+            std::map<std::string, std::vector<PropertyItem>> groups;
+            std::vector<PropertyItem> ungrouped;
+
+            if (!pipelineInfo.uiPropertySchema.empty())
+            {
+                for (const auto& schemaMember : pipelineInfo.uiPropertySchema)
+                {
+                    PropertyItem item;
+                    item.name = schemaMember.name;
+                    item.info = ParseAttributes(schemaMember.attributes);
+                    item.member = &schemaMember; // Use schema member as the source of reflection data
+
+                    // Still try to find if it corresponds to a real texture binding if it's not a buffer member
+                    if (set)
+                    {
+                        for (const auto& binding : set->bindings)
+                        {
+                            if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+                                binding.descriptorType == Gfx::DescriptorType::SampledImage)
+                            {
+                                if (binding.name == schemaMember.name)
+                                {
+                                    item.binding = &binding;
+                                    item.member = nullptr; // It's a texture
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (item.info.group)
+                        groups[item.info.group->name].push_back(item);
+                    else
+                        ungrouped.push_back(item);
+                }
+            }
+            else if (set)
+            {
                 for (const auto& binding : set->bindings)
                 {
                     if (binding.descriptorType == Gfx::DescriptorType::UniformBuffer)
@@ -111,7 +146,6 @@ private:
                     {
                         PropertyItem item;
                         item.name = binding.name;
-                        // For now textures don't have attributes on Binding
                         item.binding = &binding;
                         if (item.info.group)
                             groups[item.info.group->name].push_back(item);
@@ -119,27 +153,27 @@ private:
                             ungrouped.push_back(item);
                     }
                 }
+            }
 
-                for (const auto& item : ungrouped)
-                {
-                    DrawProperty(item);
-                }
+            for (const auto& item : ungrouped)
+            {
+                DrawProperty(item, features);
+            }
 
-                for (auto& [groupName, items] : groups)
+            for (auto& [groupName, items] : groups)
+            {
+                if (ImGui::CollapsingHeader(groupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
                 {
-                    if (ImGui::CollapsingHeader(groupName.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+                    for (const auto& item : items)
                     {
-                        for (const auto& item : items)
-                        {
-                            DrawProperty(item);
-                        }
+                        DrawProperty(item, features);
                     }
                 }
             }
         }
     }
 
-    void DrawProperty(const PropertyItem& item)
+    void DrawProperty(const PropertyItem& item, const ShaderFeatures& features)
     {
         if (item.member)
         {
@@ -147,7 +181,7 @@ private:
         }
         else if (item.binding)
         {
-            DrawTextureProperty(item);
+            DrawTextureProperty(item, features);
         }
 
         if (item.info.tooltip && ImGui::IsItemHovered())
@@ -224,29 +258,27 @@ private:
         }
     }
 
-    void DrawTextureProperty(const PropertyItem& item)
+    void DrawTextureProperty(const PropertyItem& item, const ShaderFeatures& features)
     {
         const auto& binding = *item.binding;
         auto texture = target->GetTexture(binding.name);
         auto newTexture = EditorGUI::TextureField(binding.name, texture);
         if (newTexture != texture)
         {
-            SetTexture(binding.name, newTexture);
+            SetTexture(binding.name, newTexture, features);
         }
     }
 
 private:
     static const char _register;
 
-    void SetTexture(const std::string& param, Texture* tex)
+    void SetTexture(const std::string& param, Texture* tex, const ShaderFeatures& features)
     {
         target->SetTexture(param, tex);
 
         auto shader = target->GetShaderProgram();
         if (!shader)
             return;
-
-        const ShaderFeatures& features = ShaderLibrary::QueryShaderFeatures(shader->GetName().c_str());
 
         std::string featureName = "";
 

@@ -309,6 +309,9 @@ public:
             CollectFragmentOutputs(pipelineInfo);
         }
 
+        // Collect UI Schema
+        CollectUISchema(linkedProgram, pipelineInfo);
+
         // Get pipeline config from source file
         json pipelineConfig = GetPipelineConfig(sourceModule, pipelineInfo);
 
@@ -554,10 +557,9 @@ private:
         return attrStr;
     }
 
-    json CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
+    json CollectBufferMembers(slang::TypeLayoutReflection* typeLayout)
     {
         json members = json::array();
-        auto typeLayout = variableLayout->getTypeLayout();
         auto fieldCount = typeLayout->getFieldCount();
 
         for (unsigned fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
@@ -573,7 +575,7 @@ private:
             json member;
             member["name"] = field->getName();
             member["offset"] = field->getOffset();
-            member["byteSize"] = size;
+            member["byteSize"] = (uint32_t)size;
             member["count"] = 0;
             member["columnCount"] = 1;
             member["rowCount"] = 1;
@@ -581,27 +583,24 @@ private:
 
             switch (fieldKind)
             {
-                case slang::TypeReflection::Kind::Struct:
-                    member["type"] = "Structure";
-                    break;
+                case slang::TypeReflection::Kind::Struct: member["type"] = "Structure"; break;
                 case slang::TypeReflection::Kind::Array:
-                    member["count"] = fieldTypeLayout->getElementCount();
+                    member["count"] = (uint32_t)fieldTypeLayout->getElementCount();
                     member["type"] = MapScalarType(fieldTypeLayout->getElementTypeLayout()->getScalarType());
                     break;
                 case slang::TypeReflection::Kind::Matrix:
-                    member["columnCount"] = fieldTypeLayout->getColumnCount();
-                    member["rowCount"] = fieldTypeLayout->getRowCount();
+                    member["columnCount"] = (uint32_t)fieldTypeLayout->getColumnCount();
+                    member["rowCount"] = (uint32_t)fieldTypeLayout->getRowCount();
                     member["type"] = MapScalarType(fieldTypeLayout->getScalarType());
                     break;
                 case slang::TypeReflection::Kind::Vector:
-                    member["rowCount"] = fieldTypeLayout->getElementCount();
+                    member["rowCount"] = (uint32_t)fieldTypeLayout->getElementCount();
                     member["type"] = MapScalarType(fieldTypeLayout->getScalarType());
                     break;
                 case slang::TypeReflection::Kind::Scalar:
                     member["type"] = MapScalarType(fieldTypeLayout->getScalarType());
                     break;
-                default:
-                    continue;
+                default: continue;
             }
 
             auto variable = field->getVariable();
@@ -614,6 +613,66 @@ private:
         }
 
         return members;
+    }
+
+    void CollectUISchema(slang::IComponentType* program, json& outPipelineInfo)
+    {
+        outPipelineInfo["uiPropertySchema"] = json::array();
+        if (!sourceModule) return;
+
+        // Try searching by name first as a fallback if attribute reflection fails
+        // but we still want the attribute to be the primary way.
+        
+        auto moduleReflection = sourceModule->getModuleReflection();
+
+        for (auto child : moduleReflection->getChildren())
+        {
+            if (child->getKind() == slang::DeclReflection::Kind::Struct || child->getKind() == slang::DeclReflection::Kind::Variable)
+            {
+                slang::TypeReflection* type = nullptr;
+                bool found = false;
+
+                if (child->getKind() == slang::DeclReflection::Kind::Struct)
+                {
+                    type = child->getType();
+                    if (type)
+                    {
+                        // Check for attribute by name directly on type
+                        if (type->findAttributeByName("MaterialUILayout") || 
+                            type->findAttributeByName("MaterialUILayoutAttribute") ||
+                            std::string(child->getName()).find("UI") != std::string::npos) // Fallback to name containing "UI" for debug
+                        {
+                            found = true;
+                        }
+                    }
+                }
+                else
+                {
+                    auto var = child->asVariable();
+                    if (var->findAttributeByName(globalSession, "MaterialUILayout") ||
+                        var->findAttributeByName(globalSession, "MaterialUILayoutAttribute"))
+                    {
+                        type = var->getType();
+                        found = true;
+                    }
+                }
+
+                if (found && type)
+                {
+                    auto typeLayout = programLayout->getTypeLayout(type);
+                    if (typeLayout)
+                    {
+                        outPipelineInfo["uiPropertySchema"] = CollectBufferMembers(typeLayout);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    json CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
+    {
+        return CollectBufferMembers(variableLayout->getTypeLayout());
     }
 
     int AddSamplerConfig(json& set, slang::TypeReflection* typeLayout, const std::string& name)
@@ -882,8 +941,14 @@ private:
                             pipelineInfo["pushConstants"].push_back(pushConstant);
                         }
                         break;
+                    case slang::TypeReflection::Kind::Resource:
+                    case slang::TypeReflection::Kind::SamplerState:
+                    case slang::TypeReflection::Kind::TextureBuffer:
+                    case slang::TypeReflection::Kind::ShaderStorageBuffer:
+                        // These are typically handled within descriptor sets or ignored if global
+                        break;
                     default:
-                        ErrorReport("Not handled parameter kind in CollectSets");
+                        std::cout << "Skipping unhandled parameter kind: " << (int)paramKind << " for " << param->getName() << std::endl;
                         break;
                 }
             }
@@ -1565,37 +1630,41 @@ int main(int argc, char* argv[])
     }
 
     int successCount = 0;
-    for (size_t i = 0; i < numPermutations; ++i)
-    {
-        std::vector<std::string> enabledFeatures;
-        std::string permStr = "";
-
-        for (size_t j = 0; j < 64; ++j)
+    try {
+        for (size_t i = 0; i < numPermutations; ++i)
         {
-            if (j < features.size())
+            std::vector<std::string> enabledFeatures;
+            std::string permStr = "";
+
+            for (size_t j = 0; j < 64; ++j)
             {
-                if ((i >> j) & 1)
+                if (j < features.size())
                 {
-                    enabledFeatures.push_back(features[j].name);
-                    permStr += "1";
+                    if ((i >> j) & 1)
+                    {
+                        enabledFeatures.push_back(features[j].name);
+                        permStr += "1";
+                    }
+                    else
+                    {
+                        permStr += "0";
+                    }
                 }
                 else
                 {
                     permStr += "0";
                 }
             }
-            else
+
+            std::reverse(permStr.begin(), permStr.end()); // mimicing bitset.to_string()
+
+            if (compiler.CompilePermutation(shaderName, permStr, enabledFeatures, outputDir))
             {
-                permStr += "0";
+                successCount++;
             }
         }
-
-        std::reverse(permStr.begin(), permStr.end()); // mimicing bitset.to_string()
-
-        if (compiler.CompilePermutation(shaderName, permStr, enabledFeatures, outputDir))
-        {
-            successCount++;
-        }
+    } catch (const std::exception& e) {
+        std::cerr << "Exception during compilation: " << e.what() << std::endl;
     }
 
     std::cout << "Successfully compiled: " << shaderName << " (" << successCount << "/" << numPermutations << " permutations)" << std::endl;
