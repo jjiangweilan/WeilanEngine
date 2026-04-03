@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
+import Utils.Noise;
 import Library.RayTracing;
 import Lighting;
 
@@ -71,9 +72,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Get noise — add golden-ratio temporal offset so each frame shoots a different ray
     // Decorrelate frames using the R2 low-discrepancy sequence (golden ratio + plastic constant).
     // Period = 8 frames — standard for 1-SPP real-time GI denoising.
-    float2 randVal = perMaterial.noiseTex[pixelCoord % 128].xy;
-    float2 temporalOffset = frac(float(uint(perScene.scene.frameIndex) % 8u) * float2(0.7548776662, 0.5698402910));
-    randVal = frac(randVal + temporalOffset);
+    float2 randVal = perMaterial.noiseTex[(uint2(pixelCoord + hash_u32_v2(uint2(perScene.scene.frameIndex, perScene.scene.frameIndex + 1)))) % 128].xy;
 
     float3 rayDir = GetCosineWeightedDirection(normalWS, randVal);
     float3 rayOrigin = OffsetRay(posWS, normalWS);
@@ -97,7 +96,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         uint primitiveIndex = q.CommittedPrimitiveIndex();
         float2 bary2 = q.CommittedTriangleBarycentrics();
 
-        RayHitVertexData hitData = GetHitVertexData(perScene.GetGlobalBuffer(), perScene.rtObjectOffsets, instanceID, geometryIndex, primitiveIndex, bary2);
+        RayHitVertexData hitData = GetHitVertexData(perScene, perScene.rtObjectOffsets, instanceID, geometryIndex, primitiveIndex, bary2);
 
         uint objectOffset = perScene.rtObjectOffsets[instanceID];
         GpuObject obj = perScene.GetGlobalBuffer().Load<GpuObject>(objectOffset);

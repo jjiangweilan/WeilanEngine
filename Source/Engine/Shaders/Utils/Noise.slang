@@ -29,7 +29,6 @@ float hash1( uint2 x )
 // 3d perlin noise
 // modified from https://www.shadertoy.com/view/XlKyRw
 // define NOISE_WHITE_NOISE_TEX to a sampler2D if you don't want to generate random number by code
-#if defined(USE_PERLIN_NOISE_3D)
 float fade(float t) 
 {
     return t*t*t*(t*(6.0*t-15.0) + 10.0f); 
@@ -101,7 +100,6 @@ float perlinNoise3DWrap(float3 pos, float period)
             lerp(lerp(grad001,grad101,u),lerp(grad011, grad111,u),v),
             w);
 }
-#endif
 
 // worley noise
 // from https://www.shadertoy.com/view/MstGRl
@@ -134,9 +132,6 @@ float worley(float2 coord) {
     return dist;
 }
 #endif
-
-// modified from https://www.shadertoy.com/view/3d3fWN
-#if defined(USE_WORLEY_NOISE_3D)
 
 // range (0, 1)
 float worley3D(float3 p, float frequency, float seed = 0){
@@ -202,4 +197,37 @@ float worley3DWrap(float3 p, float wrap){
 
     return minimalDist;
 }
-#endif
+
+// source: https://www.shadertoy.com/view/ttc3zr
+uint2 murmurHash21(uint src) {
+    const uint M = 0x5bd1e995u;
+    uint2 h = uint2(1190494759u, 2147483647u);
+    src *= M; src ^= src>>24u; src *= M;
+    h *= M; h ^= src;
+    h ^= h>>13u; h *= M; h ^= h>>15u;
+    return h;
+}
+
+uint rand_xorshift(uint rng_state)
+{
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= (rng_state << 13);
+    rng_state ^= (rng_state >> 17);
+    rng_state ^= (rng_state << 5);
+    return rng_state;
+}
+
+// High-quality PCG hash for 32-bit uints
+uint hash_u32(uint x) {
+    uint state = x * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+// 2D variant for pixel-wise seeds
+uint2 hash_u32_v2(uint2 v) {
+    return uint2(
+        hash_u32(v.x ^ hash_u32(v.y)),
+        hash_u32(v.y ^ hash_u32(v.x))
+    );
+}

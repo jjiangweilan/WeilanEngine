@@ -1,14 +1,13 @@
 
-#include "Library/PerScene.hlsl"
-#include "GPUDriven/GPUDrivenStructures.hlsl"
+import Library.PerScene;
 
-public struct RayHitVertexData
+struct RayHitVertexData
 {
-    public float3 position;
-    public float3 normal;
-    public float2 uv;
+    float3 position;
+    float3 normal;
+    float2 uv;
 
-    public RayHitVertexData TransformToWorld(float4x4 modelMatrix, float3x3 invTspModelMatrix)
+    RayHitVertexData TransformToWorld(float4x4 modelMatrix, float3x3 invTspModelMatrix)
     {
         RayHitVertexData rayHitVertexData;
 
@@ -30,8 +29,8 @@ public struct RayHitVertexData
  * @param bary2 The 2D barycentric coordinates (from q.CommittedTriangleBarycentrics()).
  * @return The interpolated vertex data at the hit point.
  */
-public RayHitVertexData GetHitVertexData(
-    ByteAddressBuffer globalBuffer,
+RayHitVertexData GetHitVertexData(
+    ParameterBlock<PerScene> perScene,
     StructuredBuffer<uint> rtObjectOffsets,
     uint instanceID, 
     uint geometryIndex, 
@@ -43,38 +42,15 @@ public RayHitVertexData GetHitVertexData(
 
     // 2. Locate the object and its render data
     uint objectOffset = rtObjectOffsets[instanceID];
-    GpuObject obj = globalBuffer.Load<GpuObject>(objectOffset);
-    
-    // GeometryIndex maps directly to the array of render data for this object
-    uint renderDataOffset = obj.pRenderDataOffset + geometryIndex * sizeof(GpuRenderData); // GpuRenderData is 16 bytes
-    GpuRenderData renderData = globalBuffer.Load<GpuRenderData>(renderDataOffset);
-    
-    // Load the geometry header which contains offsets for indices and vertices
-    GpuGeometry geometry = globalBuffer.Load<GpuGeometry>(renderData.geometryOffset);
-
-    // 3. Load the 3 vertex indices for the hit triangle
-    uint indexByteOffset = geometry.indexOffset + (primitiveIndex * 3 * 4);
-    uint i0 = globalBuffer.Load<uint>(indexByteOffset);
-    uint i1 = globalBuffer.Load<uint>(indexByteOffset + 4);
-    uint i2 = globalBuffer.Load<uint>(indexByteOffset + 8);
-
-    // 4. Load the vertex positions
-    GpuGeometryPositionData p0 = globalBuffer.Load<GpuGeometryPositionData>(geometry.positionOffset + i0 * sizeof(GpuGeometryPositionData));
-    GpuGeometryPositionData p1 = globalBuffer.Load<GpuGeometryPositionData>(geometry.positionOffset + i1 * sizeof(GpuGeometryPositionData));
-    GpuGeometryPositionData p2 = globalBuffer.Load<GpuGeometryPositionData>(geometry.positionOffset + i2 * sizeof(GpuGeometryPositionData));
-
-    // 5. Load the vertex attributes (normal, tangent, uv)
-    SceneObjectAttributeData a0 = globalBuffer.Load<SceneObjectAttributeData>(geometry.attributeOffset + i0 * sizeof(SceneObjectAttributeData));
-    SceneObjectAttributeData a1 = globalBuffer.Load<SceneObjectAttributeData>(geometry.attributeOffset + i1 * sizeof(SceneObjectAttributeData));
-    SceneObjectAttributeData a2 = globalBuffer.Load<SceneObjectAttributeData>(geometry.attributeOffset + i2 * sizeof(SceneObjectAttributeData));
+    ObjectTriangle tri = ObjectTriangle(perScene, objectOffset, geometryIndex, primitiveIndex);
 
     // 6. Interpolate and return
     RayHitVertexData result;
-    result.position = p0.position * bary3.x + p1.position * bary3.y + p2.position * bary3.z;
-    result.normal   = normalize(a0.normal * bary3.x + a1.normal * bary3.y + a2.normal * bary3.z);
-    result.uv       = a0.uv * bary3.x + a1.uv * bary3.y + a2.uv * bary3.z;
+    result.position = tri.GetPosition(perScene, 0) * bary3.x + tri.GetPosition(perScene, 1) * bary3.y + tri.GetPosition(perScene, 2) * bary3.z;
+    result.normal   = normalize(tri.GetNormal(perScene, 0) * bary3.x + tri.GetNormal(perScene, 1) * bary3.y + tri.GetNormal(perScene, 2) * bary3.z);
+    result.uv       = tri.GetUV(perScene, 0) * bary3.x + tri.GetUV(perScene, 1) * bary3.y + tri.GetUV(perScene, 2) * bary3.z;
 
-    result = result.TransformToWorld(obj.model, (float3x3)obj.invTspModel);
+    result = result.TransformToWorld(tri.GetModelMatrix(), (float3x3)tri.GetInvModelMatrix());
 
     return result;
 }
@@ -82,7 +58,7 @@ public RayHitVertexData GetHitVertexData(
 /**
  * Traces a visibility (shadow) ray using inline ray tracing.
  */
-public bool TraceVisibilityRay(
+bool TraceVisibilityRay(
     RaytracingAccelerationStructure bvh, 
     float3 origin, 
     float3 direction, 
@@ -105,7 +81,7 @@ public bool TraceVisibilityRay(
 /**
  * Offsets a ray origin from a surface to prevent self-intersection.
  */
-public float3 OffsetRay(float3 p, float3 n)
+float3 OffsetRay(float3 p, float3 n)
 {
     const float origin = 1.0f / 32.0f;
     const float float_scale = 1.0f / 65536.0f;

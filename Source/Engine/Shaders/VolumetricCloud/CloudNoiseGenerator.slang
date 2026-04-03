@@ -21,9 +21,7 @@ struct NoiseParameter
 [Material]
 ParameterBlock<NoiseParameter> perMaterial;
 
-#define USE_PERLIN_NOISE_3D
-#define USE_WORLEY_NOISE_3D
-#include "Utils/Noise.hlsl"
+import Utils.Noise;
 #include "Utils/Util.hlsl"
 
 float4 Spherical(float3 uv)

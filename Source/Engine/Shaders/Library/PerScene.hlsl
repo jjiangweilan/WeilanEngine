@@ -263,4 +263,67 @@ struct ObjectEntity
     }
 
 };
+
+struct ObjectTriangle
+{
+    float4x4 modelMatrix;
+    float4x4 invTspModelMatrix;
+
+    uint indexByteOffset;
+
+    GpuObject objData;
+    GpuRenderData renderData;
+    GpuGeometry geometry;
+
+    uint i[3];
+
+    float4x4 GetModelMatrix() {return modelMatrix;}
+    float4x4 GetInvModelMatrix() {return invTspModelMatrix;}
+
+    float3 GetPosition(ParameterBlock<PerScene> perScene, uint vertexIndex)
+    {
+        GpuGeometryPositionData positionData = perScene.LoadData<GpuGeometryPositionData>(geometry.positionOffset + i[vertexIndex] * sizeof(GpuGeometryPositionData));
+        return positionData.GetPosition(); 
+    }
+
+    float3 GetNormal(ParameterBlock<PerScene> perScene, uint vertexIndex)
+    {
+        if (geometry.HasNormal())
+            return perScene.LoadData<float3>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride);
+        else
+            return float3(0,1,0);
+    }
+
+    float4 GetTangent(ParameterBlock<PerScene> perScene, uint vertexIndex)
+    {
+        if (geometry.HasTangent())
+            return perScene.LoadData<float4>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + (geometry.HasNormal() ? 12 : 0));
+        else
+            return float4(1,0,0,1);
+    }
+
+    float2 GetUV(ParameterBlock<PerScene> perScene, uint vertexIndex)
+    {
+        if (geometry.HasUV())
+            return perScene.LoadData<float2>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + (geometry.HasNormal() ? 12 : 0) + (geometry.HasTangent() ? 16 : 0));
+        else
+            return float2(0,0);
+    }
+
+    __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint primitiveIndex)
+    {
+        objData = perScene.LoadData<GpuObject>(objectOffset);
+        renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+        geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+
+        modelMatrix = objData.model;
+        invTspModelMatrix = objData.invTspModel;
+
+        indexByteOffset = geometry.indexOffset + (primitiveIndex * 3 * 4);
+        i[0] = perScene.globalBuffer.Load<uint>(indexByteOffset);
+        i[1] = perScene.globalBuffer.Load<uint>(indexByteOffset + 4);
+        i[2] = perScene.globalBuffer.Load<uint>(indexByteOffset + 8);
+    }
+
+};
 #endif
