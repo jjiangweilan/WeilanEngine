@@ -45,7 +45,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
-    std::filesystem::path filePath;
+    AssetPath filePath;
     // drop a external object
     if (EditorGUI::DragDropTarget(filePath, {windowPos, windowMax}))
     {

@@ -2,6 +2,7 @@
 #include "Engine/Library/Serialization/Serializable.hpp"
 #include "Engine/Library/Serialization/Serializer.hpp"
 #include "Engine/Library/Utils.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include "Object.hpp"
 #include <filesystem>
 #include <functional>
@@ -73,7 +74,7 @@ public:
 
 protected:
     std::string name = "";
-    std::filesystem::path sourceAssetFile = "";
+    AssetPath sourceAssetFile;
 
     static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
     {

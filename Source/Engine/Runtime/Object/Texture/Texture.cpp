@@ -461,7 +461,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
 
 void Texture::SaveAsCubemap(const char* filename)
 {
-    auto fpath = sourceAssetFile;
+    auto fpath = sourceAssetFile.ToFilesystemPath();
 
     if (fpath.has_extension())
     {

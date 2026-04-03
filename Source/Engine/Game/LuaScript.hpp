@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Asset.hpp"
 #include "Engine/ThirdParty/lua/lua.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 
 // representing a lua class derived from GameScript
 class LuaScript : public Asset
@@ -14,7 +15,7 @@ public:
     void ReloadScript();
 
 private:
-    std::filesystem::path scriptAssetPath;
+    AssetPath scriptAssetPath;
 
     int luaClassRef = LUA_REFNIL;
     UUID luaBackendUUID;

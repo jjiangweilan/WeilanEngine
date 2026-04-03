@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Math.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include <filesystem>
 #include <functional>
 #include <unordered_map>
@@ -41,15 +42,15 @@ private:
     WeilanEngine* engine;
     GameEditor* gameEditor;
     int currentDragDropAssetFileDepth = 0;
-    std::filesystem::path lastSelectedPath = "";
+    AssetPath lastSelectedPath;
 
     // Change File Name //
     bool changeFileName = false;
-    std::filesystem::path changeFileNameTarget;
+    AssetPath changeFileNameTarget;
     char fileNameCache[256];
     std::filesystem::path fileNameExtCache;
     void ShowChangeFileNameField();
-    void ActivateFileNameField(const std::filesystem::path& path);
+    void ActivateFileNameField(const AssetPath& path);
 
     // Icon size control
     float iconSizeSlider = 64.0f; // Default icon size

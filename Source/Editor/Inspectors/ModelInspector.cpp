@@ -53,10 +53,11 @@ public:
             {
                 auto copy = material->Clone();
                 auto& db = editor.GetEngine()->assetDatabase;
-                std::filesystem::path savePath = material->GetName();
-                if (!savePath.has_extension() || savePath.extension() != ".mat")
+                AssetPath savePath = material->GetName();
+                if (!savePath.ToFilesystemPath().has_extension() || savePath.GetExtension() != ".mat")
                 {
-                    savePath = savePath.filename().replace_extension(".mat");
+                    auto temp = savePath.ToFilesystemPath();
+                    savePath = temp.filename().replace_extension(".mat");
                 }
                 db->SaveAsset(std::move(copy), savePath);
             }

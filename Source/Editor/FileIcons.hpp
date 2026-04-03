@@ -11,8 +11,8 @@ public:
     static FileIcons& Instance();
     // enter utf code picked from here: https://www.nerdfonts.com/cheat-sheet
     static std::string Utf16ToUtf8(char16_t utf16_codepoint);
-    static std::string GetIcon(const std::filesystem::path& path);
-    Gfx::Image* GetIconImage(const std::filesystem::path& path);
+    static std::string GetIcon(const AssetPath& path);
+    Gfx::Image* GetIconImage(const AssetPath& path);
     Gfx::Image* GetDirectoryIconImage() { return fileIcon->GetGfxImage(); }
 
 private:
@@ -21,7 +21,7 @@ private:
 
     struct
     {
-        std::unordered_map<std::filesystem::path, ObjPtr<Texture>> caches;
+        std::unordered_map<AssetPath, ObjPtr<Texture>> caches;
     } previewImages;
 
     /**
@@ -31,7 +31,7 @@ private:
      * @param fallbackExtension fallback extension
      */
     Gfx::Image* GetFileIcon(
-        const std::type_index& assetLoaderTypeIndex, const std::filesystem::path& fallbackExtension
+        const std::type_index& assetLoaderTypeIndex, const std::string& fallbackExtension
     );
     std::unordered_map<std::string, Gfx::Image*> toIconImage;
 

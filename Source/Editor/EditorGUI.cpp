@@ -430,7 +430,7 @@ Texture* EditorGUI::TextureField(const std::string& name, Texture* texture)
         {
             EditorState::SelectObject(texture);
         }
-        std::filesystem::path path;
+        AssetPath path;
 
         auto regionMin = ImGui::GetItemRectMin();
         auto regionMax = ImGui::GetItemRectMax();
@@ -450,7 +450,7 @@ Texture* EditorGUI::TextureField(const std::string& name, Texture* texture)
     else
     {
         ImGui::Button(name.c_str());
-        std::filesystem::path path;
+        AssetPath path;
         if (EditorGUI::DragDropTarget(path))
         {
             auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));

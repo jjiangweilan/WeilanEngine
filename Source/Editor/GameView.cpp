@@ -26,7 +26,7 @@ struct GameView::PlayTheGame
 {
     PlayTheGame() {}
     ObjPtr<Scene> sceneCopy;
-    std::filesystem::path originalScenePath;
+    AssetPath originalScenePath;
     bool played = false;
 
     void Play(GameView* gameView)

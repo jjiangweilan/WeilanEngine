@@ -404,7 +404,7 @@ public:
         return isValid;
     }
 
-    static bool DragDropTarget(std::filesystem::path& path, ImRect rect = {{0, 0}, {0, 0}})
+    static bool DragDropTarget(AssetPath& path, ImRect rect = {{0, 0}, {0, 0}})
     {
         bool isValid = false;
         path = "";

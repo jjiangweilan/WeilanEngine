@@ -124,7 +124,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                 currentDragDropAssetFileDepth = depth;
             }
 
-            std::filesystem::path pathStr;
+            AssetPath pathStr;
             if (EditorGUI::DragDropTarget(pathStr))
             {
                 endEvents.Register(
@@ -196,7 +196,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         auto windowPos = ImGui::GetWindowPos();
         auto currentCursor = ImGui::GetCursorPos() + windowPos - ImVec2{ImGui::GetScrollX(), ImGui::GetScrollY()};
         auto contextRegionMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
-        std::filesystem::path pathStr;
+        AssetPath pathStr;
         if (EditorGUI::DragDropTarget(pathStr, {currentCursor, contextRegionMax}))
         {
             endEvents.Register(
@@ -440,7 +440,7 @@ void AssetBrowser::ShowAssetIconItem(
     bool isLastSelection = false;
 
     // Update last selected path
-    isLastSelection = lastSelectedPath == entry.path();
+    isLastSelection = lastSelectedPath == AssetPath(entry.path());
 
     ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
     isHovered = ImGui::IsItemHovered();
@@ -522,7 +522,7 @@ void AssetBrowser::ShowAssetIconItem(
         auto relative = AssetPath(entry.path());
         EditorGUI::DragDropSource(relative, ImGuiDragDropFlags_SourceAllowNullID);
 
-        std::filesystem::path pathStr;
+        AssetPath pathStr;
         if (EditorGUI::DragDropTarget(pathStr))
         {
             endEvents.Register(
@@ -716,8 +716,8 @@ void AssetBrowser::ShowChangeFileNameField()
     {
         ImGui::OpenPopup("Change File Name");
         changeFileName = false;
-        auto filename = changeFileNameTarget.filename().stem();
-        auto ext = changeFileNameTarget.filename().extension();
+        auto filename = changeFileNameTarget.ToFilesystemPath().filename().stem();
+        auto ext = changeFileNameTarget.ToFilesystemPath().filename().extension();
         strcpy(fileNameCache, filename.string().c_str());
         fileNameExtCache = ext;
     }
@@ -727,10 +727,10 @@ void AssetBrowser::ShowChangeFileNameField()
 
         if (ImGui::Selectable("Confirm") || ImGui::IsKeyPressed(ImGuiKey_Enter))
         {
-            auto dir = changeFileNameTarget.parent_path();
+            auto dir = changeFileNameTarget.ToFilesystemPath().parent_path();
             auto finalPath = dir / fileNameCache;
             finalPath.replace_extension(fileNameExtCache);
-            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
+            AssetDatabase::Singleton()->Rename(changeFileNameTarget, AssetPath(finalPath));
         }
         if (ImGui::Selectable("Chancel") || ImGui::IsKeyPressed(ImGuiKey_Backspace))
         {
@@ -740,11 +740,10 @@ void AssetBrowser::ShowChangeFileNameField()
     }
 }
 
-void AssetBrowser::ActivateFileNameField(const std::filesystem::path& path)
+void AssetBrowser::ActivateFileNameField(const AssetPath& path)
 {
     changeFileName = true;
-    changeFileNameTarget =
-        std::filesystem::relative(path, AssetDatabase::Singleton()->GetAssetDirectory());
+    changeFileNameTarget = path;
 }
 
 } // namespace Editor

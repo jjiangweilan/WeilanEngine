@@ -31,21 +31,21 @@ Gfx::Image* FileIcons::LoadPreviewImage(const AssetPath& path)
     return nullptr;
 }
 
-Gfx::Image* FileIcons::GetIconImage(const std::filesystem::path& path)
+Gfx::Image* FileIcons::GetIconImage(const AssetPath& path)
 {
     Gfx::Image* previewImage = LoadPreviewImage(path);
     if (previewImage)
         return previewImage;
 
-    auto ext = path.extension();
-    auto iter = toIconImage.find(ext.string());
+    std::string ext = path.GetExtension();
+    auto iter = toIconImage.find(ext);
     if (iter != toIconImage.end())
     {
         return iter->second;
     }
     else
     {
-        std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+        std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext);
 
         // Null protection
         if (loader == nullptr)
@@ -66,20 +66,21 @@ Gfx::Image* FileIcons::GetIconImage(const std::filesystem::path& path)
     return GetDefaultFileIcon();
 }
 
-std::string FileIcons::GetIcon(const std::filesystem::path& ext)
+std::string FileIcons::GetIcon(const AssetPath& path)
 {
-    auto iter = toIcon.find(ext.string());
+    std::string ext = path.GetExtension();
+    auto iter = toIcon.find(ext);
     if (iter != toIcon.end())
     {
         return iter->second;
     }
     else
     {
-        std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+        std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext);
 
         if (loader == nullptr)
         {
-            toIcon[ext.string()] = "";
+            toIcon[ext] = "";
             return "";
         }
 
@@ -87,7 +88,7 @@ std::string FileIcons::GetIcon(const std::filesystem::path& ext)
         if (iter != toIconType.end())
         {
             auto val = Utf16ToUtf8(iter->second);
-            toIcon[ext.string()] = val;
+            toIcon[ext] = val;
             return val;
         }
     }
@@ -109,7 +110,7 @@ FileIcons& FileIcons::Instance()
     return instance;
 }
 
-Gfx::Image* FileIcons::GetFileIcon(const std::type_index& typeIndex, const std::filesystem::path& fallbackExtension)
+Gfx::Image* FileIcons::GetFileIcon(const std::type_index& typeIndex, const std::string& fallbackExtension)
 {
     if (typeIndex == typeid(ModelLoader))
         return modelIcon->GetGfxImage();
