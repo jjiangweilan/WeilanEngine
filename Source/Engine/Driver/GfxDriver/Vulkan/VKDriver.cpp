@@ -1418,8 +1418,13 @@ void VKDriver::CreateDevice()
     descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount = true;
     descriptorIndexingFeatures.runtimeDescriptorArray = true;
 
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{};
+    rayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+    rayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+    rayTracingPipelineFeatures.pNext = &descriptorIndexingFeatures;
+
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pNext = &descriptorIndexingFeatures;
+    deviceCreateInfo.pNext = &rayTracingPipelineFeatures;
     deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
@@ -1430,7 +1435,8 @@ void VKDriver::CreateDevice()
         VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
