@@ -7,6 +7,36 @@ import Lighting;
 
 #define RTGI_RAW_MIP 0
 
+// https://www.shadertoy.com/view/wslyWs
+float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
+{
+    const float SC = 1e5;
+
+    // Calculate sky plane
+    float dist = (SC - ro.y) / rd.y; 
+    float2 p = (ro + dist * rd).xz;
+    p *= 1.2 / SC;
+
+    float3 skyCol = float3(0.3,0.5,0.85) - rd.y*rd.y*0.5;
+    skyCol = lerp( skyCol, 0.85 * float3(0.7,0.75,0.85), pow( 1.0 - max(rd.y, 0.0), 4.0 ) );
+
+    // from iq's shader, https://www.shadertoy.com/view/MdX3Rr
+    // sun
+    if (hasSun)
+    {
+        float sundot = clamp(dot(rd, lightDir), 0.0, 1.0);
+        float3 sun = 0.25 * float3(1.0,0.7,0.4) * pow( sundot,5.0 );
+        sun += 0.25 * float3(1.0,0.8,0.6) * pow( sundot,64.0 );
+        sun += 0.2 * float3(1.0,0.8,0.6) * pow( sundot,512.0 );
+        skyCol += sun;
+    }
+
+    // horizon
+    skyCol = lerp( skyCol, 0.68 * float3(.418, .394, .372), pow( 1.0 - max(rd.y, 0.0), 16.0 ) );
+
+    return skyCol * 0.45;
+}
+
 struct RTGIParameter
 {
     float4 rtSize;
@@ -83,11 +113,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     ray.TMin = 0.01;
     ray.TMax = 1000.0;
 
-    RayQuery<RAY_FLAG_NONE> q;
-    q.TraceRayInline(perMaterial.sceneBVH, RAY_FLAG_NONE, 0xFF, ray);
-    q.Proceed();
+    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+    q.TraceRayInline(perMaterial.sceneBVH, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
 
     float3 indirectLight = float3(0, 0, 0);
+
+    while(q.Proceed());
 
     if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
     {
@@ -130,17 +163,19 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             if (ndotl > 0.0)
             {
                 float3 shadowOrigin = OffsetRay(hitData.position, hitData.normal);
-                bool inShadow = TraceVisibilityRay(perMaterial.sceneBVH, shadowOrigin, lightDir, 0.01, 10000.0);
+                bool inShadow = TraceVisibilityRay(perMaterial.sceneBVH, shadowOrigin,hitData.normal, lightDir, 0, 1000.0);
                 if (!inShadow)
                 {
-                    indirectLight += (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl;
+                    float dis = max(1, distance(posWS, hitData.position));
+                    indirectLight += (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl / (dis * dis);
                 }
+
             }
         }
     }
     else
     {
-        indirectLight = perMaterial.environmentMap.SampleLevel(perMaterial.sampler_linear_clamp, rayDir, 0).rgb;
+        indirectLight += Sky(rayOrigin, rayDir, perScene.GetMainLight().position.xyz, perScene.GetMainLight().lightColor.a > 0.0) / 3.1415;
     }
 
     perMaterial.outRtgiTex[pixelCoord] = float4(indirectLight, 1.0);

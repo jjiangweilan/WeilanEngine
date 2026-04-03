@@ -2,29 +2,6 @@
 import Library.PerScene;
 
 /**
- * Traces a visibility (shadow) ray using inline ray tracing.
- */
-bool TraceVisibilityRay(
-    RaytracingAccelerationStructure bvh, 
-    float3 origin, 
-    float3 direction, 
-    float tMin = 0.001, 
-    float tMax = 10000.0)
-{
-    RayDesc ray;
-    ray.Origin = origin;
-    ray.Direction = direction;
-    ray.TMin = tMin;
-    ray.TMax = tMax;
-
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-    q.TraceRayInline(bvh, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
-    q.Proceed();
-
-    return q.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
-}
-
-/**
  * Offsets a ray origin from a surface to prevent self-intersection.
  */
 float3 OffsetRay(float3 p, float3 n)
@@ -46,4 +23,52 @@ float3 OffsetRay(float3 p, float3 n)
         abs(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
         abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z
     );
+}
+
+/**
+ * Traces a visibility (shadow) ray using inline ray tracing.
+ */
+bool TraceVisibilityRay(
+    RaytracingAccelerationStructure bvh, 
+    float3 origin, 
+    float3 direction, 
+    float tMin = 0, 
+    float tMax = 1000.0)
+{
+    RayDesc ray;
+    ray.Origin = origin;
+    ray.Direction = direction;
+    ray.TMin = tMin;
+    ray.TMax = tMax;
+
+    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+    q.TraceRayInline(bvh, RAY_FLAG_NONE, 0xFF, ray);
+    while(q.Proceed());
+
+    return q.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
+}
+
+bool TraceVisibilityRay(
+    RaytracingAccelerationStructure bvh, 
+    float3 origin, 
+    float3 normal,
+    float3 direction, 
+    float tMin = 0, 
+    float tMax = 1000.0)
+{
+    RayDesc ray;
+    ray.Origin = OffsetRay(origin, normal);
+    ray.Direction = direction;
+    ray.TMin = 0;
+    ray.TMax = 1000;
+
+    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+    q.TraceRayInline(bvh, RAY_FLAG_NONE, 0xFF, ray);
+    while(q.Proceed());
+
+    return q.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
 }
