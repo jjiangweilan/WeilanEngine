@@ -58,6 +58,7 @@ void VKDataUploader::UploadBuffer(const VKBuffer* dst, uint8_t* data, size_t siz
     EnsureEnoughSizeForUpload(takingOffCmd, size);
 
     memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + takingOffCmd.endOffset, data, size);
+
     pendingBufferUploads.push_back(PendingBufferUpload{dst->GetHandle(), takingOffCmd.endOffset, dstOffset, size});
     takingOffCmd.endOffset += size;
 }

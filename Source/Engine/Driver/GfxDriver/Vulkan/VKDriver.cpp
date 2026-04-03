@@ -832,9 +832,6 @@ bool VKDriver::EndFrame()
     );
     firstFrame = false;
 
-    ExecuteCommandBuffer(*rayTracingManager->cmdBuffer);
-    rayTracingManager->cmdBuffer->Reset(true);
-
     auto cmd = frameContexts[currentInflightIndex].cmd;
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
@@ -865,6 +862,19 @@ bool VKDriver::EndFrame()
         framePrepareData.AppendVKCommandBuffer(&cmd2);
     }
 
+    VKFramePrepareData raytracingFramePrepareData;
+    raytracingFramePrepareData.AppendVKCommandBuffer(rayTracingManager->cmdBuffer.get());
+    rayTracingManager->cmdBuffer->Reset(true);
+
+    commandBufferProcessor->Execute(
+        raytracingFramePrepareData,
+        frameContexts[currentInflightIndex],
+        currentInflightIndex,
+        mainQueue,
+        featureSettings,
+        execReport
+    );
+
     commandBufferProcessor->Execute(
         framePrepareData,
         frameContexts[currentInflightIndex],
@@ -889,7 +899,7 @@ bool VKDriver::EndFrame()
     if (needPresent)
     {
         waitSemaphores[1] = imageAcquireSemaphores[currentInflightIndex];
-        waitFlags[1] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        waitFlags[1] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
         signalSemaphores[1] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
         signalSemaphoreCount++;
@@ -903,7 +913,7 @@ bool VKDriver::EndFrame()
 
     for (int i = 0; i < extraWindows.size(); ++i)
     {
-        waitFlags[i + 2] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        waitFlags[i + 2] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         waitSemaphores[i + 2] = extraWindows[i]->imageAcquireSemaphores[extraWindows[i]->activeIndex];
         signalSemaphores[i + 2] = extraWindows[i]->presentSemaphores[extraWindows[i]->activeIndex];
     }
@@ -1421,7 +1431,6 @@ void VKDriver::CreateDevice()
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
-
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
