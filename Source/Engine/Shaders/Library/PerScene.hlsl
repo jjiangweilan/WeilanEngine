@@ -264,6 +264,23 @@ struct ObjectEntity
 
 };
 
+struct RayHitVertexData
+{
+    float3 position;
+    float3 normal;
+    float2 uv;
+
+    RayHitVertexData TransformToWorld(float4x4 modelMatrix, float3x3 invTspModelMatrix)
+    {
+        RayHitVertexData rayHitVertexData;
+
+        rayHitVertexData.position = mul(modelMatrix, float4(this.position, 1.0)).xyz;
+        rayHitVertexData.normal = normalize(mul(invTspModelMatrix, this.normal));
+        rayHitVertexData.uv = this.uv;
+        return rayHitVertexData;
+    }
+};
+
 struct ObjectTriangle
 {
     float4x4 modelMatrix;
@@ -279,6 +296,20 @@ struct ObjectTriangle
 
     float4x4 GetModelMatrix() {return modelMatrix;}
     float4x4 GetInvModelMatrix() {return invTspModelMatrix;}
+
+    RayHitVertexData GetRayHit(ParameterBlock<PerScene> perScene, float2 bary2)
+    {
+        // 1. Calculate the 3D barycentric coordinates
+        float3 bary3 = float3(1.0 - bary2.x - bary2.y, bary2.x, bary2.y);
+
+        // 6. Interpolate and return
+        RayHitVertexData result;
+        result.position = GetPosition(perScene, 0) * bary3.x + GetPosition(perScene, 1) * bary3.y + GetPosition(perScene, 2) * bary3.z;
+        result.normal   = normalize(GetNormal(perScene, 0) * bary3.x + GetNormal(perScene, 1) * bary3.y + GetNormal(perScene, 2) * bary3.z);
+        result.uv       = GetUV(perScene, 0) * bary3.x + GetUV(perScene, 1) * bary3.y + GetUV(perScene, 2) * bary3.z;
+
+        return result;
+    }
 
     float3 GetPosition(ParameterBlock<PerScene> perScene, uint vertexIndex)
     {
@@ -308,6 +339,11 @@ struct ObjectTriangle
             return perScene.LoadData<float2>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + (geometry.HasNormal() ? 12 : 0) + (geometry.HasTangent() ? 16 : 0));
         else
             return float2(0,0);
+    }
+
+    GpuMaterial GetMaterial(ParameterBlock<PerScene> perScene)
+    {
+        return perScene.LoadData<GpuMaterial>(renderData.materialOffset);
     }
 
     __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint primitiveIndex)

@@ -96,13 +96,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         uint primitiveIndex = q.CommittedPrimitiveIndex();
         float2 bary2 = q.CommittedTriangleBarycentrics();
 
-        RayHitVertexData hitData = GetHitVertexData(perScene, perScene.rtObjectOffsets, instanceID, geometryIndex, primitiveIndex, bary2);
+        ObjectTriangle tri = ObjectTriangle(perScene, perScene.rtObjectOffsets[instanceID], geometryIndex, primitiveIndex);
+        GpuMaterial matData = tri.GetMaterial(perScene);
 
-        uint objectOffset = perScene.rtObjectOffsets[instanceID];
-        GpuObject obj = perScene.GetGlobalBuffer().Load<GpuObject>(objectOffset);
-        uint renderDataOffset = obj.pRenderDataOffset + geometryIndex * 16;
-        GpuRenderData renderData = perScene.GetGlobalBuffer().Load<GpuRenderData>(renderDataOffset);
-        GpuMaterial matData = perScene.GetGlobalBuffer().Load<GpuMaterial>(renderData.materialOffset);
+        RayHitVertexData hitData = tri.GetRayHit(perScene, bary2).TransformToWorld(tri.GetModelMatrix(), (float3x3)tri.GetInvModelMatrix());
 
         float4 albedo = matData.baseColorFactor;
         if (matData.baseColorTexIndex.x != 0xFFFFFFFF)

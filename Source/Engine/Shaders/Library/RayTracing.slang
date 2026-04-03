@@ -1,60 +1,6 @@
 
 import Library.PerScene;
 
-struct RayHitVertexData
-{
-    float3 position;
-    float3 normal;
-    float2 uv;
-
-    RayHitVertexData TransformToWorld(float4x4 modelMatrix, float3x3 invTspModelMatrix)
-    {
-        RayHitVertexData rayHitVertexData;
-
-        rayHitVertexData.position = mul(modelMatrix, float4(this.position, 1.0)).xyz;
-        rayHitVertexData.normal = normalize(mul(invTspModelMatrix, this.normal));
-        rayHitVertexData.uv = this.uv;
-        return rayHitVertexData;
-    }
-};
-
-/**
- * Retrieves and interpolates vertex data (position, normal, uv) for a ray hit.
- * 
- * @param globalBuffer The global byte address buffer containing geometry data.
- * @param gpuObjectOffsets The buffer containing offsets for each GPU object.
- * @param instanceID The ID of the instance hit (from q.CommittedInstanceID()).
- * @param geometryIndex The index of the geometry within the instance (from q.CommittedGeometryIndex()).
- * @param primitiveIndex The index of the triangle within the geometry (from q.CommittedPrimitiveIndex()).
- * @param bary2 The 2D barycentric coordinates (from q.CommittedTriangleBarycentrics()).
- * @return The interpolated vertex data at the hit point.
- */
-RayHitVertexData GetHitVertexData(
-    ParameterBlock<PerScene> perScene,
-    StructuredBuffer<uint> rtObjectOffsets,
-    uint instanceID, 
-    uint geometryIndex, 
-    uint primitiveIndex, 
-    float2 bary2)
-{
-    // 1. Calculate the 3D barycentric coordinates
-    float3 bary3 = float3(1.0 - bary2.x - bary2.y, bary2.x, bary2.y);
-
-    // 2. Locate the object and its render data
-    uint objectOffset = rtObjectOffsets[instanceID];
-    ObjectTriangle tri = ObjectTriangle(perScene, objectOffset, geometryIndex, primitiveIndex);
-
-    // 6. Interpolate and return
-    RayHitVertexData result;
-    result.position = tri.GetPosition(perScene, 0) * bary3.x + tri.GetPosition(perScene, 1) * bary3.y + tri.GetPosition(perScene, 2) * bary3.z;
-    result.normal   = normalize(tri.GetNormal(perScene, 0) * bary3.x + tri.GetNormal(perScene, 1) * bary3.y + tri.GetNormal(perScene, 2) * bary3.z);
-    result.uv       = tri.GetUV(perScene, 0) * bary3.x + tri.GetUV(perScene, 1) * bary3.y + tri.GetUV(perScene, 2) * bary3.z;
-
-    result = result.TransformToWorld(tri.GetModelMatrix(), (float3x3)tri.GetInvModelMatrix());
-
-    return result;
-}
-
 /**
  * Traces a visibility (shadow) ray using inline ray tracing.
  */
