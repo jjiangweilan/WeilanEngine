@@ -3,12 +3,12 @@
 #include <spdlog/spdlog.h>
 
 AssetData::AssetData(
-    std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
+    std::unique_ptr<Asset>&& asset, const AssetPath& assetPath, const std::filesystem::path& projectRoot
 )
     : assetDataUUID(), assetPath(), absolutePath(), asset(std::move(asset)),
       lastWriteTime(0)
 {
-    SetAssetPath(assetPath, projectRoot / "Assets");
+    SetAssetPath(assetPath);
     assetUUID = this->asset->GetUUID();
 
     for (auto obj : this->asset->GetInternalAssets())
@@ -75,30 +75,10 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
 
         assetUUID = std::string(dataJson["assetUUID"]);
         assetTypeID = std::string(dataJson["assetTypeID"]);
-        std::string assetPathStr = dataJson.value("assetPath", "");
-        SetAssetPath(assetPathStr, projectRoot / std::filesystem::path("Assets"));
+        AssetPath loadedAssetPath = dataJson.value("assetPath", "");
+        SetAssetPath(loadedAssetPath);
         meta = dataJson.value("meta", nlohmann::json::object());
 
-        this->internal = true;
-        for (int i = 0; i < 16; ++i)
-        {
-            if (assetPathStr[i] != "_engine_internal"[i])
-            {
-                internal = false;
-                break;
-            }
-        }
-        if (internal)
-        {
-            std::replace(assetPathStr.begin(), assetPathStr.end(), '\\', '/');
-            auto realPath = assetPathStr.substr(17);
-            auto currentPath = std::filesystem::current_path();
-            absolutePath = currentPath / std::filesystem::path("Assets") / realPath;
-        }
-        else
-        {
-            absolutePath = projectRoot / std::filesystem::path("Assets") / assetPath;
-        }
         auto nameToUUIDJson = dataJson["nameToUUID"];
         if (nameToUUIDJson.is_object())
         {
@@ -122,9 +102,9 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
     return;
 }
 
-AssetData::AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag)
-    : assetUUID(assetUUID), lastWriteTime(0), assetPath("_engine_internal" / internalAssetPath),
-      absolutePath(std::filesystem::absolute(std::filesystem::path("Assets") / internalAssetPath)), internal(true)
+AssetData::AssetData(const UUID& assetUUID, const AssetPath& internalAssetPath, InternalAssetDataTag)
+    : assetUUID(assetUUID), lastWriteTime(0), assetPath(internalAssetPath),
+      absolutePath(internalAssetPath.ToAbsolutePath()), internal(true)
 {
     isValid = true;
 
@@ -148,11 +128,11 @@ Asset* AssetData::GetAsset()
     return nullptr;
 }
 
-AssetData::AssetData(const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot)
+AssetData::AssetData(const AssetPath& assetPath, const std::filesystem::path& projectRoot)
     : assetPath(), assetUUID(), absolutePath(), assetDataUUID(),
       lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID())
 {
-    SetAssetPath(assetPath, projectRoot / "Assets");
+    SetAssetPath(assetPath);
 }
 
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& inAsset, const std::filesystem::path& projectRoot)
@@ -243,9 +223,7 @@ nlohmann::json AssetData::DumpInfo() const
     nlohmann::json j = nlohmann::json::object();
     j["assetUUID"] = assetUUID.ToString();
     j["assetTypeID"] = assetTypeID.ToString();
-    auto assetPathStr = assetPath.string();
-    std::replace(assetPathStr.begin(), assetPathStr.end(), '\\', '/');
-    j["assetPath"] = assetPathStr;
+    j["assetPath"] = assetPath.string();
     j["meta"] = meta;
 
     for (auto& obj : nameToUUID)
@@ -254,46 +232,6 @@ nlohmann::json AssetData::DumpInfo() const
     }
 
     return j;
-}
-
-std::filesystem::path AssetData::ToRelativeAssetPath(
-    const std::filesystem::path& path, const std::filesystem::path& projectRoot
-)
-{
-    if (path.empty())
-        return path;
-
-    auto genericStr = path.generic_string();
-
-    // Already in the canonical relative format
-    if (genericStr.starts_with("_engine_internal"))
-        return path;
-
-    // Already relative — assume caller has it right
-    if (path.is_relative())
-        return path;
-
-    std::error_code ec;
-
-    // Absolute path under projectRoot/Assets
-    auto assetsDir = std::filesystem::weakly_canonical(projectRoot / "Assets", ec);
-    if (!ec)
-    {
-        auto rel = std::filesystem::relative(path, assetsDir, ec);
-        if (!ec && !rel.generic_string().starts_with(".."))
-            return rel;
-    }
-
-    // Absolute path under cwd/Assets — engine-internal asset
-    auto cwdAssetsDir = std::filesystem::weakly_canonical(std::filesystem::current_path() / "Assets", ec);
-    if (!ec)
-    {
-        auto rel = std::filesystem::relative(path, cwdAssetsDir, ec);
-        if (!ec && !rel.generic_string().starts_with(".."))
-            return std::filesystem::path("_engine_internal") / rel;
-    }
-
-    return path;
 }
 
 std::string AssetData::GetNameToUUIDKey(Asset* obj)

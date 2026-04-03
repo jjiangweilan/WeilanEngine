@@ -1,7 +1,7 @@
 #include "AsyncLoadProcessor.hpp"
 #include "Engine/Core/JobSystem.hpp"
 
-ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path& path)
+ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const AssetPath& path)
 {
     ScopedJobCounter _c(jobCounter);
 
@@ -18,7 +18,7 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path&
         return ObjPtr<Asset>(ret);
     }
 
-    std::filesystem::path ext = path.extension();
+    std::filesystem::path ext = path.ToFilesystemPath().extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
 
     // if this asset is already loaded, we can just try its UUID
@@ -58,15 +58,11 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const std::filesystem::path&
     return ObjPtr<Asset>(ret);
 }
 
-std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const std::filesystem::path& path, AssetData* assetData)
+std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const AssetPath& path, AssetData* assetData)
 {
     // copy json meta is slow, so we use pointer here
     static nlohmann::json empty = nlohmann::json::object();
     const nlohmann::json* assetMeta = &empty;
-
-    // use path relative to AssetDirectory
-    if (path.is_absolute())
-        return nullptr;
 
     // find the asset if it's already imported
     auto absoluteAssetPath = assetData->GetAssetAbsolutePath();

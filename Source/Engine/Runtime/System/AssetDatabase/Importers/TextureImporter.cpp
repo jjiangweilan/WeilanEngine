@@ -12,6 +12,18 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
+void StbiDeleter(uint8_t* p)
+{
+    stbi_image_free(p);
+}
+
+void NewDeleter(uint8_t* p)
+{
+    delete[] p;
+}
+
+using UniqueImagePtr = std::unique_ptr<uint8_t[], void (*)(uint8_t*)>;
+
 DEFINE_ASSET_IMPORTER(TextureImporter, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
 
 const std::vector<std::type_index>& TextureImporter::GetImportTypes()
@@ -106,29 +118,29 @@ std::vector<std::filesystem::path> TextureImporter::Import()
 
             int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 
-            uint8_t* loaded = nullptr;
+            UniqueImagePtr loaded(nullptr, StbiDeleter);
             if (isHDR)
             {
-                loaded =
-                    (uint8_t*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+                loaded.reset(
+                    (uint8_t*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels)
+                );
             }
             else if (is16Bit)
             {
-                loaded = (uint8_t*)
-                    stbi_load_16_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+                loaded.reset((uint8_t*)stbi_load_16_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels)
+                );
             }
             else
             {
-                loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+                loaded.reset(stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels));
             }
 
             if (converToIrradianceCubemap)
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
-                Libs::Image::GenerateIrradianceCubemap((float*)loaded, width, height, cubemapSize, output);
-                delete[] loaded;
-                loaded = output;
+                Libs::Image::GenerateIrradianceCubemap((float*)loaded.get(), width, height, cubemapSize, output);
+                loaded = UniqueImagePtr(output, NewDeleter);
                 width = cubemapSize;
                 height = cubemapSize;
             }
@@ -137,9 +149,8 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
-                Libs::Image::ConverToCubemap((float*)loaded, width, height, cubemapSize, desiredChannels, output);
-                delete[] loaded;
-                loaded = output;
+                Libs::Image::ConverToCubemap((float*)loaded.get(), width, height, cubemapSize, desiredChannels, output);
+                loaded = UniqueImagePtr(output, NewDeleter);
                 width = cubemapSize;
                 height = cubemapSize;
             }
@@ -148,9 +159,8 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
-                Libs::Image::GenerateReflectanceCubemap((float*)loaded, width, height, cubemapSize, output, mipLevels);
-                delete[] loaded;
-                loaded = output;
+                Libs::Image::GenerateReflectanceCubemap((float*)loaded.get(), width, height, cubemapSize, output, mipLevels);
+                loaded = UniqueImagePtr(output, NewDeleter);
                 width = cubemapSize;
                 height = cubemapSize;
             }
@@ -162,7 +172,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                 if (isHDR)
                 {
                     Libs::Image::GenerateBoxFilteredMipmap<float>(
-                        loaded,
+                        loaded.get(),
                         width,
                         height,
                         layers,
@@ -171,13 +181,12 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                         mippedData,
                         mippedDataByteSize
                     );
-                    stbi_image_free(loaded);
-                    loaded = mippedData;
+                    loaded = UniqueImagePtr(mippedData, NewDeleter);
                 }
                 else if (is16Bit)
                 {
                     Libs::Image::GenerateBoxFilteredMipmap<uint16_t>(
-                        loaded,
+                        loaded.get(),
                         width,
                         height,
                         layers,
@@ -186,13 +195,12 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                         mippedData,
                         mippedDataByteSize
                     );
-                    stbi_image_free(loaded);
-                    loaded = mippedData;
+                    loaded = UniqueImagePtr(mippedData, NewDeleter);
                 }
                 else
                 {
                     Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
-                        loaded,
+                        loaded.get(),
                         width,
                         height,
                         layers,
@@ -201,8 +209,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                         mippedData,
                         mippedDataByteSize
                     );
-                    stbi_image_free(loaded);
-                    loaded = mippedData;
+                    loaded = UniqueImagePtr(mippedData, NewDeleter);
                 }
             }
 
@@ -220,7 +227,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             // concept of face and layer, that's why I need to manually convert layer to face
             Exporters::KtxExporter::Export(
                 (importDatabase->GetImportDatabaseRootPath() / std::filesystem::path(importedAssetPath.string())).string().c_str(),
-                loaded,
+                loaded.get(),
                 width,
                 height,
                 1,
@@ -232,8 +239,6 @@ std::vector<std::filesystem::path> TextureImporter::Import()
                 format,
                 true
             );
-
-            delete[] loaded;
         }
         else
         {

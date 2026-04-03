@@ -2,16 +2,12 @@
 #include "AssetData.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Engine/Core/Asset.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include <filesystem>
 
 class AssetFileSystem
 {
-    struct PathHasher
-    {
-        size_t operator()(const std::filesystem::path& path) const { return std::filesystem::hash_value(path); }
-    };
-
-    std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
+    std::unordered_map<AssetPath, AssetData*> byPath;
     std::unordered_map<UUID, AssetData*> byUUID;
 
     std::filesystem::path projectRoot;
@@ -20,14 +16,14 @@ class AssetFileSystem
 
 public:
     void Init(const std::filesystem::path& projectRoot);
-    void SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported);
+    void SyncImportedAssetFiles(AssetData* assetData, const std::vector<AssetPath>& newImported);
 
     Asset* Add(AssetData* assetData);
-    AssetData* GetAssetData(const std::filesystem::path& path) const;
+    AssetData* GetAssetData(const AssetPath& path) const;
     AssetData* GetAssetData(const UUID& uuid) const;
 
-    void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
-    void Remove(const std::filesystem::path& path);
+    void Rename(const AssetPath& oldPath, const AssetPath& newPath);
+    void Remove(const AssetPath& path);
     void RemoveAssetData(AssetData* assetData);
     void UnloadAsset(Asset& asset);
 

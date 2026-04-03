@@ -52,7 +52,7 @@ class AsyncLoadProcessor
     std::filesystem::path projectRoot;
 
     boost::unordered::concurrent_flat_map<UUID, AsyncProcessedPayload, std::hash<UUID>> asyncProcessedPayload;
-    boost::unordered::concurrent_flat_map<std::filesystem::path, UUID> loadingAssets;
+    boost::unordered::concurrent_flat_map<AssetPath, UUID> loadingAssets;
 
     std::atomic_int jobCounter = 0;
 
@@ -71,8 +71,8 @@ public:
     }
 
     void PollAsyncLoading();
-    ObjPtr<Asset> AsyncLoadFromPath(const std::filesystem::path& path);
-    std::unique_ptr<Asset> LoadAssetJob(const std::filesystem::path& path, AssetData* assetData);
+    ObjPtr<Asset> AsyncLoadFromPath(const AssetPath& path);
+    std::unique_ptr<Asset> LoadAssetJob(const AssetPath& path, AssetData* assetData);
     void SyncLoad();
 
 private:

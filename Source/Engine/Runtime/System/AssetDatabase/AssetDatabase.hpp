@@ -1,4 +1,5 @@
 #pragma once
+#include "AssetPath.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers/AssetImporter.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Private/AssetFileSystem.hpp"
@@ -7,16 +8,15 @@
 #include "Private/AssetData.hpp"
 #include <filesystem>
 
-using AssetPath = std::filesystem::path;
 using AbsolutePath = std::filesystem::path;
 
 class Scene;
 class AssetDatabase
 {
     static AssetDatabase*& SingletonReference();
-    std::filesystem::path projectRoot;
-    std::filesystem::path assetDirectory;
-    std::filesystem::path assetDatabaseDirectory;
+    AbsolutePath projectRoot;
+    AbsolutePath assetDirectory;
+    AbsolutePath assetDatabaseDirectory;
 
     ImportDatabase importDatabase;
     AssetFileSystem assetFileSystem;
@@ -33,12 +33,12 @@ public:
     AssetDatabase() {};
 
     static AssetDatabase* Singleton();
-    void Init(const std::filesystem::path& projectRoot);
+    void Init(const AbsolutePath& projectRoot);
 
-    const std::filesystem::path& GetAssetDirectory() const;
+    const AbsolutePath& GetAssetDirectory() const;
     const std::vector<AssetData*>& GetInternalAssets() const;
-    const std::filesystem::path& GetProjectRoot() const;
-    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const;
+    const AbsolutePath& GetProjectRoot() const;
+    const AbsolutePath& GetProjectAssetDatabaseDirectory() const;
     const std::vector<std::unique_ptr<AssetData>>& GetAssetData();
 
     void ReloadScripts();
@@ -49,16 +49,16 @@ public:
     void SaveDirtyAssets();
     void RemoveAssetData(AssetData* ad);
     // ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
-    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
+    Asset* LoadAsset(const AssetPath& path, bool forceReload = false);
     Scene* LoadScene(const UUID& sceneUUID);
-    ObjPtr<Asset> LoadAssetAsync_Experimental(std::filesystem::path path, bool forceReimport = false);
-    Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
-    Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
+    ObjPtr<Asset> LoadAssetAsync_Experimental(const AssetPath& path, bool forceReload = false);
+    Asset* LoadAssetByID(const UUID& uuid, bool forceReload = false);
+    Asset* SaveAsset(std::unique_ptr<Asset>&& asset, const AssetPath& path);
     bool IsAssetInDatabase(Asset& asset);
     void SaveAsset(Asset& asset);
     void UnloadAsset(Asset& asset);
     nlohmann::json GetAssetMeta(Asset& asset);
-    const std::filesystem::path& GetAssetPath(const UUID& uuid);
+    const AssetPath& GetAssetPath(const UUID& uuid);
     void SetAssetMeta(Asset& asset, const nlohmann::json& meta);
 
     void SyncLoadingResults();
@@ -66,12 +66,11 @@ public:
     void EnsureAllFilesAreImported();
 
     // file system
-    void CreateFolderAtPath(const std::filesystem::path& path);
-    void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
-    void Remove(const std::filesystem::path& path);
-    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath);
+    void CreateFolderAtPath(const AssetPath& path);
+    void Rename(const AssetPath& oldPath, const AssetPath& newPath);
+    void Remove(const AssetPath& path);
 
-    void Reimport(const std::filesystem::path& path);
+    void Reimport(const AssetPath& path);
     void ReimportByID(const UUID& uuid);
 
     template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
@@ -91,14 +90,13 @@ public:
 
 private:
     AssetData* AddAssetData(std::unique_ptr<AssetData>&& newAssetData);
-    void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
+    void SerializeAssetToDisk(Asset& asset, const AbsolutePath& path);
     void LoadEngineInternal();
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void LoadAssetDatas();
-    void EnsureAllFilesAreImported(const std::filesystem::path& directory);
-    void ImportAssetIfNeeded(const std::filesystem::path& path, bool forceReimport);
-    bool IsAssetImported(const std::filesystem::path& path);
-    const UUID& GetUUIDFromPath(const std::filesystem::path& path);
+    void EnsureAllFilesAreImported(const AbsolutePath& directory);
+    void ImportAssetIfNeeded(const AssetPath& path, bool forceReimport);
+    const UUID& GetUUIDFromPath(const AssetPath& path);
 
     // used to set instance
     friend class WeilanEngine;

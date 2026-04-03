@@ -4,6 +4,7 @@
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
+#include "Engine/Runtime/System/EngineConfig.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -36,8 +37,9 @@ const std::vector<std::unique_ptr<AssetData>>& AssetDatabase::GetAssetData()
     return assetDatas;
 }
 
-void AssetDatabase::Init(const std::filesystem::path& projectRoot)
+void AssetDatabase::Init(const AbsolutePath& projectRoot)
 {
+    EngineConfig::SetProjectRoot(projectRoot);
     this->projectRoot = projectRoot;
     this->assetDirectory = projectRoot / "Assets";
     this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
@@ -84,7 +86,7 @@ bool AssetDatabase::IsAssetInDatabase(Asset& asset)
     return assetFileSystem.GetAssetData(asset.GetUUID()) != nullptr;
 }
 
-void AssetDatabase::Reimport(const std::filesystem::path& path)
+void AssetDatabase::Reimport(const AssetPath& path)
 {
     ImportAssetIfNeeded(path, true);
 }
@@ -126,7 +128,7 @@ Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
     return nullptr;
 }
 
-void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path)
+void AssetDatabase::SerializeAssetToDisk(Asset& asset, const AbsolutePath& path)
 {
     JsonSerializer ser;
     asset.Serialize(&ser);
@@ -141,39 +143,34 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
         }
     }
 }
-Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
+Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, const AssetPath& path)
 {
     if (HasFlag(a->GetFlags(), AssetState::DontSave))
     {
         return a.get();
     }
 
-    if (path.is_absolute())
-    {
-        path = std::filesystem::relative(path, assetDirectory);
-    }
-
-    path.replace_extension(a->GetExtension());
-    auto fullPath = assetDirectory / path;
+    auto fullPath = (std::filesystem::path)path;
+    fullPath.replace_extension(a->GetExtension());
     int index = 1;
-    const std::filesystem::path& stem = path.stem();
-    const std::filesystem::path& extension = path.extension();
-    const std::filesystem::path& parentPath = fullPath.parent_path();
+    const std::string stem = path.GetFileNameWithoutExtension();
+    const std::string extension = a->GetExtension();
+    const std::filesystem::path parentPath = fullPath.parent_path();
 
     while (std::filesystem::exists(fullPath))
     {
-        auto newFilename = fmt::format("{} {}{}", stem.string(), index, extension.string());
+        auto newFilename = fmt::format("{} {}{}", stem, index, extension);
         fullPath = parentPath / newFilename;
         index++;
     }
 
-    path = std::filesystem::relative(fullPath, GetAssetDirectory());
+    AssetPath finalAssetPath = AssetPath(fullPath);
     // only internal asset can be created
     if (!a->IsExternalAsset())
     {
         if (!std::filesystem::exists(fullPath))
         {
-            std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
+            std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), finalAssetPath, projectRoot);
             newAssetData->SaveToDisk(projectRoot);
             Asset* asset = newAssetData->GetAsset();
 
@@ -183,7 +180,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
         }
         else
         {
-            if (AssetData* ad = assetFileSystem.GetAssetData(path))
+            if (AssetData* ad = assetFileSystem.GetAssetData(finalAssetPath))
             {
                 auto asset = ad->SetAsset(std::move(a), projectRoot);
                 SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
@@ -218,26 +215,25 @@ void AssetDatabase::LoadEngineInternal()
 {
     ShaderLibrary::CompileAllDefaultShaders();
 
-    std::vector<std::string> pathes;
-    for (auto entry : std::filesystem::recursive_directory_iterator("./Assets"))
+    std::vector<AssetPath> pathes;
+    auto cwdAssetsDir = std::filesystem::current_path() / "Assets";
+    for (auto entry : std::filesystem::recursive_directory_iterator(cwdAssetsDir))
     {
         if (!entry.is_directory())
         {
-            auto relative = std::filesystem::relative(entry.path(), "./Assets/");
-            if (AssetRegistry::IsExtensionAnAsset(relative.extension().string()))
+            AssetPath ap(entry.path());
+            if (!ap.empty() && AssetRegistry::IsExtensionAnAsset(ap.GetExtension()))
             {
-                auto str = relative.string();
-                std::replace(str.begin(), str.end(), '\\', '/');
-                pathes.push_back(str);
+                pathes.push_back(ap);
             }
         }
     }
 
-    std::vector<std::filesystem::path> importPathes;
+    std::vector<AssetPath> importPathes;
     std::vector<AssetData*> validAssetData;
     for (int i = 0; i < pathes.size(); ++i)
     {
-        UUID assetDataUUID(pathes[i], UUID::FromStrTag{});
+        UUID assetDataUUID(pathes[i].string(), UUID::FromStrTag{});
         auto assetData = assetFileSystem.GetAssetData(assetDataUUID);
         if (assetData == nullptr)
         {
@@ -372,25 +368,16 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
     }
 }
 
-ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(std::filesystem::path path, bool forceReimport)
+ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(const AssetPath& path, bool forceReload)
 {
-    if (path.is_absolute())
-    {
-        path = AbsolutePathToAssetPath(path);
-    }
     auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
 
     return loaded;
 }
 
-Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
+Asset* AssetDatabase::LoadAsset(const AssetPath& path, bool forceReload)
 {
     asyncLoadProcessor.SyncLoad(); // this is used to avoid loading an asset in main thread while it's also loading in async load processor
-
-    if (path.is_absolute())
-    {
-        path = AbsolutePathToAssetPath(path);
-    }
 
     ImportAssetIfNeeded(path, false);
     // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
@@ -405,10 +392,6 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
     // copy json meta is slow, so we use pointer here
     static nlohmann::json empty = nlohmann::json::object();
     const nlohmann::json* assetMeta = &empty;
-
-    // use path relative to AssetDirectory
-    if (path.is_absolute())
-        return nullptr;
 
     // find the asset if it's already imported
     auto assetData = assetFileSystem.GetAssetData(path);
@@ -485,33 +468,33 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReload)
     return asset;
 }
 
-void AssetDatabase::CreateFolderAtPath(const std::filesystem::path& path)
+void AssetDatabase::CreateFolderAtPath(const AssetPath& path)
 {
     int i = -1;
     std::string fileName;
     do
     {
         i++;
-        fileName = fmt::format("{}/{} {}", path.string(), "New Folder", i);
+        fileName = fmt::format("{}/{} {}", (assetDirectory / path.ToFilesystemPath()).string(), "New Folder", i);
     }
     while (std::filesystem::exists(fileName));
     std::filesystem::create_directory(fileName);
 }
 
-void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
+void AssetDatabase::Rename(const AssetPath& oldPath, const AssetPath& newPath)
 {
     // TODO: sync async works before accessing assetFileSystem
     assetFileSystem.Rename(oldPath, newPath);
 }
 
-void AssetDatabase::Remove(const std::filesystem::path& path)
+void AssetDatabase::Remove(const AssetPath& path)
 {
-    auto absolutePath = assetDirectory / path;
+    auto absolutePath = assetDirectory / path.ToFilesystemPath();
     if (std::filesystem::is_directory(absolutePath))
     {
         for (auto iter : std::filesystem::directory_iterator(absolutePath))
         {
-            Remove(iter.path());
+            Remove(AssetPath(iter.path()));
         }
         std::filesystem::remove(absolutePath);
     }
@@ -528,7 +511,7 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
             );
         }
 
-        assetFileSystem.Remove(absolutePath);
+        assetFileSystem.Remove(path);
     }
 }
 
@@ -650,14 +633,14 @@ void AssetDatabase::LoadAssetDatas()
     }
 }
 
-// ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const std::filesystem::path& path)
+// ObjPtr<Asset> AssetDatabase::LoadAssetAsync(const AbsolutePath& path)
 //{
 //     ObjPtr<Asset> ptr = asyncLoadProcessor.AsyncLoadFromPath(path);
 //
 //     return ptr;
 // }
 
-const UUID& AssetDatabase::GetUUIDFromPath(const std::filesystem::path& path)
+const UUID& AssetDatabase::GetUUIDFromPath(const AssetPath& path)
 {
     if (AssetData* assetData = assetFileSystem.GetAssetData(path))
     {
@@ -667,17 +650,17 @@ const UUID& AssetDatabase::GetUUIDFromPath(const std::filesystem::path& path)
     return UUID::GetEmptyUUID();
 }
 
-const std::filesystem::path& AssetDatabase::GetAssetPath(const UUID& uuid)
+const AssetPath& AssetDatabase::GetAssetPath(const UUID& uuid)
 {
     auto assetData = assetFileSystem.GetAssetData(uuid);
     if (assetData)
         return assetData->GetAssetPath();
 
-    static std::filesystem::path empty = "";
+    static AssetPath empty = "";
     return empty;
 }
 
-const std::filesystem::path& AssetDatabase::GetAssetDirectory() const
+const AbsolutePath& AssetDatabase::GetAssetDirectory() const
 {
     return assetDirectory;
 }
@@ -687,17 +670,12 @@ const std::vector<AssetData*>& AssetDatabase::GetInternalAssets() const
     return internalAssets;
 }
 
-std::filesystem::path AssetDatabase::AbsolutePathToAssetPath(const std::filesystem::path& absolutePath)
-{
-    return std::filesystem::relative(absolutePath, assetDirectory);
-}
-
-const std::filesystem::path& AssetDatabase::GetProjectRoot() const
+const AbsolutePath& AssetDatabase::GetProjectRoot() const
 {
     return projectRoot;
 }
 
-const std::filesystem::path& AssetDatabase::GetProjectAssetDatabaseDirectory() const
+const AbsolutePath& AssetDatabase::GetProjectAssetDatabaseDirectory() const
 {
     return assetDatabaseDirectory;
 }
@@ -715,7 +693,7 @@ AssetData* AssetDatabase::AddAssetData(std::unique_ptr<AssetData>&& newAssetData
     return nullptr;
 }
 
-void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& directory)
+void AssetDatabase::EnsureAllFilesAreImported(const AbsolutePath& directory)
 {
     for (auto const& dirEntry : std::filesystem::directory_iterator{directory})
     {
@@ -723,7 +701,7 @@ void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& direc
         {
             const auto& path = dirEntry.path();
 
-            auto assetPath = AbsolutePathToAssetPath(path);
+            auto assetPath = AssetPath(path);
             ImportAssetIfNeeded(assetPath, false);
         }
         else if (dirEntry.is_directory())
@@ -733,9 +711,10 @@ void AssetDatabase::EnsureAllFilesAreImported(const std::filesystem::path& direc
     }
 }
 
-void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool forceReimport)
+void AssetDatabase::ImportAssetIfNeeded(const AssetPath& path, bool forceReimport)
 {
-    auto ext = path.extension();
+    std::filesystem::path stdPath = path.ToFilesystemPath();
+    auto ext = stdPath.extension();
     std::unique_ptr<AssetImporter> importer = AssetImporterRegistry::CreateAssetImporterByExtension(ext.string());
 
     if (importer == nullptr)
@@ -762,10 +741,12 @@ void AssetDatabase::ImportAssetIfNeeded(const std::filesystem::path& path, bool 
     importer->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
     bool importNeeded = forceReimport || importer->ImportNeeded();
-    std::vector<std::filesystem::path> importedAssetFilePaths;
+    std::vector<AssetPath> importedAssetFilePaths;
     if (importNeeded)
     {
-        importedAssetFilePaths = importer->Import();
+        auto stdImported = importer->Import();
+        for (auto& p : stdImported)
+            importedAssetFilePaths.push_back(AssetPath(p));
 
         if (assetData != nullptr)
         {

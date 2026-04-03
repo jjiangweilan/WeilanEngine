@@ -2,6 +2,7 @@
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Library/Serialization/BinarySerializer.hpp"
 #include "Engine/Library/Serialization/JsonSerializer.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -29,10 +30,10 @@ class AssetData
     // this is the path to the resource the AssetFile linked to
     // relative path in Assets/
     // if it's an engine internal file it be _engine_internal/xxx
-    std::filesystem::path assetPath = {};
+    AssetPath assetPath = {};
     std::filesystem::path absolutePath = {};
 
-    std::vector<std::filesystem::path> importedAssetFilePaths = {};
+    std::vector<AssetPath> importedAssetFilePaths = {};
 
     nlohmann::json meta = nlohmann::json::object();
 
@@ -56,7 +57,7 @@ public:
     // this is used when saving an Asset
     AssetData(
         std::unique_ptr<Asset>&& resource,
-        const std::filesystem::path& assetPath,
+        const AssetPath& assetPath,
         const std::filesystem::path& projectRoot
     );
 
@@ -65,10 +66,10 @@ public:
     AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot);
 
     // used for internal Asset
-    AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
+    AssetData(const UUID& assetUUID, const AssetPath& internalAssetPath, InternalAssetDataTag);
 
     // used for new asset (just import)
-    AssetData(const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot);
+    AssetData(const AssetPath& assetPath, const std::filesystem::path& projectRoot);
 
     // used for async unimported asset that needs
     ~AssetData();
@@ -84,21 +85,16 @@ public:
     bool NeedRefresh() const;
     void UpdateLastWriteTime();
 
-    // Converts any path to one relative to projectRoot/"Assets".
-    // Engine-internal paths (not under projectRoot) are returned as _engine_internal/<relative>.
-    std::filesystem::path ToRelativeAssetPath(
-        const std::filesystem::path& path, const std::filesystem::path& projectRoot
-    );
-
-    void SetAssetPath(const std::filesystem::path& path, const std::filesystem::path& assetsDirectory)
+    void SetAssetPath(const AssetPath& path)
     {
-        assetPath = ToRelativeAssetPath(path, assetsDirectory.parent_path());
-        absolutePath = assetsDirectory / assetPath;
+        assetPath = path;
+        absolutePath = assetPath.ToAbsolutePath();
+        internal = assetPath.IsInternal();
     }
 
     std::string GetNameToUUIDKey(Asset* obj);
 
-    const std::filesystem::path& GetAssetPath() { return assetPath; };
+    const AssetPath& GetAssetPath() { return assetPath; };
     const std::filesystem::path& GetAssetAbsolutePath() { return absolutePath; }
     void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot);
@@ -121,9 +117,9 @@ public:
         this->meta = meta;
     }
 
-    void SetImportedAssetPaths(const std::vector<std::filesystem::path>& paths) { importedAssetFilePaths = paths; }
+    void SetImportedAssetPaths(const std::vector<AssetPath>& paths) { importedAssetFilePaths = paths; }
 
-    std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
+    std::vector<AssetPath> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
     const nlohmann::json& GetMeta() { return meta; }
 };

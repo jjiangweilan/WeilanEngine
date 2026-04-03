@@ -15,7 +15,7 @@ Asset* AssetFileSystem::Add(AssetData* assetData)
     return asset;
 }
 
-AssetData* AssetFileSystem::GetAssetData(const std::filesystem::path& path) const
+AssetData* AssetFileSystem::GetAssetData(const AssetPath& path) const
 {
     auto iter = byPath.find(path);
     if (iter != byPath.end())
@@ -38,7 +38,7 @@ AssetData* AssetFileSystem::GetAssetData(const UUID& uuid) const
 
 void AssetFileSystem::UpdateAssetData(AssetData* assetData)
 {
-    byPath[assetData->GetAssetPath().string()] = assetData;
+    byPath[assetData->GetAssetPath()] = assetData;
     byUUID[assetData->GetAssetUUID()] = assetData;
 
     for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
@@ -47,13 +47,13 @@ void AssetFileSystem::UpdateAssetData(AssetData* assetData)
     }
 }
 
-void AssetFileSystem::Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
+void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
 {
     if (oldPath == newPath)
         return;
 
-    auto fullNewPath = GetAssetDirectory() / newPath;
-    auto fullOldPath = GetAssetDirectory() / oldPath;
+    auto fullNewPath = GetAssetDirectory() / newPath.ToFilesystemPath();
+    auto fullOldPath = GetAssetDirectory() / oldPath.ToFilesystemPath();
     if (!std::filesystem::exists(fullNewPath.parent_path()) || !std::filesystem::exists(fullOldPath))
     {
         return;
@@ -68,7 +68,7 @@ void AssetFileSystem::Rename(const std::filesystem::path& oldPath, const std::fi
         {
             if (entry.is_regular_file())
             {
-                auto relativeAssetPath = std::filesystem::relative(entry.path(), GetAssetDirectory());
+                auto relativeAssetPath = AssetPath(std::filesystem::relative(entry.path(), GetAssetDirectory()));
                 AssetData* assetData = GetAssetData(relativeAssetPath);
                 if (assetData != nullptr)
                 {
@@ -99,7 +99,7 @@ void AssetFileSystem::Rename(const std::filesystem::path& oldPath, const std::fi
     // change assetData information
     for (auto& d : moveAssetFiles)
     {
-        d->SetAssetPath(newPath, GetAssetDirectory());
+        d->SetAssetPath(newPath);
         byPath.erase(oldPath);
         byPath[newPath] = d;
 
@@ -109,16 +109,16 @@ void AssetFileSystem::Rename(const std::filesystem::path& oldPath, const std::fi
     }
 }
 
-void AssetFileSystem::Remove(const std::filesystem::path& path)
+void AssetFileSystem::Remove(const AssetPath& path)
 {
-    auto fullPath = GetAssetDirectory() / path;
+    auto fullPath = GetAssetDirectory() / path.ToFilesystemPath();
 
     if (!std::filesystem::exists(fullPath))
         return;
 
     auto RemoveAsset = [&](const std::filesystem::path& path)
     {
-        auto assetPath = std::filesystem::relative(path, GetAssetDirectory());
+        auto assetPath = AssetPath(std::filesystem::relative(path, GetAssetDirectory()));
 
         auto assetData = GetAssetData(assetPath);
 
@@ -182,26 +182,26 @@ void AssetFileSystem::UnloadAsset(Asset& asset)
 }
 
 void AssetFileSystem::SyncImportedAssetFiles(
-    AssetData* assetData, const std::vector<std::filesystem::path>& newImported
+    AssetData* assetData, const std::vector<AssetPath>& newImported
 )
 {
     auto importedAssetPaths = assetData->GetImportedAssetPaths();
     assetData->SetImportedAssetPaths(newImported);
 
-    std::vector<std::filesystem::path> toRemove;
+    std::vector<AssetPath> toRemove;
     for (auto& oldp : importedAssetPaths)
     {
         auto findResult = std::find(newImported.begin(), newImported.end(), oldp);
         if (findResult == newImported.end())
         {
-            toRemove.push_back(*findResult);
+            toRemove.push_back(oldp);
         }
     }
 
     for (auto r : toRemove)
     {
         std::error_code e;
-        std::filesystem::remove(r, e);
+        std::filesystem::remove(r.ToFilesystemPath(), e);
         if (e.value() != 0)
         {
             spdlog::error("failed to remove {}", e.message());

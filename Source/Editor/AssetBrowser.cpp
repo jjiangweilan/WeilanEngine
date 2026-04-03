@@ -116,7 +116,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         if (entry.is_directory())
         {
             const std::filesystem::path& path = entry.path();
-            auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
+            auto relative = AssetPath(path);
             bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
 
             if (EditorGUI::DragDropSource(relative))
@@ -159,7 +159,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                             [entry]()
                             {
                                 AssetDatabase::Singleton()->Remove(
-                                    AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                    AssetPath(entry.path())
                                 );
                             }
                         );
@@ -170,7 +170,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                             [this, entry]()
                             {
                                 AssetDatabase::Singleton()->Remove(
-                                    AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                    AssetPath(entry.path())
                                 );
                             }
                         );
@@ -244,7 +244,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             if (open)
             {
                 std::filesystem::path path = entry.path().string();
-                path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
+                path = AssetPath(path);
                 EditorGUI::DragDropSource(
                     path,
                     [path](Object*& obj)
@@ -519,7 +519,7 @@ void AssetBrowser::ShowAssetIconItem(
     // Handle drag and drop
     if (isDirectory)
     {
-        auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path());
+        auto relative = AssetPath(entry.path());
         EditorGUI::DragDropSource(relative, ImGuiDragDropFlags_SourceAllowNullID);
 
         std::filesystem::path pathStr;
@@ -541,7 +541,7 @@ void AssetBrowser::ShowAssetIconItem(
     else
     {
         std::filesystem::path filePath = entry.path().string();
-        filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
+        filePath = AssetPath(filePath);
         EditorGUI::DragDropSource(
             filePath,
             [filePath](Object*& obj)
@@ -575,7 +575,7 @@ void AssetBrowser::ShowAssetIconItem(
                         [entry]()
                         {
                             AssetDatabase::Singleton()->Remove(
-                                AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                AssetPath(entry.path())
                             );
                         }
                     );
@@ -586,7 +586,7 @@ void AssetBrowser::ShowAssetIconItem(
                         [this, entry]()
                         {
                             AssetDatabase::Singleton()->Remove(
-                                AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                AssetPath(entry.path())
                             );
                         }
                     );
