@@ -638,16 +638,16 @@ void GameEditor::Render(
     glm::float4 color = {0.3, 0.6, 0.12, 1.0};
     cmd.BeginLabel("Editor", &color[0]);
 
+    ENGINE_BEGIN_PROFILE("Scene Editor")
+    sceneEditor->Render(cmd);
+    ENGINE_END_PROFILE; // Scene Editor
+
     ENGINE_BEGIN_PROFILE("Game View")
     if (gameImage)
     {
         gameView->Render(cmd, gameImage, gameDepthImage);
     }
     ENGINE_END_PROFILE; // Game View
-
-    ENGINE_BEGIN_PROFILE("Scene Editor")
-    sceneEditor->Render(cmd);
-    ENGINE_END_PROFILE; // Scene Editor
 
     ENGINE_BEGIN_PROFILE("Editor")
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
