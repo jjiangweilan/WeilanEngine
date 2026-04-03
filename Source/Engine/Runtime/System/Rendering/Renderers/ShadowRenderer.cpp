@@ -45,6 +45,7 @@ void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
 
 void ShadowRenderer::ResetShadowmap(float shadowMapSizeScale, int cascadeCount)
 {
+    cascadeBuffers.clear();
     shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z * shadowMapSizeScale, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
 
     shadowMap = GetGfxDriver()->CreateImage(
