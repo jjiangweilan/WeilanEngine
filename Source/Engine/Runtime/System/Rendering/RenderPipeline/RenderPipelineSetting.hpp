@@ -156,6 +156,7 @@ public:
 
         struct SVGF
         {
+            bool enabled = true;
             float temporalAlpha = 0.1f;
             int atrousIterations = 4;
             float sigmaDepth = 1.0f;
@@ -163,6 +164,7 @@ public:
             float sigmaLuminance = 4.0f;
 
             INLINE_DEFINE_SERIALIZABLE(
+                SER(enabled),
                 SER(temporalAlpha),
                 SER(atrousIterations),
                 SER(sigmaDepth),

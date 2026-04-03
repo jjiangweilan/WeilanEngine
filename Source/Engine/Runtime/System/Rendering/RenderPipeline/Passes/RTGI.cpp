@@ -115,6 +115,13 @@ void RTGI::Execute(
 
     cmd->EndLabel();
 
+    if (!setting->rtgi.svgf.enabled)
+    {
+        rtgi = rtgiRaw;
+        cmd->EndLabel(); // RTGI
+        return;
+    }
+
     // -------------------------------------------------------------------------
     // Pass 2: Temporal accumulation — blend with history, accumulate moments
     // -------------------------------------------------------------------------
