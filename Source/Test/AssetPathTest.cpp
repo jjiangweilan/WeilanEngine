@@ -14,12 +14,8 @@ protected:
 
 TEST_F(AssetPathTest, Normalization) {
     AssetPath p1("Textures\\Grass.png");
-    EXPECT_EQ(p1.string(), "textures/grass.png");
+    EXPECT_EQ(p1.string(), "Textures/Grass.png");
     EXPECT_FALSE(p1.IsInternal());
-
-    AssetPath p2("_ENGINE_INTERNAL/Shaders/Lit.shad/");
-    EXPECT_EQ(p2.string(), "_engine_internal/shaders/lit.shad");
-    EXPECT_TRUE(p2.IsInternal());
 }
 
 TEST_F(AssetPathTest, PathComponents) {

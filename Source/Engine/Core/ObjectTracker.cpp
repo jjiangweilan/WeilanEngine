@@ -3,10 +3,122 @@
 #include "Engine/Library/Assert.hpp"
 #include "Object.hpp"
 
+ObjectTracker::ObjectTracker()
+{
+    globalIndexCounter.store(1, std::memory_order_relaxed); // 0 is NullHandle
+    for (uint32_t i = 0; i < MAX_PAGES; ++i)
+    {
+        pages[i].store(nullptr, std::memory_order_relaxed);
+    }
+    
+    // Ensure page 0 is allocated for NullHandle (index 0) and any immediate allocations
+    EnsurePage(0);
+    
+    // Assign NullHandle mapping in shard map
+    UUID emptyUUID = UUID::GetEmptyUUID();
+    size_t shardIdx = std::hash<UUID>()(emptyUUID) % SHARD_COUNT;
+    shards[shardIdx].map[emptyUUID] = 0;
+}
+
+ObjectTracker::~ObjectTracker()
+{
+    for (uint32_t i = 0; i < MAX_PAGES; ++i)
+    {
+        Page* p = pages[i].load(std::memory_order_relaxed);
+        if (p)
+        {
+            delete p;
+        }
+    }
+}
+
 ObjectTracker& ObjectTracker::Singleton()
 {
     static ObjectTracker singleton;
     return singleton;
+}
+
+void ObjectTracker::EnsurePage(uint32_t index)
+{
+    uint32_t pageIndex = index / PAGE_SIZE;
+    ASSERT(pageIndex < MAX_PAGES);
+
+    Page* p = pages[pageIndex].load(std::memory_order_acquire);
+    if (p == nullptr)
+    {
+        Page* newPage = new Page();
+        Page* expected = nullptr;
+        if (pages[pageIndex].compare_exchange_strong(expected, newPage, std::memory_order_release, std::memory_order_acquire))
+        {
+            // Successfully set the new page
+        }
+        else
+        {
+            // Another thread set it, delete ours
+            delete newPage;
+        }
+    }
+}
+
+uint32_t ObjectTracker::GetOrAllocateSlot(const UUID& uuid, bool incrementRefCount)
+{
+    size_t shardIndex = std::hash<UUID>()(uuid) % SHARD_COUNT;
+    Shard& shard = shards[shardIndex];
+
+    {
+        ScopedSpinLock lk(shard.lock);
+        uint32_t slot;
+        auto iter = shard.map.find(uuid);
+        if (iter != shard.map.end())
+        {
+            slot = iter->second;
+        }
+        else
+        {
+            slot = globalIndexCounter.fetch_add(1, std::memory_order_relaxed);
+            shard.map[uuid] = slot;
+            EnsurePage(slot);
+            uint32_t pageIdx = slot / PAGE_SIZE;
+            uint32_t localOffset = slot % PAGE_SIZE;
+            pages[pageIdx].load(std::memory_order_relaxed)->uuids[localOffset] = uuid;
+        }
+
+        if (incrementRefCount && slot != NullHandle)
+        {
+            uint32_t pageIdx = slot / PAGE_SIZE;
+            uint32_t localOffset = slot % PAGE_SIZE;
+            pages[pageIdx].load(std::memory_order_relaxed)->refCounts[localOffset].fetch_add(1, std::memory_order_relaxed);
+        }
+
+        return slot;
+    }
+}
+
+void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
+{
+    if (slotIndex == NullHandle) return;
+
+    uint32_t pageIdx = slotIndex / PAGE_SIZE;
+    uint32_t localOffset = slotIndex % PAGE_SIZE;
+    Page* page = pages[pageIdx].load(std::memory_order_acquire);
+    
+    if (!page) return;
+
+    UUID uuid = page->uuids[localOffset];
+    if (uuid.IsEmpty()) return;
+
+    size_t shardIndex = std::hash<UUID>()(uuid) % SHARD_COUNT;
+    ScopedSpinLock lk(shards[shardIndex].lock);
+    
+    if (page->refCounts[localOffset].load(std::memory_order_acquire) == 0 && 
+        page->objects[localOffset].load(std::memory_order_acquire) == nullptr)
+    {
+        auto iter = shards[shardIndex].map.find(uuid);
+        if (iter != shards[shardIndex].map.end() && iter->second == slotIndex)
+        {
+            shards[shardIndex].map.erase(iter);
+        }
+    }
 }
 
 void ObjectTracker::AddObjectImpl(Object* object)
@@ -16,46 +128,59 @@ void ObjectTracker::AddObjectImpl(Object* object)
         return;
 
     uint32_t slotIndex = GetOrAllocateSlot(uuid);
-
-    ASSERT(slots[slotIndex].object == nullptr);
-
-    slots[slotIndex].object = object;
+    
+    uint32_t pageIdx = slotIndex / PAGE_SIZE;
+    uint32_t localOffset = slotIndex % PAGE_SIZE;
+    Page* page = pages[pageIdx].load(std::memory_order_acquire);
+    
+    ASSERT(page->objects[localOffset].load(std::memory_order_relaxed) == nullptr);
+    page->objects[localOffset].store(object, std::memory_order_release);
 }
 
 void ObjectTracker::AddObject(Object* object)
 {
-    ScopedSpinLock lk{lock};
-
     AddObjectImpl(object);
 }
 
 void ObjectTracker::RemoveObjectImpl(Object* object)
 {
-    if (object->GetUUID().IsEmpty())
+    const UUID& uuid = object->GetUUID();
+    if (uuid.IsEmpty())
         return;
 
-    auto uuidToSlotIndexIter = uuidToSlotIndex.find(object->GetUUID());
-    ASSERT(uuidToSlotIndexIter != uuidToSlotIndex.end());
-
-    uint32_t slotIndex = uuidToSlotIndexIter->second;
+    size_t shardIndex = std::hash<UUID>()(uuid) % SHARD_COUNT;
+    uint32_t slotIndex = NullHandle;
+    
+    {
+        ScopedSpinLock lk(shards[shardIndex].lock);
+        auto iter = shards[shardIndex].map.find(uuid);
+        if (iter != shards[shardIndex].map.end())
+        {
+            slotIndex = iter->second;
+        }
+    }
 
     if (slotIndex != NullHandle)
     {
-        ASSERT(slotIndex > 0 && slotIndex < slots.size());
-        slots[slotIndex].object = nullptr;
-        ReleaseSlotIfNotReferenced(slotIndex);
+        uint32_t pageIdx = slotIndex / PAGE_SIZE;
+        uint32_t localOffset = slotIndex % PAGE_SIZE;
+        Page* page = pages[pageIdx].load(std::memory_order_acquire);
+        
+        if (page)
+        {
+            page->objects[localOffset].store(nullptr, std::memory_order_release);
+            ReleaseSlotIfNotReferenced(slotIndex);
+        }
     }
 }
 
 void ObjectTracker::RemoveObject(Object* object)
 {
-    ScopedSpinLock lk{lock};
     RemoveObjectImpl(object);
 }
 
 void ObjectTracker::ReplaceObject(Object* dst, Object* src)
 {
-    ScopedSpinLock lk{lock};
     RemoveObjectImpl(src);
     dst->uuid = std::exchange(src->uuid, UUID::GetEmptyUUID());
     AddObjectImpl(dst);
@@ -63,7 +188,6 @@ void ObjectTracker::ReplaceObject(Object* dst, Object* src)
 
 void ObjectTracker::ReplaceObjectUUID(Object* object, const UUID& uuid)
 {
-    ScopedSpinLock lk{lock};
     RemoveObjectImpl(object);
     object->uuid = uuid;
     AddObjectImpl(object);
@@ -71,91 +195,82 @@ void ObjectTracker::ReplaceObjectUUID(Object* object, const UUID& uuid)
 
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
 {
-    ScopedSpinLock lk{lock};
-    uint32_t slotIndex = handle;
-    slots[slotIndex].referenceCount += 1;
-
-    return slotIndex;
+    if (handle != NullHandle)
+    {
+        uint32_t pageIdx = handle / PAGE_SIZE;
+        uint32_t localOffset = handle % PAGE_SIZE;
+        Page* page = pages[pageIdx].load(std::memory_order_acquire);
+        if (page)
+        {
+            page->refCounts[localOffset].fetch_add(1, std::memory_order_acq_rel);
+        }
+    }
+    return handle;
 }
 
 ObjectTrackHandle ObjectTracker::Track(const UUID& uuid)
 {
-    ScopedSpinLock lk{lock};
-    uint32_t slotIndex = GetOrAllocateSlot(uuid);
-    slots[slotIndex].referenceCount += 1;
-
+    uint32_t slotIndex = GetOrAllocateSlot(uuid, true);
     return slotIndex;
 }
 
 void ObjectTracker::Detrack(ObjectTrackHandle handle)
 {
-    ScopedSpinLock lk{lock};
     if (handle != NullHandle)
     {
-        uint32_t slotIndex = handle;
-        ASSERT(slots[slotIndex].referenceCount != 0);
-        slots[slotIndex].referenceCount -= 1;
-        ReleaseSlotIfNotReferenced(slotIndex);
+        uint32_t pageIdx = handle / PAGE_SIZE;
+        uint32_t localOffset = handle % PAGE_SIZE;
+        Page* page = pages[pageIdx].load(std::memory_order_acquire);
+        if (page)
+        {
+            uint32_t refs = page->refCounts[localOffset].fetch_sub(1, std::memory_order_acq_rel);
+            ASSERT(refs > 0);
+            ReleaseSlotIfNotReferenced(handle);
+        }
     }
 }
 
 void ObjectTracker::Detrack(const UUID& uuid)
 {
-    ScopedSpinLock lk{lock};
-    auto iter = uuidToSlotIndex.find(uuid);
+    if (uuid.IsEmpty())
+        return;
 
-    if (iter != uuidToSlotIndex.end())
+    size_t shardIndex = std::hash<UUID>()(uuid) % SHARD_COUNT;
+    uint32_t slotIndex = NullHandle;
+    
     {
-        auto slotIndex = iter->second;
-        if (slotIndex != 0)
+        ScopedSpinLock lk(shards[shardIndex].lock);
+        auto iter = shards[shardIndex].map.find(uuid);
+        if (iter != shards[shardIndex].map.end())
         {
-            ASSERT(slots[slotIndex].referenceCount != 0);
-            slots[slotIndex].referenceCount -= 1;
+            slotIndex = iter->second;
+        }
+    }
+
+    if (slotIndex != NullHandle)
+    {
+        uint32_t pageIdx = slotIndex / PAGE_SIZE;
+        uint32_t localOffset = slotIndex % PAGE_SIZE;
+        Page* page = pages[pageIdx].load(std::memory_order_acquire);
+        if (page)
+        {
+            uint32_t refs = page->refCounts[localOffset].fetch_sub(1, std::memory_order_acq_rel);
+            ASSERT(refs > 0);
             ReleaseSlotIfNotReferenced(slotIndex);
         }
     }
 }
 
-void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
+boost::unordered_flat_map<UUID, ObjectTrackHandle, std::hash<UUID>> ObjectTracker::GetUUIDToSlotIndex()
 {
-    if (slots[slotIndex].referenceCount == 0 && slots[slotIndex].object == nullptr)
+    boost::unordered_flat_map<UUID, ObjectTrackHandle, std::hash<UUID>> result;
+    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
     {
-        const auto& uuid = slotIndexToUUID[slotIndex];
-        uuidToSlotIndex.erase(uuid);
-        slotIndexToUUID.erase(slotIndex);
-        freeSlotIndices.push_back(slotIndex);
+        ScopedSpinLock lk(shards[i].lock);
+        for (const auto& pair : shards[i].map)
+        {
+            result[pair.first] = pair.second;
+        }
     }
+    return result;
 }
-
-uint32_t ObjectTracker::GetOrAllocateSlot(const UUID& uuid)
-{
-    auto iter = uuidToSlotIndex.find(uuid);
-
-    if (iter != uuidToSlotIndex.end())
-        return iter->second;
-
-    uint32_t newSlot = AllocateSlot();
-    uuidToSlotIndex[uuid] = newSlot;
-    slotIndexToUUID[newSlot] = uuid;
-    return newSlot;
-}
-
-uint32_t ObjectTracker::AllocateSlot()
-{
-    uint32_t slotIndex = -1;
-    if (freeSlotIndices.empty())
-    {
-        slots.push_back({nullptr, 0});
-        slotIndex = slots.size() - 1;
-    }
-    else
-    {
-        slotIndex = freeSlotIndices.back();
-        freeSlotIndices.pop_back();
-    }
-
-    return slotIndex;
-}
-
-ObjectTracker::~ObjectTracker() { }
-

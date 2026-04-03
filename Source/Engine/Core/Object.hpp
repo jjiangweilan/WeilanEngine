@@ -8,6 +8,7 @@
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 class Component;
 class Serializer;
@@ -206,7 +207,7 @@ private:
     static const char _objectRegister;
 
 public:
-    using EngineObjectMap = std::unordered_map<UUID, Object*>;
+    using EngineObjectMap = boost::unordered_flat_map<UUID, Object*, std::hash<UUID>>;
 
     Object() { ObjectTracker::Singleton().AddObject(this); }
 
