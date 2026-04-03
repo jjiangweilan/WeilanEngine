@@ -304,6 +304,22 @@ void Manager::BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHa
     };
     const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfo = &buildRangeInfo;
     vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &tlasBuildGeometryInfo, &pBuildRangeInfo);
+
+    VkMemoryBarrier2 memBarrier = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+        .dstStageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR | VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
+    };
+    // full pipeline barrier
+    VkDependencyInfo info =
+        {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .memoryBarrierCount = 1,
+            .pMemoryBarriers = &memBarrier
+        };
+    vkCmdPipelineBarrier2(commandBuffer, &info);
 }
 
 void Manager::CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHandle& blasHandle, std::span<VkAccelerationStructureGeometryKHR> vkGeometries, std::vector<uint32_t> maxPrimitiveCounts)
@@ -353,6 +369,22 @@ void Manager::CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHan
     auto commandBuffer = vkContext->currentFrameContext->cmd;
     const VkAccelerationStructureBuildRangeInfoKHR* pBuildRangeInfos = buildRangeInfos.data();
     vkCmdBuildAccelerationStructuresKHR(commandBuffer, 1, &blasBuildGeometryInfo, &pBuildRangeInfos);
+
+    VkMemoryBarrier2 memBarrier = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        .srcStageMask = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        .srcAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+        .dstStageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR | VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR
+    };
+    // full pipeline barrier
+    VkDependencyInfo info =
+        {
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            .memoryBarrierCount = 1,
+            .pMemoryBarriers = &memBarrier
+        };
+    vkCmdPipelineBarrier2(commandBuffer, &info);
 }
 
 Manager::Manager()
