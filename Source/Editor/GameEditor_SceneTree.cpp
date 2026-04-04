@@ -90,13 +90,21 @@ void GameEditor::ShowSceneTree(Scene& scene)
             } });
     }
 
-    static GameObject* currentSelected = nullptr;
     bool autoExpand = false;
-    GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
-    if (currentSelected != selected)
-        autoExpand = true;
-    currentSelected = selected;
-    size_t imguiTreeId = 0;
+    auto mainSelected = EditorState::GetMainSelectedObject();
+    GameObject* selectedGameObject = dynamic_cast<GameObject*>(mainSelected);
+
+    if (mainSelected == nullptr)
+    {
+        lastSelectedGameObject = nullptr;
+    }
+    else if (selectedGameObject != nullptr)
+    {
+        if (lastSelectedGameObject.Get() != selectedGameObject)
+            autoExpand = true;
+        lastSelectedGameObject = selectedGameObject;
+    }
+
     auto selects = EditorState::GetSelectedObjects();
     sceneViewHightedGameObjectCandidate = nullptr; // reselect highted GameObject
 
@@ -115,7 +123,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand, flatList);
+        SceneTree(root, lastSelectedGameObject.Get(), selects, autoExpand, flatList);
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -236,7 +244,6 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
 void GameEditor::SceneTree(
     GameObject* go,
-    int imguiID,
     GameObject* currentSelected,
     std::vector<ObjPtr<Object>>& selects,
     bool autoExpand,
@@ -248,7 +255,7 @@ void GameEditor::SceneTree(
 
     auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](ObjPtr<Object>& o)
                                     { return o.Get() == go; });
-    if (selectsIter != selects.end())
+    if (selectsIter != selects.end() || go == currentSelected)
     {
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
     }
@@ -264,7 +271,7 @@ void GameEditor::SceneTree(
     auto& editorConfig = EditorConfig::GetInstance();
     if (hasPrefab)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
-    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
+    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{:p}", go->GetName(), (void*)go).c_str(), nodeFlags);
 
     if (ImGui::IsItemHovered())
     {
@@ -373,7 +380,7 @@ void GameEditor::SceneTree(
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, ++imguiID, currentSelected, selects, autoExpand, flatList);
+            SceneTree(child, currentSelected, selects, autoExpand, flatList);
         }
         ImGui::TreePop();
     }

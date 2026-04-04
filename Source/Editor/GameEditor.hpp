@@ -68,7 +68,6 @@ private:
     void ShowSceneTree(Scene& scene);
     void SceneTree(
         GameObject* go,
-        int imguiID,
         GameObject* currentSelected,
         std::vector<ObjPtr<Object>>& selects,
         bool autoExpand,
@@ -93,6 +92,7 @@ private:
 
     GameObject* sceneViewHightedGameObjectCandidate = nullptr;
     GameObject* sceneTreeContextObject = nullptr;
+    ObjPtr<GameObject> lastSelectedGameObject;
     bool beginSceneTreeContextPopup = false;
     bool sceneTree = true;
     bool sceneInfo = false;
