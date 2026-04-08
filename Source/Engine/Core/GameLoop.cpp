@@ -137,6 +137,8 @@ const void GameLoop::Tick(
     ENGINE_BEGIN_PROFILE("GameLoop Tick clean-up")
 
     ENGINE_END_PROFILE
+
+    // GetGfxDriver()->FlushPendingCommands();
 }
 
 void GameLoop::Play()

@@ -72,6 +72,6 @@ VertexOutput Vert(VertexInput input)
 float4 Frag(VertexOutput input) : SV_Target
 {
     bool hasSun = perScene.scene.lightCount > 0;
-    return float4(saturate(Sky(0, normalize(input.positionOS.xyz), perScene.scene.lights[0].position.xyz, hasSun)), 0.0);
+    return float4(Sky(0, normalize(input.positionOS.xyz), perScene.scene.lights[0].position.xyz, hasSun) * 15, 0.0);
 }
 
