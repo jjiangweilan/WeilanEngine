@@ -16,6 +16,26 @@
 namespace Gfx
 {
 
+static void PlaceFullMemoryBarrier(VkCommandBuffer cmd)
+{
+    VkMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    memoryBarrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+    memoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        0,
+        1,
+        &memoryBarrier,
+        0,
+        nullptr,
+        0,
+        nullptr
+    );
+}
+
 static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderStage stages)
 {
     VkPipelineStageFlags pipelineStages = 0;
@@ -703,6 +723,17 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         }
         else if (cmd.type == VKCmdType::CopyBuffer)
         {}
+        else if (cmd.type == VKCmdType::UploadData)
+        {
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: upload data");
+            size_t barrierOffset = barriers.size();
+            size_t barrierCount = 0;
+            auto& args = std::get<VKUploadDataCmd>(cmd.args);
+            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
+        }
         else if (cmd.type == VKCmdType::Blit)
         {
             ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: blit");
@@ -1441,6 +1472,26 @@ void VKCommandBufferProcessor::Execute(
                         args.copyRegionCount,
                         args.copyRegions
                     );
+                    break;
+                }
+            case VKCmdType::UploadData:
+                {
+                    ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UploadData");
+                    auto& args = std::get<VKUploadDataCmd>(cmd.args);
+                    // PlaceFullMemoryBarrier(vkcmd);
+                    PutBarriers(vkcmd, args.barrierOffset, args.barrierCount);
+
+                    auto stagingHandle = GetMemAllocator()->AllocateScratchBuffer(
+                        static_cast<uint32_t>(args.data.size()),
+                        4,
+                        VKMemAllocator::ScratchBuffer::ScratchBufferUsage::HostVisibleScatchBuffer
+                    );
+                    memcpy(stagingHandle.mappedData, args.data.data(), args.data.size());
+
+                    VkDeviceSize srcOffset = static_cast<uint8_t*>(stagingHandle.mappedData) -
+                                             static_cast<uint8_t*>(stagingHandle.block->mappedData);
+                    VkBufferCopy region{.srcOffset = srcOffset, .dstOffset = args.dstOffset, .size = args.data.size()};
+                    vkCmdCopyBuffer(vkcmd, stagingHandle.buffer, args.dst->GetHandle(), 1, &region);
                     break;
                 }
             case VKCmdType::CopyBufferToImage:

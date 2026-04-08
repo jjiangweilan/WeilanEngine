@@ -557,6 +557,16 @@ void VKCommandBuffer::ClearColorImage(Image* image, const ClearColor& color)
     cmds.push_back(VKCmd{VKCmdType::ClearColorImage, cmd});
 }
 
+void VKCommandBuffer::UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset)
+{
+    VKUploadDataCmd cmd{};
+    cmd.dst = static_cast<VKBuffer*>(&buffer);
+    cmd.dstOffset = offset;
+    cmd.data.assign(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + dataSize);
+
+cmds.push_back(VKCmd{VKCmdType::UploadData, cmd});
+}
+
 void VKCommandBuffer::BeginRenderPass(std::span<const RenderAttachment> images, std::span<ClearValue> clearValues)
 {
     VKDynamicRenderPassCmd cmd{};

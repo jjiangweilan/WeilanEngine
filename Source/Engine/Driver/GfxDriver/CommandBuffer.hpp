@@ -70,19 +70,24 @@ struct DescriptorBinding
 
 struct DynamicBinding
 {
-    DynamicBinding(std::string_view name, Gfx::Buffer& buffer) : name(name), buffer(&buffer), imageIdentifier(), asRef()
+    DynamicBinding(std::string_view name, Gfx::Buffer& buffer)
+        : name(name), buffer(&buffer), imageIdentifier(), asRef()
     {}
 
-    DynamicBinding(std::string_view name, Gfx::Image& image) : name(name), buffer(nullptr), imageIdentifier(image), asRef()
+    DynamicBinding(std::string_view name, Gfx::Image& image)
+        : name(name), buffer(nullptr), imageIdentifier(image), asRef()
     {}
 
-    DynamicBinding(std::string_view name, Gfx::ImageView& imageView) : name(name), buffer(nullptr), imageIdentifier(imageView), asRef()
+    DynamicBinding(std::string_view name, Gfx::ImageView& imageView)
+        : name(name), buffer(nullptr), imageIdentifier(imageView), asRef()
     {}
 
-    DynamicBinding(std::string_view name, const ImageIdentifier& id) : name(name), buffer(nullptr), imageIdentifier(id), asRef()
+    DynamicBinding(std::string_view name, const ImageIdentifier& id)
+        : name(name), buffer(nullptr), imageIdentifier(id), asRef()
     {}
 
-    DynamicBinding(std::string_view name, RayTracingContext* rayTracingContext, RayTracingSceneHandle sceneHandle) : name(name), buffer(nullptr), imageIdentifier(), asRef({rayTracingContext, sceneHandle})
+    DynamicBinding(std::string_view name, RayTracingContext* rayTracingContext, RayTracingSceneHandle sceneHandle)
+        : name(name), buffer(nullptr), imageIdentifier(), asRef({rayTracingContext, sceneHandle})
     {}
 
     std::string name;
@@ -186,6 +191,8 @@ public:
     virtual void SetBuffer(ShaderBindingHandle name, int index, Gfx::Buffer& buffer) = 0;
 
     virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset = 0) = 0;
+
+    virtual void UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset = 0) = 0;
 
     virtual void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) = 0;
 

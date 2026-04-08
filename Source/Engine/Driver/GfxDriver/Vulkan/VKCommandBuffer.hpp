@@ -1,10 +1,10 @@
 #pragma once
 #include "../CommandBuffer.hpp"
+#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
-#include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 
 namespace Gfx
 {
@@ -231,6 +231,17 @@ struct VKCopyBufferCmd
     int barrierCount;
 };
 
+struct VKUploadDataCmd
+{
+    std::vector<uint8_t> data;
+    VKBuffer* dst;
+    size_t dstOffset;
+
+    // used in VKCommandBufferProcessor
+    int barrierOffset;
+    int barrierCount;
+};
+
 struct VKCopyBufferToImageCmd
 {
     VKBuffer* src;
@@ -375,6 +386,7 @@ enum class VKCmdType
     BuildTLAS,
     GraphicsBlit,
     ClearColorImage,
+    UploadData,
 };
 
 struct VKCmd
@@ -420,7 +432,8 @@ struct VKCmd
         VKBuildBLASCmd,
         VKBuildTLASCmd,
         VKGraphicsBlitCmd,
-        VKClearColorImageCmd>
+        VKClearColorImageCmd,
+        VKUploadDataCmd>
         args;
 };
 
@@ -501,6 +514,8 @@ public:
     void PresentImage(VKImage* image);
 
     std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset) override;
+
+    void UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset = 0) override;
 
     void BuildBLAS(RayTracingMeshHandle handle, std::span<VkAccelerationStructureGeometryKHR> geometries, std::span<uint32_t> maxPrimitiveCounts);
     void BuildTLAS(RayTracingSceneHandle handle, std::span<RayTracingInstanceHandle> instances);
