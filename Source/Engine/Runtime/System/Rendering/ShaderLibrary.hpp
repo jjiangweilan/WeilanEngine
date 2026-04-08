@@ -46,7 +46,8 @@
                          Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                 \
                          Do(DepthBasedFog, "DepthBasedFog"),                                                 \
                          Do(OceanPatchShader, "OceanPatchShader"),                                           \
-                         Do(RayTracingTest, "RayTracingTest"),
+                         Do(RayTracingTest, "RayTracingTest"),                                              \
+                         Do(GI_GI, "GI/GI"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

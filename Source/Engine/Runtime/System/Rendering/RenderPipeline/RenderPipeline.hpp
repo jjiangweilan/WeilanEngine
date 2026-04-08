@@ -19,6 +19,7 @@
 #include "Passes/FXAAPass.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
 #include "Passes/LightingCombinePass.hpp"
+#include "Passes/GI.hpp"
 #include "Passes/RTGI.hpp"
 #include "Passes/SSAO.hpp"
 #include "Passes/SSIL.hpp"
@@ -97,6 +98,7 @@ class RenderPipeline
     Passes::SSAO* ssaoPass;
     Passes::SSIL* ssilPass;
     Passes::RTGI* rtgiPass;
+    Passes::GI* giPass;
     Passes::LightingCombinePass* lightingCombinePass;
     Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;

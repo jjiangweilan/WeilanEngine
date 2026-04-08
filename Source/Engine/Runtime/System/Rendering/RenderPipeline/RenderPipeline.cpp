@@ -41,6 +41,7 @@ RenderPipeline::RenderPipeline()
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     ssilPass = AddRenderPipelinePass<Passes::SSIL>();
     rtgiPass = AddRenderPipelinePass<Passes::RTGI>();
+    giPass = AddRenderPipelinePass<Passes::GI>();
     lightingCombinePass = AddRenderPipelinePass<Passes::LightingCombinePass>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
@@ -285,6 +286,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // GI passes
     const Gfx::ImageIdentifier* ssilOutput = nullptr;
     const Gfx::ImageIdentifier* rtgiOutput = nullptr;
+    const Gfx::ImageIdentifier* rtgiSH0 = nullptr;
+    const Gfx::ImageIdentifier* rtgiSH1 = nullptr;
+    const Gfx::ImageIdentifier* rtgiSH2 = nullptr;
 
     if (setting->ssil.enabled)
     {
@@ -308,9 +312,27 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         rtgiOutput = &rtgiPass->GetOutputId();
     }
 
-    if (ssilOutput || rtgiOutput)
+    if (setting->gi.enabled)
     {
-        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, albedoGBuffer, mainColor, renderingData);
+        giPass->Execute(
+            cmd,
+            hierarchyZBufferPass->GetOutputId(),
+            albedoGBuffer,
+            normalGBuffer,
+            staticMotionVectorPass->GetOutputId(),
+            setting.Get(),
+            renderingData,
+            scene.GetRenderingScene().GetRayTracingSceneHandle(),
+            scene.GetRenderingScene().GetRayTracingContext()
+        );
+        rtgiSH0 = &giPass->GetOutputSH0();
+        rtgiSH1 = &giPass->GetOutputSH1();
+        rtgiSH2 = &giPass->GetOutputSH2();
+    }
+
+    if (ssilOutput || rtgiOutput || rtgiSH0)
+    {
+        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, rtgiSH0, rtgiSH1, rtgiSH2, albedoGBuffer, normalGBuffer, mainColor, renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects

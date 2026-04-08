@@ -154,7 +154,21 @@ public:
         bool enabled = false;
         bool debug_rtgiOutput = false;
         uint32_t ray_multiplier = 7;
-        uint32_t bounce_count = 2;
+        bool secondary_bounce = true;
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(enabled),
+            SER(debug_rtgiOutput),
+            SER(ray_multiplier),
+            SER(secondary_bounce)
+        )
+    } rtgi;
+
+    struct GI
+    {
+        bool enabled = false;
+        bool debug_giOutput = false;
+        bool secondary_bounce = false;
 
         struct SVGF
         {
@@ -177,11 +191,10 @@ public:
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
-            SER(debug_rtgiOutput),
-            SER(ray_multiplier),
-            SER(bounce_count),
+            SER(debug_giOutput),
+            SER(secondary_bounce),
             SER(svgf)
         )
-    } rtgi;
+    } gi;
 };
 } // namespace Rendering

@@ -16,7 +16,11 @@ void LightingCombinePass::Execute(
     Gfx::CommandBuffer* cmd,
     const Gfx::ImageIdentifier* ssil,
     const Gfx::ImageIdentifier* rtgi,
+    const Gfx::ImageIdentifier* rtgiSH0,
+    const Gfx::ImageIdentifier* rtgiSH1,
+    const Gfx::ImageIdentifier* rtgiSH2,
     const Gfx::ImageIdentifier& albedoTex,
+    const Gfx::ImageIdentifier& normalTex,
     const Gfx::ImageIdentifier& colorTex,
     RenderingData& renderingData
 )
@@ -27,7 +31,7 @@ void LightingCombinePass::Execute(
     int height = renderingData.screenSize.y;
 
     auto albedoImg = GetGfxDriver()->GetImageFromRenderGraph(albedoTex);
-    
+
     int hasSSIL = 0;
     if (ssil)
     {
@@ -52,12 +56,27 @@ void LightingCombinePass::Execute(
         mat.SetTexture("rtgiTex", albedoImg); // dummy
     }
 
+    int hasGISH = 0;
+    if (rtgiSH0 && rtgiSH1 && rtgiSH2)
+    {
+        mat.SetTexture("rtgiSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(*rtgiSH0));
+        mat.SetTexture("rtgiSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(*rtgiSH1));
+        mat.SetTexture("rtgiSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(*rtgiSH2));
+        hasGISH = 1;
+    }
+    else
+    {
+        mat.SetTexture("rtgiSH0Tex", albedoImg); // dummy
+        mat.SetTexture("rtgiSH1Tex", albedoImg);
+        mat.SetTexture("rtgiSH2Tex", albedoImg);
+    }
+
     mat.SetTexture("albedoTex", albedoImg);
+    mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
 
     mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, 0.0f, 0.0f));
-    mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, 0.0f, 0.0f));
-
+    mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, hasGISH, 0.0f));
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(0, mat.GetShaderResource());
     cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
