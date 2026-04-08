@@ -59,7 +59,7 @@ bool TraceVisibilityRay(
     float tMax = 1000.0)
 {
     RayDesc ray;
-    ray.Origin = OffsetRay(origin, normal);
+    ray.Origin = origin;
     ray.Direction = direction;
     ray.TMin = 0;
     ray.TMax = 1000;

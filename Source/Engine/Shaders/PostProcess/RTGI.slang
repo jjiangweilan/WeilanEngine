@@ -40,6 +40,8 @@ float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
 struct RTGIParameter
 {
     float4 rtSize;
+    float ray_multiplier;
+    float bounce_count;
     Texture2D depthTex;
     Texture2D normalTex;
     Texture2D albedoTex;
@@ -78,6 +80,114 @@ float3 GetNormalWS(float2 uv)
     return DecodeGBufferNormal(normalWS);
 }
 
+struct SurfaceHit
+{
+    bool hit;
+    float3 position;
+    float3 normal;
+    float3 albedo;
+    float3 emissive;
+    float3 directLight;
+};
+
+SurfaceHit GetRayHitSurface(float3 rayOrigin, float3 rayDir)
+{
+    SurfaceHit result;
+    result.hit = false;
+    result.position = 0;
+    result.normal = 0;
+    result.albedo = 0;
+    result.emissive = 0;
+    result.directLight = 0;
+
+    RayDesc ray;
+    ray.Origin = rayOrigin;
+    ray.Direction = rayDir;
+    ray.TMin = 0;
+    ray.TMax = 1000.0;
+
+    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
+             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
+             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
+    q.TraceRayInline(perMaterial.sceneBVH, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
+
+    while(q.Proceed());
+
+    if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    {
+        result.hit = true;
+        uint instanceID = q.CommittedInstanceID();
+        uint geometryIndex = q.CommittedGeometryIndex();
+        uint primitiveIndex = q.CommittedPrimitiveIndex();
+        float2 bary2 = q.CommittedTriangleBarycentrics();
+
+        ObjectTriangle tri = ObjectTriangle(perScene, perScene.rtObjectOffsets[instanceID], geometryIndex, primitiveIndex);
+        GpuMaterial matData = tri.GetMaterial(perScene);
+
+        RayHitVertexData hitData = tri.GetRayHit(perScene, bary2).TransformToWorld(tri.GetModelMatrix(), (float3x3)tri.GetInvModelMatrix());
+
+        result.position = hitData.position;
+        result.normal = hitData.normal;
+
+        float4 albedo = matData.baseColorFactor;
+        if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
+        {
+            Texture2D tex = perScene.globalTextures[matData.baseColorTexIndex.x];
+            albedo *= tex.SampleLevel(perScene.GetGlobalSampler(matData.baseColorTexIndex.y), hitData.uv, 0);
+        }
+        result.albedo = albedo.rgb;
+
+        float3 emissive = matData.emissive.rgb;
+        if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
+        {
+            Texture2D tex = perScene.globalTextures[matData.emissiveMapTexIndex.x];
+            emissive *= tex.SampleLevel(perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), hitData.uv, 0).rgb;
+        }
+        result.emissive = emissive;
+
+        // Direct light evaluation at hit point
+        Light mainLight = perScene.GetMainLight();
+        if (mainLight.lightColor.a > 0.0) // If there is a light
+        {
+            float3 lightDir = normalize(mainLight.position.xyz);
+            float attenuation = 1.0;
+            if (mainLight.position.w != 0.0) // Point Light
+            {
+                float3 toLight = mainLight.position.xyz - hitData.position;
+                float distSq = dot(toLight, toLight);
+                lightDir = normalize(toLight);
+                attenuation = 1.0 / max(1.0, distSq);
+            }
+
+            float ndotl = saturate(dot(hitData.normal, lightDir));
+            if (ndotl > 0.0)
+            {
+                float3 shadowOrigin = OffsetRay(hitData.position, hitData.normal);
+                bool inShadow = TraceVisibilityRay(perMaterial.sceneBVH, shadowOrigin, hitData.normal, lightDir, 0, 1000.0);
+                if (!inShadow)
+                {
+                    result.directLight = mainLight.lightColor.rgb * mainLight.intensity * ndotl * attenuation;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+float3 IndirectRayHitLight(float3 rayOrigin, float3 rayDir)
+{
+    SurfaceHit hit = GetRayHitSurface(rayOrigin, rayDir);
+    if (hit.hit)
+    {
+        return hit.emissive + hit.albedo * hit.directLight;
+    }
+    else
+    {
+        // Sky radiance
+        return Sky(rayOrigin, rayDir, perScene.GetMainLight().position.xyz, perScene.GetMainLight().lightColor.a > 0.0) * 20;
+    }
+}
+
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
@@ -98,85 +208,62 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4 posWS4 = mul(perScene.camera.invNDCToWorld, float4(uv * 2.0 - 1.0, depth, 1.0));
     float3 posWS = posWS4.xyz / posWS4.w;
     float3 normalWS = normalize(GetNormalWS(uv));
+    float3 primaryAlbedo = perMaterial.albedoTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).rgb;
 
-    // Get noise — add golden-ratio temporal offset so each frame shoots a different ray
-    // Decorrelate frames using the R2 low-discrepancy sequence (golden ratio + plastic constant).
-    // Period = 8 frames — standard for 1-SPP real-time GI denoising.
-    float2 randVal = perMaterial.noiseTex[(uint2(pixelCoord + hash_u32_v2(uint2(perScene.scene.frameIndex, perScene.scene.frameIndex + 1)))) % 128].xy;
+    float3 indirectLight = 0;
+    bool full_rays = true;
 
-    float3 rayDir = GetCosineWeightedDirection(normalWS, randVal);
-    float3 rayOrigin = OffsetRay(posWS, normalWS);
-
-    RayDesc ray;
-    ray.Origin = rayOrigin;
-    ray.Direction = rayDir;
-    ray.TMin = 0.01;
-    ray.TMax = 1000.0;
-
-    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-    q.TraceRayInline(perMaterial.sceneBVH, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
-
-    float3 indirectLight = float3(0, 0, 0);
-
-    while(q.Proceed());
-
-    if (q.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
+    if (full_rays)
     {
-        uint instanceID = q.CommittedInstanceID();
-        uint geometryIndex = q.CommittedGeometryIndex();
-        uint primitiveIndex = q.CommittedPrimitiveIndex();
-        float2 bary2 = q.CommittedTriangleBarycentrics();
+        const uint totalBounce = uint(clamp(perMaterial.bounce_count, 1.0, 2.0));
+        uint rayCount = 1 << (uint(clamp(perMaterial.ray_multiplier, 1.0, 11)) - 1);
 
-        ObjectTriangle tri = ObjectTriangle(perScene, perScene.rtObjectOffsets[instanceID], geometryIndex, primitiveIndex);
-        GpuMaterial matData = tri.GetMaterial(perScene);
-
-        RayHitVertexData hitData = tri.GetRayHit(perScene, bary2).TransformToWorld(tri.GetModelMatrix(), (float3x3)tri.GetInvModelMatrix());
-
-        float4 albedo = matData.baseColorFactor;
-        if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
+        for(uint i = 0; i < rayCount; i++)
         {
-            Texture2D tex = perScene.globalTextures[matData.baseColorTexIndex.x];
-            albedo *= tex.SampleLevel(perScene.GetGlobalSampler(matData.baseColorTexIndex.y), hitData.uv, 0);
-        }
+            float3 currentThroughput = 1.0;
+            float3 currentOrigin = posWS;
+            float3 currentNormal = normalWS;
+            float3 rayRadiance = 0;
 
-        float3 emissive = matData.emissive.rgb;
-        if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
-        {
-            Texture2D tex = perScene.globalTextures[matData.emissiveMapTexIndex.x];
-            emissive *= tex.SampleLevel(perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), hitData.uv, 0).rgb;
-        }
-        indirectLight += emissive;
-
-        // Direct light evaluation at hit point
-        Light mainLight = perScene.GetMainLight();
-        if (mainLight.lightColor.a > 0.0) // If there is a light
-        {
-            float3 lightDir = normalize(mainLight.position.xyz);
-            if (mainLight.position.w != 0.0)
+            for(uint bounce = 0; bounce < totalBounce; bounce++)
             {
-                lightDir = normalize(mainLight.position.xyz - hitData.position);
-            }
-
-            float ndotl = saturate(dot(hitData.normal, lightDir));
-            if (ndotl > 0.0)
-            {
-                float3 shadowOrigin = OffsetRay(hitData.position, hitData.normal);
-                bool inShadow = TraceVisibilityRay(perMaterial.sceneBVH, shadowOrigin,hitData.normal, lightDir, 0, 1000.0);
-                if (!inShadow)
+                // Use golden ratio sequence for arbitrary ray counts, offsetting by bounce
+                float2 u = frac(float2(0.5, 0.5) + float(i * totalBounce + bounce) * float2(0.6180339887, 0.7548776662));
+                float3 rayDir = GetCosineWeightedDirection(currentNormal, u);
+                float3 rayOrigin = OffsetRay(currentOrigin, currentNormal);
+                
+                SurfaceHit hit = GetRayHitSurface(rayOrigin, rayDir);
+                if (hit.hit)
                 {
-                    float dis = max(1, distance(posWS, hitData.position));
-                    indirectLight += (albedo.rgb / 3.14159265359) * mainLight.lightColor.rgb * mainLight.intensity * ndotl / (dis * dis);
+                    rayRadiance += currentThroughput * (hit.emissive + hit.albedo * hit.directLight);
+                    currentThroughput *= hit.albedo;
+                    currentOrigin = hit.position;
+                    currentNormal = hit.normal;
                 }
-
+                else
+                {
+                    rayRadiance += currentThroughput * Sky(rayOrigin, rayDir, perScene.GetMainLight().position.xyz, perScene.GetMainLight().lightColor.a > 0.0) * 20;
+                    break;
+                }
             }
+            indirectLight += rayRadiance;
         }
+
+        indirectLight /= float(rayCount);
     }
     else
     {
-        indirectLight += Sky(rayOrigin, rayDir, perScene.GetMainLight().position.xyz, perScene.GetMainLight().lightColor.a > 0.0) / 3.1415;
+        // Get noise — add golden-ratio temporal offset so each frame shoots a different ray
+        // Decorrelate frames using the R2 low-discrepancy sequence (golden ratio + plastic constant).
+        // Period = 8 frames — standard for 1-SPP real-time GI denoising.
+        float2 randVal = perMaterial.noiseTex[(uint2(pixelCoord + hash_u32_v2(uint2(perScene.scene.frameIndex, perScene.scene.frameIndex + 1)))) % 128].xy;
+
+        float3 rayDir = GetCosineWeightedDirection(normalWS, randVal);
+        float3 rayOrigin = OffsetRay(posWS, normalWS);
+
+        indirectLight = IndirectRayHitLight(rayOrigin, rayDir);
     }
 
-    perMaterial.outRtgiTex[pixelCoord] = float4(indirectLight, 1.0);
+
+    perMaterial.outRtgiTex[pixelCoord] = float4(indirectLight * primaryAlbedo, 1.0);
 }

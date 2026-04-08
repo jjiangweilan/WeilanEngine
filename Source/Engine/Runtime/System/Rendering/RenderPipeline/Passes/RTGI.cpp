@@ -102,6 +102,8 @@ void RTGI::Execute(
     mat.SetTexture("environmentMap", renderingData.specularCubemap);
     mat.SetTexture("outRtgiTex", GetGfxDriver()->GetImageFromRenderGraph(rtgiRaw));
     mat.SetVector("rtSize", rtSize);
+    mat.SetFloat("ray_multiplier", (float)setting->rtgi.ray_multiplier);
+    mat.SetFloat("bounce_count", (float)std::clamp(setting->rtgi.bounce_count, 1u, 2u));
 
     debugRTGI = setting->rtgi.debug_rtgiOutput;
 
