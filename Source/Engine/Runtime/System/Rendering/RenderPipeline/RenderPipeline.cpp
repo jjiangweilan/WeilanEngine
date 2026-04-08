@@ -272,7 +272,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             &contactShadowPass->GetOutputId(),
             diffuseCube,
             specularCube,
-            renderingData.pointLightShadowIndex >= 0 ? pointLightShadowRenderer->GetShadowCubemapView() : nullptr,
+            pointLightShadowRenderer->GetShadowCubemapView(),
             renderingData
         );
 
@@ -425,22 +425,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
 PerScene::PerScene()
 {
-    scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, false, "Scene");
-    camera =
-        GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Camera), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, false, "Camera");
-    mainLightShadow = GetGfxDriver()->CreateBuffer(
-        sizeof(GPUParameter::MainLightShadow),
-        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
-        false,
-        false,
-        "MainLightShadow"
-    );
-
-    // Bind our buffers into GPUDrivenManager's global descriptor set
     auto& gpuDriven = GPUDrivenManager::Instance();
-    gpuDriven.SetSceneBuffer(scene.get());
-    gpuDriven.SetCameraBuffer(camera.get());
-    gpuDriven.SetMainLightShadowBuffer(mainLightShadow.get());
+    scene = gpuDriven.GetSceneBuffer();
+    camera = gpuDriven.GetCameraBuffer();
+    mainLightShadow = gpuDriven.GetMainLightShadowBuffer();
 }
 
 Gfx::ShaderResource* PerScene::GetGlobalResource() const
@@ -540,11 +528,11 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     renderingData.depthCopy = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
     renderingData.colorCopy = GetGfxDriver()->GetImageFromRenderGraph(colorCopy);
     renderingData.scene = &scene;
-    UpdateSceneInfo(scene, camera, screenSize);
+    UpdateSceneInfo(cmd, scene, camera, screenSize);
     return true;
 }
 
-void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize)
+void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize)
 {
     auto& cameraParam = perScene.cameraParameter;
     auto& sceneParam = perScene.sceneParameter;
@@ -659,9 +647,9 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         }
     }
 
-    GetGfxDriver()->UploadBuffer(*perScene.camera, (uint8_t*)&cameraParam, sizeof(GPUParameter::Camera));
-    GetGfxDriver()->UploadBuffer(*perScene.scene, (uint8_t*)&sceneParam, sizeof(GPUParameter::Scene));
-    GetGfxDriver()->UploadBuffer(
+    cmd->UploadData(*perScene.camera, (uint8_t*)&cameraParam, sizeof(GPUParameter::Camera));
+    cmd->UploadData(*perScene.scene, (uint8_t*)&sceneParam, sizeof(GPUParameter::Scene));
+    cmd->UploadData(
         *perScene.mainLightShadow,
         (uint8_t*)&mainLightShadowParam,
         sizeof(GPUParameter::MainLightShadow)

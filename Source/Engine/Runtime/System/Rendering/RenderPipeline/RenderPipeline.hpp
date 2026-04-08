@@ -179,7 +179,7 @@ private:
         return static_cast<T*>(renderPipelinePasses.back().get());
     }
     bool FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
-    void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
+    void UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void BlitToFinalColor(Gfx::CommandBuffer* cmd);
     Gfx::ImageIdentifier GetFinalColor();
     Gfx::CommandBuffer* GetCommandBuffer();

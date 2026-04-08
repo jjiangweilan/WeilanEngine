@@ -167,11 +167,10 @@ public:
     Gfx::ShaderResource* GetGlobalDescriptorSet() { return globalDescriptorSet.get(); }
     Gfx::Buffer* GetGPUDrivenConfigBuffer() { return gpuDrivenConfigBuffer.get(); }
 
-    // Bind camera/scene/shadow buffers into the global descriptor set.
-    // Ownership of these buffers remains with the caller (PerScene).
-    void SetSceneBuffer(Gfx::Buffer* buffer);
-    void SetCameraBuffer(Gfx::Buffer* buffer);
-    void SetMainLightShadowBuffer(Gfx::Buffer* buffer);
+    Gfx::Buffer* GetSceneBuffer() { return sceneBuffer.get(); }
+    Gfx::Buffer* GetCameraBuffer() { return cameraBuffer.get(); }
+    Gfx::Buffer* GetMainLightShadowBuffer() { return mainLightShadowBuffer.get(); }
+
     void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
     void SetRTObjectOffsetBuffer(Gfx::Buffer* buffer);
 
@@ -202,6 +201,10 @@ private:
     // GPUDriven config buffer
     std::unique_ptr<Gfx::Buffer> gpuDrivenConfigBuffer;
     bool gpuDrivenConfigDirty = true;
+
+    std::unique_ptr<Gfx::Buffer> sceneBuffer;
+    std::unique_ptr<Gfx::Buffer> cameraBuffer;
+    std::unique_ptr<Gfx::Buffer> mainLightShadowBuffer;
 
     // Mesh data
     ObjectPool<GpuGeometryDescriptor> geometryDescriptors;

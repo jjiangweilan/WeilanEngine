@@ -12,9 +12,9 @@ struct PerScene
     GPUParameter::MainLightShadow mainLightShadowParameter{};
 
     // Camera/scene/shadow buffers are owned here but bound into GPUDrivenManager's global descriptor set.
-    std::unique_ptr<Gfx::Buffer> scene{};
-    std::unique_ptr<Gfx::Buffer> camera{};
-    std::unique_ptr<Gfx::Buffer> mainLightShadow{};
+    Gfx::Buffer* scene{};
+    Gfx::Buffer* camera{};
+    Gfx::Buffer* mainLightShadow{};
 
     // The global descriptor set is owned by GPUDrivenManager; this is a cached pointer.
     Gfx::ShaderResource* GetGlobalResource() const;

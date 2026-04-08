@@ -1,8 +1,9 @@
-#include "GPUDrivenManager.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/ResourceHandle.hpp"
 #include "Engine/Library/Allocators/ThreadLocalAllocator.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Runtime/System/Rendering/GPUParameter.hpp"
 
 namespace Rendering
 {
@@ -56,6 +57,14 @@ GPUDrivenManager::GPUDrivenManager()
         globalSamplers[i] = GetGfxDriver()->CreateSampler(ci);
         globalDescriptorSet->SetSampler("globalSamplers", i, globalSamplers[i].get());
     }
+
+    sceneBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, true, "Scene");
+    cameraBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Camera), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, true, "Camera");
+    mainLightShadowBuffer = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::MainLightShadow), Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, false, true, "MainLightShadow");
+
+    globalDescriptorSet->SetBuffer("scene", sceneBuffer.get());
+    globalDescriptorSet->SetBuffer("camera", cameraBuffer.get());
+    globalDescriptorSet->SetBuffer("mainLightShadow", mainLightShadowBuffer.get());
 }
 
 GpuRenderDataListHandle GPUDrivenManager::RegisterRenderDataList(const std::vector<GpuRenderData>& data)
@@ -288,21 +297,6 @@ void GPUDrivenManager::UnregisterObject(GpuObjectHandle handle)
 }
 
 // --- Descriptor set passthrough for scene buffers ---
-
-void GPUDrivenManager::SetSceneBuffer(Gfx::Buffer* buffer)
-{
-    globalDescriptorSet->SetBuffer("scene", buffer);
-}
-
-void GPUDrivenManager::SetCameraBuffer(Gfx::Buffer* buffer)
-{
-    globalDescriptorSet->SetBuffer("camera", buffer);
-}
-
-void GPUDrivenManager::SetMainLightShadowBuffer(Gfx::Buffer* buffer)
-{
-    globalDescriptorSet->SetBuffer("mainLightShadow", buffer);
-}
 
 void GPUDrivenManager::SetObjectOffsetBuffer(Gfx::Buffer* buffer)
 {

@@ -86,8 +86,8 @@ void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Imag
 
 void ReflectionProbeUpdate::OnInit(RenderingData* renderingData)
 {
-    Gfx::Buffer* sceneBuffer = renderingData->perScene->scene.get();
-    Gfx::Buffer* mainLightShadowBuffer = renderingData->perScene->mainLightShadow.get();
+    Gfx::Buffer* sceneBuffer = renderingData->perScene->scene;
+    Gfx::Buffer* mainLightShadowBuffer = renderingData->perScene->mainLightShadow;
 
     iblGenerator = ShaderLibrary::GetShader(Shaders::ReflectionProbeIBLGenerator);
 
