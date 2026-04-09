@@ -4,14 +4,40 @@
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include <cstring>
 
 namespace Rendering::Passes
 {
+
+static float Halton(int index, int base)
+{
+    float result = 0.0f;
+    float f = 1.0f / base;
+    int i = index;
+    while (i > 0)
+    {
+        result += f * (i % base);
+        i = i / base;
+        f = f / base;
+    }
+    return result;
+}
 
 GI::GI()
 {
     giShader = ShaderLibrary::GetShader(Shaders::GI_GI);
     mat.SetShader(giShader);
+
+    // Generate Halton sequence (bases 2 & 3) and upload to GPU
+    constexpr int haltonLength = 32;
+    glm::vec2 haltonData[haltonLength];
+    for (int i = 0; i < haltonLength; ++i)
+        haltonData[i] = glm::vec2(Halton(i + 1, 2), Halton(i + 1, 3));
+
+    haltonBuffer = GetGfxDriver()->CreateBuffer(
+        sizeof(haltonData), Gfx::BufferUsage::Storage, true, false, "GI_HaltonSequence"
+    );
+    memcpy(haltonBuffer->GetCPUVisibleAddress(), haltonData, sizeof(haltonData));
 }
 
 void GI::EnsureHistoryBuffers(int width, int height)
@@ -81,6 +107,7 @@ void GI::Execute(
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("noiseTex", renderingData.blueNoise.GetNoiseTexture());
+    mat.SetBuffer("haltonSeq", haltonBuffer.get());
     mat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
 
     // Bind SH history (quarter-res, from previous frame)

@@ -17,6 +17,7 @@ struct GIParameter
     Texture2D albedoTex;
     Texture2D<float4> noiseTex;
     Texture2D<float2> motionVectorTex;
+    StructuredBuffer<float2> haltonSeq;
 
     // Quarter-res SH history (previous frame)
     Texture2D<float4> historySH0Tex;
@@ -101,8 +102,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 posWS    = posWS4.xyz / posWS4.w;
     float3 normalWS = normalize(GetNormalWS(fullResUv));
 
-    // Decorrelate frames using blue noise
-    float2 randVal = perMaterial.noiseTex[(uint2(fullResCoord + hash_u32_v2(uint2(perScene.scene.frameIndex, perScene.scene.frameIndex + 1)))) % 128].xy;
+    // Combine Halton low-discrepancy sequence with blue noise for temporally stable sampling
+    float2 halton    = perMaterial.haltonSeq[perScene.scene.frameIndex % 32];
+    float2 blueNoise = perMaterial.noiseTex[uint2(fullResCoord) % 128].xy;
+    float2 randVal   = frac(halton + blueNoise);
 
     const uint totalBounce = perMaterial.secondary_bounce > 0.5 ? 2 : 1;
 

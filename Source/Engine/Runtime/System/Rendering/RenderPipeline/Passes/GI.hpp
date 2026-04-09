@@ -52,6 +52,8 @@ private:
     glm::int2 historySize = {0, 0};
     bool historyValid = false;
 
+    std::unique_ptr<Gfx::Buffer> haltonBuffer;
+
     bool debugGI = false;
 
     void GetQuarterSize(int width, int height, int& outWidth, int& outHeight) const
