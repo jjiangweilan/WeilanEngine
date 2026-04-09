@@ -487,6 +487,11 @@ bool SceneEditor::Tick()
         glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
         glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
 
+        if (isGameViewHovered)
+        {
+            HudDebug::Print(fmt::format("Mouse Pixel Location: {:.0f}, {:.0f}", mouseContentPos.x, mouseContentPos.y));
+        }
+
         if (scene)
         {
             // Gizmo
