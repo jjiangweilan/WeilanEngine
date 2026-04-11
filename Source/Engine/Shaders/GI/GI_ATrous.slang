@@ -6,7 +6,7 @@ import Lighting;
 // B3-spline kernel weights for à-trous filter: [3/8, 1/4, 1/16] for offsets [0, 1, 2]
 static const float kKernelWeights[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
 
-struct RTGIATrousParameter
+struct GIATrousParameter
 {
     float4 rtgiParams;   // (width, height, invWidth, invHeight)
     float4 filterParams; // (stepSize, sigmaDepth, sigmaNormal, sigmaLuminance)
@@ -22,7 +22,7 @@ struct RTGIATrousParameter
 [Global]
 ParameterBlock<PerScene> perScene;
 [Material]
-ParameterBlock<RTGIATrousParameter> perMaterial;
+ParameterBlock<GIATrousParameter> perMaterial;
 
 float Luminance(float3 color)
 {

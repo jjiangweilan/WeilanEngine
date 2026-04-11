@@ -3,7 +3,7 @@ import Library.CommonUtils;
 import Library.PerScene;
 import Lighting;
 
-struct RTGITemporalParameter
+struct GITemporalParameter
 {
     float4 rtgiParams;       // (width, height, invWidth, invHeight)
     float4 temporalParams;   // (temporalAlpha, historyValid, 0, 0)
@@ -27,7 +27,7 @@ struct RTGITemporalParameter
 [Global]
 ParameterBlock<PerScene> perScene;
 [Material]
-ParameterBlock<RTGITemporalParameter> perMaterial;
+ParameterBlock<GITemporalParameter> perMaterial;
 
 float Luminance(float3 color)
 {
