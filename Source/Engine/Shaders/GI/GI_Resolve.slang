@@ -113,7 +113,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float3 diff = probePos - currentPos;
             float distSq = dot(diff, diff);
             float planeDist = dot(normalWS, diff);
-            float w = (distSq > 0.0064 ? 0 : 1) * (planeDist > -0.1 ? 1.0 : 0.0);
+            float w = (distSq > 0.0064 ? 0 : distSq) * (planeDist > -0.1 ? 1.0 : 0.0);
             weights[i] = w;
         }
 

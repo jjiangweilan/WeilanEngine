@@ -6,14 +6,21 @@ import Lighting;
 // B3-spline kernel weights for à-trous filter: [3/8, 1/4, 1/16] for offsets [0, 1, 2]
 static const float kKernelWeights[3] = { 3.0 / 8.0, 1.0 / 4.0, 1.0 / 16.0 };
 
-struct GIATrousParameter
+struct GIATrousPushConstant
 {
     float4 rtgiParams;   // (width, height, invWidth, invHeight)
     float4 filterParams; // (stepSize, sigmaDepth, sigmaNormal, sigmaLuminance)
+};
 
+[vk_push_constant]
+GIATrousPushConstant pconst;
+
+struct GIATrousParameter
+{
     Texture2D<float4>   inTex;   // RGB = radiance, A = variance (read via Load)
     Texture2D           depthTex;
     Texture2D           normalTex;
+    [format("rgba16f")]
     RWTexture2D<float4> outTex;  // RGB = filtered radiance, A = filtered variance
 
     SamplerState sampler_point_clamp;
@@ -34,17 +41,17 @@ float Luminance(float3 color)
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 pixelCoord = dispatchThreadID.xy;
-    float width  = perMaterial.rtgiParams.x;
-    float height = perMaterial.rtgiParams.y;
+    float width  = pconst.rtgiParams.x;
+    float height = pconst.rtgiParams.y;
 
     if (pixelCoord.x >= (uint)width || pixelCoord.y >= (uint)height)
         return;
 
-    float2 invSize    = perMaterial.rtgiParams.zw;
-    int    stepSize   = (int)perMaterial.filterParams.x;
-    float  sigmaD     = perMaterial.filterParams.y;
-    float  sigmaN     = perMaterial.filterParams.z;
-    float  sigmaL     = perMaterial.filterParams.w;
+    float2 invSize    = pconst.rtgiParams.zw;
+    int    stepSize   = (int)pconst.filterParams.x;
+    float  sigmaD     = pconst.filterParams.y;
+    float  sigmaN     = pconst.filterParams.z;
+    float  sigmaL     = pconst.filterParams.w;
 
     float2 uvCenter = (float2(pixelCoord) + 0.5f) * invSize;
 

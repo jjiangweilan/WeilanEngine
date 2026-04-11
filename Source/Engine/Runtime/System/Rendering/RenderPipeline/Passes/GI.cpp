@@ -38,7 +38,6 @@ GI::GI()
     varianceMat.SetShader(varianceShader);
 
     atrousShader = ShaderLibrary::GetShader(Shaders::GI_ATrous);
-    atrousMat.SetShader(atrousShader);
 
     // Generate Halton sequence (bases 2 & 3) and upload to GPU
     constexpr int haltonLength = 32;
@@ -47,7 +46,11 @@ GI::GI()
         haltonData[i] = glm::vec2(Halton(i + 1, 2), Halton(i + 1, 3));
 
     haltonBuffer = GetGfxDriver()->CreateBuffer(
-        sizeof(haltonData), Gfx::BufferUsage::Storage, true, false, "GI_HaltonSequence"
+        sizeof(haltonData),
+        Gfx::BufferUsage::Storage,
+        true,
+        false,
+        "GI_HaltonSequence"
     );
     memcpy(haltonBuffer->GetCPUVisibleAddress(), haltonData, sizeof(haltonData));
 }
@@ -256,6 +259,12 @@ void GI::Execute(
         Gfx::ImageIdentifier atrousInput = giVarianceOut;
         Gfx::ImageIdentifier svgfResult = giVarianceOut;
 
+        struct GIATrousPushConstant
+        {
+            glm::vec4 rtgiParams;   // (width, height, invWidth, invHeight)
+            glm::vec4 filterParams; // (stepSize, sigmaDepth, sigmaNormal, sigmaLuminance)
+        };
+
         for (int i = 0; i < setting->gi.svgf.atrousIterations; ++i)
         {
             cmd->BeginLabel(("GI_ATrous_" + std::to_string(i)).c_str(), {0.5, 0.7, 0.9, 1.0});
@@ -263,18 +272,24 @@ void GI::Execute(
             Gfx::ImageIdentifier atrousOutput = (i % 2 == 0) ? giAtrousA : giAtrousB;
             cmd->AllocateAttachment(atrousOutput, irradianceDesc);
 
-            atrousMat.SetTexture("inTex", GetGfxDriver()->GetImageFromRenderGraph(atrousInput));
-            atrousMat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-            atrousMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
-            atrousMat.SetTexture("outTex", GetGfxDriver()->GetImageFromRenderGraph(atrousOutput));
             int stepSize = 1 << i;
-            atrousMat.SetVector("rtgiParams", svgfParams);
-            atrousMat.SetVector("filterParams", glm::float4((float)stepSize, setting->gi.svgf.sigmaDepth, setting->gi.svgf.sigmaNormal, setting->gi.svgf.sigmaLuminance));
+            GIATrousPushConstant pconst;
+            pconst.rtgiParams = svgfParams;
+            pconst.filterParams = glm::float4((float)stepSize, setting->gi.svgf.sigmaDepth, setting->gi.svgf.sigmaNormal, setting->gi.svgf.sigmaLuminance);
 
-            auto* atrousProgram = atrousMat.GetShaderProgram();
-            cmd->BindResource(0, renderingData.globalResource);
-            cmd->BindResource(atrousMat.GetSet(Gfx::DescriptorSetSemantics::Material), atrousMat.GetShaderResource());
+            auto* atrousProgram = atrousShader->GetShaderProgram();
+
+            std::vector<Gfx::DynamicBinding> bindings = {
+                Gfx::DynamicBinding("inTex", atrousInput),
+                Gfx::DynamicBinding("depthTex", hizTex),
+                Gfx::DynamicBinding("normalTex", normalTex),
+                Gfx::DynamicBinding("outTex", atrousOutput)
+            };
+
             cmd->BindShaderProgram(atrousProgram, atrousProgram->GetDefaultShaderConfig());
+            cmd->SetPushConstant(atrousProgram, &pconst);
+            cmd->BindResource(0, renderingData.globalResource);
+            cmd->BindResource(1, bindings);
             cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
             atrousInput = atrousOutput;

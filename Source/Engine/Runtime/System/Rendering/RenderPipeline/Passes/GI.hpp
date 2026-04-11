@@ -57,7 +57,6 @@ private:
 
     // SVGF à-trous pass
     Shader* atrousShader;
-    Material atrousMat;
 
     // SH output identifiers (quarter resolution)
     Gfx::ImageIdentifier giSH0 = "GI_SH0";
