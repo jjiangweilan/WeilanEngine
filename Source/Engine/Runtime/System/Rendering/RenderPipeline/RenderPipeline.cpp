@@ -287,9 +287,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // GI passes
     const Gfx::ImageIdentifier* ssilOutput = nullptr;
     const Gfx::ImageIdentifier* rtgiOutput = nullptr;
-    const Gfx::ImageIdentifier* rtgiSH0 = nullptr;
-    const Gfx::ImageIdentifier* rtgiSH1 = nullptr;
-    const Gfx::ImageIdentifier* rtgiSH2 = nullptr;
+    const Gfx::ImageIdentifier* giIrradiance = nullptr;
 
     if (setting->ssil.enabled)
     {
@@ -326,14 +324,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             scene.GetRenderingScene().GetRayTracingSceneHandle(),
             scene.GetRenderingScene().GetRayTracingContext()
         );
-        rtgiSH0 = &giPass->GetOutputSH0();
-        rtgiSH1 = &giPass->GetOutputSH1();
-        rtgiSH2 = &giPass->GetOutputSH2();
+        giIrradiance = &giPass->GetGIOutput();
     }
 
-    if (ssilOutput || rtgiOutput || rtgiSH0)
+    if (ssilOutput || rtgiOutput || giIrradiance)
     {
-        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, rtgiSH0, rtgiSH1, rtgiSH2, albedoGBuffer, normalGBuffer, mainColor, hierarchyZBufferPass->GetOutputId(), renderingData);
+        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, giIrradiance, albedoGBuffer, mainColor, renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects
