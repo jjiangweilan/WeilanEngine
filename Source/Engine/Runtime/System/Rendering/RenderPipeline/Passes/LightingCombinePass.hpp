@@ -14,13 +14,9 @@ public:
         Gfx::CommandBuffer* cmd,
         const Gfx::ImageIdentifier* ssil,
         const Gfx::ImageIdentifier* rtgiOutput,
-        const Gfx::ImageIdentifier* rtgiSH0,
-        const Gfx::ImageIdentifier* rtgiSH1,
-        const Gfx::ImageIdentifier* rtgiSH2,
+        const Gfx::ImageIdentifier* giIrradianceTex,
         const Gfx::ImageIdentifier& albedoTex,
-        const Gfx::ImageIdentifier& normalTex,
         const Gfx::ImageIdentifier& colorTex,
-        const Gfx::ImageIdentifier& hierarchyDepth,
         RenderingData& renderingData
     );
 
