@@ -190,7 +190,8 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                 float3(sh0.w, sh1.w, sh2.w),
                 -float3(sh0.y, sh1.y, sh2.y)
             };
-        float3 irradiance = SHHallucinateZH3Irradiance(sh, normalWS);
+        float3 irradiance = DecodeLinearSH(sh0, sh1, sh2, normalWS);
+        // float3 irradiance = SHHallucinateZH3Irradiance(sh, normalWS); // FIXME: break when I use 0.01 for blending probe in GI pass
         float3 diffuseGI = irradiance * albedo * 3.1415926;
         newColor += diffuseGI;
     }

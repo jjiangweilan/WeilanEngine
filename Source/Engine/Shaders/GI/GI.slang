@@ -153,7 +153,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float4 newSH1 = shBases * indirectLight.g;
     float4 newSH2 = shBases * indirectLight.b;
 
-    float alpha = 0.04f;
+    float alpha = 0.02f;
     if (prevUV.x < 0 || prevUV.x > 1 || prevUV.y < 0 || prevUV.y > 1)
         alpha = 1.0f;
 
