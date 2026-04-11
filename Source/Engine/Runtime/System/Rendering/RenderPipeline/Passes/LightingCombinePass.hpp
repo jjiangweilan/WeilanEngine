@@ -20,6 +20,7 @@ public:
         const Gfx::ImageIdentifier& albedoTex,
         const Gfx::ImageIdentifier& normalTex,
         const Gfx::ImageIdentifier& colorTex,
+        const Gfx::ImageIdentifier& hierarchyDepth,
         RenderingData& renderingData
     );
 

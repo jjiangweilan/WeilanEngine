@@ -332,7 +332,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     if (ssilOutput || rtgiOutput || rtgiSH0)
     {
-        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, rtgiSH0, rtgiSH1, rtgiSH2, albedoGBuffer, normalGBuffer, mainColor, renderingData);
+        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, rtgiSH0, rtgiSH1, rtgiSH2, albedoGBuffer, normalGBuffer, mainColor, hierarchyZBufferPass->GetOutputId(), renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects

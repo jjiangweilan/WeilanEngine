@@ -22,6 +22,7 @@ void LightingCombinePass::Execute(
     const Gfx::ImageIdentifier& albedoTex,
     const Gfx::ImageIdentifier& normalTex,
     const Gfx::ImageIdentifier& colorTex,
+    const Gfx::ImageIdentifier& hierarchyDepth,
     RenderingData& renderingData
 )
 {
@@ -74,11 +75,13 @@ void LightingCombinePass::Execute(
     mat.SetTexture("albedoTex", albedoImg);
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
+    mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hierarchyDepth));
 
-    mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, 0.0f, 0.0f));
+    mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
     mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, hasGISH, 0.0f));
     auto shaderProgram = mat.GetShaderProgram();
-    cmd->BindResource(0, mat.GetShaderResource());
+    cmd->BindResource(0, renderingData.globalResource);
+    cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
     cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 

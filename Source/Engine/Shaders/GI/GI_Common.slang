@@ -13,6 +13,7 @@ import Library.CommonUtils;
 import Library.PerScene;
 import Library.RayTracing;
 import Lighting;
+import Utils.Noise;
 
 // ---------------------------------------------------------------------------
 // Hemisphere sampling
@@ -202,4 +203,36 @@ float3 IndirectRayHitLight(
         Light mainLight = scene.GetMainLight();
         return Sky(rayOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 20;
     }
+}
+
+int2 _GetZOrderCoord2x2(uint index)
+{
+    // index is expected to be between 0 and 3
+    uint x = index & 0x01;
+    uint y = (index & 0x02) >> 1;
+    
+    return int2(x, y);
+}
+
+uint2 GetTileOffset(uint2 coord, uint frameIndex, uint2 shProbeRtSize)
+{
+    return hash_u32_v2(uint2(frameIndex, coord.x + coord.y * shProbeRtSize.x)) % 2;
+}
+
+uint2 GetSHProbeResolution(float2 fullResRtSize)
+{
+    uint2 size = uint2(uint(fullResRtSize.x + 1) / 2, uint(fullResRtSize.y + 1) / 2);
+    return size;
+}
+
+float2 GetFullResUv(uint2 fullResCoord, float4 fullResRtSize)
+{
+    float2 fullResUv = (float2(min(fullResCoord, fullResRtSize.xy - 1)) + 0.5f) * fullResRtSize.zw;
+    return fullResUv;
+}
+
+float2 GI_FromFullResUv_to_SHProbeUv(float2 fullResUv, float2 fullResRtSize, float2 shProbeTexelSize)
+{
+    float2 fullResPixelCoord = fullResUv * fullResRtSize;
+    return uint2(fullResPixelCoord / 2) * shProbeTexelSize;
 }

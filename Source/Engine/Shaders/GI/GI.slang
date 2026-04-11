@@ -69,15 +69,15 @@ float bluenoise(float2 p)
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 tileCoord = dispatchThreadID.xy;
-    uint2 quarterSize = uint2(uint(perMaterial.rtSize.x + 1) / 2, uint(perMaterial.rtSize.y + 1) / 2);
+    uint2 quarterSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (tileCoord.x >= quarterSize.x || tileCoord.y >= quarterSize.y)
         return;
 
     // Select a random sub-pixel within the 4x4 tile
-    uint2 offset = hash_u32_v2(uint2(perScene.scene.frameIndex, tileCoord.x + tileCoord.y * quarterSize.x)) % 2;
+    uint2 offset = GetTileOffset(tileCoord, (uint)perScene.scene.frameIndex, quarterSize);
     uint2 fullResCoord = tileCoord * 2 + offset;
 
-    float2 fullResUv = (float2(min(fullResCoord, perMaterial.rtSize.xy - 1)) + 0.5f) * perMaterial.rtSize.zw;
+    float2 fullResUv = GetFullResUv(fullResCoord, perMaterial.rtSize);// (float2(min(fullResCoord, perMaterial.rtSize.xy - 1)) + 0.5f) * perMaterial.rtSize.zw;
 
     // Reproject and read history SH
     float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 0).xy;
