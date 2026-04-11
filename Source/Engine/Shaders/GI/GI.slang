@@ -12,7 +12,7 @@ struct GIParameter
     float secondary_bounce;
 
     // Full-res G-buffer inputs
-    Texture2D depthTex;
+    Texture2D hierarchyDepth;
     Texture2D normalTex;
     Texture2D albedoTex;
     Texture2D<float4> noiseTex;
@@ -84,7 +84,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float2 prevUV = fullResUv - motion;
     uint2 prevCoord = (prevUV * perMaterial.rtSize.xy) / 2;
 
-    float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 0).x;
+    float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 1).x;
     if (depth <= 0.0000001)
     {
         // reject skybox

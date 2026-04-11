@@ -24,6 +24,8 @@ void HierarchyZBufferPass::Execute(
 {
     cmd.BeginLabel("HierarchyZBuffer", {0.1f, 0.4f, 0.7f, 1.0f});
 
+    currentFrame = (currentFrame + 1) % 2;
+
     int width = srcDepthDesc.GetWidth();
     int height = srcDepthDesc.GetHeight();
     int mips = (int)glm::floor(glm::log2((float)glm::min(width, height))) + 1;
@@ -31,9 +33,9 @@ void HierarchyZBufferPass::Execute(
     Gfx::RenderImageDescriptor dstDesc(width, height, Gfx::GfxFormat::R32G32_SFloat);
     dstDesc.SetRandomWrite(true);
     dstDesc.SetMipLevels(mips);
-    cmd.AllocateAttachment(hierarchyZBuffer, dstDesc);
+    cmd.AllocateAttachment(hierarchyZBuffers[currentFrame], dstDesc);
 
-    auto hiZImage = GetGfxDriver()->GetImageFromRenderGraph(hierarchyZBuffer);
+    auto hiZImage = GetGfxDriver()->GetImageFromRenderGraph(hierarchyZBuffers[currentFrame]);
 
     // 1. Generate Mip 0
     {
@@ -100,7 +102,7 @@ bool HierarchyZBufferPass::DebugBlit(Gfx::ImageIdentifier& dst)
 {
     if (debugView)
     {
-        dst = hierarchyZBuffer;
+        dst = hierarchyZBuffers[currentFrame];
         return true;
     }
     return false;

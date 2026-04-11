@@ -103,7 +103,7 @@ void GI::Execute(
     cmd->AllocateAttachment(giSH2, shDesc);
 
     // Bind full-res G-buffer inputs
-    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+    mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("noiseTex", renderingData.blueNoise.GetNoiseTexture());
