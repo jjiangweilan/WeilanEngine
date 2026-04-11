@@ -28,6 +28,18 @@ GI::GI()
     giShader = ShaderLibrary::GetShader(Shaders::GI_GI);
     mat.SetShader(giShader);
 
+    resolveShader = ShaderLibrary::GetShader(Shaders::GI_Resolve);
+    resolveMat.SetShader(resolveShader);
+
+    temporalShader = ShaderLibrary::GetShader(Shaders::GI_Temporal);
+    temporalMat.SetShader(temporalShader);
+
+    varianceShader = ShaderLibrary::GetShader(Shaders::GI_VariancePrefilter);
+    varianceMat.SetShader(varianceShader);
+
+    atrousShader = ShaderLibrary::GetShader(Shaders::GI_ATrous);
+    atrousMat.SetShader(atrousShader);
+
     // Generate Halton sequence (bases 2 & 3) and upload to GPU
     constexpr int haltonLength = 32;
     glm::vec2 haltonData[haltonLength];
@@ -51,9 +63,13 @@ void GI::EnsureHistoryBuffers(int width, int height)
 
     historySize = {quarterWidth, quarterHeight};
     historyValid = false;
+    svgfHistoryValid = false;
 
+    auto usage = Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage |
+                 Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment;
+
+    // Quarter-resolution SH history
     Gfx::ImageDescription shDesc(quarterWidth, quarterHeight, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    auto usage = Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment;
 
     historySH0 = GetGfxDriver()->CreateImage(shDesc, usage);
     historySH0->SetName("GI_HistorySH0");
@@ -65,6 +81,24 @@ void GI::EnsureHistoryBuffers(int width, int height)
     GetGfxDriver()->InitGfxImage(*historySH0, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historySH1, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historySH2, float4(0, 0, 0, 0));
+
+    // Full-resolution SVGF history
+    Gfx::ImageDescription colorDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
+    Gfx::ImageDescription depthDesc(width, height, Gfx::GfxFormat::R32_SFloat);
+
+    historyColor = GetGfxDriver()->CreateImage(colorDesc, usage);
+    historyColor->SetName("GI_HistoryColor");
+    historyMoments = GetGfxDriver()->CreateImage(colorDesc, usage);
+    historyMoments->SetName("GI_HistoryMoments");
+    historyDepth = GetGfxDriver()->CreateImage(depthDesc, usage);
+    historyDepth->SetName("GI_HistoryDepth");
+    historyNormal = GetGfxDriver()->CreateImage(colorDesc, usage);
+    historyNormal->SetName("GI_HistoryNormal");
+
+    GetGfxDriver()->InitGfxImage(*historyColor, float4(0, 0, 0, 0));
+    GetGfxDriver()->InitGfxImage(*historyMoments, float4(0, 0, 0, 0));
+    GetGfxDriver()->InitGfxImage(*historyDepth, float4(0, 0, 0, 0));
+    GetGfxDriver()->InitGfxImage(*historyNormal, float4(0, 0, 0, 0));
 }
 
 void GI::Execute(
@@ -94,7 +128,11 @@ void GI::Execute(
 
     glm::float4 rtSize(width, height, 1.0f / width, 1.0f / height);
 
-    // Allocate quarter-resolution SH output attachments
+    // =========================================================================
+    // Pass 1: Quarter-res SH gathering (inline ray tracing)
+    // =========================================================================
+    cmd->BeginLabel("GI_SH", {0.2, 0.7, 0.4, 1.0});
+
     Gfx::RenderImageDescriptor shDesc(quarterWidth, quarterHeight, Gfx::GfxFormat::R16G16B16A16_SFloat);
     shDesc.SetRandomWrite(true);
 
@@ -102,7 +140,6 @@ void GI::Execute(
     cmd->AllocateAttachment(giSH1, shDesc);
     cmd->AllocateAttachment(giSH2, shDesc);
 
-    // Bind full-res G-buffer inputs
     mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
@@ -110,20 +147,16 @@ void GI::Execute(
     mat.SetBuffer("haltonSeq", haltonBuffer.get());
     mat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
 
-    // Bind SH history (quarter-res, from previous frame)
     mat.SetTexture("historySH0Tex", historySH0.get());
     mat.SetTexture("historySH1Tex", historySH1.get());
     mat.SetTexture("historySH2Tex", historySH2.get());
 
-    // Bind SH outputs (quarter-res)
     mat.SetTexture("outSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     mat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
     mat.SetTexture("outSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
 
     mat.SetVector("rtSize", rtSize);
     mat.SetFloat("secondary_bounce", setting->gi.secondary_bounce ? 1.0f : 0.0f);
-
-    debugGI = setting->gi.debug_giOutput;
 
     auto* giProgram = mat.GetShaderProgram();
     mat.GetShaderResource()->SetAccelerationStructure("sceneBVH", 0, rtContext, tlas);
@@ -140,6 +173,133 @@ void GI::Execute(
 
     historyValid = true;
 
+    cmd->EndLabel(); // GI_SH
+
+    // =========================================================================
+    // Pass 2: Full-res SH Resolve
+    // =========================================================================
+    cmd->BeginLabel("GI_Resolve", {0.3, 0.8, 0.5, 1.0});
+
+    Gfx::RenderImageDescriptor irradianceDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
+    irradianceDesc.SetRandomWrite(true);
+
+    cmd->AllocateAttachment(giIrradiance, irradianceDesc);
+
+    resolveMat.SetTexture("rtgiSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
+    resolveMat.SetTexture("rtgiSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
+    resolveMat.SetTexture("rtgiSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
+    resolveMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    resolveMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+    resolveMat.SetTexture("outIrradianceTex", GetGfxDriver()->GetImageFromRenderGraph(giIrradiance));
+    resolveMat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
+
+    auto* resolveProgram = resolveMat.GetShaderProgram();
+    cmd->BindResource(0, renderingData.globalResource);
+    cmd->BindResource(resolveMat.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMat.GetShaderResource());
+    cmd->BindShaderProgram(resolveProgram, resolveProgram->GetDefaultShaderConfig());
+    cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+    cmd->EndLabel(); // GI_Resolve
+
+    // =========================================================================
+    // Pass 3–5: SVGF Denoising (optional)
+    // =========================================================================
+    if (setting->gi.svgf.enabled)
+    {
+        glm::float4 svgfParams(width, height, 1.0f / width, 1.0f / height);
+
+        // --- Temporal accumulation ---
+        cmd->BeginLabel("GI_Temporal", {0.4, 0.6, 0.8, 1.0});
+
+        cmd->AllocateAttachment(giTemporalOut, irradianceDesc);
+        cmd->AllocateAttachment(giMomentsOut, irradianceDesc);
+
+        temporalMat.SetTexture("rtgiRawTex", GetGfxDriver()->GetImageFromRenderGraph(giIrradiance));
+        temporalMat.SetTexture("historyColorTex", historyColor.get());
+        temporalMat.SetTexture("historyMomentsTex", historyMoments.get());
+        temporalMat.SetTexture("motionVecTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
+        temporalMat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+        temporalMat.SetTexture("historyDepthTex", historyDepth.get());
+        temporalMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+        temporalMat.SetTexture("historyNormalTex", historyNormal.get());
+        temporalMat.SetTexture("outAccumulated", GetGfxDriver()->GetImageFromRenderGraph(giTemporalOut));
+        temporalMat.SetTexture("outMoments", GetGfxDriver()->GetImageFromRenderGraph(giMomentsOut));
+        temporalMat.SetVector("rtgiParams", svgfParams);
+        temporalMat.SetVector("temporalParams", glm::float4(setting->gi.svgf.temporalAlpha, svgfHistoryValid ? 1.0f : 0.0f, 0, 0));
+
+        auto* temporalProgram = temporalMat.GetShaderProgram();
+        cmd->BindResource(0, renderingData.globalResource);
+        cmd->BindResource(temporalMat.GetSet(Gfx::DescriptorSetSemantics::Material), temporalMat.GetShaderResource());
+        cmd->BindShaderProgram(temporalProgram, temporalProgram->GetDefaultShaderConfig());
+        cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+        cmd->EndLabel(); // GI_Temporal
+
+        // --- Variance prefilter ---
+        cmd->BeginLabel("GI_VariancePrefilter", {0.4, 0.6, 0.8, 1.0});
+
+        cmd->AllocateAttachment(giVarianceOut, irradianceDesc);
+
+        varianceMat.SetTexture("inTex", GetGfxDriver()->GetImageFromRenderGraph(giTemporalOut));
+        varianceMat.SetTexture("outTex", GetGfxDriver()->GetImageFromRenderGraph(giVarianceOut));
+        varianceMat.SetVector("rtgiParams", svgfParams);
+
+        auto* varianceProgram = varianceMat.GetShaderProgram();
+        // VariancePrefilter has no [Global] block — bind material only
+        cmd->BindResource(varianceMat.GetSet(Gfx::DescriptorSetSemantics::Material), varianceMat.GetShaderResource());
+        cmd->BindShaderProgram(varianceProgram, varianceProgram->GetDefaultShaderConfig());
+        cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+        cmd->EndLabel(); // GI_VariancePrefilter
+
+        // --- À-trous filter iterations (ping-pong) ---
+        Gfx::ImageIdentifier atrousInput = giVarianceOut;
+        Gfx::ImageIdentifier svgfResult = giVarianceOut;
+
+        for (int i = 0; i < setting->gi.svgf.atrousIterations; ++i)
+        {
+            cmd->BeginLabel(("GI_ATrous_" + std::to_string(i)).c_str(), {0.5, 0.7, 0.9, 1.0});
+
+            Gfx::ImageIdentifier atrousOutput = (i % 2 == 0) ? giAtrousA : giAtrousB;
+            cmd->AllocateAttachment(atrousOutput, irradianceDesc);
+
+            atrousMat.SetTexture("inTex", GetGfxDriver()->GetImageFromRenderGraph(atrousInput));
+            atrousMat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+            atrousMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+            atrousMat.SetTexture("outTex", GetGfxDriver()->GetImageFromRenderGraph(atrousOutput));
+            int stepSize = 1 << i;
+            atrousMat.SetVector("rtgiParams", svgfParams);
+            atrousMat.SetVector("filterParams", glm::float4((float)stepSize, setting->gi.svgf.sigmaDepth, setting->gi.svgf.sigmaNormal, setting->gi.svgf.sigmaLuminance));
+
+            auto* atrousProgram = atrousMat.GetShaderProgram();
+            cmd->BindResource(0, renderingData.globalResource);
+            cmd->BindResource(atrousMat.GetSet(Gfx::DescriptorSetSemantics::Material), atrousMat.GetShaderResource());
+            cmd->BindShaderProgram(atrousProgram, atrousProgram->GetDefaultShaderConfig());
+            cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+            atrousInput = atrousOutput;
+            svgfResult = atrousOutput;
+
+            cmd->EndLabel(); // GI_ATrous_i
+        }
+
+        giOutput = svgfResult;
+
+        // Save SVGF history for next frame
+        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giTemporalOut)), Gfx::ImageIdentifier(*historyColor));
+        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giMomentsOut)), Gfx::ImageIdentifier(*historyMoments));
+        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
+        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
+        svgfHistoryValid = true;
+    }
+    else
+    {
+        giOutput = giIrradiance;
+        svgfHistoryValid = false;
+    }
+
+    debugGI = setting->gi.debug_giOutput;
+
     cmd->EndLabel(); // GI
 }
 
@@ -147,7 +307,7 @@ bool GI::DebugBlit(Gfx::ImageIdentifier& dst)
 {
     if (debugGI)
     {
-        dst = giSH0;
+        dst = giOutput;
         return true;
     }
     return false;
