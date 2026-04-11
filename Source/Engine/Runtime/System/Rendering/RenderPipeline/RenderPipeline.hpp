@@ -26,6 +26,7 @@
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "Passes/StaticMotionVectorPass.hpp"
+#include "Passes/PixelZoomPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
@@ -54,6 +55,9 @@ struct RenderConfig
 
     /** override the color output of the render pipeline */
     std::optional<Gfx::ImageView*> colorOutputOverride;
+
+    bool enablePixelZoom = false;
+    glm::vec2 pixelZoomMousePos = {0, 0};
 };
 
 class RenderPipeline
@@ -106,6 +110,7 @@ class RenderPipeline
     Passes::HierarchyZBufferPass* hierarchyZBufferPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
+    Passes::PixelZoomPass* pixelZoomPass;
 
     std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 

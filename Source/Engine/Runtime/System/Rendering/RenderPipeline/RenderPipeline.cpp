@@ -49,6 +49,7 @@ RenderPipeline::RenderPipeline()
     hierarchyZBufferPass = AddRenderPipelinePass<Passes::HierarchyZBufferPass>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
+    pixelZoomPass = AddRenderPipelinePass<Passes::PixelZoomPass>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
     renderingData.gpuObjectShaderGroups = &gpuObjectShaderGroups;
@@ -430,6 +431,25 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             finalColor = fxaaPass->GetOutputId();
         }
         cmd->EndLabel(); // FXAA
+    }
+
+    // Pixel Zoom
+    if (renderConfig.enablePixelZoom)
+    {
+        cmd->BeginLabel("PixelZoom", &labelColors.passColor[0]);
+        {
+            Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+            cmd->AllocateAttachment(pixelZoomPass->GetOutputId(), resultDesc);
+            pixelZoomPass->Execute(
+                *cmd,
+                finalColor,
+                pixelZoomPass->GetOutputId(),
+                renderConfig.pixelZoomMousePos,
+                glm::vec2(mainRTSize.x, mainRTSize.y)
+            );
+            finalColor = pixelZoomPass->GetOutputId();
+        }
+        cmd->EndLabel(); // PixelZoom
     }
 
     cmd->EndLabel(); // Render Scene

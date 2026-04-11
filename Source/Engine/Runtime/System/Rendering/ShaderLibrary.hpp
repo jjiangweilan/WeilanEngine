@@ -47,7 +47,8 @@
                          Do(DepthBasedFog, "DepthBasedFog"),                                                 \
                          Do(OceanPatchShader, "OceanPatchShader"),                                           \
                          Do(RayTracingTest, "RayTracingTest"),                                              \
-                         Do(GI_GI, "GI/GI"),
+                         Do(GI_GI, "GI/GI"),                                                        \
+                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

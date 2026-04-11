@@ -279,7 +279,14 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
 
     cmd.BeginLabel("Scene Editor View", &renderPassLabelColor[0]);
-    Rendering::RenderConfig renderConfig = {.drawGraphics = true, .cmdOverride = &cmd};
+    ImVec2 mousePos = ImGui::GetMousePos();
+    glm::vec2 relMousePos = {mousePos.x - sceneImageOrigin.x, mousePos.y - sceneImageOrigin.y};
+    Rendering::RenderConfig renderConfig = {
+        .drawGraphics = true,
+        .cmdOverride = &cmd,
+        .enablePixelZoom = pixelZoomEnabled,
+        .pixelZoomMousePos = relMousePos
+    };
     renderPipeline->SetConfig(renderConfig);
     renderPipeline->Render(*scene, *editorCamera, d.resolution);
     auto gameImage = &renderPipeline->GetOutputColor();
@@ -367,6 +374,7 @@ bool SceneEditor::Tick()
         {
             editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
         }
+        ImGui::MenuItem("Pixel Zoom", nullptr, &pixelZoomEnabled);
         float fovDegrees = glm::degrees(editorCamera->GetFoV());
         if (ImGui::DragFloat("Camera FoV", &fovDegrees, 0.1f, 1.0f, 179.0f))
         {
