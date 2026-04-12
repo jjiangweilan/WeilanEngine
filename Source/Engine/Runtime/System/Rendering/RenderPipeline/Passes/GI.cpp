@@ -143,6 +143,12 @@ void GI::Execute(
     cmd->AllocateAttachment(giSH1, shDesc);
     cmd->AllocateAttachment(giSH2, shDesc);
 
+    // Allocate full-res debug texture for s2h output (xyz = color, w = depth)
+    // Gfx::RenderImageDescriptor s2hDebugDesc(width, height, Gfx::GfxFormat::R32G32B32A32_SFloat);
+    // s2hDebugDesc.SetRandomWrite(true);
+    // cmd->AllocateAttachment(giS2HDebug, s2hDebugDesc);
+    // cmd->ClearColorImage(GetGfxDriver()->GetImageFromRenderGraph(giS2HDebug), Gfx::ClearColor{.float32 = {0, 0, 0, 0}});
+
     mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
@@ -160,6 +166,9 @@ void GI::Execute(
 
     mat.SetVector("rtSize", rtSize);
     mat.SetFloat("secondary_bounce", setting->gi.secondary_bounce ? 1.0f : 0.0f);
+
+    // mat.SetTexture("outDebugTex", GetGfxDriver()->GetImageFromRenderGraph(giS2HDebug));
+    // mat.SetVector("debugPixel", setting->gi.debugPixel);
 
     auto* giProgram = mat.GetShaderProgram();
     mat.GetShaderResource()->SetAccelerationStructure("sceneBVH", 0, rtContext, tlas);

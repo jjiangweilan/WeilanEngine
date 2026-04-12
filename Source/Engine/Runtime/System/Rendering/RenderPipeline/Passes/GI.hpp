@@ -33,6 +33,7 @@ public:
     Gfx::ImageIdentifier& GetOutputSH1() { return giSH1; }
     Gfx::ImageIdentifier& GetOutputSH2() { return giSH2; }
     Gfx::ImageIdentifier& GetGIOutput() { return giOutput; }
+    // Gfx::ImageIdentifier& GetS2HDebugOutput() { return giS2HDebug; }
 
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
@@ -62,6 +63,7 @@ private:
     Gfx::ImageIdentifier giSH0 = "GI_SH0";
     Gfx::ImageIdentifier giSH1 = "GI_SH1";
     Gfx::ImageIdentifier giSH2 = "GI_SH2";
+    // Gfx::ImageIdentifier giS2HDebug = "GI_S2H_Debug";
 
     // Resolve + SVGF transient identifiers (full resolution)
     Gfx::ImageIdentifier giIrradiance  = "GI_Irradiance";

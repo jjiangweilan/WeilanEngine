@@ -169,6 +169,7 @@ public:
         bool enabled = false;
         bool debug_giOutput = false;
         bool secondary_bounce = false;
+        float4 debugPixel = {100, 100, 0, 0};
 
         struct SVGF
         {
@@ -193,6 +194,7 @@ public:
             SER(enabled),
             SER(debug_giOutput),
             SER(secondary_bounce),
+            SER(debugPixel),
             SER(svgf)
         )
     } gi;

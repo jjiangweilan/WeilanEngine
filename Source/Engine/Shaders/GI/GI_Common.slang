@@ -98,7 +98,7 @@ SurfaceHit GetRayHitSurface(
     RaytracingAccelerationStructure bvh,
     ParameterBlock<PerScene> scene,
     float3 rayOrigin,
-    float3 rayDir)
+    float3 rayDir, uint2 debug = uint2(0,0))
 {
     SurfaceHit result;
     result.hit         = false;
@@ -112,12 +112,10 @@ SurfaceHit GetRayHitSurface(
     ray.Origin    = rayOrigin;
     ray.Direction = rayDir;
     ray.TMin      = 0;
-    ray.TMax      = 1000.0;
+    ray.TMax      = 30.0;
 
-    RayQuery<RAY_FLAG_CULL_NON_OPAQUE |
-             RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES |
-             RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> q;
-    q.TraceRayInline(bvh, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH, 0xFF, ray);
+    RayQuery<RAY_FLAG_NONE> q;
+    q.TraceRayInline(bvh, RAY_FLAG_NONE, 0xFF, ray);
 
     while (q.Proceed());
 
