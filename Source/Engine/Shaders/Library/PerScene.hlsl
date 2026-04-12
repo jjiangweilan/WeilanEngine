@@ -327,7 +327,7 @@ struct ObjectTriangle
         if (geometry.HasNormal())
             return perScene.LoadData<float3>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride);
         else
-            return float3(0,1,0);
+            return float3(0,0,1);
     }
 
     float4 GetTangent(ParameterBlock<PerScene> perScene, uint vertexIndex)

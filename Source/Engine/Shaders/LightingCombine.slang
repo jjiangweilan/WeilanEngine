@@ -49,7 +49,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (input.flags.z > 0.5)
     {
         float3 giIrradiance = input.giIrradianceTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
-        float3 diffuseGI = giIrradiance * albedo * 3.1415926;
+        float3 diffuseGI = giIrradiance * albedo * 3.1415926 / 2;
         newColor += diffuseGI;
     }
 
