@@ -363,7 +363,13 @@ bool VKImage::IsSwapchainProxy()
     return isSwapchainProxy;
 }
 
-void VKImage::SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
+void VKImage::SetLayout(
+    VkImageSubresourceRange subresourceRange, VkImageLayout layout,
+    VkPipelineStageFlags2 srcStageMask,
+    VkAccessFlags2 srcAccessMask,
+    VkPipelineStageFlags2 dstStageMask,
+    VkAccessFlags2 dstAccessMask
+    )
 {
     for (int level = subresourceRange.baseArrayLayer;
          level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount) && level < arrayLayers;
@@ -374,6 +380,15 @@ void VKImage::SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout 
              mip++)
         {
             layoutTrack[level * imageDescription.mipLevels + mip] = layout;
+            subresourceBarrierTrack[level * imageDescription.mipLevels + mip] =
+            {
+                .srcStageMask = srcStageMask,
+                .srcAccessMask = srcAccessMask,
+                .dstStageMask = dstStageMask,
+                .dstAccessMask = dstAccessMask,
+                .oldLayout = subresourceBarrierTrack[level * imageDescription.mipLevels + mip].newLayout,
+                .newLayout = layout
+            };
         }
     }
 }

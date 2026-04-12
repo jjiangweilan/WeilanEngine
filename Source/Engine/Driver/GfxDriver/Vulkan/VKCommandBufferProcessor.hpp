@@ -242,6 +242,11 @@ private:
         auto& currentFrameUsages = iter->second.currentFrameUsages;
         auto& currentUsage = currentFrameUsages.back();
 
+        if (image->GetName().find("SH2") != std::string::npos)
+        {
+            int i = 0;
+        }
+
         auto barrier2s = image->MakeBarrierIfNeeded(currentUsage.stages, currentUsage.access, currentUsage.layout, MapVkImageSubresourceRange(currentUsage.range));
 
         for (auto& neededBarrier2 : barrier2s)

@@ -404,7 +404,12 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
                         barriers.push_back(barrier);
                         barrierCount += 1;
                         imageMemoryBarriers.push_back(imageBarrier);
-                        image->SetLayout(subresourceRange, currentUsage.layout);
+                        image->SetLayout(subresourceRange, currentUsage.layout,
+                            srcStages,
+                            imageBarrier.srcAccessMask,
+                            currentUsage.stages,
+                            imageBarrier.dstAccessMask
+                            );
                     }
 
                     auto remainings = currentRange.Subtract(preUsage.range);
@@ -445,7 +450,10 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
                     barriers.push_back(barrier);
                     barrierCount += 1;
                     imageMemoryBarriers.push_back(imageBarrier);
-                    image->SetLayout(vkRange, currentUsage.layout);
+                    image->SetLayout(vkRange, currentUsage.layout,
+                        barrier.srcStageMask, imageBarrier.srcAccessMask,
+                        barrier.dstStageMask, imageBarrier.dstAccessMask
+                        );
                     remainingRange.pop_back();
                     i -= 2;
                 }
@@ -485,7 +493,10 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
             barriers.push_back(barrier);
             barrierCount += 1;
             imageMemoryBarriers.push_back(imageBarrier);
-            image->SetLayout(subresourceRange, currentUsage.layout);
+            image->SetLayout(subresourceRange, currentUsage.layout,
+                barrier.srcStageMask, imageBarrier.srcAccessMask,
+                barrier.dstStageMask, imageBarrier.dstAccessMask
+                );
         }
     }
     else if (iter->second.type == ResourceType::Buffer)

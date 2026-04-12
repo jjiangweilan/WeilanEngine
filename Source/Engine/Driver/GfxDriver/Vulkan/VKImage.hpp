@@ -48,10 +48,10 @@ protected:
     std::unique_ptr<VKImageView> imageView;
     std::unique_ptr<VKImageView> imageViewForShaderResource = nullptr;
     std::string name;
-    std::vector<VkImageLayout> layoutTrack;
     std::unordered_map<vk::ImageViewCreateInfo, std::unique_ptr<VKImageView>> imageViews;
     bool isSwapchainProxy = false;
 
+    std::vector<VkImageLayout> layoutTrack; // Deprecated: we should be moving to subresourceBarrierTrack
     std::vector<BarrierTrack> subresourceBarrierTrack;
 
 public:
@@ -80,7 +80,12 @@ public:
 
     bool IsSwapchainProxy();
 
-    void SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout);
+    void SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout,
+        VkPipelineStageFlags2 srcStageMask,
+        VkAccessFlags2 srcAccessMask,
+        VkPipelineStageFlags2 dstStageMask,
+        VkAccessFlags2 dstAccessMask
+        );
 
     bool IsLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout);
 

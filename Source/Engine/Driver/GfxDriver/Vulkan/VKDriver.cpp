@@ -646,7 +646,12 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
                 .baseArrayLayer = 0,
                 .layerCount = image->GetDescription().GetLayer(),
             };
-            image->SetLayout(trackRange, finalLayout);
+            image->SetLayout(trackRange, finalLayout,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                toShaderRead.srcAccessMask,
+                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                toShaderRead.dstAccessMask
+                );
         }
     );
 }
