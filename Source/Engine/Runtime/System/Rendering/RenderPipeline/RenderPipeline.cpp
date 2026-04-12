@@ -50,6 +50,7 @@ RenderPipeline::RenderPipeline()
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
     pixelZoomPass = AddRenderPipelinePass<Passes::PixelZoomPass>();
+    // s2hDebugPass = AddRenderPipelinePass<Passes::Shader2HumanDebugPass>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
     renderingData.gpuObjectShaderGroups = &gpuObjectShaderGroups;
@@ -399,6 +400,19 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         GetPerSceneGPUResource(),
         mainRTSize
     );
+
+    // S2H Debug Merge (overlays GI debug drawings onto mainColor using depth test)
+    // if (setting->gi.enabled)
+    // {
+    //     s2hDebugPass->Execute(
+    //         cmd,
+    //         giPass->GetS2HDebugOutput(),
+    //         hierarchyZBufferPass->GetOutputId(),
+    //         mainColor,
+    //         {(int)mainRTSize.x, (int)mainRTSize.y},
+    //         renderingData
+    //     );
+    // }
 
     if (setting->postProcess.bloom.enabled)
     {

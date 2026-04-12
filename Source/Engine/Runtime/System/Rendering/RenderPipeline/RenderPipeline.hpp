@@ -21,6 +21,7 @@
 #include "Passes/LightingCombinePass.hpp"
 #include "Passes/GI.hpp"
 #include "Passes/RTGI.hpp"
+#include "Passes/Shader2HumanDebugPass.hpp"
 #include "Passes/SSAO.hpp"
 #include "Passes/SSIL.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
@@ -111,6 +112,7 @@ class RenderPipeline
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
     Passes::PixelZoomPass* pixelZoomPass;
+    Passes::Shader2HumanDebugPass* s2hDebugPass;
 
     std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 

@@ -49,7 +49,8 @@
                          Do(RayTracingTest, "RayTracingTest"),                                              \
                          Do(GI_GI, "GI/GI"),                                                        \
                          Do(GI_Resolve, "GI/GI_Resolve"),                                            \
-                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),
+                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                             \
+                         Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y
