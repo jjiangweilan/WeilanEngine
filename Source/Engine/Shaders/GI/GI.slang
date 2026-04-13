@@ -30,11 +30,17 @@ struct GIParameter
     Texture2D<float4> historySH0Tex;
     Texture2D<float4> historySH1Tex;
     Texture2D<float4> historySH2Tex;
+    Texture2D<float> historyAccumTex;
+
+    // Full-res history for disocclusion detection
+    Texture2D<float> historyDepthTex;
+    Texture2D<float4> historyNormalTex;
 
     // Quarter-res SH outputs (current frame)
     RWTexture2D<float4> outSH0Tex;
     RWTexture2D<float4> outSH1Tex;
     RWTexture2D<float4> outSH2Tex;
+    RWTexture2D<float> outAccumTex;
 
 #if GI_WS_DEBUG
     // Full-res debug output (xyz = color, w = depth)
@@ -90,6 +96,7 @@ struct GIContext
     float4 sh0;
     float4 sh1;
     float4 sh2;
+    float accumCount;
 };
 
 GIContext CalcGI(uint2 dispatchThreadID)
@@ -118,14 +125,10 @@ GIContext CalcGI(uint2 dispatchThreadID)
     float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 1).x;
     if (depth <= 0.0000001)
     {
-        // reject skybox
-        float4 histSH0 = perMaterial.historySH0Tex.Load(uint3(prevCoord, 0));
-        float4 histSH1 = perMaterial.historySH1Tex.Load(uint3(prevCoord, 0));
-        float4 histSH2 = perMaterial.historySH2Tex.Load(uint3(prevCoord, 0));
-
-        context.sh0 = histSH0;
-        context.sh1 = histSH1;
-        context.sh2 = histSH2;
+        context.sh0 = 0;
+        context.sh1 = 0;
+        context.sh2 = 0;
+        context.accumCount = 0;
         return context;
     }
 
@@ -184,18 +187,44 @@ GIContext CalcGI(uint2 dispatchThreadID)
     float4 newSH1 = shBases * indirectLight.g;
     float4 newSH2 = shBases * indirectLight.b;
 
-    float alpha = 0.02f;
-    if (prevUV.x < 0 || prevUV.x > 1 || prevUV.y < 0 || prevUV.y > 1)
-        alpha = 1.0f;
+    // --- Disocclusion detection & history compensation ---
+    float alpha = 1.0f;
+    float4 finalHistSH0 = 0;
+    float4 finalHistSH1 = 0;
+    float4 finalHistSH2 = 0;
 
-    float4 histSH0 = perMaterial.historySH0Tex.Load(uint3(prevCoord, 0));
-    float4 histSH1 = perMaterial.historySH1Tex.Load(uint3(prevCoord, 0));
-    float4 histSH2 = perMaterial.historySH2Tex.Load(uint3(prevCoord, 0));
+    float currentDepth = depth;
+
+    // 1. Check direct reprojection (center pixel)
+    bool isOffScreen = prevUV.x < 0 || prevUV.x > 1 || prevUV.y < 0 || prevUV.y > 1;
+
+    float centerHistDepth = isOffScreen ? 0.0f : perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
+    float3 centerHistNormal = isOffScreen ? float3(0, 0, 0) : DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz);
+
+    bool isDisoccluded = isOffScreen;
+                         // (abs(LinearEyeDepth(currentDepth, perScene.camera.cameraZBufferParams) - LinearEyeDepth(centerHistDepth, perScene.camera.cameraZBufferParams)) > 0.05f) ||
+                         // (dot(context.normalWS, centerHistNormal) < 0.9f);
+
+    if (!isDisoccluded)
+    {
+        // Center is valid — fast path
+        finalHistSH0 = perMaterial.historySH0Tex.Load(int3(prevCoord, 0));
+        finalHistSH1 = perMaterial.historySH1Tex.Load(int3(prevCoord, 0));
+        finalHistSH2 = perMaterial.historySH2Tex.Load(int3(prevCoord, 0));
+        float histAccum = perMaterial.historyAccumTex.Load(int3(prevCoord, 0)).x;
+        context.accumCount = min(histAccum + (1.0f / 255.0f), 1.0f);
+        alpha = lerp(0.04f, 1.0f, 1 - clamp((context.accumCount * 255) / 16.0f, 0.0f, 1.0f));
+    }
+    else
+    {
+        context.accumCount = 1.0f / 255.0f;
+        alpha = 1.0f;
+    }
 
     // Exponential moving average blend
-    context.sh0 = lerp(histSH0, newSH0, alpha);
-    context.sh1 = lerp(histSH1, newSH1, alpha);
-    context.sh2 = lerp(histSH2, newSH2, alpha);
+    context.sh0 = lerp(finalHistSH0, newSH0, alpha);
+    context.sh1 = lerp(finalHistSH1, newSH1, alpha);
+    context.sh2 = lerp(finalHistSH2, newSH2, alpha);
 
     return context;
 }
@@ -227,4 +256,5 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     perMaterial.outSH0Tex[context.tileCoord] = context.sh0;
     perMaterial.outSH1Tex[context.tileCoord] = context.sh1;
     perMaterial.outSH2Tex[context.tileCoord] = context.sh2;
+    perMaterial.outAccumTex[context.tileCoord] = context.accumCount;
 }

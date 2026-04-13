@@ -63,6 +63,7 @@ private:
     Gfx::ImageIdentifier giSH0 = "GI_SH0";
     Gfx::ImageIdentifier giSH1 = "GI_SH1";
     Gfx::ImageIdentifier giSH2 = "GI_SH2";
+    Gfx::ImageIdentifier giAccumulationCount = "GI_AccumulationCount";
     // Gfx::ImageIdentifier giS2HDebug = "GI_S2H_Debug";
 
     // Resolve + SVGF transient identifiers (full resolution)
@@ -78,6 +79,7 @@ private:
     std::unique_ptr<Gfx::Image> historySH0;
     std::unique_ptr<Gfx::Image> historySH1;
     std::unique_ptr<Gfx::Image> historySH2;
+    std::unique_ptr<Gfx::Image> historyAccumulationCount;
 
     // Persistent cross-frame SVGF history buffers (full resolution)
     std::unique_ptr<Gfx::Image> historyColor;

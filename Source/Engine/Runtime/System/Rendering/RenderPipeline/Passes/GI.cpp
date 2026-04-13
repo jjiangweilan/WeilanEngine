@@ -85,6 +85,11 @@ void GI::EnsureHistoryBuffers(int width, int height)
     GetGfxDriver()->InitGfxImage(*historySH1, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historySH2, float4(0, 0, 0, 0));
 
+    Gfx::ImageDescription accumDesc(quarterWidth, quarterHeight, Gfx::GfxFormat::R8_UNorm);
+    historyAccumulationCount = GetGfxDriver()->CreateImage(accumDesc, usage);
+    historyAccumulationCount->SetName("GI_HistoryAccumulationCount");
+    GetGfxDriver()->InitGfxImage(*historyAccumulationCount, float4(0, 0, 0, 0));
+
     // Full-resolution SVGF history
     Gfx::ImageDescription colorDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
     Gfx::ImageDescription depthDesc(width, height, Gfx::GfxFormat::R32_SFloat);
@@ -143,6 +148,10 @@ void GI::Execute(
     cmd->AllocateAttachment(giSH1, shDesc);
     cmd->AllocateAttachment(giSH2, shDesc);
 
+    Gfx::RenderImageDescriptor accumCountDesc(quarterWidth, quarterHeight, Gfx::GfxFormat::R8_UNorm);
+    accumCountDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giAccumulationCount, accumCountDesc);
+
     // Allocate full-res debug texture for s2h output (xyz = color, w = depth)
     // Gfx::RenderImageDescriptor s2hDebugDesc(width, height, Gfx::GfxFormat::R32G32B32A32_SFloat);
     // s2hDebugDesc.SetRandomWrite(true);
@@ -159,10 +168,15 @@ void GI::Execute(
     mat.SetTexture("historySH0Tex", historySH0.get());
     mat.SetTexture("historySH1Tex", historySH1.get());
     mat.SetTexture("historySH2Tex", historySH2.get());
+    mat.SetTexture("historyAccumTex", historyAccumulationCount.get());
+
+    mat.SetTexture("historyDepthTex", historyDepth.get());
+    mat.SetTexture("historyNormalTex", historyNormal.get());
 
     mat.SetTexture("outSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     mat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
     mat.SetTexture("outSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
+    mat.SetTexture("outAccumTex", GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount));
 
     mat.SetVector("rtSize", rtSize);
     mat.SetFloat("secondary_bounce", setting->gi.secondary_bounce ? 1.0f : 0.0f);
@@ -182,6 +196,7 @@ void GI::Execute(
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giSH0)), Gfx::ImageIdentifier(*historySH0));
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giSH1)), Gfx::ImageIdentifier(*historySH1));
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giSH2)), Gfx::ImageIdentifier(*historySH2));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount)), Gfx::ImageIdentifier(*historyAccumulationCount));
 
     historyValid = true;
 
@@ -312,8 +327,6 @@ void GI::Execute(
         // Save SVGF history for next frame
         cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giTemporalOut)), Gfx::ImageIdentifier(*historyColor));
         cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giMomentsOut)), Gfx::ImageIdentifier(*historyMoments));
-        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
-        cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
         svgfHistoryValid = true;
     }
     else
@@ -321,6 +334,10 @@ void GI::Execute(
         giOutput = giIrradiance;
         svgfHistoryValid = false;
     }
+
+    // Unconditionally preserve depth/normal history for next frame's GI_SH disocclusion check
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
 
     debugGI = setting->gi.debug_giOutput;
 
