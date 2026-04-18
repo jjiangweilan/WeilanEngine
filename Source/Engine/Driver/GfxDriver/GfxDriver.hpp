@@ -167,7 +167,7 @@ public:
 
     bool IsRenderDocInitialized() const { return renderDocAPI != nullptr; }
     void InitializeRenderDoc(bool enableValidation = false);
-    virtual void CaptureFrameRenderDoc() = 0;
+    virtual void CaptureFrameRenderDoc(bool nextFrame) = 0;
 
 private:
     static GfxDriver*& InstanceInternal();

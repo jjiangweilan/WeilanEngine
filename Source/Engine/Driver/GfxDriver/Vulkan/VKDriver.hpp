@@ -80,7 +80,7 @@ public:
 
     std::unique_ptr<RayTracingContext> CreateRayTracingContext() override;
 
-    void CaptureFrameRenderDoc() override;
+    void CaptureFrameRenderDoc(bool nextFrame) override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) override;
     std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
@@ -235,5 +235,7 @@ private:
     ArenaAllocator<1024> allocator;
     void WaitForCurrentInflightCmd();
     void QueryGPUTimestamp(CmdBufExecutionReport& execReport);
+
+    void BeginFrameCapture();
 };
 } // namespace Gfx

@@ -646,12 +646,7 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
                 .baseArrayLayer = 0,
                 .layerCount = image->GetDescription().GetLayer(),
             };
-            image->SetLayout(trackRange, finalLayout,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                toShaderRead.srcAccessMask,
-                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                toShaderRead.dstAccessMask
-                );
+            image->SetLayout(trackRange, finalLayout, VK_PIPELINE_STAGE_TRANSFER_BIT, toShaderRead.srcAccessMask, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, toShaderRead.dstAccessMask);
         }
     );
 }
@@ -681,21 +676,7 @@ std::unique_ptr<Sampler> VKDriver::CreateSampler(const Sampler::CreateInfo& crea
 
 bool VKDriver::BeginFrame()
 {
-#if __WIN32__
-    if (captureFrame && IsRenderDocInitialized())
-    {
-        if (renderDocAPI->IsTargetControlConnected())
-            renderDocAPI->ShowReplayUI();
-        else
-            renderDocAPI->LaunchReplayUI(1, NULL);
-
-        renderDocAPI->StartFrameCapture(
-            RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(instance.handle),
-            sdlInfo->wmInfo.info.win.window
-        );
-        captureFrameBegin = true;
-    }
-#endif
+    BeginFrameCapture();
 
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
 
@@ -1689,9 +1670,13 @@ void VKDriver::DestroyExtraWindow(Window* window)
     }
 }
 
-void VKDriver::CaptureFrameRenderDoc()
+void VKDriver::CaptureFrameRenderDoc(bool nextFrame)
 {
     captureFrame = true;
+    if (!captureFrameBegin && !nextFrame)
+    {
+        BeginFrameCapture();
+    }
 }
 
 void VKDriver::WaitForCurrentInflightCmd()
@@ -1766,6 +1751,25 @@ void VKDriver::UnsetWin32WindowInteropTexture(int2 size)
 #if WIN32
     needPresent = true;
     swapchain.CreateOrOverrideSwapChain(surface, context->driverConfig.swapchainImageCount, size.x, size.y);
+#endif
+}
+
+void VKDriver::BeginFrameCapture()
+{
+#if __WIN32__
+    if (captureFrame && IsRenderDocInitialized())
+    {
+        if (renderDocAPI->IsTargetControlConnected())
+            renderDocAPI->ShowReplayUI();
+        else
+            renderDocAPI->LaunchReplayUI(1, NULL);
+
+        renderDocAPI->StartFrameCapture(
+            RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(instance.handle),
+            sdlInfo->wmInfo.info.win.window
+        );
+        captureFrameBegin = true;
+    }
 #endif
 }
 } // namespace Gfx

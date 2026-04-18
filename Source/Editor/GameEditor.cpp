@@ -506,7 +506,7 @@ void GameEditor::MainMenuBar()
 
         if (isRenderDocInitialized)
         {
-            GetGfxDriver()->CaptureFrameRenderDoc();
+            GetGfxDriver()->CaptureFrameRenderDoc(true);
         }
     }
 
