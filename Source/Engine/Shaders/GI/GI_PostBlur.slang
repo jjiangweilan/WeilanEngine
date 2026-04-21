@@ -91,7 +91,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         for (int x = -2; x <= 2; ++x)
         {
-            int2 sampleCoordI = clamp(int2(coord) + int2(x, y) * stepSize, int2(0, 0), maxCoord);
+            int2 sampleCoordI = clamp(int2(coord) + int2(x, y) * stepSize * 1.5, int2(0, 0), maxCoord);
             uint2 sampleCoord = uint2(sampleCoordI);
             float sampleDepth = perMaterial.hierarchyDepth.Load(int3(sampleCoord, 0)).x;
             if (sampleDepth <= 0.0000001)

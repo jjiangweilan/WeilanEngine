@@ -217,6 +217,7 @@ struct SparseRaySample
     bool valid;
     float3 radiance;
     float3 rayDir;
+    float4 shBasis;
     float3 sourceNormal;
     float3 sourcePosition;
     float2 sourceUv;
@@ -228,10 +229,19 @@ SparseRaySample MakeInvalidSparseRaySample()
     sample.valid = false;
     sample.radiance = 0;
     sample.rayDir = 0;
+    sample.shBasis = 0;
     sample.sourceNormal = 0;
     sample.sourcePosition = 0;
     sample.sourceUv = 0;
     return sample;
+}
+
+float4 GetLinearSHBasis(float3 direction)
+{
+    static const float Y00 = 0.28209479;
+    static const float Y1 = 0.48860251;
+    float3 dir = normalize(direction);
+    return float4(Y00, Y1 * dir.x, Y1 * dir.y, Y1 * dir.z);
 }
 
 bool LoadProbeGeometry(
@@ -378,7 +388,8 @@ SparseRaySample LoadSparseRaySample(
 
     sample.valid = true;
     sample.radiance = max(rayData.rgb, 0.0);
-    sample.rayDir = DecodeOcta(rayMeta.xy);
+    sample.rayDir = 0;
+    sample.shBasis = rayMeta;
     sample.sourceUv = sourceUv;
     sample.sourcePosition = ReconstructWorldPos(scene, sourceUv, sourceDepth);
     sample.sourceNormal = normalize(DecodeGIWorldNormal(normalTex, pointSampler, sourceUv));

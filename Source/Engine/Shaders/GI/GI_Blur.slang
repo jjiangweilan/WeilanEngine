@@ -112,11 +112,13 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float totalWeight = 0.0;
     int2 probeMaxCoord = int2(probeRtSize) - 1;
 
+    radius = 3;
+    float radiusScale = radius * (accumRatio < 0.5 ? 2 : 1);
     for (int y = -radius; y <= radius; ++y)
     {
         for (int x = -radius; x <= radius; ++x)
         {
-            int2 sampleCoordI = clamp(int2(probeCoord) + int2(x, y), int2(0, 0), probeMaxCoord);
+            int2 sampleCoordI = clamp(int2(probeCoord) + int2(x, y) * 1.5, int2(0, 0), probeMaxCoord);
             uint2 sampleCoord = uint2(sampleCoordI);
 
             float3 samplePos;
@@ -138,13 +140,13 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float planeWeight = planeDistance <= probePlaneThreshold ? 1.0 : 0.0;
             float zSigma = max(perMaterial.blurParams.w * max(centerViewZ, sampleViewZ), 1e-4);
             float viewZWeight = exp(-abs(centerViewZ - sampleViewZ) / zSigma);
-            float weight = normalWeight * planeWeight * viewZWeight;
+            float weight = normalWeight * planeWeight;
             if (weight <= 0.0)
                 continue;
 
-            sh0Sum += perMaterial.inSH0Tex.Load(int3(sampleMipCoord, sampleMip)) * weight;
-            sh1Sum += perMaterial.inSH1Tex.Load(int3(sampleMipCoord, sampleMip)) * weight;
-            sh2Sum += perMaterial.inSH2Tex.Load(int3(sampleMipCoord, sampleMip)) * weight;
+            sh0Sum += perMaterial.inSH0Tex.Load(int3(sampleCoord, 0)) * weight;
+            sh1Sum += perMaterial.inSH1Tex.Load(int3(sampleCoord, 0)) * weight;
+            sh2Sum += perMaterial.inSH2Tex.Load(int3(sampleCoord, 0)) * weight;
             totalWeight += weight;
         }
     }

@@ -16,6 +16,7 @@ struct GIParameter
     Texture2D<float> disocclusionMaskTex;
     Texture2D<float4> rayDataTex;
     Texture2D<float4> rayMetaTex;
+    Texture2D<float2> noiseTex;
 
     // Half-res SH history (previous frame)
     Texture2D<float4> historySH0Tex;
@@ -47,21 +48,14 @@ float3 GetNormalWS(float2 uv)
     return DecodeGBufferNormal(normalWS);
 }
 
-float4 GetLinearSHBasis(float3 direction)
+int2 GetVogelRayOffset(int sampleIndex, int sampleCount, float rotation)
 {
-    static const float Y00 = 0.28209479;
-    static const float Y1 = 0.48860251;
-    float3 dir = normalize(direction);
-    return float4(Y00, Y1 * dir.x, Y1 * dir.y, Y1 * dir.z);
-}
+    static const float kGoldenAngle = 2.39996323;
+    static const float kRadiusScale = 2.0;
 
-float CalculateSHLuminance(float4 shRed, float4 shGreen, float4 shBlue)
-{
-    // Match outSH0Tex/outSH1Tex/outSH2Tex packing. Use the DC term only for a
-    // stable scalar luminance estimate; summing directional coefficients is not
-    // a meaningful brightness measure for clamping.
-    static const float3 kLuminanceWeights = float3(0.2126, 0.7152, 0.0722);
-    return dot(float3(shRed.x, shGreen.x, shBlue.x), kLuminanceWeights);
+    float radius = sqrt((sampleIndex + 0.5) / (float)sampleCount) * kRadiusScale;
+    float angle = sampleIndex * kGoldenAngle + rotation;
+    return int2(round(float2(cos(angle), sin(angle)) * radius));
 }
 
 void GatherSparseRaySH(
@@ -77,23 +71,11 @@ void GatherSparseRaySH(
     float2 rayGrid = ((float2(probeFullResCoord) + 0.5) / 4.0) - 0.5;
     int2 rayCoordCenter = int2(floor(rayGrid + 0.5));
 
-    static const int2 kOffsets[9] =
-    {
-        int2(-1, -1),
-        int2(0, -1),
-        int2(1, -1),
-        int2(-1, 0),
-        int2(0, 0),
-        int2(1, 0),
-        int2(-1, 1),
-        int2(0, 1),
-        int2(1, 1)
-    };
-
     uint2 rayRtSize = GetRayAtlasResolution(perMaterial.rtSize.xy);
     int2 rayMaxCoord = int2(rayRtSize) - 1;
     uint frameIndex = (uint)perScene.scene.frameIndex;
     float totalWeight = 0.0;
+    float rotation = perMaterial.noiseTex[uint2(probeFullResCoord.x % 128, probeFullResCoord.y % 128)].x * 6.28318530718;
 
     outSH0 = 0;
     outSH1 = 0;
@@ -103,7 +85,8 @@ void GatherSparseRaySH(
     [unroll]
     for (int i = 0; i < 9; ++i)
     {
-        uint2 rayCoord = uint2(clamp(rayCoordCenter + kOffsets[i], int2(0, 0), rayMaxCoord));
+        int2 sampleOffset = GetVogelRayOffset(i, 9, rotation);
+        uint2 rayCoord = uint2(clamp(rayCoordCenter + sampleOffset * 2, int2(0, 0), rayMaxCoord));
         SparseRaySample sample = LoadSparseRaySample(
             perScene,
             perMaterial.hierarchyDepth,
@@ -125,7 +108,7 @@ void GatherSparseRaySH(
         if (weight <= 0.0)
             continue;
 
-        float4 shBasis = GetLinearSHBasis(sample.rayDir);
+        float4 shBasis = sample.shBasis;
         outSH0 += shBasis * sample.radiance.r * weight;
         outSH1 += shBasis * sample.radiance.g * weight;
         outSH2 += shBasis * sample.radiance.b * weight;
@@ -229,7 +212,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // for low accumulated tile, we blur from sh among 5x5 tiles
     // this fix for edges and small disocclusion, but if this is a large disocclusion, we still can't find proper probes in history to resolve
     // TODO: let borrow happen in Resolve?
-    if (accumRatio < 0.99 && !isOffScreen)
+    if (isDisoccluded && !isOffScreen)
     {
         uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
         int2 probeMaxCoord = int2(probeRtSize) - 1;

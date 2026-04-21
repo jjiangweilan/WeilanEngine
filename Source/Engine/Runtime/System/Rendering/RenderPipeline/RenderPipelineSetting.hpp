@@ -167,6 +167,7 @@ public:
     struct GI
     {
         bool enabled = false;
+        bool enablePostBlur = true;
         bool debug_giOutput = false;
         bool debug_giAccumulationOutput = false;
         bool secondary_bounce = false;
@@ -199,6 +200,7 @@ public:
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
+            SER(enablePostBlur),
             SER(debug_giOutput),
             SER(debug_giAccumulationOutput),
             SER(secondary_bounce),

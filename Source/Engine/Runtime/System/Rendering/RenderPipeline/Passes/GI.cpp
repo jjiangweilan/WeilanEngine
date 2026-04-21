@@ -285,6 +285,7 @@ void GI::Execute(
     mat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     mat.SetTexture("rayDataTex", GetGfxDriver()->GetImageFromRenderGraph(giRayData));
     mat.SetTexture("rayMetaTex", GetGfxDriver()->GetImageFromRenderGraph(giRayMeta));
+    mat.SetTexture("noiseTex", renderingData.blueNoise.GetNoiseTexture());
 
     mat.SetTexture("historySH0Tex", historySH0.get());
     mat.SetTexture("historySH1Tex", historySH1.get());
@@ -488,7 +489,7 @@ void GI::Execute(
     const int totalIterationCount = std::max(stablePassCount, unstablePassCount);
 
     Gfx::ImageIdentifier postBlurInput = giIrradiance;
-    if (totalIterationCount > 0)
+    if (setting->gi.enablePostBlur && totalIterationCount > 0)
     {
         cmd->AllocateAttachment(giPostBlurAtrousA, postBlurAtrousDesc);
         cmd->AllocateAttachment(giPostBlurAtrousB, postBlurAtrousDesc);

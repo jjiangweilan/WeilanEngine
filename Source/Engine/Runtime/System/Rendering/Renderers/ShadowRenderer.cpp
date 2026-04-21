@@ -106,12 +106,16 @@ float4x4 ShadowRenderer::GetWorldToShadowMatrix(Light& light, RenderingData& ren
         shadowFrustumAABB.max = glm::max(shadowFrustumAABB.max, corners[i]);
     }
 
+    // prevent frustum too tight
+    shadowFrustumAABB.min -= 2.5;
+    shadowFrustumAABB.max += 2.5;
+
     // not the best solution, but it prevents shaow pixel swimming when the camera is moving
     {
-        shadowFrustumAABB.min.x = glm::round(shadowFrustumAABB.min.x);
-        shadowFrustumAABB.min.y = glm::round(shadowFrustumAABB.min.y);
-        shadowFrustumAABB.max.x = glm::round(shadowFrustumAABB.max.x);
-        shadowFrustumAABB.max.y = glm::round(shadowFrustumAABB.max.y);
+        shadowFrustumAABB.min.x = glm::floor(shadowFrustumAABB.min.x);
+        shadowFrustumAABB.min.y = glm::floor(shadowFrustumAABB.min.y);
+        shadowFrustumAABB.max.x = glm::ceil(shadowFrustumAABB.max.x);
+        shadowFrustumAABB.max.y = glm::ceil(shadowFrustumAABB.max.y);
     }
 
     shadowFrustumAABB.min.z -= 300.0f; // reserve some space for what's behind the camera

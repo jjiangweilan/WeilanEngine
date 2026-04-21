@@ -104,8 +104,8 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     static const float3 kLuminanceWeights = float3(0.2126, 0.7152, 0.0722);
     float3 indirectLight = 0;
-    float3 representativeDirSum = 0;
-    float representativeDirWeightSum = 0.0;
+    float4 representativeBasisSum = 0;
+    float representativeBasisWeightSum = 0.0;
     float3 fallbackRayDir = normalWS;
 
     for (uint rayIndex = 0; rayIndex < rayCount; ++rayIndex)
@@ -115,6 +115,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         float3 currentNormal = normalWS;
         float3 rayContribution = 0.0;
         float3 firstRayDir = normalWS;
+        float4 firstRayBasis = GetLinearSHBasis(normalWS);
 
         for (uint bounce = 0; bounce < totalBounce; ++bounce)
         {
@@ -123,7 +124,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float3 rayDir = GetSemiSphereDirection(currentNormal, sampleUv, sinTheta);
 
             if (bounce == 0)
+            {
                 firstRayDir = rayDir;
+                firstRayBasis = GetLinearSHBasis(rayDir);
+            }
 
             SurfaceHit hit = GetRayHitSurface(perMaterial.sceneBVH, perScene, currentOrigin, rayDir);
             if (hit.hit)
@@ -145,15 +149,15 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         fallbackRayDir = rayIndex == 0 ? firstRayDir : fallbackRayDir;
 
         float representativeWeight = dot(max(rayContribution, 0.0), kLuminanceWeights);
-        representativeDirSum += firstRayDir * representativeWeight;
-        representativeDirWeightSum += representativeWeight;
+        representativeBasisSum += firstRayBasis * representativeWeight;
+        representativeBasisWeightSum += representativeWeight;
     }
 
     float invRayCount = 1.0 / max((float)rayCount, 1.0);
-    float3 representativeDir = representativeDirWeightSum > 1e-6
-        ? normalize(representativeDirSum / representativeDirWeightSum)
-        : normalize(fallbackRayDir);
+    float4 representativeBasis = representativeBasisWeightSum > 1e-6
+        ? representativeBasisSum / representativeBasisWeightSum
+        : GetLinearSHBasis(normalize(fallbackRayDir));
 
     perMaterial.outRayDataTex[rayCoord] = float4(max(indirectLight * invRayCount, 0.0), (float)rayCount);
-    perMaterial.outRayMetaTex[rayCoord] = float4(EncodeOcta(representativeDir), 0.0, 0.0);
+    perMaterial.outRayMetaTex[rayCoord] = representativeBasis;
 }
