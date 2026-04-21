@@ -83,6 +83,7 @@ float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
 struct SurfaceHit
 {
     bool   hit;
+    float  rayDistance;
     float3 position;
     float3 normal;
     float3 albedo;
@@ -102,6 +103,7 @@ SurfaceHit GetRayHitSurface(
 {
     SurfaceHit result;
     result.hit         = false;
+    result.rayDistance = -1.0;
     result.position    = 0;
     result.normal      = 0;
     result.albedo      = 0;
@@ -136,6 +138,7 @@ SurfaceHit GetRayHitSurface(
 
         result.position = hitData.position;
         result.normal   = hitData.normal;
+        result.rayDistance = distance(hitData.position, rayOrigin);
 
         float4 albedo = matData.baseColorFactor;
         if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
@@ -203,18 +206,64 @@ float3 IndirectRayHitLight(
     }
 }
 
-int2 _GetZOrderCoord2x2(uint index)
+float3 DecodeGIWorldNormal(Texture2D normalTex, SamplerState pointSampler, float2 uv)
 {
-    // index is expected to be between 0 and 3
-    uint x = index & 0x01;
-    uint y = (index & 0x02) >> 1;
-    
-    return int2(x, y);
+    float3 normalWS = normalTex.SampleLevel(pointSampler, uv, 0).xyz;
+    return DecodeGBufferNormal(normalWS);
 }
 
-uint2 GetTileOffset(uint2 coord, uint frameIndex, uint2 shProbeRtSize)
+struct SparseRaySample
 {
-    return hash_u32_v2(uint2(frameIndex, coord.x + coord.y * shProbeRtSize.x)) % 2;
+    bool valid;
+    float3 radiance;
+    float3 rayDir;
+    float3 sourceNormal;
+    float3 sourcePosition;
+    float2 sourceUv;
+};
+
+SparseRaySample MakeInvalidSparseRaySample()
+{
+    SparseRaySample sample;
+    sample.valid = false;
+    sample.radiance = 0;
+    sample.rayDir = 0;
+    sample.sourceNormal = 0;
+    sample.sourcePosition = 0;
+    sample.sourceUv = 0;
+    return sample;
+}
+
+bool LoadProbeGeometry(
+    ParameterBlock<PerScene> scene,
+    Texture2D hierarchyDepth,
+    Texture2D normalTex,
+    SamplerState pointSampler,
+    float4 rtSize,
+    float distanceScale,
+    uint2 probeCoord,
+    out uint2 probeFullResCoord,
+    out float2 probeUv,
+    out float3 probePosition,
+    out float3 probeNormal,
+    out float probePlaneThreshold)
+{
+    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy);
+    probeUv = GetFullResUv(probeFullResCoord, rtSize);
+
+    float depth = hierarchyDepth.SampleLevel(pointSampler, probeUv, 0).x;
+    if (depth <= 0.0000001)
+    {
+        probePosition = 0;
+        probeNormal = 0;
+        probePlaneThreshold = 0;
+        return false;
+    }
+
+    probePosition = ReconstructWorldPos(scene, probeUv, depth);
+    probeNormal = normalize(DecodeGIWorldNormal(normalTex, pointSampler, probeUv));
+    probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(scene, distanceScale, probePosition);
+    return true;
 }
 
 uint2 GetSHProbeResolution(float2 fullResRtSize)
@@ -223,14 +272,362 @@ uint2 GetSHProbeResolution(float2 fullResRtSize)
     return size;
 }
 
+uint2 GetRayAtlasResolution(float2 fullResRtSize)
+{
+    return uint2(uint(fullResRtSize.x + 3) / 4, uint(fullResRtSize.y + 3) / 4);
+}
+
+uint2 ClampFullResCoord(uint2 coord, float2 fullResRtSize)
+{
+    uint2 maxCoord = uint2(fullResRtSize) - 1;
+    return min(coord, maxCoord);
+}
+
+uint2 GetRayTileOffset(uint2 coord, uint frameIndex, uint2 rayRtSize)
+{
+    uint linearIndex = coord.x + coord.y * max(rayRtSize.x, 1);
+    return hash_u32_v2(uint2(frameIndex, linearIndex)) % 4;
+}
+
+uint2 GetRaySourceCoord(uint2 rayCoord, uint frameIndex, float2 fullResRtSize)
+{
+    uint2 rayRtSize = GetRayAtlasResolution(fullResRtSize);
+    uint2 tileOffset = GetRayTileOffset(rayCoord, frameIndex, rayRtSize);
+    return ClampFullResCoord(rayCoord * 4 + tileOffset, fullResRtSize);
+}
+
+uint2 GetSHProbeSourceCoord(uint2 probeCoord, float2 fullResRtSize)
+{
+    return ClampFullResCoord(probeCoord * 2, fullResRtSize);
+}
+
+uint2 GetSHProbeCoordFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize)
+{
+    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize);
+    return min(fullResCoord / 2, probeRtSize - 1);
+}
+
+float GetSHProbeGridFromFullResCoord1D(float fullResCoord, uint fullResSize)
+{
+    float clampedFullResCoord = clamp(fullResCoord, 0.0, float(fullResSize - 1));
+    uint probeSize = (fullResSize + 1) / 2;
+    uint probeCoord = min((uint)(clampedFullResCoord * 0.5), probeSize - 1);
+    uint nextProbeCoord = min(probeCoord + 1, probeSize - 1);
+    float probeSourceCoord = float(min(probeCoord * 2, fullResSize - 1));
+    float nextProbeSourceCoord = float(min(nextProbeCoord * 2, fullResSize - 1));
+    if (nextProbeSourceCoord <= probeSourceCoord)
+        return (float)probeCoord;
+
+    // Interpolate between the representative full-res probe anchors so odd
+    // render-target sizes keep the last partial tile aligned to the last pixel.
+    return (float)probeCoord + ((clampedFullResCoord - probeSourceCoord) / (nextProbeSourceCoord - probeSourceCoord));
+}
+
+float2 GetSHProbeGridFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize)
+{
+    uint2 fullResSize = uint2(fullResRtSize);
+    return float2(
+        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.x, fullResSize.x),
+        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.y, fullResSize.y)
+    );
+}
+
+float2 GetSHProbeGridFromFullResUv(float2 fullResUv, float2 fullResRtSize)
+{
+    uint2 fullResSize = uint2(fullResRtSize);
+    return float2(
+        GetSHProbeGridFromFullResCoord1D(fullResUv.x * fullResRtSize.x - 0.5, fullResSize.x),
+        GetSHProbeGridFromFullResCoord1D(fullResUv.y * fullResRtSize.y - 0.5, fullResSize.y)
+    );
+}
+
+uint2 GetSHProbeCoordFromFullResUv(float2 fullResUv, float2 fullResRtSize)
+{
+    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize);
+    float2 probeGrid = GetSHProbeGridFromFullResUv(fullResUv, fullResRtSize);
+    return min(uint2(probeGrid + 0.5), probeRtSize - 1);
+}
+
 float2 GetFullResUv(uint2 fullResCoord, float4 fullResRtSize)
 {
     float2 fullResUv = (float2(min(fullResCoord, fullResRtSize.xy - 1)) + 0.5f) * fullResRtSize.zw;
     return fullResUv;
 }
 
-float2 GI_FromFullResUv_to_SHProbeUv(float2 fullResUv, float2 fullResRtSize, float2 shProbeTexelSize)
+SparseRaySample LoadSparseRaySample(
+    ParameterBlock<PerScene> scene,
+    Texture2D hierarchyDepth,
+    Texture2D normalTex,
+    SamplerState pointSampler,
+    Texture2D<float4> rayDataTex,
+    Texture2D<float4> rayMetaTex,
+    float4 rtSize,
+    uint2 rayCoord,
+    uint frameIndex)
 {
-    float2 fullResPixelCoord = fullResUv * fullResRtSize;
-    return uint2(fullResPixelCoord / 2) * shProbeTexelSize;
+    SparseRaySample sample = MakeInvalidSparseRaySample();
+
+    uint2 sourceCoord = GetRaySourceCoord(rayCoord, frameIndex, rtSize.xy);
+    float2 sourceUv = GetFullResUv(sourceCoord, rtSize);
+    float sourceDepth = hierarchyDepth.SampleLevel(pointSampler, sourceUv, 0).x;
+    if (sourceDepth <= 0.0000001)
+        return sample;
+
+    float4 rayData = rayDataTex.Load(int3(rayCoord, 0));
+    float4 rayMeta = rayMetaTex.Load(int3(rayCoord, 0));
+
+    sample.valid = true;
+    sample.radiance = max(rayData.rgb, 0.0);
+    sample.rayDir = DecodeOcta(rayMeta.xy);
+    sample.sourceUv = sourceUv;
+    sample.sourcePosition = ReconstructWorldPos(scene, sourceUv, sourceDepth);
+    sample.sourceNormal = normalize(DecodeGIWorldNormal(normalTex, pointSampler, sourceUv));
+    return sample;
+}
+
+float ComputeRayFeatureWeight(
+    SparseRaySample sample,
+    float3 probePosition,
+    float3 probeNormal,
+    float probePlaneThreshold)
+{
+    if (!sample.valid)
+        return 0.0;
+
+    float normalWeight = saturate((dot(probeNormal, sample.sourceNormal) - 0.8) / 0.2);
+    float planeDistance = abs(dot(probeNormal, sample.sourcePosition - probePosition));
+    float planeWeight = saturate(1.0 - planeDistance / probePlaneThreshold);
+    return normalWeight * planeWeight;
+}
+
+struct ReservoirState
+{
+    bool valid;
+    SparseRaySample sample;
+    float weightSum;
+};
+
+void InitReservoirState(out ReservoirState reservoir)
+{
+    reservoir.valid = false;
+    reservoir.sample = MakeInvalidSparseRaySample();
+    reservoir.weightSum = 0.0;
+}
+
+float ReservoirRandom(uint frameIndex, uint2 probeCoord, uint candidateIndex)
+{
+    uint packedCoord = probeCoord.x ^ hash_u32(probeCoord.y + 0x9e3779b9u);
+    uint seed = hash_u32(frameIndex ^ hash_u32(packedCoord ^ hash_u32(candidateIndex + 0x85ebca6bu)));
+    return (float(seed) + 0.5) / 4294967296.0;
+}
+
+void ReservoirAddSample(
+    inout ReservoirState reservoir,
+    SparseRaySample sample,
+    float candidateWeight,
+    float randomValue)
+{
+    if (!sample.valid || candidateWeight <= 0.0)
+        return;
+
+    reservoir.weightSum += candidateWeight;
+    if (!reservoir.valid || randomValue * reservoir.weightSum <= candidateWeight)
+    {
+        reservoir.valid = true;
+        reservoir.sample = sample;
+    }
+}
+
+SparseRaySample LoadStoredReservoirSample(
+    Texture2D<float4> reservoirDataTex,
+    Texture2D<float4> reservoirMetaTex,
+    uint2 probeCoord)
+{
+    SparseRaySample sample = MakeInvalidSparseRaySample();
+    float4 reservoirData = reservoirDataTex.Load(int3(probeCoord, 0));
+    if (reservoirData.a <= 0.0)
+        return sample;
+
+    float4 reservoirMeta = reservoirMetaTex.Load(int3(probeCoord, 0));
+    sample.valid = true;
+    sample.radiance = max(reservoirData.rgb, 0.0);
+    sample.rayDir = DecodeOcta(reservoirMeta.xy);
+    return sample;
+}
+
+SparseRaySample LoadHistoryReservoirSample(
+    ParameterBlock<PerScene> scene,
+    Texture2D<float4> reservoirDataTex,
+    Texture2D<float4> reservoirMetaTex,
+    Texture2D<float2> reservoirSourceTex,
+    Texture2D<float> historyDepthTex,
+    Texture2D<float4> historyNormalTex,
+    SamplerState pointSampler,
+    uint2 probeCoord,
+    out float weightSum,
+    out float accumRatio)
+{
+    SparseRaySample sample = MakeInvalidSparseRaySample();
+    float4 reservoirData = reservoirDataTex.Load(int3(probeCoord, 0));
+    float4 reservoirMeta = reservoirMetaTex.Load(int3(probeCoord, 0));
+
+    weightSum = max(reservoirMeta.z, 0.0);
+    accumRatio = saturate(reservoirMeta.w);
+
+    if (reservoirData.a <= 0.0)
+        return sample;
+
+    float2 sourceUv = reservoirSourceTex.Load(int3(probeCoord, 0)).xy;
+    float sourceDepth = historyDepthTex.SampleLevel(pointSampler, sourceUv, 0).x;
+    if (sourceDepth <= 0.0000001)
+        return sample;
+
+    sample.valid = true;
+    sample.radiance = max(reservoirData.rgb, 0.0);
+    sample.rayDir = DecodeOcta(reservoirMeta.xy);
+    sample.sourceUv = sourceUv;
+    sample.sourcePosition = ReconstructPreviousWorldPos(scene, sourceUv, sourceDepth);
+    sample.sourceNormal = normalize(
+        DecodeGBufferNormal(historyNormalTex.SampleLevel(pointSampler, sourceUv, 0).xyz)
+    );
+    return sample;
+}
+
+void StoreReservoirSample(
+    RWTexture2D<float4> outReservoirDataTex,
+    RWTexture2D<float4> outReservoirMetaTex,
+    RWTexture2D<float2> outReservoirSourceTex,
+    uint2 probeCoord,
+    ReservoirState reservoir,
+    float accumRatio)
+{
+    if (!reservoir.valid)
+    {
+        outReservoirDataTex[probeCoord] = 0;
+        outReservoirMetaTex[probeCoord] = 0;
+        outReservoirSourceTex[probeCoord] = 0;
+        return;
+    }
+
+    outReservoirDataTex[probeCoord] = float4(reservoir.sample.radiance, 1.0);
+    outReservoirMetaTex[probeCoord] = float4(
+        EncodeOcta(normalize(reservoir.sample.rayDir)),
+        reservoir.weightSum,
+        saturate(accumRatio)
+    );
+    outReservoirSourceTex[probeCoord] = reservoir.sample.sourceUv;
+}
+
+static const float kProbeAccumulationMaxFrames = 48.0;
+
+float EncodeProbeAccumulationFrames(float frames)
+{
+    return saturate(frames / kProbeAccumulationMaxFrames);
+}
+
+float DecodeProbeAccumulationFrames(float normalizedFrames)
+{
+    return max(saturate(normalizedFrames) * kProbeAccumulationMaxFrames, 1.0);
+}
+
+float Min4(float4 value)
+{
+    return min(min(value.x, value.y), min(value.z, value.w));
+}
+
+uint ComputeAdaptiveRayCountFromHistory(float minAccumRatio, float lowRayCount, float maxRayCount, float stableAccumFrames)
+{
+    float clampedLowRayCount = max(min(lowRayCount, maxRayCount), 1.0);
+    float clampedMaxRayCount = max(max(lowRayCount, maxRayCount), 1.0);
+    float clampedStableFrames = max(stableAccumFrames, 1.0);
+    float accumFrames = saturate(minAccumRatio) * kProbeAccumulationMaxFrames;
+    float t = saturate(accumFrames / clampedStableFrames);
+    return (uint)clamp(round(lerp(clampedMaxRayCount, clampedLowRayCount, t)), clampedLowRayCount, clampedMaxRayCount);
+}
+
+float GetViewDepth(ParameterBlock<PerScene> scene, float3 positionWS)
+{
+    return abs(mul(scene.camera.view, float4(positionWS, 1.0)).z);
+}
+
+float GetAdaptivePlaneDistanceThreshold(ParameterBlock<PerScene> scene, float distanceScale, float3 positionWS)
+{
+    return max(distanceScale * GetViewDepth(scene, positionWS), 1e-4);
+}
+
+float3 ReconstructWorldPos(ParameterBlock<PerScene> scene, float2 uv, float depth)
+{
+    float4 posWS4 = mul(scene.camera.invNDCToWorld, float4(uv * 2.0 - 1.0, depth, 1.0));
+    return posWS4.xyz / posWS4.w;
+}
+
+float3 ReconstructPreviousWorldPos(ParameterBlock<PerScene> scene, float2 uv, float prevDepth)
+{
+    float4 posWS4 = mul(scene.camera.invPreviousViewProjection, float4(uv * 2.0 - 1.0, prevDepth, 1.0));
+    return posWS4.xyz / posWS4.w;
+}
+
+bool EvaluateProbeDisocclusion(
+    ParameterBlock<PerScene> scene,
+    Texture2D<float2> motionVectorTex,
+    Texture2D<float> historyDepthTex,
+    Texture2D<float4> historyNormalTex,
+    SamplerState pointSampler,
+    float4 rtSize,
+    uint2 probeCoord,
+    float2 probeUv,
+    float3 probePosition,
+    float3 probeNormal,
+    float probePlaneThreshold,
+    out uint2 historyProbeCoord)
+{
+    float2 motion = motionVectorTex.SampleLevel(pointSampler, probeUv, 0).xy;
+    float2 prevUV = probeUv - motion;
+
+    historyProbeCoord = 0;
+    bool isOffScreen = prevUV.x < 0.0 || prevUV.x >= 1.0 || prevUV.y < 0.0 || prevUV.y >= 1.0;
+    if (isOffScreen)
+        return true;
+
+    historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUV, rtSize.xy);
+    uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, rtSize.xy);
+    float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, rtSize);
+    float historyDepth = historyDepthTex.SampleLevel(pointSampler, historyProbeUv, 0).x;
+    if (historyDepth <= 0.0000001)
+        return true;
+
+    float3 historyPosition = ReconstructPreviousWorldPos(scene, historyProbeUv, historyDepth);
+    float3 historyNormal = normalize(
+        DecodeGBufferNormal(historyNormalTex.SampleLevel(pointSampler, historyProbeUv, 0).xyz)
+    );
+
+    float historyPlaneDistance = length(historyPosition - probePosition);
+    return historyPlaneDistance > probePlaneThreshold || dot(probeNormal, historyNormal) < 0.9;
+}
+
+float2 OctaSignNotZero(float2 value)
+{
+    return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
+}
+
+float2 EncodeOcta(float3 direction)
+{
+    direction /= max(abs(direction.x) + abs(direction.y) + abs(direction.z), 1e-6);
+    float2 oct = direction.xy;
+    if (direction.z < 0.0)
+    {
+        oct = (1.0 - abs(oct.yx)) * OctaSignNotZero(oct);
+    }
+    return oct * 0.5 + 0.5;
+}
+
+float3 DecodeOcta(float2 encoded)
+{
+    float2 oct = encoded * 2.0 - 1.0;
+    float3 direction = float3(oct.x, oct.y, 1.0 - abs(oct.x) - abs(oct.y));
+    if (direction.z < 0.0)
+    {
+        direction.xy = (1.0 - abs(direction.yx)) * OctaSignNotZero(direction.xy);
+    }
+    return normalize(direction);
 }

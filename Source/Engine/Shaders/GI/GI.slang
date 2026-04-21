@@ -1,32 +1,23 @@
 import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
-import Utils.Noise;
-import Library.RayTracing;
 import Lighting;
 import GI.GI_Common;
-
-#define GI_WS_DEBUG 0
-
-#if GI_WS_DEBUG
-#include "../s2h/s2h.hlsl"
-#include "../s2h/s2h_3d.hlsl"
-#endif
 
 struct GIParameter
 {
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
-    float secondary_bounce;
+    float distanceScale;
 
     // Full-res G-buffer inputs
     Texture2D hierarchyDepth;
     Texture2D normalTex;
-    Texture2D albedoTex;
-    Texture2D<float4> noiseTex;
     Texture2D<float2> motionVectorTex;
-    StructuredBuffer<float2> haltonSeq;
+    Texture2D<float> disocclusionMaskTex;
+    Texture2D<float4> rayDataTex;
+    Texture2D<float4> rayMetaTex;
 
-    // Quarter-res SH history (previous frame)
+    // Half-res SH history (previous frame)
     Texture2D<float4> historySH0Tex;
     Texture2D<float4> historySH1Tex;
     Texture2D<float4> historySH2Tex;
@@ -36,22 +27,13 @@ struct GIParameter
     Texture2D<float> historyDepthTex;
     Texture2D<float4> historyNormalTex;
 
-    // Quarter-res SH outputs (current frame)
+    // Half-res SH outputs (current frame)
     RWTexture2D<float4> outSH0Tex;
     RWTexture2D<float4> outSH1Tex;
     RWTexture2D<float4> outSH2Tex;
     RWTexture2D<float> outAccumTex;
 
-#if GI_WS_DEBUG
-    // Full-res debug output (xyz = color, w = depth)
-    RWTexture2D<float4> outDebugTex;
-    float4 debugPixel;
-#endif
-
     SamplerState sampler_point_clamp;
-    SamplerState sampler_linear_clamp;
-
-    RaytracingAccelerationStructure sceneBVH;
 };
 
 [Global]
@@ -65,196 +47,251 @@ float3 GetNormalWS(float2 uv)
     return DecodeGBufferNormal(normalWS);
 }
 
-#define diff3(f, x, y) (((f((x) + (y))) + (f((x) - (y))) - 2.*(f((x)))) / dot(y,y))
-
-float hash21(float2 p)
+float4 GetLinearSHBasis(float3 direction)
 {
-	float3 q = fract(float3(p.xyx) * .1031);
-    q += dot(q, q.yzx + 19.19);
-    return frac((q.x + q.y) * q.z);
+    static const float Y00 = 0.28209479;
+    static const float Y1 = 0.48860251;
+    float3 dir = normalize(direction);
+    return float4(Y00, Y1 * dir.x, Y1 * dir.y, Y1 * dir.z);
 }
 
-//source https://www.shadertoy.com/view/Wtfczs
-float bluenoise(float2 p)
+float CalculateSHLuminance(float4 shRed, float4 shGreen, float4 shBlue)
 {
-    return 1./4. * (
-          diff3(hash21, p, float2(1,0)) 
-        + diff3(hash21, p, float2(0,1))
-        ) + .5;
+    // Match outSH0Tex/outSH1Tex/outSH2Tex packing. Use the DC term only for a
+    // stable scalar luminance estimate; summing directional coefficients is not
+    // a meaningful brightness measure for clamping.
+    static const float3 kLuminanceWeights = float3(0.2126, 0.7152, 0.0722);
+    return dot(float3(shRed.x, shGreen.x, shBlue.x), kLuminanceWeights);
 }
 
-struct GIContext
+void GatherSparseRaySH(
+    uint2 probeFullResCoord,
+    float3 probePositionWS,
+    float3 probeNormalWS,
+    float probePlaneThreshold,
+    out float4 outSH0,
+    out float4 outSH1,
+    out float4 outSH2,
+    out bool hasValidCurrentSample)
 {
-    uint2 tileCoord;
-    float2 fullResUv;
-    float3 posWS;
-    float3 normalWS;
-    float3 firstRay;
+    float2 rayGrid = ((float2(probeFullResCoord) + 0.5) / 4.0) - 0.5;
+    int2 rayCoordCenter = int2(floor(rayGrid + 0.5));
 
-    SurfaceHit hit;
+    static const int2 kOffsets[9] =
+    {
+        int2(-1, -1),
+        int2(0, -1),
+        int2(1, -1),
+        int2(-1, 0),
+        int2(0, 0),
+        int2(1, 0),
+        int2(-1, 1),
+        int2(0, 1),
+        int2(1, 1)
+    };
 
-    float4 sh0;
-    float4 sh1;
-    float4 sh2;
-    float accumCount;
-};
-
-GIContext CalcGI(uint2 dispatchThreadID)
-{
-    GIContext context;
-
-    uint2 tileCoord = dispatchThreadID.xy;
-    context.tileCoord = tileCoord;
-    uint2 quarterSize = GetSHProbeResolution(perMaterial.rtSize.xy);
-    if (context.tileCoord.x >= quarterSize.x || context.tileCoord.y >= quarterSize.y)
-        return context;
-
+    uint2 rayRtSize = GetRayAtlasResolution(perMaterial.rtSize.xy);
+    int2 rayMaxCoord = int2(rayRtSize) - 1;
     uint frameIndex = (uint)perScene.scene.frameIndex;
-    // Select a random sub-pixel within the 4x4 tile
-    uint2 offset = GetTileOffset(context.tileCoord, frameIndex, quarterSize);
-    uint2 fullResCoord = context.tileCoord * 2 + offset;
+    float totalWeight = 0.0;
 
-    float2 fullResUv = GetFullResUv(fullResCoord, perMaterial.rtSize);// (float2(min(fullResCoord, perMaterial.rtSize.xy - 1)) + 0.5f) * perMaterial.rtSize.zw;
-    context.fullResUv = fullResUv;
+    outSH0 = 0;
+    outSH1 = 0;
+    outSH2 = 0;
+    hasValidCurrentSample = false;
 
-    // Reproject and read history SH
-    float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 0).xy;
-    float2 prevUV = fullResUv - motion;
-    uint2 prevCoord = (prevUV * perMaterial.rtSize.xy) / 2;
-
-    float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, fullResUv, 1).x;
-    if (depth <= 0.0000001)
+    [unroll]
+    for (int i = 0; i < 9; ++i)
     {
-        context.sh0 = 0;
-        context.sh1 = 0;
-        context.sh2 = 0;
-        context.accumCount = 0;
-        return context;
+        uint2 rayCoord = uint2(clamp(rayCoordCenter + kOffsets[i], int2(0, 0), rayMaxCoord));
+        SparseRaySample sample = LoadSparseRaySample(
+            perScene,
+            perMaterial.hierarchyDepth,
+            perMaterial.normalTex,
+            perMaterial.sampler_point_clamp,
+            perMaterial.rayDataTex,
+            perMaterial.rayMetaTex,
+            perMaterial.rtSize,
+            rayCoord,
+            frameIndex
+        );
+
+        float weight = ComputeRayFeatureWeight(
+            sample,
+            probePositionWS,
+            probeNormalWS,
+            probePlaneThreshold
+        );
+        if (weight <= 0.0)
+            continue;
+
+        float4 shBasis = GetLinearSHBasis(sample.rayDir);
+        outSH0 += shBasis * sample.radiance.r * weight;
+        outSH1 += shBasis * sample.radiance.g * weight;
+        outSH2 += shBasis * sample.radiance.b * weight;
+        totalWeight += weight;
     }
 
-    float4 posWS4   = mul(perScene.camera.invNDCToWorld, float4(fullResUv * 2.0 - 1.0, depth, 1.0));
-    context.posWS    = posWS4.xyz / posWS4.w;
-    context.normalWS = normalize(GetNormalWS(fullResUv));
-
-    // Combine Halton low-discrepancy sequence with blue noise for temporally stable sampling
-    float2 halton    = perMaterial.haltonSeq[frameIndex % 32];
-    float2 blueNoise = perMaterial.noiseTex[uint2(fullResCoord) % 128].xy;
-    float2 randVal   = frac(halton + blueNoise);
-
-    const uint totalBounce = perMaterial.secondary_bounce > 0.5 ? 2 : 1;
-
-    float3 indirectLight     = 0;
-    float3 currentThroughput = 1.0;
-    float3 currentOrigin     = OffsetRay(context.posWS, context.normalWS);
-    float3 currentNormal     = context.normalWS;
-    float3 firstRayDir       = float3(0, 1, 0);
-
-    for (uint bounce = 0; bounce < totalBounce; bounce++)
+    if (totalWeight > 1e-6)
     {
-        float sinTheta = 0;
-        float2 uv = bounce == 0 ? randVal : frac(randVal + 0.6180339887);
-        float3 rayDir = GetSemiSphereDirection(currentNormal, uv, sinTheta);
-        sinTheta = max(sinTheta, 0.001); // Avoid division by zero
-
-        if (bounce == 0)
-            firstRayDir = rayDir;
-
-        context.hit = GetRayHitSurface(perMaterial.sceneBVH, perScene, currentOrigin, rayDir, dispatchThreadID.xy);
-        if (context.hit.hit)
-        {
-            indirectLight     += currentThroughput * (context.hit.emissive + context.hit.albedo * context.hit.directLight);
-            currentThroughput *= context.hit.albedo;
-            currentOrigin      = OffsetRay(context.hit.position, context.hit.normal);
-            currentNormal      = context.hit.normal;
-        }
-        else
-        {
-            Light mainLight  = perScene.GetMainLight();
-            indirectLight   += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 20;
-            break;
-        }
+        float invTotalWeight = 1.0 / totalWeight;
+        outSH0 *= invTotalWeight;
+        outSH1 *= invTotalWeight;
+        outSH2 *= invTotalWeight;
+        hasValidCurrentSample = true;
     }
-    context.firstRay = firstRayDir;
-
-    indirectLight = max(indirectLight, 0.00001); // Avoid black SH which can cause issues for ZH3
-
-    // Encode incoming radiance into Linear SH (L0 + L1)
-    static const float Y00 = 0.28209479; // 1 / sqrt(4 * PI)
-    static const float Y1  = 0.48860251; // sqrt(3 / (4 * PI))
-
-    float4 shBases = float4(Y00, Y1 * firstRayDir.x, Y1 * firstRayDir.y, Y1 * firstRayDir.z);
-    float4 newSH0 = shBases * indirectLight.r;
-    float4 newSH1 = shBases * indirectLight.g;
-    float4 newSH2 = shBases * indirectLight.b;
-
-    // --- Disocclusion detection & history compensation ---
-    float alpha = 1.0f;
-    float4 finalHistSH0 = 0;
-    float4 finalHistSH1 = 0;
-    float4 finalHistSH2 = 0;
-
-    float currentDepth = depth;
-
-    // 1. Check direct reprojection (center pixel)
-    bool isOffScreen = prevUV.x < 0 || prevUV.x > 1 || prevUV.y < 0 || prevUV.y > 1;
-
-    float centerHistDepth = isOffScreen ? 0.0f : perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
-    float3 centerHistNormal = isOffScreen ? float3(0, 0, 0) : DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz);
-
-    bool isDisoccluded = isOffScreen;
-                         // (abs(LinearEyeDepth(currentDepth, perScene.camera.cameraZBufferParams) - LinearEyeDepth(centerHistDepth, perScene.camera.cameraZBufferParams)) > 0.05f) ||
-                         // (dot(context.normalWS, centerHistNormal) < 0.9f);
-
-    if (!isDisoccluded)
-    {
-        // Center is valid — fast path
-        finalHistSH0 = perMaterial.historySH0Tex.Load(int3(prevCoord, 0));
-        finalHistSH1 = perMaterial.historySH1Tex.Load(int3(prevCoord, 0));
-        finalHistSH2 = perMaterial.historySH2Tex.Load(int3(prevCoord, 0));
-        float histAccum = perMaterial.historyAccumTex.Load(int3(prevCoord, 0)).x;
-        context.accumCount = min(histAccum + (1.0f / 255.0f), 1.0f);
-        alpha = lerp(0.04f, 1.0f, 1 - clamp((context.accumCount * 255) / 16.0f, 0.0f, 1.0f));
-    }
-    else
-    {
-        context.accumCount = 1.0f / 255.0f;
-        alpha = 1.0f;
-    }
-
-    // Exponential moving average blend
-    context.sh0 = lerp(finalHistSH0, newSH0, alpha);
-    context.sh1 = lerp(finalHistSH1, newSH1, alpha);
-    context.sh2 = lerp(finalHistSH2, newSH2, alpha);
-
-    return context;
 }
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    GIContext context = CalcGI(dispatchThreadID.xy);
+    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
+        return;
 
-#if GI_WS_DEBUG
-    // debug
-    GIContext debugGIcontext = CalcGI((uint2)perMaterial.debugPixel.xy);
-    Context3D debugContext;
-    float3 dir = perScene.UvToWorldRay(context.fullResUv);
-    s2h_init(debugContext, perScene.camera.position.xyz, dir);
-    s2h_drawLineWS(debugContext, debugGIcontext.posWS, debugGIcontext.posWS + debugGIcontext.normalWS * 0.1, float4(0, 1, 0, 1), 0.01);
-    s2h_drawLineWS(debugContext, debugGIcontext.posWS, debugGIcontext.hit.position, float4(0, 1, 0, 1), 0.01);
+    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
+    float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
+    if (depth <= 0.0000001)
+    {
+        perMaterial.outSH0Tex[probeCoord] = 0;
+        perMaterial.outSH1Tex[probeCoord] = 0;
+        perMaterial.outSH2Tex[probeCoord] = 0;
+        perMaterial.outAccumTex[probeCoord] = 0;
+        return;
+    }
 
-    s2h_drawLineWS(debugContext, debugGIcontext.hit.position, debugGIcontext.hit.position + debugGIcontext.hit.normal * 2, float4(1, 0, 0, 1), 0.01);
+    float3 probePositionWS = ReconstructWorldPos(perScene, probeUv, depth);
+    float3 probeNormalWS = normalize(GetNormalWS(probeUv));
+    float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePositionWS);
 
-    float4 debugNdc = mul(perScene.camera.viewProjection, float4(debugContext.ro + debugContext.rd * debugContext.depth, 1.0));
-    perMaterial.outDebugTex[2 * dispatchThreadID.xy] = float4(debugContext.dstColor.xyz, debugNdc.z / debugNdc.w);
-    perMaterial.outDebugTex[2 * dispatchThreadID.xy + uint2(1,0)] = float4(debugContext.dstColor.xyz, debugNdc.z / debugNdc.w);
-    perMaterial.outDebugTex[2 * dispatchThreadID.xy + uint2(0,1)] = float4(debugContext.dstColor.xyz, debugNdc.z / debugNdc.w);
-    perMaterial.outDebugTex[2 * dispatchThreadID.xy + uint2(1,1)] = float4(debugContext.dstColor.xyz, debugNdc.z / debugNdc.w);
-#endif
+    float4 currentSH0 = 0;
+    float4 currentSH1 = 0;
+    float4 currentSH2 = 0;
+    bool isDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(probeCoord, 0)).x > 0.5;
+    bool hasValidCurrentSample = false;
+    GatherSparseRaySH(
+        probeFullResCoord,
+        probePositionWS,
+        probeNormalWS,
+        probePlaneThreshold,
+        currentSH0,
+        currentSH1,
+        currentSH2,
+        hasValidCurrentSample
+    );
 
-    perMaterial.outSH0Tex[context.tileCoord] = context.sh0;
-    perMaterial.outSH1Tex[context.tileCoord] = context.sh1;
-    perMaterial.outSH2Tex[context.tileCoord] = context.sh2;
-    perMaterial.outAccumTex[context.tileCoord] = context.accumCount;
+    float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).xy;
+    float2 prevUV = probeUv - motion;
+
+    float4 historySH0 = 0;
+    float4 historySH1 = 0;
+    float4 historySH2 = 0;
+    float accumRatio = hasValidCurrentSample ? EncodeProbeAccumulationFrames(1.0) : 0.0;
+    float alpha = 1.0;
+    uint2 reprojectedCoord = 0;
+
+    bool isOffScreen = prevUV.x < 0.0 || prevUV.x >= 1.0 || prevUV.y < 0.0 || prevUV.y >= 1.0;
+    if (!isDisoccluded)
+    {
+        reprojectedCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
+        uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(reprojectedCoord, perMaterial.rtSize.xy);
+        float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, perMaterial.rtSize);
+        float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, historyProbeUv, 0).x;
+        if (historyDepth > 0.0000001)
+        {
+            float3 historyPositionWS = ReconstructPreviousWorldPos(perScene, historyProbeUv, historyDepth);
+            float3 historyNormal = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, historyProbeUv, 0).xyz));
+            float historyPlaneDistance = length(historyPositionWS - probePositionWS); // just use distance here
+            if (historyPlaneDistance <= probePlaneThreshold && dot(probeNormalWS, historyNormal) >= 0.9)
+            {
+                historySH0 = perMaterial.historySH0Tex.Load(int3(reprojectedCoord, 0));
+                historySH1 = perMaterial.historySH1Tex.Load(int3(reprojectedCoord, 0));
+                historySH2 = perMaterial.historySH2Tex.Load(int3(reprojectedCoord, 0));
+
+                float historyAccum = perMaterial.historyAccumTex.Load(int3(reprojectedCoord, 0)).x;
+                if (!hasValidCurrentSample)
+                {
+                    accumRatio = historyAccum;
+                    alpha = 0.0;
+                }
+                else
+                {
+                    accumRatio = min(historyAccum + EncodeProbeAccumulationFrames(1.0), 1.0);
+                    alpha = 1 / (DecodeProbeAccumulationFrames(accumRatio));
+                }
+            }
+        }
+    }
+
+    // for low accumulated tile, we blur from sh among 5x5 tiles
+    // this fix for edges and small disocclusion, but if this is a large disocclusion, we still can't find proper probes in history to resolve
+    // TODO: let borrow happen in Resolve?
+    if (accumRatio < 0.99 && !isOffScreen)
+    {
+        uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
+        int2 probeMaxCoord = int2(probeRtSize) - 1;
+        float4 historyBlurredSH0 = 0;
+        float4 historyBlurredSH1 = 0;
+        float4 historyBlurredSH2 = 0;
+        float historyAccumWeightedSum = 0.0;
+        float historyTotalWeight = 0.0;
+
+        for (int y = -2; y <= 2; ++y)
+        {
+            for (int x = -2; x <= 2; ++x)
+            {
+                int2 candidateCoordI = clamp(int2(historyCenterCoord) + int2(x, y), int2(0, 0), probeMaxCoord);
+                uint2 candidateCoord = uint2(candidateCoordI);
+                uint2 candidateFullResCoord = GetSHProbeSourceCoord(candidateCoord, perMaterial.rtSize.xy);
+                float2 candidateUv = GetFullResUv(candidateFullResCoord, perMaterial.rtSize);
+                float candidateDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, candidateUv, 0).x;
+                if (candidateDepth <= 0.0000001)
+                    continue;
+
+                float3 candidatePositionWS = ReconstructPreviousWorldPos(perScene, candidateUv, candidateDepth);
+                float3 candidateNormalWS = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, candidateUv, 0).xyz));
+                float candidatePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, candidatePositionWS);
+                float probeCandidatePlaneThreshold = max(probePlaneThreshold, candidatePlaneThreshold);
+
+                float normalWeight = dot(probeNormalWS, candidateNormalWS) >= 0.9 ? 1.0 : 0.0;
+                if (normalWeight <= 0.0)
+                    continue;
+
+                float planeDistance = abs(dot(probeNormalWS, candidatePositionWS - probePositionWS));
+                float planeWeight = planeDistance <= probeCandidatePlaneThreshold ? 1.0 : 0.0f;
+                if (planeWeight <= 0.0)
+                    continue;
+
+                float candidateAccumRatio = perMaterial.historyAccumTex.Load(int3(candidateCoord, 0)).x;
+                float accumWeight = max(DecodeProbeAccumulationFrames(candidateAccumRatio), 1.0);
+                float weight = normalWeight * planeWeight * accumWeight;
+                if (weight <= 0.0)
+                    continue;
+
+                historyBlurredSH0 += perMaterial.historySH0Tex.Load(int3(candidateCoord, 0)) * weight;
+                historyBlurredSH1 += perMaterial.historySH1Tex.Load(int3(candidateCoord, 0)) * weight;
+                historyBlurredSH2 += perMaterial.historySH2Tex.Load(int3(candidateCoord, 0)) * weight;
+                historyAccumWeightedSum += candidateAccumRatio * weight;
+                historyTotalWeight += weight;
+            }
+        }
+
+        if (historyTotalWeight > 1e-6)
+        {
+            float invHistoryTotalWeight = 1.0 / historyTotalWeight;
+            historySH0 = historyBlurredSH0 * invHistoryTotalWeight;
+            historySH1 = historyBlurredSH1 * invHistoryTotalWeight;
+            historySH2 = historyBlurredSH2 * invHistoryTotalWeight;
+            accumRatio = max(accumRatio, historyAccumWeightedSum * invHistoryTotalWeight);
+            alpha = 1 / (DecodeProbeAccumulationFrames(accumRatio));
+        }
+    }
+
+    perMaterial.outSH0Tex[probeCoord] = lerp(historySH0, currentSH0, alpha);
+    perMaterial.outSH1Tex[probeCoord] = lerp(historySH1, currentSH1, alpha);
+    perMaterial.outSH2Tex[probeCoord] = lerp(historySH2, currentSH2, alpha);
+    perMaterial.outAccumTex[probeCoord] = accumRatio;
 }

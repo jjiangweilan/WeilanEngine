@@ -18,9 +18,6 @@
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
                          Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \
-                         Do(GI_Temporal, "GI/GI_Temporal"),                                                 \
-                         Do(GI_ATrous, "GI/GI_ATrous"),                                                     \
-                         Do(GI_VariancePrefilter, "GI/GI_VariancePrefilter"),                               \
                          Do(LightingCombine, "LightingCombine"),                                             \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
@@ -46,10 +43,15 @@
                          Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                 \
                          Do(DepthBasedFog, "DepthBasedFog"),                                                 \
                          Do(OceanPatchShader, "OceanPatchShader"),                                           \
-                         Do(RayTracingTest, "RayTracingTest"),                                              \
-                         Do(GI_GI, "GI/GI"),                                                        \
-                         Do(GI_Resolve, "GI/GI_Resolve"),                                            \
-                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                             \
+                         Do(RayTracingTest, "RayTracingTest"),                                               \
+                         Do(GI_RayGen, "GI/GI_RayGen"),                                                     \
+                         Do(GI_Disocclusion, "GI/GI_Disocclusion"),                                         \
+                         Do(GI_GI, "GI/GI"),                                                                \
+                         Do(GI_HistoryFix, "GI/GI_HistoryFix"),                                             \
+                         Do(GI_Blur, "GI/GI_Blur"),                                                         \
+                         Do(GI_PostBlur, "GI/GI_PostBlur"),                                                 \
+                         Do(GI_Resolve, "GI/GI_Resolve"),                                                   \
+                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                                \
                          Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
@@ -262,3 +264,4 @@ private:
     // Try to load shader from compiled cache, returns true if successful
     bool TryLoadFromCache(const char* name, ShaderPermutation permutation);
 };
+

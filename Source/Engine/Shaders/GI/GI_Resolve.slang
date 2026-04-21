@@ -27,12 +27,20 @@ float3 DecodeLinearSH(float4 sh0, float4 sh1, float4 sh2, float3 normal)
 struct GIResolveParameter
 {
     float4 texelSize; // xy: 1/width, 1/height; zw: width, height
+    float distanceScale;
+    float resolveClampWeightScale;
 
     Texture2D<float4> rtgiSH0Tex;
     Texture2D<float4> rtgiSH1Tex;
     Texture2D<float4> rtgiSH2Tex;
+    Texture2D<float> accumTex;
+    Texture2D<float> disocclusionMaskTex;
     Texture2D normalTex;
+    Texture2D<float2> motionVectorTex;
     Texture2D hierarchyDepth;
+    Texture2D<float> historyDepthTex;
+    Texture2D<float4> historyNormalTex;
+    Texture2D<float4> historyIrradianceTex;
 
     [format("rgba16f")]
     RWTexture2D<float4> outIrradianceTex;
@@ -45,6 +53,14 @@ struct GIResolveParameter
 ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIResolveParameter> perMaterial;
+
+float CalculateLuminance(float3 value)
+{
+    static const float3 kLuminanceWeights = float3(0.2126, 0.7152, 0.0722);
+    return dot(value, kLuminanceWeights);
+}
+
+static const float kHistoryClampSlack = 1.01;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
@@ -59,83 +75,135 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float2 uv = (float2(coord) + 0.5) * texelSize;
     float3 normalWS = normalize(DecodeGBufferNormal(perMaterial.normalTex.Load(int3(coord, 0)).xyz));
 
-    // Reconstruct current pixel world position from hierarchy depth mip 0
     float currentDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).x;
+    if (currentDepth <= 0.0000001)
+    {
+        perMaterial.outIrradianceTex[coord] = 0;
+        return;
+    }
+
     float4 currentPosH = mul(perScene.camera.invNDCToWorld, float4(uv * 2.0 - 1.0, currentDepth, 1.0));
     float3 currentPos = currentPosH.xyz / currentPosH.w;
 
-    static int2 probeTileSearchOffset[5] =
+    uint2 shSize = GetSHProbeResolution(perMaterial.texelSize.zw);
+    float2 probeGrid = GetSHProbeGridFromFullResCoord(coord, perMaterial.texelSize.zw);
+    int2 shCoord00 = int2(floor(probeGrid));
+    int2 shMaxCoord = int2(shSize) - 1;
+    float2 probeFrac = frac(probeGrid);
+
+    static const int2 kOffsets[4] =
     {
         int2(0, 0),
         int2(1, 0),
-        int2(-1, 0),
         int2(0, 1),
-        int2(0, -1)
+        int2(1, 1)
     };
 
-    // Determine the 4 nearest SH probe coordinates (SH textures are quarter-resolution)
-    uint2 shSize = GetSHProbeResolution(perMaterial.texelSize.zw);
-    float2 shUvPixels = GI_FromFullResUv_to_SHProbeUv(uv, perMaterial.texelSize.zw, 1.0f / shSize.xy) * shSize;
-    int2 shCoord00 = int2(floor(shUvPixels));
-    int2 shMaxCoord = int2(shSize) - 1;
+    float weights[4] =
+    {
+        (1.0 - probeFrac.x) * (1.0 - probeFrac.y),
+        probeFrac.x * (1.0 - probeFrac.y),
+        (1.0 - probeFrac.x) * probeFrac.y,
+        probeFrac.x * probeFrac.y
+    };
 
-    float weights[4];
     float4 sh0Samples[4];
     float4 sh1Samples[4];
     float4 sh2Samples[4];
     float totalWeight = 0;
+    float4 fullResRtSize = float4(perMaterial.texelSize.zw, perMaterial.texelSize.xy);
 
-    // Search for valid probes with non-zero weight, expanding outward in a cross pattern
-    for(int probeTileSearchIndex = 0; probeTileSearchIndex < 5; probeTileSearchIndex++)
+    [unroll]
+    for (int i = 0; i < 4; ++i)
     {
-        int2 offsets[4] =
-            {
-                int2(0,0),
-                int2(1,0),
-                int2(0,1),
-                int2(1,1)
-            };
-
-        for (int i = 0; i < 4; i++)
+        int2 sc = clamp(shCoord00 + kOffsets[i], int2(0, 0), shMaxCoord);
+        sh0Samples[i] = perMaterial.rtgiSH0Tex.Load(int3(sc, 0));
+        sh1Samples[i] = perMaterial.rtgiSH1Tex.Load(int3(sc, 0));
+        sh2Samples[i] = perMaterial.rtgiSH2Tex.Load(int3(sc, 0));
+        if (perMaterial.disocclusionMaskTex.Load(int3(sc, 0)).x > 0.5)
         {
-            int2 sc = clamp(shCoord00 + probeTileSearchOffset[probeTileSearchIndex] + offsets[i], int2(0, 0), shMaxCoord);
-
-            sh0Samples[i] = perMaterial.rtgiSH0Tex.Load(int3(sc, 0));
-            sh1Samples[i] = perMaterial.rtgiSH1Tex.Load(int3(sc, 0));
-            sh2Samples[i] = perMaterial.rtgiSH2Tex.Load(int3(sc, 0));
-
-            // Reconstruct probe world position from hierarchy depth mip 1
-            float2 probeUv = (float2(sc) + 0.5) / shSize;
-            float probeDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 1).x;
-            float4 probePosH = mul(perScene.camera.invNDCToWorld, float4(probeUv * 2.0 - 1.0, probeDepth, 1.0));
-            float3 probePos = probePosH.xyz / probePosH.w;
-
-            float3 diff = probePos - currentPos;
-            float distSq = dot(diff, diff);
-            float planeDist = dot(normalWS, diff);
-            float w = (distSq > 0.0064 ? 0 : distSq) * (planeDist > -0.1 ? 1.0 : 0.0);
-            weights[i] = w;
+            weights[i] = 0.0;
+            continue;
         }
 
-        totalWeight = weights[0] + weights[1] + weights[2] + weights[3];
-        if (totalWeight >= 1e-6)
+        uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw);
+        float2 probeUv = GetFullResUv(probeSourceCoord, fullResRtSize);
+        float probeDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
+        if (probeDepth <= 0.0000001)
         {
-            break;
+            weights[i] = 0.0;
+            continue;
         }
+
+        float3 probePos = ReconstructWorldPos(perScene, probeUv, probeDepth);
+        float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePos);
+        float3 diff = probePos - currentPos;
+        float distSq = dot(diff, diff);
+        float planeDist = dot(normalWS, diff);
+        float accumWeight = perMaterial.accumTex.Load(int3(sc, 0)).x;
+        float distWeight = saturate(1.0 - distSq / 0.0064);
+        float planeWeight = saturate(1.0 - abs(planeDist) / probePlaneThreshold);
+
+        weights[i] *= distWeight * planeWeight * (accumWeight > 0.95 ? 1 : 0);
+        totalWeight += weights[i];
     }
 
+    float3 irradiance = 0.0;
     if (totalWeight < 1e-6)
     {
-        weights[0] = 0.25; weights[1] = 0.25; weights[2] = 0.25; weights[3] = 0.25;
-        totalWeight = 1.0;
+        int2 fallbackCoord = int2(GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw));
+        float4 sh0 = perMaterial.rtgiSH0Tex.Load(int3(fallbackCoord, 0));
+        float4 sh1 = perMaterial.rtgiSH1Tex.Load(int3(fallbackCoord, 0));
+        float4 sh2 = perMaterial.rtgiSH2Tex.Load(int3(fallbackCoord, 0));
+        irradiance = DecodeLinearSH(sh0, sh1, sh2, normalWS);
+    }
+    else
+    {
+        float invTotal = 1.0 / totalWeight;
+        float4 sh0 = (sh0Samples[0] * weights[0] + sh0Samples[1] * weights[1] + sh0Samples[2] * weights[2] + sh0Samples[3] * weights[3]) * invTotal;
+        float4 sh1 = (sh1Samples[0] * weights[0] + sh1Samples[1] * weights[1] + sh1Samples[2] * weights[2] + sh1Samples[3] * weights[3]) * invTotal;
+        float4 sh2 = (sh2Samples[0] * weights[0] + sh2Samples[1] * weights[1] + sh2Samples[2] * weights[2] + sh2Samples[3] * weights[3]) * invTotal;
+
+        irradiance = DecodeLinearSH(sh0, sh1, sh2, normalWS);
     }
 
-    float invTotal = 1.0 / totalWeight;
-    float4 sh0 = (sh0Samples[0] * weights[0] + sh0Samples[1] * weights[1] + sh0Samples[2] * weights[2] + sh0Samples[3] * weights[3]) * invTotal;
-    float4 sh1 = (sh1Samples[0] * weights[0] + sh1Samples[1] * weights[1] + sh1Samples[2] * weights[2] + sh1Samples[3] * weights[3]) * invTotal;
-    float4 sh2 = (sh2Samples[0] * weights[0] + sh2Samples[1] * weights[1] + sh2Samples[2] * weights[2] + sh2Samples[3] * weights[3]) * invTotal;
-
-    float3 irradiance = DecodeLinearSH(sh0, sh1, sh2, normalWS);
+    uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw);
+    bool nearestProbeDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(nearestProbeCoord, 0)).x > 0.5;
+    // if (!nearestProbeDisoccluded)
+    {
+        float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
+        float2 prevUV = uv - motion;
+        bool isOffScreen = prevUV.x < 0.0 || prevUV.x >= 1.0 || prevUV.y < 0.0 || prevUV.y >= 1.0;
+        // if (!isOffScreen)
+        {
+            float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
+            if (historyDepth > 0.00000001)
+            {
+                float3 historyPosition = ReconstructPreviousWorldPos(perScene, prevUV, historyDepth);
+                float3 historyNormal = normalize(
+                    DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz)
+                );
+                float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, currentPos);
+                // if (length(historyPosition - currentPos) <= probePlaneThreshold && dot(normalWS, historyNormal) >= 0.9)
+                {
+                    float3 historyIrradiance = max(
+                        perMaterial.historyIrradianceTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz,
+                        0.0
+                    );
+                    float currentLum = CalculateLuminance(irradiance);
+                    float historyLum = CalculateLuminance(historyIrradiance);
+                    float clampWeight = saturate(
+                        saturate(perMaterial.accumTex.Load(int3(nearestProbeCoord, 0)).x)
+                    );
+                    float maxLum = lerp(currentLum , max(historyLum, 1e-6) * kHistoryClampSlack * perMaterial.resolveClampWeightScale, clampWeight);
+                    if (currentLum > maxLum && currentLum > 1e-6)
+                    {
+                        irradiance *= maxLum / currentLum;
+                    }
+                }
+            }
+        }
+    }
 
     // Output pure irradiance — albedo is applied later in LightingCombine
     perMaterial.outIrradianceTex[coord] = float4(irradiance, 1.0);

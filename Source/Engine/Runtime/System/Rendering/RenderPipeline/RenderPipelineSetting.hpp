@@ -168,34 +168,48 @@ public:
     {
         bool enabled = false;
         bool debug_giOutput = false;
+        bool debug_giAccumulationOutput = false;
         bool secondary_bounce = false;
+        uint32_t lowRayCount = 1;
+        uint32_t maxRayCount = 8;
+        float stableAccumFrames = 24.0f;
+        float adaptivePlaneProjectedCellPixels = 8.0f;
+        float resolveClampWeightScale = 1.0f;
         float4 debugPixel = {100, 100, 0, 0};
 
-        struct SVGF
+        struct BlurSettings
         {
-            bool enabled = true;
-            float temporalAlpha = 0.1f;
-            int atrousIterations = 4;
-            float sigmaDepth = 1.0f;
-            float sigmaNormal = 128.0f;
-            float sigmaLuminance = 4.0f;
+            int minRadius = 0;
+            int maxRadius = 2;
+            int stableAccumFrames = 16;
+            float planeSigma = 0.1f;
+            float minNormalDot = 0.8f;
 
             INLINE_DEFINE_SERIALIZABLE(
-                SER(enabled),
-                SER(temporalAlpha),
-                SER(atrousIterations),
-                SER(sigmaDepth),
-                SER(sigmaNormal),
-                SER(sigmaLuminance)
+                SER(minRadius),
+                SER(maxRadius),
+                SER(stableAccumFrames),
+                SER(planeSigma),
+                SER(minNormalDot)
             )
-        } svgf;
+        };
+
+        BlurSettings probeBlur;
+        BlurSettings postBlur;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
             SER(debug_giOutput),
+            SER(debug_giAccumulationOutput),
             SER(secondary_bounce),
+            SER(lowRayCount),
+            SER(maxRayCount),
+            SER(stableAccumFrames),
+            SER(adaptivePlaneProjectedCellPixels),
+            SER(resolveClampWeightScale),
             SER(debugPixel),
-            SER(svgf)
+            SER(probeBlur),
+            SER(postBlur)
         )
     } gi;
 };
