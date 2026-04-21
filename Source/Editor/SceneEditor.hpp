@@ -75,6 +75,11 @@ private:
     {
         bool isActive = false;
         float3 startPos = {0, 0, 0};
+        glm::vec3 moveVelocity = glm::vec3(0.0f);
+        glm::vec2 lookVelocity = glm::vec2(0.0f);
+        float yaw = 0.0f;
+        float pitch = 0.0f;
+        bool anglesInitialized = false;
     } cameraLookAroundContext; // when user press mouse right click, a camera look around context is initialized
                                // it provides some recording while user is moving the camera around
 

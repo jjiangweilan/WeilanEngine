@@ -1,6 +1,7 @@
 #include "SceneEditor.hpp"
 
 #include "Editor/EditorState.hpp"
+#include "Editor/EditorCameraControllerMath.hpp"
 #include "Editor/GameEditor.hpp"
 #include "Editor/Gizmos/Gizmo.hpp"
 #include "Editor/HudDebug.hpp"
@@ -93,6 +94,13 @@ void SceneEditor::Init(EditorContext* editorContext)
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
+    {
+        auto angles = ComputeEditorCameraAnglesFromForward(editorCamera->GetForward(), cameraLookAroundContext.yaw);
+        cameraLookAroundContext.yaw = angles.yaw;
+        cameraLookAroundContext.pitch = angles.pitch;
+        cameraLookAroundContext.anglesInitialized = true;
+    }
+
     outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
     outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
 
@@ -107,29 +115,36 @@ void SceneEditor::Init(EditorContext* editorContext)
 
 bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
-    // If the ImGui window is not hovered, exit the function
-    if (!ImGui::IsWindowHovered())
+    const bool isWindowHovered = ImGui::IsWindowHovered();
+    const bool isMouseRightButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const bool isMiddleButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
+    const bool allowLookControl = isWindowHovered || cameraLookAroundContext.isActive;
+    const bool allowPanControl = isWindowHovered || middleMouseTrack.isTracking;
+
+    if (!allowLookControl && !allowPanControl)
         return false;
 
-    // Get the mouse delta for the right mouse button
     auto mouseDelta = mouseTrack.GetMouseDelta(ImGuiMouseButton_Right);
     auto middleMouseDelta = middleMouseTrack.GetMouseDelta(ImGuiMouseButton_Middle);
-    bool isMouseRightButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
-    bool isMiddleButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
 
     bool moved = false;
+    const float deltaTime = glm::min(Time::DeltaTime(), 0.05f);
 
-    // Retrieve the game object associated with the editor camera
     auto go = editorCamera.GetGameObject();
     auto pos = go->GetPosition();
-    glm::mat4 model = go->GetWorldMatrix();
-    glm::vec3 right = glm::normalize(model[0]);    // Right direction vector
-    glm::vec3 up = glm::normalize(model[1]);       // Up direction vector
-    glm::vec3 forward = -glm::normalize(model[2]); // Forward direction vector
 
-    // Adjust camera speed if the Alt key is held down
+    if (!cameraLookAroundContext.anglesInitialized)
+    {
+        auto angles = ComputeEditorCameraAnglesFromForward(editorCamera.GetForward(), cameraLookAroundContext.yaw);
+        cameraLookAroundContext.yaw = angles.yaw;
+        cameraLookAroundContext.pitch = angles.pitch;
+        cameraLookAroundContext.anglesInitialized = true;
+    }
+
+    glm::vec3 forward = editorCamera.GetForward();
+
     float mouseWheel = ImGui::GetIO().MouseWheel;
-    if (isAltDown)
+    if (isWindowHovered && isAltDown)
     {
         if (mouseWheel != 0.0f)
         {
@@ -150,9 +165,8 @@ bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
             spdlog::info("change editor camera speed to {}", editorCameraSpeed);
         }
     }
-    else if (mouseWheel != 0.0f)
+    else if (isWindowHovered && mouseWheel != 0.0f)
     {
-        // scroll the mouse wheel to zoom in and out
         float zoomSpeed = editorCameraSpeed * 0.5f;
         pos += forward * zoomSpeed * mouseWheel;
         go->SetPosition(pos);
@@ -164,63 +178,88 @@ bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         if (!cameraLookAroundContext.isActive)
         {
             cameraLookAroundContext.isActive = true;
-            cameraLookAroundContext.startPos = editorCamera.GetGameObject()->GetPosition();
+            cameraLookAroundContext.startPos = pos;
+            cameraLookAroundContext.lookVelocity = glm::vec2(0.0f);
+
+            auto angles = ComputeEditorCameraAnglesFromForward(editorCamera.GetForward(), cameraLookAroundContext.yaw);
+            cameraLookAroundContext.yaw = angles.yaw;
+            cameraLookAroundContext.pitch = angles.pitch;
         }
 
-        // Calculate movement speed based on delta time
-        float speed = editorCameraSpeed * Time::DeltaTime();
+        if (glm::length2(mouseDelta) > 0.0f)
+        {
+            constexpr float mouseSensitivity = 0.0035f;
+            constexpr float lookSharpness = 24.0f;
+            constexpr float pitchLimit = glm::radians(89.0f);
+            glm::vec2 lookInput(-mouseDelta.x, mouseDelta.y);
+            lookInput *= mouseSensitivity;
 
-        glm::vec3 dir = glm::vec3(0);
+            float lookBlend = 1.0f - glm::exp(-lookSharpness * deltaTime);
+            cameraLookAroundContext.lookVelocity = glm::mix(cameraLookAroundContext.lookVelocity, lookInput, lookBlend);
+            cameraLookAroundContext.yaw += cameraLookAroundContext.lookVelocity.x;
+            cameraLookAroundContext.pitch = glm::clamp(
+                cameraLookAroundContext.pitch + cameraLookAroundContext.lookVelocity.y,
+                -pitchLimit,
+                pitchLimit
+            );
 
-        // Handle movement input for the camera
+            go->SetRotation(BuildEditorCameraRotation(cameraLookAroundContext.yaw, cameraLookAroundContext.pitch));
+            moved = true;
+        }
+        else
+        {
+            cameraLookAroundContext.lookVelocity = glm::vec2(0.0f);
+        }
+
+        glm::vec3 right = go->GetRight();
+        glm::vec3 up = go->GetUp();
+        forward = editorCamera.GetForward();
+
+        glm::vec3 moveInput(0.0f);
         if (ImGui::IsKeyDown(ImGuiKey_D))
         {
-            dir += right * speed; // Move right
+            moveInput += right;
         }
         if (ImGui::IsKeyDown(ImGuiKey_A))
         {
-            dir -= right * speed; // Move left
+            moveInput -= right;
         }
         if (ImGui::IsKeyDown(ImGuiKey_W))
         {
-            dir += forward * speed; // Move forward
+            moveInput += forward;
         }
         if (ImGui::IsKeyDown(ImGuiKey_S))
         {
-            dir -= forward * speed; // Move backward
+            moveInput -= forward;
         }
         if (ImGui::IsKeyDown(ImGuiKey_E))
         {
-            dir += up * speed; // Move up
+            moveInput += up;
         }
         if (ImGui::IsKeyDown(ImGuiKey_Q))
         {
-            dir -= up * speed; // Move down
+            moveInput -= up;
         }
 
-        // Update the position of the game object
-        if (glm::length2(dir) > 0.0f)
+        if (glm::length2(moveInput) > 0.0f)
         {
-            pos += dir;
+            moveInput = glm::normalize(moveInput);
+        }
+
+        const float blendSpeed = glm::length2(moveInput) > 0.0f ? 16.0f : 22.0f;
+        const float moveBlend = 1.0f - glm::exp(-blendSpeed * deltaTime);
+        glm::vec3 targetVelocity = moveInput * editorCameraSpeed;
+        cameraLookAroundContext.moveVelocity = glm::mix(cameraLookAroundContext.moveVelocity, targetVelocity, moveBlend);
+
+        if (glm::length2(cameraLookAroundContext.moveVelocity) < 1e-4f)
+        {
+            cameraLookAroundContext.moveVelocity = glm::vec3(0.0f);
+        }
+
+        if (glm::length2(cameraLookAroundContext.moveVelocity) > 0.0f)
+        {
+            pos += cameraLookAroundContext.moveVelocity * deltaTime;
             go->SetPosition(pos);
-            moved = true;
-        }
-
-        // Calculate camera rotation based on mouse movement
-        if (glm::length2(mouseDelta) > 0.0f)
-        {
-            float pitchDelta = 25.0f * glm::radians(mouseDelta.y) * Time::DeltaTime();
-            float yawDelta = -25.0f * glm::radians(mouseDelta.x) * Time::DeltaTime();
-
-            glm::quat currentRot = go->GetRotation();
-
-            // Pitch rotates around the local X axis (right)
-            glm::quat pitchQuat = glm::angleAxis(pitchDelta, glm::vec3(1.0f, 0.0f, 0.0f));
-            // Yaw rotates around the global Y axis (up)
-            glm::quat yawQuat = glm::angleAxis(yawDelta, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            // Applying yaw globally (left multiply) and pitch locally (right multiply)
-            go->SetRotation(glm::normalize(yawQuat * currentRot * pitchQuat));
             moved = true;
         }
     }
@@ -228,14 +267,10 @@ bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     {
         if (glm::length2(middleMouseDelta) > 0.0f)
         {
-            // Handle panning movement when the middle mouse button is held down
             float panSpeed = editorCameraSpeed * 0.05f;
 
             pos = go->GetPosition();
 
-            // middleMouseDelta x is right, y is down
-            // Moving mouse right should move camera left to "drag" the world
-            // Moving mouse down should move camera up
             pos -= (go->GetRight() * (middleMouseDelta.x * panSpeed) + go->GetUp() * (middleMouseDelta.y * panSpeed));
 
             go->SetPosition(pos);
@@ -246,6 +281,8 @@ bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     if (!isMouseRightButtonDown)
     {
         cameraLookAroundContext.isActive = false;
+        cameraLookAroundContext.moveVelocity = glm::vec3(0.0f);
+        cameraLookAroundContext.lookVelocity = glm::vec2(0.0f);
     }
 
     // Print the current position of the editor camera to the HUD
@@ -424,6 +461,10 @@ bool SceneEditor::Tick()
             if (auto mainCam = editorCamera)
             {
                 FocusOnObject(*mainCam, *go);
+                auto angles = ComputeEditorCameraAnglesFromForward(mainCam->GetForward(), cameraLookAroundContext.yaw);
+                cameraLookAroundContext.yaw = angles.yaw;
+                cameraLookAroundContext.pitch = angles.pitch;
+                cameraLookAroundContext.anglesInitialized = true;
                 cameraDirty = true;
             }
         }
@@ -697,6 +738,10 @@ bool SceneEditor::Tick()
                     invView[2] = -invView[2];
                     view = glm::inverse(invView);
                     mainCam->SetViewMatrix(view);
+                    auto angles = ComputeEditorCameraAnglesFromForward(mainCam->GetForward(), cameraLookAroundContext.yaw);
+                    cameraLookAroundContext.yaw = angles.yaw;
+                    cameraLookAroundContext.pitch = angles.pitch;
+                    cameraLookAroundContext.anglesInitialized = true;
                 }
 
                 // Projection mode toggle under the view gizmo
