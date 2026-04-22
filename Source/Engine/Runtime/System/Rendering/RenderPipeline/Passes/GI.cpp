@@ -64,9 +64,6 @@ GI::GI()
     giShader = ShaderLibrary::GetShader(Shaders::GI_GI);
     mat.SetShader(giShader);
 
-    historyFixShader = ShaderLibrary::GetShader(Shaders::GI_HistoryFix);
-    historyFixMat.SetShader(historyFixShader);
-
     blurShader = ShaderLibrary::GetShader(Shaders::GI_Blur);
     blurMat.SetShader(blurShader);
 
@@ -310,69 +307,7 @@ void GI::Execute(
     cmd->EndLabel(); // GI_SH
 
     // =========================================================================
-    // Pass 5: Build SH/view-Z mip chain for probe blur
-    // =========================================================================
-    cmd->BeginLabel("GI_HistoryFix", {0.24, 0.74, 0.44, 1.0});
-
-    static constexpr uint32_t kHistoryFixMipCount = 5;
-
-    Gfx::RenderImageDescriptor historyFixShDesc(probeWidth, probeHeight, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    historyFixShDesc.SetRandomWrite(true);
-    historyFixShDesc.SetMipLevels(kHistoryFixMipCount);
-    cmd->AllocateAttachment(giHistoryFixSH0, historyFixShDesc);
-    cmd->AllocateAttachment(giHistoryFixSH1, historyFixShDesc);
-    cmd->AllocateAttachment(giHistoryFixSH2, historyFixShDesc);
-
-    Gfx::RenderImageDescriptor historyFixViewZDesc(probeWidth, probeHeight, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    historyFixViewZDesc.SetRandomWrite(true);
-    historyFixViewZDesc.SetMipLevels(kHistoryFixMipCount);
-    cmd->AllocateAttachment(giHistoryFixViewZ, historyFixViewZDesc);
-
-    historyFixMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-    historyFixMat.SetTexture("inSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
-    historyFixMat.SetTexture("inSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
-    historyFixMat.SetTexture("inSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
-    historyFixMat.SetVector("rtSize", rtSize);
-
-    auto* historyFixSH0Image = GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH0);
-    auto* historyFixSH1Image = GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH1);
-    auto* historyFixSH2Image = GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH2);
-    auto* historyFixViewZImage = GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixViewZ);
-    for (int mip = 0; mip < (int)kHistoryFixMipCount; ++mip)
-    {
-        Gfx::ImageViewOption mipView(mip, 1, 0, 1, Gfx::ImageAspect::Color);
-        historyFixMat.GetShaderResource()->SetImage(
-            Gfx::ShaderBindingHandle("outSH0Mips"),
-            mip,
-            &historyFixSH0Image->GetImageView(mipView)
-        );
-        historyFixMat.GetShaderResource()->SetImage(
-            Gfx::ShaderBindingHandle("outSH1Mips"),
-            mip,
-            &historyFixSH1Image->GetImageView(mipView)
-        );
-        historyFixMat.GetShaderResource()->SetImage(
-            Gfx::ShaderBindingHandle("outSH2Mips"),
-            mip,
-            &historyFixSH2Image->GetImageView(mipView)
-        );
-        historyFixMat.GetShaderResource()->SetImage(
-            Gfx::ShaderBindingHandle("outViewZMips"),
-            mip,
-            &historyFixViewZImage->GetImageView(mipView)
-        );
-    }
-
-    auto* historyFixProgram = historyFixMat.GetShaderProgram();
-    cmd->BindResource(0, renderingData.globalResource);
-    cmd->BindResource(historyFixMat.GetSet(Gfx::DescriptorSetSemantics::Material), historyFixMat.GetShaderResource());
-    cmd->BindShaderProgram(historyFixProgram, historyFixProgram->GetDefaultShaderConfig());
-    cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
-
-    cmd->EndLabel(); // GI_HistoryFix
-
-    // =========================================================================
-    // Pass 6: Probe-atlas recurrent blur
+    // Pass 5: Probe-atlas recurrent blur
     // =========================================================================
     cmd->BeginLabel("GI_Blur", {0.25, 0.75, 0.45, 1.0});
 
@@ -386,10 +321,9 @@ void GI::Execute(
     blurMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     blurMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     blurMat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
-    blurMat.SetTexture("inSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH0));
-    blurMat.SetTexture("inSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH1));
-    blurMat.SetTexture("inSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixSH2));
-    blurMat.SetTexture("viewZTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryFixViewZ));
+    blurMat.SetTexture("inSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
+    blurMat.SetTexture("inSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
+    blurMat.SetTexture("inSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
     blurMat.SetTexture("accumTex", GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount));
     blurMat.SetTexture("outSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH0));
     blurMat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH1));
@@ -422,7 +356,7 @@ void GI::Execute(
 
     // =========================================================================
     // =========================================================================
-    // Pass 7: Full-res SH resolve
+    // Pass 6: Full-res SH resolve
     // =========================================================================
     cmd->BeginLabel("GI_Resolve", {0.3, 0.8, 0.5, 1.0});
 
@@ -460,7 +394,7 @@ void GI::Execute(
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giIrradiance)), Gfx::ImageIdentifier(*historyIrradiance));
 
     // =========================================================================
-    // Pass 8: Full-res irradiance a-trous post filter
+    // Pass 7: Full-res irradiance a-trous post filter
     // =========================================================================
     cmd->BeginLabel("GI_PostBlur", {0.28, 0.78, 0.48, 1.0});
 

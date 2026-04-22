@@ -15,7 +15,6 @@ struct GIBlurParameter
     Texture2D<float4> inSH0Tex;
     Texture2D<float4> inSH1Tex;
     Texture2D<float4> inSH2Tex;
-    Texture2D<float4> viewZTex;
     Texture2D<float> accumTex;
 
     [format("rgba16f")]
@@ -32,14 +31,6 @@ struct GIBlurParameter
 ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIBlurParameter> perMaterial;
-
-static const uint kHistoryFixMaxMip = 4;
-
-uint SelectBlurMip(float accumRatio)
-{
-    float mipF = round((1.0 - saturate(accumRatio)) * (float)kHistoryFixMaxMip);
-    return (uint)clamp(mipF, 0.0, (float)kHistoryFixMaxMip);
-}
 
 float3 GetNormalWS(float2 uv)
 {
@@ -104,7 +95,6 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float centerPlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, centerPos);
     float sigma = max(radius * 0.5, 0.5);
     float sigma2 = 2.0 * sigma * sigma;
-    float centerViewZ = perMaterial.viewZTex.Load(int3(probeCoord, 0)).x;
 
     float4 sh0Sum = 0;
     float4 sh1Sum = 0;
@@ -131,15 +121,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float samplePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, samplePos);
             float probePlaneThreshold = max(centerPlaneThreshold, samplePlaneThreshold);
             float normalWeight = dot(centerNormal, sampleNormal) >= saturate(perMaterial.minNormalDot) ? 1.0 : 0.0;
-            float sampleAccumRatio = perMaterial.accumTex.Load(int3(sampleCoord, 0)).x;
-            uint sampleMip = SelectBlurMip(sampleAccumRatio);
-            uint2 sampleMipCoord = sampleCoord >> sampleMip;
-            float sampleViewZ = perMaterial.viewZTex.Load(int3(sampleMipCoord, sampleMip)).x;
 
             float planeDistance = abs(dot(centerNormal, samplePos - centerPos));
             float planeWeight = planeDistance <= probePlaneThreshold ? 1.0 : 0.0;
-            float zSigma = max(perMaterial.blurParams.w * max(centerViewZ, sampleViewZ), 1e-4);
-            float viewZWeight = exp(-abs(centerViewZ - sampleViewZ) / zSigma);
             float weight = normalWeight * planeWeight;
             if (weight <= 0.0)
                 continue;

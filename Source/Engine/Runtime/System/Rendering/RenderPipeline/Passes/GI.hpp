@@ -69,10 +69,6 @@ private:
     Shader* giShader = nullptr;
     Material mat;
 
-    // History-fix pass: build SH + view-Z mip chains for blur.
-    Shader* historyFixShader = nullptr;
-    Material historyFixMat;
-
     // SH resolve pass.
     Shader* resolveShader = nullptr;
     Material resolveMat;
@@ -102,12 +98,6 @@ private:
     Gfx::ImageIdentifier giSH1 = "GI_SH1";
     Gfx::ImageIdentifier giSH2 = "GI_SH2";
     Gfx::ImageIdentifier giAccumulationCount = "GI_AccumulationCount";
-
-    // History-fix mip-chain outputs.
-    Gfx::ImageIdentifier giHistoryFixSH0 = "GI_HistoryFixSH0";
-    Gfx::ImageIdentifier giHistoryFixSH1 = "GI_HistoryFixSH1";
-    Gfx::ImageIdentifier giHistoryFixSH2 = "GI_HistoryFixSH2";
-    Gfx::ImageIdentifier giHistoryFixViewZ = "GI_HistoryFixViewZ";
 
     // Probe blur transient identifiers.
     Gfx::ImageIdentifier giBlurredSH0 = "GI_BlurredSH0";

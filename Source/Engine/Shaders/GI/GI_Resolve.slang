@@ -169,12 +169,12 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw);
     bool nearestProbeDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(nearestProbeCoord, 0)).x > 0.5;
-    // if (!nearestProbeDisoccluded)
+    if (!nearestProbeDisoccluded)
     {
         float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
         float2 prevUV = uv - motion;
         bool isOffScreen = prevUV.x < 0.0 || prevUV.x >= 1.0 || prevUV.y < 0.0 || prevUV.y >= 1.0;
-        // if (!isOffScreen)
+        if (!isOffScreen)
         {
             float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
             if (historyDepth > 0.00000001)
@@ -184,7 +184,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
                     DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz)
                 );
                 float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, currentPos);
-                // if (length(historyPosition - currentPos) <= probePlaneThreshold && dot(normalWS, historyNormal) >= 0.9)
+                if (length(historyPosition - currentPos) <= probePlaneThreshold && dot(normalWS, historyNormal) >= 0.9)
                 {
                     float3 historyIrradiance = max(
                         perMaterial.historyIrradianceTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz,

@@ -212,7 +212,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     // for low accumulated tile, we blur from sh among 5x5 tiles
     // this fix for edges and small disocclusion, but if this is a large disocclusion, we still can't find proper probes in history to resolve
     // TODO: let borrow happen in Resolve?
-    if (isDisoccluded && !isOffScreen)
+    if (isDisoccluded)
     {
         uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
         int2 probeMaxCoord = int2(probeRtSize) - 1;
@@ -250,7 +250,12 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
                 float candidateAccumRatio = perMaterial.historyAccumTex.Load(int3(candidateCoord, 0)).x;
                 float accumWeight = max(DecodeProbeAccumulationFrames(candidateAccumRatio), 1.0);
-                float weight = normalWeight * planeWeight * accumWeight;
+
+                float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / probePlaneThreshold);
+                if (distanceWeight <= 0.0)
+                    continue;
+
+                float weight = normalWeight * planeWeight * accumWeight * distanceWeight;
                 if (weight <= 0.0)
                     continue;
 
