@@ -21,6 +21,12 @@ RayTracingInstanceHandle VKRayTracingContext::CreateInstance(RayTracingMeshHandl
     return manager->CreateInstance(mesh, initialTransform, customIndex);
 }
 
+void VKRayTracingContext::UpdateInstanceTransform(RayTracingInstanceHandle instance, glm::float4x3 transform)
+{
+    std::scoped_lock lock(driverMutex);
+    manager->UpdateInstanceTransform(instance, transform);
+}
+
 void VKRayTracingContext::BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances)
 {
     std::scoped_lock lock(driverMutex);

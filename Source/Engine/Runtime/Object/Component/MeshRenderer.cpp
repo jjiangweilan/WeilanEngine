@@ -305,6 +305,14 @@ void MeshRenderer::TransformChanged()
     {
         scene->GetRenderingScene().UpdateRenderer(*this);
     }
+
+    if (isRayTracingInitialized && rayTracingInstance >= 0)
+    {
+        if (auto scene = GetScene())
+        {
+            scene->GetRenderingScene().UpdateRayTracingInstance(rayTracingInstance, GetGameObject()->GetWorldMatrix());
+        }
+    }
 }
 
 void MeshRenderer::CheckSkeleton()

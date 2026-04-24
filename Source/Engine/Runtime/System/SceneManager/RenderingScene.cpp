@@ -47,6 +47,15 @@ Gfx::RayTracingInstanceHandle RenderingScene::CreateInstance(MeshRenderer* rende
     return 0;
 }
 
+void RenderingScene::UpdateRayTracingInstance(Gfx::RayTracingInstanceHandle instance, glm::float4x3 transform)
+{
+    if (rayTracingContext == nullptr || instance < 0)
+        return;
+
+    rayTracingContext->UpdateInstanceTransform(instance, transform);
+    needsTLASRebuild = true;
+}
+
 void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
 {
     nodes.clear();

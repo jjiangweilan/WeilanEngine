@@ -11,6 +11,7 @@ public:
     RayTracingSceneHandle CreateScene(uint32_t maxInstanceCount) override;
     RayTracingMeshHandle CreateBLAS(std::span<BlasGeometry> geometries) override;
     RayTracingInstanceHandle CreateInstance(RayTracingMeshHandle mesh, glm::float4x3 initialTransform, uint32_t customIndex) override;
+    void UpdateInstanceTransform(RayTracingInstanceHandle instance, glm::float4x3 transform) override;
     void BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instances) override;
     void* GetNativeHandle(RayTracingSceneHandle scene);
 

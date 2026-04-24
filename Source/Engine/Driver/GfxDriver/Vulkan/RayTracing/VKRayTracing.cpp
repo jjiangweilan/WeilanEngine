@@ -9,6 +9,17 @@
 
 namespace Gfx::VKRayTracing
 {
+namespace
+{
+VkTransformMatrixKHR ToVkTransformMatrix(glm::float4x3 transform)
+{
+    const glm::float3x4& m = glm::transpose(transform);
+    VkTransformMatrixKHR vkTransform{};
+    memcpy(&vkTransform, &m, sizeof(vkTransform));
+    return vkTransform;
+}
+} // namespace
+
 RayTracingMeshHandle Manager::CreateBLAS(std::span<BlasGeometry> geometries)
 {
     auto device = VKContext::Instance()->device;
@@ -117,12 +128,8 @@ RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm:
     };
     VkDeviceAddress blasDeviceAddr = vkGetAccelerationStructureDeviceAddressKHR(device, &addrInfo);
 
-    const glm::float3x4& m = glm::transpose(initialTransform);
-    VkTransformMatrixKHR tm{};
-    memcpy(&tm, &m, sizeof(tm));
-
     VkAccelerationStructureInstanceKHR instance{
-        .transform = tm,
+        .transform = ToVkTransformMatrix(initialTransform),
         .instanceCustomIndex = customIndex,
         .mask = 0xFF,
         .instanceShaderBindingTableRecordOffset = 0,
@@ -134,6 +141,11 @@ RayTracingInstanceHandle Manager::CreateInstance(RayTracingMeshHandle mesh, glm:
     instancePool[instanceHandle].data = instance;
 
     return instanceHandle;
+}
+
+void Manager::UpdateInstanceTransform(RayTracingInstanceHandle instance, glm::float4x3 transform)
+{
+    instancePool[instance].data.transform = ToVkTransformMatrix(transform);
 }
 
 void Manager::BuildScene(const RayTracingSceneHandle& sceneHandle, std::span<RayTracingInstanceHandle> instanceHandles)

@@ -211,6 +211,7 @@ public:
 
     Gfx::RayTracingMeshHandle CreateBLAS(std::span<Gfx::BlasGeometry> geometries);
     Gfx::RayTracingInstanceHandle CreateInstance(MeshRenderer* renderer, Gfx::RayTracingMeshHandle mesh, glm::float4x3 transform);
+    void UpdateRayTracingInstance(Gfx::RayTracingInstanceHandle instance, glm::float4x3 transform);
 
     void Tick();
 
