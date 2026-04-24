@@ -27,3 +27,6 @@ docs/.obsidian-git-data
 docs/Untitled*
 docs/null*
 docs/.trash
+
+.worktree/
+.worktree/**
