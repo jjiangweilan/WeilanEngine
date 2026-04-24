@@ -443,6 +443,37 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndLabel(); // FXAA
     }
 
+    std::optional<Gfx::ImageIdentifier> gbufferDebugImage;
+    if (setting->debugDraw.gbufferAlbedo)
+    {
+        gbufferDebugImage = albedoGBuffer;
+    }
+    else if (setting->debugDraw.gbufferNormal)
+    {
+        gbufferDebugImage = normalGBuffer;
+    }
+    else if (setting->debugDraw.gbufferMask)
+    {
+        gbufferDebugImage = maskGBuffer;
+    }
+
+    if (gbufferDebugImage.has_value())
+    {
+        finalColor = gbufferDebugImage.value();
+    }
+    else
+    {
+        Gfx::ImageIdentifier debugImage;
+        for (auto& pass : renderPipelinePasses)
+        {
+            if (pass->DebugBlit(debugImage))
+            {
+                finalColor = debugImage;
+                break;
+            }
+        }
+    }
+
     // Pixel Zoom
     if (renderConfig.enablePixelZoom)
     {
@@ -737,17 +768,7 @@ bool RenderPipeline::IsCommandBufferOverriden()
 
 const Gfx::ImageIdentifier& RenderPipeline::GetOutputColor()
 {
-    Gfx::ImageIdentifier debugImage;
     finalColorId = finalColor;
-
-    for (auto& pass : renderPipelinePasses)
-    {
-        if (pass->DebugBlit(debugImage))
-        {
-            finalColorId = debugImage;
-            break;
-        }
-    }
 
     return finalColorId;
 }

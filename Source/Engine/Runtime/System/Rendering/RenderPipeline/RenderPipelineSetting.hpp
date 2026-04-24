@@ -78,12 +78,18 @@ public:
         bool wireframe = false;
         bool motionVectors = false;
         bool hierarchyZBuffer = false;
+        bool gbufferAlbedo = false;
+        bool gbufferNormal = false;
+        bool gbufferMask = false;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(drawMeshRendererAABB),
             SER(wireframe),
             SER(motionVectors),
-            SER(hierarchyZBuffer)
+            SER(hierarchyZBuffer),
+            SER(gbufferAlbedo),
+            SER(gbufferNormal),
+            SER(gbufferMask)
         );
 
     } debugDraw;
