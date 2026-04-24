@@ -200,22 +200,26 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float candidatePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, candidatePositionWS);
             float probeCandidatePlaneThreshold = candidatePlaneThreshold;
 
-            float normalWeight = dot(probeNormalWS, candidateNormalWS) >= 0.85 ? 1.0 : 0.0;
+            float normalWeight = dot(probeNormalWS, candidateNormalWS) >= 0.85 ? 1 : 0;
+
+            float3 cameraViewDir = normalize(candidatePositionWS - perScene.camera.position.xyz);
+            float viewDotNorm = dot(cameraViewDir, candidateNormalWS);
 
             float planeDistance = abs(dot(probeNormalWS, candidatePositionWS - probePositionWS));
-            float planeWeight = planeDistance <= probeCandidatePlaneThreshold ? 1.0 : 0.0f;
+            float planeWeight = saturate(1 - planeDistance / probeCandidatePlaneThreshold);
 
-            float candidateAccumRatio = perMaterial.historyAccumTex.Load(int3(candidateCoord, 0)).x;
 
-            float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / probePlaneThreshold);
+            float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / (probePlaneThreshold * lerp(100, 1, 1 - viewDotNorm)));
 
-            float weight = normalWeight * planeWeight * candidateAccumRatio * distanceWeight;
+            float weight = normalWeight * planeWeight * distanceWeight;
             if (weight > bestWeight)
             {
                 historySH0 = perMaterial.historySH0Tex.Load(int3(candidateCoord, 0));
                 historySH1 = perMaterial.historySH1Tex.Load(int3(candidateCoord, 0));
                 historySH2 = perMaterial.historySH2Tex.Load(int3(candidateCoord, 0));
                 bestWeight = weight;
+
+                float candidateAccumRatio = perMaterial.historyAccumTex.Load(int3(candidateCoord, 0)).x;
                 historyAccum = candidateAccumRatio;
             }
         }
