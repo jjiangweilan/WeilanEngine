@@ -69,6 +69,10 @@ void LightingCombinePass::Execute(
 
     mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
     mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, hasGI, 0.0f));
+    mat.SetFloat(
+        "giIntensityScale",
+        renderingData.renderPipelineSettings->gi.intensityScale * 3.1415926f
+    );
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
     cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());

@@ -94,8 +94,9 @@ public:
         // debug an optimized shader
         slang::CompilerOptionValue optimization{};
         optimization.kind = slang::CompilerOptionValueKind::Int;
-        optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
-                                       : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+        // optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
+        //                                : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+        optimization.intValue0 = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
 
         slang::CompilerOptionEntry compileOptions[] = {
             {slang::CompilerOptionName::DebugInformation, debugLevel},

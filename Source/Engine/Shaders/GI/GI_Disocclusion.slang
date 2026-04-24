@@ -11,7 +11,7 @@ struct GIDisocclusionParameter
     Texture2D normalTex;
     Texture2D<float2> motionVectorTex;
     Texture2D<float> historyDepthTex;
-    Texture2D<float4> historyNormalTex;
+    Texture2D historyNormalTex;
 
     RWTexture2D<float> outDisocclusionMaskTex;
 

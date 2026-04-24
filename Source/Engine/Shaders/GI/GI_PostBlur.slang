@@ -16,12 +16,17 @@ struct GIPostBlurParameter
 
     Texture2D hierarchyDepth;
     Texture2D normalTex;
-    Texture2D<float4> inIrradianceTex;
-    Texture2D<float> disocclusionMaskTex;
+    Texture2D<float4> inSH0Tex;
+    Texture2D<float4> inSH1Tex;
+    Texture2D<float4> inSH2Tex;
     Texture2D<float> accumTex;
 
     [format("rgba16f")]
-    RWTexture2D<float4> outIrradianceTex;
+    RWTexture2D<float4> outSH0Tex;
+    [format("rgba16f")]
+    RWTexture2D<float4> outSH1Tex;
+    [format("rgba16f")]
+    RWTexture2D<float4> outSH2Tex;
 
     SamplerState sampler_point_clamp;
 };
@@ -31,15 +36,8 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIPostBlurParameter> perMaterial;
 
-float3 GetNormalWS(float2 uv)
+float LoadAccumFrames(uint2 probeCoord)
 {
-    float3 normalWS = perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz;
-    return DecodeGBufferNormal(normalWS);
-}
-
-float LoadAccumFrames(uint2 fullResCoord)
-{
-    uint2 probeCoord = GetSHProbeCoordFromFullResCoord(fullResCoord, perMaterial.rtSize.xy);
     float accumRatio = perMaterial.accumTex.Load(int3(probeCoord, 0)).x;
     return DecodeProbeAccumulationFrames(accumRatio);
 }
@@ -55,85 +53,126 @@ int GetIterationBudget(float accumFrames)
 [numthreads(8, 8, 1)]
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
-    uint2 coord = dispatchThreadID.xy;
-    uint2 rtSize = uint2(perMaterial.rtSize.xy);
-    if (coord.x >= rtSize.x || coord.y >= rtSize.y)
+    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 
-    float depth = perMaterial.hierarchyDepth.Load(int3(coord, 0)).x;
-    if (depth <= 0.0000001)
+    float4 centerSH0 = perMaterial.inSH0Tex.Load(int3(probeCoord, 0));
+    float4 centerSH1 = perMaterial.inSH1Tex.Load(int3(probeCoord, 0));
+    float4 centerSH2 = perMaterial.inSH2Tex.Load(int3(probeCoord, 0));
+
+    uint2 centerFullResCoord;
+    float2 centerUv;
+    float3 centerPos;
+    float3 centerNormal;
+    float centerPlaneThreshold;
+    if (!LoadProbeGeometry(
+            perScene,
+            perMaterial.hierarchyDepth,
+            perMaterial.normalTex,
+            perMaterial.sampler_point_clamp,
+            perMaterial.rtSize,
+            perMaterial.distanceScale,
+            probeCoord,
+            centerFullResCoord,
+            centerUv,
+            centerPos,
+            centerNormal,
+            centerPlaneThreshold
+        ))
     {
-        perMaterial.outIrradianceTex[coord] = 0;
+        perMaterial.outSH0Tex[probeCoord] = 0;
+        perMaterial.outSH1Tex[probeCoord] = 0;
+        perMaterial.outSH2Tex[probeCoord] = 0;
         return;
     }
 
-    float4 centerIrradiance = perMaterial.inIrradianceTex.Load(int3(coord, 0));
-    float centerAccumFrames = LoadAccumFrames(coord);
+    float centerAccumFrames = LoadAccumFrames(probeCoord);
+    float centerAccumRatio = centerAccumFrames / max(perMaterial.blurParams.z, 1.0);
     int iterationIndex = (int)perMaterial.atrousParams.y;
     if (iterationIndex >= GetIterationBudget(centerAccumFrames))
     {
-        perMaterial.outIrradianceTex[coord] = centerIrradiance;
+        perMaterial.outSH0Tex[probeCoord] = centerSH0;
+        perMaterial.outSH1Tex[probeCoord] = centerSH1;
+        perMaterial.outSH2Tex[probeCoord] = centerSH2;
         return;
     }
 
-    float2 uv = GetFullResUv(coord, perMaterial.rtSize);
-    float3 centerPos = ReconstructWorldPos(perScene, uv, depth);
-    float3 centerNormal = normalize(GetNormalWS(uv));
-    float centerPlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, centerPos);
-    float minNormalDot = saturate(perMaterial.minNormalDot);
+    float minNormalDot = saturate(perMaterial.minNormalDot) * lerp(0.2f, 1, centerAccumRatio);
     int stepSize = max((int)perMaterial.atrousParams.x, 1);
 
-    float4 irradianceSum = 0;
+    float4 sh0Sum = 0;
+    float4 sh1Sum = 0;
+    float4 sh2Sum = 0;
     float totalWeight = 0.0;
-    int2 maxCoord = int2(rtSize) - 1;
+    int2 maxCoord = int2(probeRtSize) - 1;
 
     for (int y = -2; y <= 2; ++y)
     {
         for (int x = -2; x <= 2; ++x)
         {
-            int2 sampleCoordI = clamp(int2(coord) + int2(x, y) * stepSize, int2(0, 0), maxCoord);
-            uint2 sampleCoord = uint2(sampleCoordI);
-            float sampleDepth = perMaterial.hierarchyDepth.Load(int3(sampleCoord, 0)).x;
-            if (sampleDepth <= 0.0000001)
+            int2 sampleCoordI = int2(probeCoord) + int2(x, y) * stepSize;
+            if (sampleCoordI.x < 0 || sampleCoordI.y < 0 || sampleCoordI.x > maxCoord.x || sampleCoordI.y > maxCoord.y)
                 continue;
 
-            uint2 sampleProbeCoord = GetSHProbeCoordFromFullResCoord(sampleCoord, perMaterial.rtSize.xy);
-            bool isCenterSample = sampleCoord.x == coord.x && sampleCoord.y == coord.y;
-            // if (!isCenterSample && perMaterial.disocclusionMaskTex.Load(int3(sampleProbeCoord, 0)).x > 0.5)
-            //     continue;
+            uint2 sampleCoord = uint2(sampleCoordI);
+            bool isCenterSample = sampleCoord.x == probeCoord.x && sampleCoord.y == probeCoord.y;
 
-            float2 sampleUv = GetFullResUv(sampleCoord, perMaterial.rtSize);
-            float3 samplePos = ReconstructWorldPos(perScene, sampleUv, sampleDepth);
-            float3 sampleNormal = normalize(GetNormalWS(sampleUv));
-            float samplePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, samplePos);
-            float planeThreshold = max(centerPlaneThreshold, samplePlaneThreshold);
+            uint2 sampleFullResCoord;
+            float2 sampleUv;
+            float3 samplePos;
+            float3 sampleNormal;
+            float samplePlaneThreshold;
+            if (!LoadProbeGeometry(
+                    perScene,
+                    perMaterial.hierarchyDepth,
+                    perMaterial.normalTex,
+                    perMaterial.sampler_point_clamp,
+                    perMaterial.rtSize,
+                    perMaterial.distanceScale,
+                    sampleCoord,
+                    sampleFullResCoord,
+                    sampleUv,
+                    samplePos,
+                    sampleNormal,
+                    samplePlaneThreshold
+                ))
+                continue;
+
+            // Preload it to hide memory latency
+            float4 sh0 = perMaterial.inSH0Tex.Load(int3(sampleCoord, 0));
+            float4 sh1 = perMaterial.inSH1Tex.Load(int3(sampleCoord, 0));
+            float4 sh2 = perMaterial.inSH2Tex.Load(int3(sampleCoord, 0));
+
+            float planeThreshold = max(centerPlaneThreshold, samplePlaneThreshold) * lerp(4, 1, centerAccumRatio);
             float normalDot = dot(centerNormal, sampleNormal);
             float normalWeight = isCenterSample ? 1.0 : saturate((normalDot - minNormalDot) / max(1.0 - minNormalDot, 1e-4));
             float planeDistance = abs(dot(centerNormal, samplePos - centerPos));
             float planeWeight = isCenterSample ? 1.0 : saturate(1.0 - planeDistance / max(planeThreshold, 1e-4));
 
-            float sampleAccumFrames = LoadAccumFrames(sampleCoord);
-            float accumWeight = saturate(sampleAccumFrames / max(perMaterial.blurParams.z, 1.0));
-            if (isCenterSample)
-                accumWeight = 1.0;
-
             float kernelWeight = kAtrousKernelWeights[abs(x)] * kAtrousKernelWeights[abs(y)];
-            float3 sampleIrradiance = max(perMaterial.inIrradianceTex.Load(int3(sampleCoord, 0)).rgb, 0.0);
-            float weight = normalWeight * planeWeight;
+            float weight = kernelWeight * normalWeight * planeWeight;
             if (weight <= 0.0)
                 continue;
 
-            irradianceSum += float4(sampleIrradiance, 1.0) * weight;
+            sh0Sum += sh0 * weight;
+            sh1Sum += sh1 * weight;
+            sh2Sum += sh2 * weight;
             totalWeight += weight;
         }
     }
 
     if (totalWeight <= 1e-6)
     {
-        perMaterial.outIrradianceTex[coord] = centerIrradiance;
+        perMaterial.outSH0Tex[probeCoord] = centerSH0;
+        perMaterial.outSH1Tex[probeCoord] = centerSH1;
+        perMaterial.outSH2Tex[probeCoord] = centerSH2;
         return;
     }
 
     float invTotalWeight = 1.0 / totalWeight;
-    perMaterial.outIrradianceTex[coord] = float4(irradianceSum.rgb * invTotalWeight, centerIrradiance.a);
+    perMaterial.outSH0Tex[probeCoord] = sh0Sum * invTotalWeight;
+    perMaterial.outSH1Tex[probeCoord] = sh1Sum * invTotalWeight;
+    perMaterial.outSH2Tex[probeCoord] = sh2Sum * invTotalWeight;
 }

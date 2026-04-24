@@ -8,6 +8,7 @@ struct Input
 {
     float4 texelSize; // xy: 1/width, 1/height; zw: width, height
     float4 flags; // x: hasSSIL, y: hasRTGI, z: hasGI
+    float giIntensityScale;
 
     Texture2D ssil;
     Texture2D rtgiTex;
@@ -49,7 +50,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (input.flags.z > 0.5)
     {
         float3 giIrradiance = input.giIrradianceTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
-        float3 diffuseGI = giIrradiance * albedo * 3.1415926 / 2;
+        float3 diffuseGI = giIrradiance * albedo * input.giIntensityScale;
         newColor += diffuseGI;
     }
 

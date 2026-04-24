@@ -168,6 +168,7 @@ public:
     {
         bool enabled = false;
         bool enablePostBlur = true;
+        float intensityScale = 0.5f;
         bool debug_giOutput = false;
         bool debug_giAccumulationOutput = false;
         bool secondary_bounce = false;
@@ -201,6 +202,7 @@ public:
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
             SER(enablePostBlur),
+            SER(intensityScale),
             SER(debug_giOutput),
             SER(debug_giAccumulationOutput),
             SER(secondary_bounce),

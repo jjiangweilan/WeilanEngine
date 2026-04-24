@@ -58,6 +58,9 @@ GI::GI()
     giRayGenShader = ShaderLibrary::GetShader(Shaders::GI_RayGen);
     rayGenMat.SetShader(giRayGenShader);
 
+    probePackShader = ShaderLibrary::GetShader(Shaders::GI_ProbePack);
+    probePackMat.SetShader(probePackShader);
+
     giDisocclusionShader = ShaderLibrary::GetShader(Shaders::GI_Disocclusion);
     disocclusionMat.SetShader(giDisocclusionShader);
 
@@ -93,10 +96,11 @@ void GI::EnsureHistoryBuffers(int width, int height)
     int probeHeight = 0;
     GetProbeAtlasSize(width, height, probeWidth, probeHeight);
 
-    if (historySize.x == probeWidth && historySize.y == probeHeight)
+    if (historySize.x == probeWidth && historySize.y == probeHeight && historyFullResSize.x == width && historyFullResSize.y == height)
         return;
 
     historySize = {probeWidth, probeHeight};
+    historyFullResSize = {width, height};
 
     auto usage = Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage |
                  Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment;
@@ -125,19 +129,19 @@ void GI::EnsureHistoryBuffers(int width, int height)
     historyDepth = GetGfxDriver()->CreateImage(depthDesc, usage);
     historyDepth->SetName("GI_HistoryDepth");
     historyNormal = GetGfxDriver()->CreateImage(
-        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat),
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::A2B10G10R10_UNorm),
         usage
     );
     historyNormal->SetName("GI_HistoryNormal");
-    historyIrradiance = GetGfxDriver()->CreateImage(
-        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat),
+    historyLuminance = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R32_SFloat),
         usage
     );
-    historyIrradiance->SetName("GI_HistoryIrradiance");
+    historyLuminance->SetName("GI_HistoryLuminance");
 
     GetGfxDriver()->InitGfxImage(*historyDepth, float4(0, 0, 0, 0));
     GetGfxDriver()->InitGfxImage(*historyNormal, float4(0, 0, 0, 0));
-    GetGfxDriver()->InitGfxImage(*historyIrradiance, float4(0, 0, 0, 0));
+    GetGfxDriver()->InitGfxImage(*historyLuminance, float4(0, 0, 0, 0));
 }
 
 void GI::Execute(
@@ -235,7 +239,45 @@ void GI::Execute(
     cmd->EndLabel(); // GI_RayGen
 
     // =========================================================================
-    // Pass 2: Half-res probe disocclusion classification
+    // Pass 2: Half-res probe geometry packing
+    // =========================================================================
+    cmd->BeginLabel("GI_ProbePack", {0.205, 0.705, 0.405, 1.0});
+
+    Gfx::RenderImageDescriptor probeDepthDesc(probeWidth, probeHeight, Gfx::GfxFormat::R32_SFloat);
+    probeDepthDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giProbeDepth, probeDepthDesc);
+    cmd->AllocateAttachment(giHistoryProbeDepth, probeDepthDesc);
+
+    Gfx::RenderImageDescriptor probeNormalDesc(probeWidth, probeHeight, Gfx::GfxFormat::A2B10G10R10_UNorm);
+    probeNormalDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giProbeNormal, probeNormalDesc);
+    cmd->AllocateAttachment(giHistoryProbeNormal, probeNormalDesc);
+
+    Gfx::RenderImageDescriptor probeMotionDesc(probeWidth, probeHeight, Gfx::GfxFormat::R16G16_SFloat);
+    probeMotionDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giProbeMotion, probeMotionDesc);
+
+    probePackMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+    probePackMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    probePackMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
+    probePackMat.SetTexture("historyDepthTex", historyDepth.get());
+    probePackMat.SetTexture("historyNormalTex", historyNormal.get());
+    probePackMat.SetTexture("outProbeDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
+    probePackMat.SetTexture("outProbeNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    probePackMat.SetTexture("outProbeMotionTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
+    probePackMat.SetTexture("outHistoryProbeDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
+    probePackMat.SetTexture("outHistoryProbeNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
+    probePackMat.SetVector("rtSize", rtSize);
+
+    auto* probePackProgram = probePackMat.GetShaderProgram();
+    cmd->BindResource(probePackMat.GetSet(Gfx::DescriptorSetSemantics::Material), probePackMat.GetShaderResource());
+    cmd->BindShaderProgram(probePackProgram, probePackProgram->GetDefaultShaderConfig());
+    cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
+
+    cmd->EndLabel(); // GI_ProbePack
+
+    // =========================================================================
+    // Pass 3: Half-res probe disocclusion classification
     // =========================================================================
     cmd->BeginLabel("GI_Disocclusion", {0.21, 0.71, 0.41, 1.0});
 
@@ -243,11 +285,11 @@ void GI::Execute(
     disocclusionDesc.SetRandomWrite(true);
     cmd->AllocateAttachment(giDisocclusionMask, disocclusionDesc);
 
-    disocclusionMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-    disocclusionMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
-    disocclusionMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
-    disocclusionMat.SetTexture("historyDepthTex", historyDepth.get());
-    disocclusionMat.SetTexture("historyNormalTex", historyNormal.get());
+    disocclusionMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
+    disocclusionMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    disocclusionMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
+    disocclusionMat.SetTexture("historyDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
+    disocclusionMat.SetTexture("historyNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
     disocclusionMat.SetTexture("outDisocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     disocclusionMat.SetVector("rtSize", rtSize);
     disocclusionMat.SetFloat("distanceScale", distanceScale);
@@ -261,7 +303,7 @@ void GI::Execute(
     cmd->EndLabel(); // GI_Disocclusion
 
     // =========================================================================
-    // Pass 3: Half-res SH probe gathering + history blend
+    // Pass 4: Half-res SH probe gathering + history blend
     // =========================================================================
     cmd->BeginLabel("GI_SH", {0.2, 0.7, 0.4, 1.0});
 
@@ -276,9 +318,9 @@ void GI::Execute(
     accumCountDesc.SetRandomWrite(true);
     cmd->AllocateAttachment(giAccumulationCount, accumCountDesc);
 
-    mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-    mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
-    mat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
+    mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
+    mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    mat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
     mat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     mat.SetTexture("rayDataTex", GetGfxDriver()->GetImageFromRenderGraph(giRayData));
     mat.SetTexture("rayMetaTex", GetGfxDriver()->GetImageFromRenderGraph(giRayMeta));
@@ -288,8 +330,8 @@ void GI::Execute(
     mat.SetTexture("historySH1Tex", historySH1.get());
     mat.SetTexture("historySH2Tex", historySH2.get());
     mat.SetTexture("historyAccumTex", historyAccumulationCount.get());
-    mat.SetTexture("historyDepthTex", historyDepth.get());
-    mat.SetTexture("historyNormalTex", historyNormal.get());
+    mat.SetTexture("historyDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
+    mat.SetTexture("historyNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
 
     mat.SetTexture("outSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     mat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
@@ -318,8 +360,8 @@ void GI::Execute(
     cmd->AllocateAttachment(giBlurredSH1, blurredShDesc);
     cmd->AllocateAttachment(giBlurredSH2, blurredShDesc);
 
-    blurMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-    blurMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    blurMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
+    blurMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
     blurMat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     blurMat.SetTexture("inSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     blurMat.SetTexture("inSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
@@ -350,56 +392,13 @@ void GI::Execute(
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH0)), Gfx::ImageIdentifier(*historySH0));
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH1)), Gfx::ImageIdentifier(*historySH1));
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH2)), Gfx::ImageIdentifier(*historySH2));
-    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount)), Gfx::ImageIdentifier(*historyAccumulationCount));
 
     cmd->EndLabel(); // GI_Blur
 
     // =========================================================================
-    // =========================================================================
-    // Pass 6: Full-res SH resolve
-    // =========================================================================
-    cmd->BeginLabel("GI_Resolve", {0.3, 0.8, 0.5, 1.0});
-
-    Gfx::RenderImageDescriptor irradianceDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    irradianceDesc.SetRandomWrite(true);
-
-    cmd->AllocateAttachment(giIrradiance, irradianceDesc);
-
-    resolveMat.SetTexture("rtgiSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH0));
-    resolveMat.SetTexture("rtgiSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH1));
-    resolveMat.SetTexture("rtgiSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH2));
-    resolveMat.SetTexture("accumTex", GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount));
-    resolveMat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
-    resolveMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
-    resolveMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
-    resolveMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
-    resolveMat.SetTexture("historyDepthTex", historyDepth.get());
-    resolveMat.SetTexture("historyNormalTex", historyNormal.get());
-    resolveMat.SetTexture("historyIrradianceTex", historyIrradiance.get());
-    resolveMat.SetTexture("outIrradianceTex", GetGfxDriver()->GetImageFromRenderGraph(giIrradiance));
-    resolveMat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
-    resolveMat.SetFloat("distanceScale", distanceScale);
-    resolveMat.SetFloat("resolveClampWeightScale", setting->gi.resolveClampWeightScale);
-
-    auto* resolveProgram = resolveMat.GetShaderProgram();
-    cmd->BindResource(0, renderingData.globalResource);
-    cmd->BindResource(resolveMat.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMat.GetShaderResource());
-    cmd->BindShaderProgram(resolveProgram, resolveProgram->GetDefaultShaderConfig());
-    cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
-
-    cmd->EndLabel(); // GI_Resolve
-
-    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
-    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
-    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giIrradiance)), Gfx::ImageIdentifier(*historyIrradiance));
-
-    // =========================================================================
-    // Pass 7: Full-res irradiance a-trous post filter
+    // Pass 6: Probe-atlas a-trous post filter
     // =========================================================================
     cmd->BeginLabel("GI_PostBlur", {0.28, 0.78, 0.48, 1.0});
-
-    Gfx::RenderImageDescriptor postBlurAtrousDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
-    postBlurAtrousDesc.SetRandomWrite(true);
 
     auto radiusToAtrousPassCount = [](int radius) {
         int clampedRadius = std::max(radius, 0);
@@ -422,12 +421,11 @@ void GI::Execute(
     const int unstablePassCount = radiusToAtrousPassCount(std::max(setting->gi.postBlur.maxRadius, setting->gi.postBlur.minRadius));
     const int totalIterationCount = std::max(stablePassCount, unstablePassCount);
 
-    Gfx::ImageIdentifier postBlurInput = giIrradiance;
+    Gfx::ImageIdentifier postBlurSH0 = giBlurredSH0;
+    Gfx::ImageIdentifier postBlurSH1 = giBlurredSH1;
+    Gfx::ImageIdentifier postBlurSH2 = giBlurredSH2;
     if (setting->gi.enablePostBlur && totalIterationCount > 0)
     {
-        cmd->AllocateAttachment(giPostBlurAtrousA, postBlurAtrousDesc);
-        cmd->AllocateAttachment(giPostBlurAtrousB, postBlurAtrousDesc);
-
         if (postBlurPassResources.size() < (size_t)totalIterationCount)
             postBlurPassResources.resize(totalIterationCount);
 
@@ -451,31 +449,84 @@ void GI::Execute(
             renderingData.pipelineAllocator->AllocateBuffer(postBlurPassResource.inputBuffer, sizeof(PostBlurInput));
             postBlurPassResource.inputBuffer.Write(&inputData, sizeof(PostBlurInput));
 
-            Gfx::ImageIdentifier postBlurOutput = (iteration & 1) == 0 ? giPostBlurAtrousA : giPostBlurAtrousB;
+            bool writeToPrimarySet = (iteration & 1) == 0;
+            Gfx::ImageIdentifier postBlurOutputSH0 = writeToPrimarySet ? giSH0 : giBlurredSH0;
+            Gfx::ImageIdentifier postBlurOutputSH1 = writeToPrimarySet ? giSH1 : giBlurredSH1;
+            Gfx::ImageIdentifier postBlurOutputSH2 = writeToPrimarySet ? giSH2 : giBlurredSH2;
 
             cmd->BindResource(0, renderingData.globalResource);
             cmd->BindResource(
                 postBlurSet,
                 {
                     Gfx::DynamicBinding("perMaterial", *postBlurPassResource.inputBuffer.GetBuffer()),
-                    Gfx::DynamicBinding("hierarchyDepth", hizTex),
-                    Gfx::DynamicBinding("normalTex", normalTex),
-                    Gfx::DynamicBinding("disocclusionMaskTex", giDisocclusionMask),
-                    Gfx::DynamicBinding("inIrradianceTex", postBlurInput),
+                    Gfx::DynamicBinding("hierarchyDepth", giProbeDepth),
+                    Gfx::DynamicBinding("normalTex", giProbeNormal),
+                    Gfx::DynamicBinding("inSH0Tex", postBlurSH0),
+                    Gfx::DynamicBinding("inSH1Tex", postBlurSH1),
+                    Gfx::DynamicBinding("inSH2Tex", postBlurSH2),
                     Gfx::DynamicBinding("accumTex", giAccumulationCount),
-                    Gfx::DynamicBinding("outIrradianceTex", postBlurOutput),
+                    Gfx::DynamicBinding("outSH0Tex", postBlurOutputSH0),
+                    Gfx::DynamicBinding("outSH1Tex", postBlurOutputSH1),
+                    Gfx::DynamicBinding("outSH2Tex", postBlurOutputSH2),
                 }
             );
             cmd->BindShaderProgram(postBlurProgram, postBlurProgram->GetDefaultShaderConfig());
-            cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+            cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
-            postBlurInput = postBlurOutput;
+            postBlurSH0 = postBlurOutputSH0;
+            postBlurSH1 = postBlurOutputSH1;
+            postBlurSH2 = postBlurOutputSH2;
         }
     }
 
     cmd->EndLabel(); // GI_PostBlur
 
-    giOutput = postBlurInput;
+    // =========================================================================
+    // Pass 7: Full-res SH resolve
+    // =========================================================================
+    cmd->BeginLabel("GI_Resolve", {0.3, 0.8, 0.5, 1.0});
+
+    Gfx::RenderImageDescriptor irradianceDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
+    irradianceDesc.SetRandomWrite(true);
+
+    cmd->AllocateAttachment(giIrradiance, irradianceDesc);
+
+    Gfx::RenderImageDescriptor luminanceDesc(width, height, Gfx::GfxFormat::R32_SFloat);
+    luminanceDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giLuminance, luminanceDesc);
+
+    resolveMat.SetTexture("rtgiSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(postBlurSH0));
+    resolveMat.SetTexture("rtgiSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(postBlurSH1));
+    resolveMat.SetTexture("rtgiSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(postBlurSH2));
+    resolveMat.SetTexture("accumTex", GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount));
+    resolveMat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
+    resolveMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    resolveMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
+    resolveMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+    resolveMat.SetTexture("historyDepthTex", historyDepth.get());
+    resolveMat.SetTexture("historyNormalTex", historyNormal.get());
+    resolveMat.SetTexture("historyLuminanceTex", historyLuminance.get());
+    resolveMat.SetTexture("historyAccumTex", historyAccumulationCount.get());
+    resolveMat.SetTexture("outIrradianceTex", GetGfxDriver()->GetImageFromRenderGraph(giIrradiance));
+    resolveMat.SetTexture("outLuminanceTex", GetGfxDriver()->GetImageFromRenderGraph(giLuminance));
+    resolveMat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
+    resolveMat.SetFloat("distanceScale", distanceScale);
+    resolveMat.SetFloat("resolveClampWeightScale", setting->gi.resolveClampWeightScale);
+
+    auto* resolveProgram = resolveMat.GetShaderProgram();
+    cmd->BindResource(0, renderingData.globalResource);
+    cmd->BindResource(resolveMat.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMat.GetShaderResource());
+    cmd->BindShaderProgram(resolveProgram, resolveProgram->GetDefaultShaderConfig());
+    cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+
+    cmd->EndLabel(); // GI_Resolve
+
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giLuminance)), Gfx::ImageIdentifier(*historyLuminance));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount)), Gfx::ImageIdentifier(*historyAccumulationCount));
+
+    giOutput = giIrradiance;
 
     cmd->EndLabel(); // GI
 }

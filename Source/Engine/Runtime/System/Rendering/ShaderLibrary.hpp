@@ -45,6 +45,7 @@
                          Do(OceanPatchShader, "OceanPatchShader"),                                           \
                          Do(RayTracingTest, "RayTracingTest"),                                               \
                          Do(GI_RayGen, "GI/GI_RayGen"),                                                     \
+                         Do(GI_ProbePack, "GI/GI_ProbePack"),                                               \
                          Do(GI_Disocclusion, "GI/GI_Disocclusion"),                                         \
                          Do(GI_GI, "GI/GI"),                                                                \
                          Do(GI_HistoryFix, "GI/GI_HistoryFix"),                                             \

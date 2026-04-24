@@ -108,7 +108,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     {
         for (int x = -radius; x <= radius; ++x)
         {
-            int2 sampleCoordI = clamp(int2(probeCoord) + int2(x, y) * 1.5, int2(0, 0), probeMaxCoord);
+            int2 sampleCoordI = int2(probeCoord) + int2(x, y) * 1.5;
+            if (sampleCoordI.x < 0 || sampleCoordI.y < 0 || sampleCoordI.x > probeMaxCoord.x || sampleCoordI.y > probeMaxCoord.y)
+                continue;
+
             uint2 sampleCoord = uint2(sampleCoordI);
 
             float3 samplePos;
@@ -120,10 +123,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             // float spatialWeight = exp(-dot(offset, offset) / sigma2);
             float samplePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, samplePos);
             float probePlaneThreshold = max(centerPlaneThreshold, samplePlaneThreshold);
-            float normalWeight = dot(centerNormal, sampleNormal) >= saturate(perMaterial.minNormalDot) ? 1.0 : 0.0;
+            float normalWeight = dot(centerNormal, sampleNormal) >= saturate(perMaterial.minNormalDot * lerp(0.2f, 1, accumRatio)) ? 1 : 0.0;
 
             float planeDistance = abs(dot(centerNormal, samplePos - centerPos));
-            float planeWeight = planeDistance <= probePlaneThreshold ? 1.0 : 0.0;
+            float planeWeight = planeDistance <= probePlaneThreshold * lerp(4, 1, accumRatio) ? 1.0 : 0.0;
             float weight = normalWeight * planeWeight;
             if (weight <= 0.0)
                 continue;

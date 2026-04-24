@@ -39,11 +39,14 @@ struct GIResolveParameter
     Texture2D<float2> motionVectorTex;
     Texture2D hierarchyDepth;
     Texture2D<float> historyDepthTex;
-    Texture2D<float4> historyNormalTex;
-    Texture2D<float4> historyIrradianceTex;
+    Texture2D historyNormalTex;
+    Texture2D<float> historyLuminanceTex;
+    Texture2D<float> historyAccumTex;
 
     [format("rgba16f")]
     RWTexture2D<float4> outIrradianceTex;
+    [format("r32f")]
+    RWTexture2D<float> outLuminanceTex;
 
     SamplerState sampler_linear_clamp;
     SamplerState sampler_point_clamp;
@@ -169,37 +172,34 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw);
     bool nearestProbeDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(nearestProbeCoord, 0)).x > 0.5;
-    if (!nearestProbeDisoccluded)
+
+    float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
+    float2 prevUV = uv - motion;
+
+    bool luminanceClamping = !nearestProbeDisoccluded;
+    if (luminanceClamping)
     {
-        float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
-        float2 prevUV = uv - motion;
-        bool isOffScreen = prevUV.x < 0.0 || prevUV.x >= 1.0 || prevUV.y < 0.0 || prevUV.y >= 1.0;
-        if (!isOffScreen)
+        prevUV = clamp(prevUV, 0, 1);
+        float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
+        if (historyDepth > 0.00000001)
         {
-            float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
-            if (historyDepth > 0.00000001)
+            float3 historyPosition = ReconstructPreviousWorldPos(perScene, prevUV, historyDepth);
+            float3 historyNormal = normalize(
+                DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz)
+            );
+            float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, currentPos);
+            if (length(historyPosition - currentPos) <= probePlaneThreshold && dot(normalWS, historyNormal) >= 0.9)
             {
-                float3 historyPosition = ReconstructPreviousWorldPos(perScene, prevUV, historyDepth);
-                float3 historyNormal = normalize(
-                    DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz)
+                float currentLum = CalculateLuminance(irradiance);
+                float4 historyLum = perMaterial.historyLuminanceTex.Gather(perMaterial.sampler_point_clamp, prevUV, 0);
+                float maxhistoryLum = max(max(historyLum.x, historyLum.y), max(historyLum.z, historyLum.w));
+                float currentAccumRatio = saturate(
+                    saturate(perMaterial.accumTex.Load(int3(nearestProbeCoord, 0)).x)
                 );
-                float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, currentPos);
-                if (length(historyPosition - currentPos) <= probePlaneThreshold && dot(normalWS, historyNormal) >= 0.9)
+                float maxLum = lerp(currentLum , max(maxhistoryLum, 1e-6) * kHistoryClampSlack * perMaterial.resolveClampWeightScale, currentAccumRatio);
+                if (currentLum > maxLum && currentLum > 1e-6)
                 {
-                    float3 historyIrradiance = max(
-                        perMaterial.historyIrradianceTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).xyz,
-                        0.0
-                    );
-                    float currentLum = CalculateLuminance(irradiance);
-                    float historyLum = CalculateLuminance(historyIrradiance);
-                    float clampWeight = saturate(
-                        saturate(perMaterial.accumTex.Load(int3(nearestProbeCoord, 0)).x)
-                    );
-                    float maxLum = lerp(currentLum , max(historyLum, 1e-6) * kHistoryClampSlack * perMaterial.resolveClampWeightScale, clampWeight);
-                    if (currentLum > maxLum && currentLum > 1e-6)
-                    {
-                        irradiance *= maxLum / currentLum;
-                    }
+                    irradiance *= maxLum / currentLum;
                 }
             }
         }
@@ -207,4 +207,5 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     // Output pure irradiance — albedo is applied later in LightingCombine
     perMaterial.outIrradianceTex[coord] = float4(irradiance, 1.0);
+    perMaterial.outLuminanceTex[coord] = CalculateLuminance(irradiance);
 }

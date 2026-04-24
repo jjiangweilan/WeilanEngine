@@ -26,7 +26,7 @@ struct GIParameter
 
     // Full-res history for disocclusion detection
     Texture2D<float> historyDepthTex;
-    Texture2D<float4> historyNormalTex;
+    Texture2D historyNormalTex;
 
     // Half-res SH outputs (current frame)
     RWTexture2D<float4> outSH0Tex;
@@ -42,9 +42,9 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIParameter> perMaterial;
 
-float3 GetNormalWS(float2 uv)
+float3 GetNormalWS(uint2 probeCoord)
 {
-    float3 normalWS = perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz;
+    float3 normalWS = perMaterial.normalTex.Load(int3(probeCoord, 0)).xyz;
     return DecodeGBufferNormal(normalWS);
 }
 
@@ -136,7 +136,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
-    float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
+    float depth = perMaterial.hierarchyDepth.Load(int3(probeCoord, 0)).x;
     if (depth <= 0.0000001)
     {
         perMaterial.outSH0Tex[probeCoord] = 0;
@@ -147,7 +147,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     float3 probePositionWS = ReconstructWorldPos(perScene, probeUv, depth);
-    float3 probeNormalWS = normalize(GetNormalWS(probeUv));
+    float3 probeNormalWS = normalize(GetNormalWS(probeCoord));
     float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePositionWS);
 
     float4 currentSH0 = 0;
@@ -166,7 +166,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         hasValidCurrentSample
     );
 
-    float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).xy;
+    float2 motion = perMaterial.motionVectorTex.Load(int3(probeCoord, 0)).xy;
     float2 prevUV = probeUv - motion;
 
     float4 historySH0 = 0;
@@ -182,11 +182,11 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         reprojectedCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
         uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(reprojectedCoord, perMaterial.rtSize.xy);
         float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, perMaterial.rtSize);
-        float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, historyProbeUv, 0).x;
+        float historyDepth = perMaterial.historyDepthTex.Load(int3(reprojectedCoord, 0)).x;
         if (historyDepth > 0.0000001)
         {
             float3 historyPositionWS = ReconstructPreviousWorldPos(perScene, historyProbeUv, historyDepth);
-            float3 historyNormal = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, historyProbeUv, 0).xyz));
+            float3 historyNormal = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.Load(int3(reprojectedCoord, 0)).xyz));
             float historyPlaneDistance = length(historyPositionWS - probePositionWS); // just use distance here
             if (historyPlaneDistance <= probePlaneThreshold && dot(probeNormalWS, historyNormal) >= 0.9)
             {
@@ -211,7 +211,6 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     // for low accumulated tile, we blur from sh among 5x5 tiles
     // this fix for edges and small disocclusion, but if this is a large disocclusion, we still can't find proper probes in history to resolve
-    // TODO: let borrow happen in Resolve?
     if (isDisoccluded)
     {
         uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
@@ -226,34 +225,31 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             for (int x = -2; x <= 2; ++x)
             {
-                int2 candidateCoordI = clamp(int2(historyCenterCoord) + int2(x, y), int2(0, 0), probeMaxCoord);
+                int2 candidateCoordI = int2(historyCenterCoord) + int2(x, y);
+                if (candidateCoordI.x < 0 || candidateCoordI.y < 0 || candidateCoordI.x > probeMaxCoord.x || candidateCoordI.y > probeMaxCoord.y)
+                    continue;
+
                 uint2 candidateCoord = uint2(candidateCoordI);
                 uint2 candidateFullResCoord = GetSHProbeSourceCoord(candidateCoord, perMaterial.rtSize.xy);
                 float2 candidateUv = GetFullResUv(candidateFullResCoord, perMaterial.rtSize);
-                float candidateDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, candidateUv, 0).x;
+                float candidateDepth = perMaterial.historyDepthTex.Load(int3(candidateCoord, 0)).x;
                 if (candidateDepth <= 0.0000001)
                     continue;
 
                 float3 candidatePositionWS = ReconstructPreviousWorldPos(perScene, candidateUv, candidateDepth);
-                float3 candidateNormalWS = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, candidateUv, 0).xyz));
+                float3 candidateNormalWS = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.Load(int3(candidateCoord, 0)).xyz));
                 float candidatePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, candidatePositionWS);
                 float probeCandidatePlaneThreshold = max(probePlaneThreshold, candidatePlaneThreshold);
 
                 float normalWeight = dot(probeNormalWS, candidateNormalWS) >= 0.9 ? 1.0 : 0.0;
-                if (normalWeight <= 0.0)
-                    continue;
 
                 float planeDistance = abs(dot(probeNormalWS, candidatePositionWS - probePositionWS));
                 float planeWeight = planeDistance <= probeCandidatePlaneThreshold ? 1.0 : 0.0f;
-                if (planeWeight <= 0.0)
-                    continue;
 
                 float candidateAccumRatio = perMaterial.historyAccumTex.Load(int3(candidateCoord, 0)).x;
                 float accumWeight = max(DecodeProbeAccumulationFrames(candidateAccumRatio), 1.0);
 
                 float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / probePlaneThreshold);
-                if (distanceWeight <= 0.0)
-                    continue;
 
                 float weight = normalWeight * planeWeight * accumWeight * distanceWeight;
                 if (weight <= 0.0)
@@ -274,6 +270,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             historySH1 = historyBlurredSH1 * invHistoryTotalWeight;
             historySH2 = historyBlurredSH2 * invHistoryTotalWeight;
             accumRatio = max(accumRatio, historyAccumWeightedSum * invHistoryTotalWeight);
+            accumRatio /= 2.0f;
             alpha = 1 / (DecodeProbeAccumulationFrames(accumRatio));
         }
     }

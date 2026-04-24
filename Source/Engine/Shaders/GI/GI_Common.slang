@@ -156,27 +156,39 @@ SurfaceHit GetRayHitSurface(
         }
         result.emissive = emissive;
 
-        Light mainLight = scene.GetMainLight();
-        if (mainLight.lightColor.a > 0.0)
+        const int lightCount = (int)scene.scene.lightCount;
+        for (int lightIndex = 0; lightIndex < lightCount; ++lightIndex)
         {
-            float3 lightDir  = normalize(mainLight.position.xyz);
+            Light light = scene.scene.lights[lightIndex];
+            if (light.lightColor.a <= 0.0 || light.intensity <= 0.0)
+                continue;
+
+            float3 lightDir = normalize(light.position.xyz);
             float attenuation = 1.0;
-            if (mainLight.position.w != 0.0)
+            float shadowTMax = 1000.0;
+            if (light.position.w != 0.0)
             {
-                float3 toLight = mainLight.position.xyz - hitData.position;
-                float  distSq  = dot(toLight, toLight);
-                lightDir       = normalize(toLight);
-                attenuation    = 1.0 / max(1.0, distSq);
+                float3 toLight = light.position.xyz - hitData.position;
+                float distanceToLight = length(toLight);
+                if (distanceToLight <= 1e-4)
+                    continue;
+
+                if (light.range > 0.0 && distanceToLight > light.range)
+                    continue;
+
+                lightDir = toLight / distanceToLight;
+                attenuation = PointLightInverseSquareFalloff(distanceToLight, max(light.pointLightTerm2, 1e-4));
+                shadowTMax = max(distanceToLight - 1e-3, 0.0);
             }
 
             float ndotl = saturate(dot(hitData.normal, lightDir));
             if (ndotl > 0.0)
             {
                 float3 shadowOrigin = OffsetRay(hitData.position, hitData.normal);
-                bool inShadow = TraceVisibilityRay(bvh, shadowOrigin, hitData.normal, lightDir, 0, 1000.0);
+                bool inShadow = TraceVisibilityRay(bvh, shadowOrigin, lightDir, 0.0, shadowTMax);
                 if (!inShadow)
                 {
-                    result.directLight = mainLight.lightColor.rgb * mainLight.intensity * ndotl * attenuation;
+                    result.directLight += light.lightColor.rgb * light.intensity * ndotl * attenuation;
                 }
             }
         }
@@ -261,7 +273,7 @@ bool LoadProbeGeometry(
     probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy);
     probeUv = GetFullResUv(probeFullResCoord, rtSize);
 
-    float depth = hierarchyDepth.SampleLevel(pointSampler, probeUv, 0).x;
+    float depth = hierarchyDepth.Load(int3(probeCoord, 0)).x;
     if (depth <= 0.0000001)
     {
         probePosition = 0;
@@ -271,7 +283,8 @@ bool LoadProbeGeometry(
     }
 
     probePosition = ReconstructWorldPos(scene, probeUv, depth);
-    probeNormal = normalize(DecodeGIWorldNormal(normalTex, pointSampler, probeUv));
+    float3 encodedNormal = normalTex.Load(int3(probeCoord, 0)).xyz;
+    probeNormal = normalize(DecodeGBufferNormal(encodedNormal));
     probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(scene, distanceScale, probePosition);
     return true;
 }
@@ -582,7 +595,7 @@ bool EvaluateProbeDisocclusion(
     ParameterBlock<PerScene> scene,
     Texture2D<float2> motionVectorTex,
     Texture2D<float> historyDepthTex,
-    Texture2D<float4> historyNormalTex,
+    Texture2D historyNormalTex,
     SamplerState pointSampler,
     float4 rtSize,
     uint2 probeCoord,
@@ -592,7 +605,7 @@ bool EvaluateProbeDisocclusion(
     float probePlaneThreshold,
     out uint2 historyProbeCoord)
 {
-    float2 motion = motionVectorTex.SampleLevel(pointSampler, probeUv, 0).xy;
+    float2 motion = motionVectorTex.Load(int3(probeCoord, 0)).xy;
     float2 prevUV = probeUv - motion;
 
     historyProbeCoord = 0;
@@ -603,13 +616,13 @@ bool EvaluateProbeDisocclusion(
     historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUV, rtSize.xy);
     uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, rtSize.xy);
     float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, rtSize);
-    float historyDepth = historyDepthTex.SampleLevel(pointSampler, historyProbeUv, 0).x;
+    float historyDepth = historyDepthTex.Load(int3(historyProbeCoord, 0)).x;
     if (historyDepth <= 0.0000001)
         return true;
 
     float3 historyPosition = ReconstructPreviousWorldPos(scene, historyProbeUv, historyDepth);
     float3 historyNormal = normalize(
-        DecodeGBufferNormal(historyNormalTex.SampleLevel(pointSampler, historyProbeUv, 0).xyz)
+        DecodeGBufferNormal(historyNormalTex.Load(int3(historyProbeCoord, 0)).xyz)
     );
 
     float historyPlaneDistance = length(historyPosition - probePosition);

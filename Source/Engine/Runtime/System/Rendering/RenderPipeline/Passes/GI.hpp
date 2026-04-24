@@ -61,6 +61,10 @@ private:
     Shader* giRayGenShader = nullptr;
     Material rayGenMat;
 
+    // Half-res probe geometry packing pass.
+    Shader* probePackShader = nullptr;
+    Material probePackMat;
+
     // Half-res disocclusion classification pass.
     Shader* giDisocclusionShader = nullptr;
     Material disocclusionMat;
@@ -83,7 +87,7 @@ private:
             PipelineGPUBufferAllocator::RequestGPUBuffer("GI_PostBlur", PipelineGPUBufferUsage::Uniform);
     };
 
-    // Full-resolution spatial post filter pass.
+    // Probe-atlas a-trous post filter pass.
     Shader* postBlurShader = nullptr;
 
     // Sparse ray atlas outputs (quarter resolution per dimension).
@@ -93,25 +97,30 @@ private:
     // Half-res probe disocclusion mask.
     Gfx::ImageIdentifier giDisocclusionMask = "GI_DisocclusionMask";
 
+    // Half-res probe geometry pack.
+    Gfx::ImageIdentifier giProbeDepth = "GI_ProbeDepth";
+    Gfx::ImageIdentifier giProbeNormal = "GI_ProbeNormal";
+    Gfx::ImageIdentifier giProbeMotion = "GI_ProbeMotion";
+    Gfx::ImageIdentifier giHistoryProbeDepth = "GI_HistoryProbeDepth";
+    Gfx::ImageIdentifier giHistoryProbeNormal = "GI_HistoryProbeNormal";
+
     // SH probe output identifiers (half resolution per dimension).
     Gfx::ImageIdentifier giSH0 = "GI_SH0";
     Gfx::ImageIdentifier giSH1 = "GI_SH1";
     Gfx::ImageIdentifier giSH2 = "GI_SH2";
     Gfx::ImageIdentifier giAccumulationCount = "GI_AccumulationCount";
 
-    // Probe blur transient identifiers.
+    // Probe blur transient identifiers. These are also reused as ping-pong
+    // targets for the SH-domain post blur after GI_Blur writes history.
     Gfx::ImageIdentifier giBlurredSH0 = "GI_BlurredSH0";
     Gfx::ImageIdentifier giBlurredSH1 = "GI_BlurredSH1";
     Gfx::ImageIdentifier giBlurredSH2 = "GI_BlurredSH2";
-
-    // Full-resolution a-trous ping-pong intermediates.
-    Gfx::ImageIdentifier giPostBlurAtrousA = "GI_PostBlurAtrousA";
-    Gfx::ImageIdentifier giPostBlurAtrousB = "GI_PostBlurAtrousB";
 
     std::vector<PostBlurPassResource> postBlurPassResources;
 
     // Final full-resolution resolve output.
     Gfx::ImageIdentifier giIrradiance  = "GI_Irradiance";
+    Gfx::ImageIdentifier giLuminance   = "GI_Luminance";
     Gfx::ImageIdentifier giOutput      = "GI_Output";
 
     // Persistent cross-frame SH history buffers (probe atlas, half resolution).
@@ -123,9 +132,10 @@ private:
     // Persistent full-resolution reprojection history for GI.slang.
     std::unique_ptr<Gfx::Image> historyDepth;
     std::unique_ptr<Gfx::Image> historyNormal;
-    std::unique_ptr<Gfx::Image> historyIrradiance;
+    std::unique_ptr<Gfx::Image> historyLuminance;
 
     glm::int2 historySize = {0, 0};
+    glm::int2 historyFullResSize = {0, 0};
 
     std::unique_ptr<Gfx::Buffer> haltonBuffer;
 

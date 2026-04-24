@@ -14,11 +14,11 @@ float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
     const float SC = 1e5;
 
     // Calculate sky plane
-    float dist = (SC - ro.y) / rd.y; 
+    float dist = (SC - ro.y) / (rd.y + 0.000001); 
     float2 p = (ro + dist * rd).xz;
     p *= 1.2 / SC;
 
-    float3 skyCol = float3(0.3,0.5,0.85) - rd.y*rd.y*0.5;
+    float3 skyCol = max(float3(0.3,0.5,0.85) - rd.y*rd.y*0.5, 0.001);
     skyCol = lerp( skyCol, 0.85 * float3(0.7,0.75,0.85), pow( 1.0 - max(rd.y, 0.0), 4.0 ) );
 
     // from iq's shader, https://www.shadertoy.com/view/MdX3Rr

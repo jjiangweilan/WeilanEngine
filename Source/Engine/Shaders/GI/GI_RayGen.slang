@@ -18,7 +18,7 @@ struct GIRayGenParameter
     Texture2D<float2> motionVectorTex;
     Texture2D<float> historyAccumTex;
     Texture2D<float> historyDepthTex;
-    Texture2D<float4> historyNormalTex;
+    Texture2D historyNormalTex;
     Texture2D<float4> noiseTex;
     StructuredBuffer<float2> haltonSeq;
 
@@ -140,7 +140,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             else
             {
                 Light mainLight = perScene.GetMainLight();
-                rayContribution += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 20.0;
+                rayContribution += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 15.0;
                 break;
             }
         }
