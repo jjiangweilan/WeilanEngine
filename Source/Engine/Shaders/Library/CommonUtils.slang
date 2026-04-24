@@ -129,7 +129,7 @@ float3 NormalReconstructionHigh2(Texture2D depthTex, SamplerState depthTexSample
         n1 = posV.xyz;
     }
 
-    float3 normal = normalize(cross(n1 - posC.xyz, n0 - posC.xyz));
+    float3 normal = normalize(cross(n0 - posC.xyz, n1 - posC.xyz));
 
     centerPos = posC.xyz;
     return normal;
