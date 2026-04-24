@@ -50,6 +50,7 @@ private:
     bool activeViewGizmos = false;
     bool isVisible = false;
     bool pixelZoomEnabled = false;
+    bool showGizmos = true;
     std::list<PendingDelete> pendingDeleteSceneImages;
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;

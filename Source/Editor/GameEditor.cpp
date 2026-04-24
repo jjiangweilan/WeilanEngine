@@ -529,6 +529,7 @@ void GameEditor::GUIPass()
 
     if (!hideDevTool)
     {
+        ENGINE_BEGIN_PROFILE("GUI - Dev Tools Prepass")
         sceneEditor->ResetGizmoState();
 
         ImGui::DockSpaceOverViewport();
@@ -557,12 +558,16 @@ void GameEditor::GUIPass()
         {
             activeWindows.remove(*close);
         }
+        ENGINE_END_PROFILE; // GUI - Dev Tools Prepass
     }
 
+    ENGINE_BEGIN_PROFILE("GUI - Game View")
     gameView->Tick();
+    ENGINE_END_PROFILE; // GUI - Game View
 
     if (!hideDevTool)
     {
+        ENGINE_BEGIN_PROFILE("GUI - Dev Tools Postpass")
         sceneEditor->Tick();
         if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
         {
@@ -582,10 +587,21 @@ void GameEditor::GUIPass()
             ShowSceneTree(*SceneManager::GetActiveScene());
         }
 
+        ENGINE_BEGIN_PROFILE("GUI - Profiler Window")
         ShowGameProfiler(Profiler::GetSingleton());
+        ENGINE_END_PROFILE; // GUI - Profiler Window
+
+        ENGINE_BEGIN_PROFILE("GUI - Console Window")
         ShowConsoleOutputWindow();
+        ENGINE_END_PROFILE; // GUI - Console Window
+
+        ENGINE_BEGIN_PROFILE("GUI - Asset Database Window")
         ShowAssetDatabaseViewer();
+        ENGINE_END_PROFILE; // GUI - Asset Database Window
+
+        ENGINE_BEGIN_PROFILE("GUI - Engine Command Window")
         engineCommandGUI->EditorDraw();
+        ENGINE_END_PROFILE; // GUI - Engine Command Window
 
         if (pbrBaker)
         {
@@ -600,6 +616,7 @@ void GameEditor::GUIPass()
 
             ImGui::End();
         }
+        ENGINE_END_PROFILE; // GUI - Dev Tools Postpass
     }
 
     // Configure for first frame

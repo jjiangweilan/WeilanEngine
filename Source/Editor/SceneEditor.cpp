@@ -355,6 +355,8 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 
 bool SceneEditor::Tick()
 {
+    ENGINE_BEGIN_PROFILE("SceneEditor Tick");
+
     bool cameraDirty = false;
     auto scene = SceneManager::GetActiveScene();
     if (scene == nullptr)
@@ -411,6 +413,7 @@ bool SceneEditor::Tick()
         {
             editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
         }
+        ImGui::MenuItem("Show Gizmos", nullptr, &showGizmos);
         ImGui::MenuItem("Pixel Zoom", nullptr, &pixelZoomEnabled);
         float fovDegrees = glm::degrees(editorCamera->GetFoV());
         if (ImGui::DragFloat("Camera FoV", &fovDegrees, 0.1f, 1.0f, 179.0f))
@@ -541,7 +544,7 @@ bool SceneEditor::Tick()
             HudDebug::Print(fmt::format("Mouse Pixel Location: {:.0f}, {:.0f}", mouseContentPos.x, mouseContentPos.y));
         }
 
-        if (scene)
+        if (scene && showGizmos)
         {
             // Gizmo
             for (auto g : scene->GetAllGameObjects())
@@ -783,6 +786,8 @@ bool SceneEditor::Tick()
     }
 
     ImGui::End();
+
+    ENGINE_END_PROFILE;
     return open;
 }
 
@@ -1042,9 +1047,15 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
             }
         }
 
-        gizmoManager->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
+        if (showGizmos)
+        {
+            gizmoManager->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
+        }
         gizmoManager->ClearInactiveGizmos();
-        Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
+        if (showGizmos)
+        {
+            Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
+        }
         Gizmos::ClearAllRegisteredGizmos();
         cmd.EndRenderPass();
     }

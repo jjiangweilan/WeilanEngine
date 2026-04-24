@@ -24,6 +24,8 @@ void AssetBrowser::Show(bool& isOpen)
 {
     if (isOpen)
     {
+        ENGINE_BEGIN_PROFILE("AssetBrowser - Show")
+
         std::filesystem::path fullAssetsPath = engine->GetProjectPath() / "Assets";
 
         ImGui::Begin(GetWindowName(), &isOpen, ImGuiWindowFlags_MenuBar);
@@ -58,6 +60,7 @@ void AssetBrowser::Show(bool& isOpen)
         // Show icon size slider in the lower right corner
 
         ImGui::End();
+        ENGINE_END_PROFILE;
     }
 }
 

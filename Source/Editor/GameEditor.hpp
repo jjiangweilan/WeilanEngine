@@ -68,10 +68,12 @@ private:
     void ShowSceneTree(Scene& scene);
     void SceneTree(
         GameObject* go,
+        Scene& scene,
         GameObject* currentSelected,
         std::vector<ObjPtr<Object>>& selects,
         bool autoExpand,
-        const std::vector<GameObject*>& flatList
+        std::vector<GameObject*>& flatListCache,
+        std::vector<GameObject*>*& flatList
     );
     void ShowGameProfiler(IProfiler& profiler);
     void ShowEngineResourceDebug();

@@ -10,6 +10,22 @@
 namespace Editor
 {
 
+static void BuildSceneTreeFlatList(Scene& scene, std::vector<GameObject*>& flatList)
+{
+    auto add_to_list = [&](GameObject* go, auto& self) -> void {
+        flatList.push_back(go);
+        for (auto child : go->GetChildren())
+        {
+            self(child, self);
+        }
+    };
+
+    for (auto root : scene.GetRootObjects())
+    {
+        add_to_list(root, add_to_list);
+    }
+}
+
 static bool IsAncestorOf(GameObject* ancestor, GameObject* child)
 {
     GameObject* parent = child->GetParent();
@@ -23,6 +39,8 @@ static bool IsAncestorOf(GameObject* ancestor, GameObject* child)
 
 void GameEditor::ShowSceneTree(Scene& scene)
 {
+    ENGINE_BEGIN_PROFILE("ShowSceneTree");
+
     ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
     // Menu Bar
@@ -108,22 +126,12 @@ void GameEditor::ShowSceneTree(Scene& scene)
     auto selects = EditorState::GetSelectedObjects();
     sceneViewHightedGameObjectCandidate = nullptr; // reselect highted GameObject
 
-    std::vector<GameObject*> flatList;
-    auto add_to_list = [&](GameObject* go, auto& self) -> void {
-        flatList.push_back(go);
-        for (auto child : go->GetChildren())
-        {
-            self(child, self);
-        }
-    };
-    for (auto root : scene.GetRootObjects())
-    {
-        add_to_list(root, add_to_list);
-    }
+    std::vector<GameObject*> lazyFlatList;
+    std::vector<GameObject*>* flatList = nullptr;
 
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, lastSelectedGameObject.Get(), selects, autoExpand, flatList);
+        SceneTree(root, scene, lastSelectedGameObject.Get(), selects, autoExpand, lazyFlatList, flatList);
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -240,14 +248,18 @@ void GameEditor::ShowSceneTree(Scene& scene)
         }
         ImGui::EndPopup();
     }
+
+    ENGINE_END_PROFILE;
 }
 
 void GameEditor::SceneTree(
     GameObject* go,
+    Scene& scene,
     GameObject* currentSelected,
     std::vector<ObjPtr<Object>>& selects,
     bool autoExpand,
-    const std::vector<GameObject*>& flatList
+    std::vector<GameObject*>& flatListCache,
+    std::vector<GameObject*>*& flatList
 )
 {
     ImGuiTreeNodeFlags nodeFlags =
@@ -296,13 +308,22 @@ void GameEditor::SceneTree(
             }
             else if (shiftSelect && currentSelected != nullptr)
             {
-                auto it1 = std::find(flatList.begin(), flatList.end(), currentSelected);
-                auto it2 = std::find(flatList.begin(), flatList.end(), go);
-
-                if (it1 != flatList.end() && it2 != flatList.end())
+                if (flatList == nullptr)
                 {
-                    int startIdx = std::min(std::distance(flatList.begin(), it1), std::distance(flatList.begin(), it2));
-                    int endIdx = std::max(std::distance(flatList.begin(), it1), std::distance(flatList.begin(), it2));
+                    BuildSceneTreeFlatList(scene, flatListCache);
+                    flatList = &flatListCache;
+                }
+
+                auto& resolvedFlatList = *flatList;
+                auto it1 = std::find(resolvedFlatList.begin(), resolvedFlatList.end(), currentSelected);
+                auto it2 = std::find(resolvedFlatList.begin(), resolvedFlatList.end(), go);
+
+                if (it1 != resolvedFlatList.end() && it2 != resolvedFlatList.end())
+                {
+                    int startIdx =
+                        std::min(std::distance(resolvedFlatList.begin(), it1), std::distance(resolvedFlatList.begin(), it2));
+                    int endIdx =
+                        std::max(std::distance(resolvedFlatList.begin(), it1), std::distance(resolvedFlatList.begin(), it2));
 
                     if (!multiSelect)
                     {
@@ -312,8 +333,8 @@ void GameEditor::SceneTree(
                     EditorState::SelectObject(currentSelected, true);
                     for (int i = startIdx; i <= endIdx; ++i)
                     {
-                        if (flatList[i] != currentSelected)
-                            EditorState::SelectObject(flatList[i], true);
+                        if (resolvedFlatList[i] != currentSelected)
+                            EditorState::SelectObject(resolvedFlatList[i], true);
                     }
                 }
                 else
@@ -380,7 +401,7 @@ void GameEditor::SceneTree(
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, currentSelected, selects, autoExpand, flatList);
+            SceneTree(child, scene, currentSelected, selects, autoExpand, flatListCache, flatList);
         }
         ImGui::TreePop();
     }
