@@ -1,0 +1,38 @@
+# Default: treat text as text and store/check out as LF
+* text=auto eol=lf
+
+# Windows scripts should use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Unix scripts should use LF
+*.sh text eol=lf
+
+# Source files
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.h   text eol=lf
+*.c   text eol=lf
+*.cs  text eol=lf
+*.glsl text eol=lf
+*.hlsl text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.tga binary
+*.dds binary
+*.fbx binary
+*.blend binary
+*.exe binary
+*.dll binary
+*.lib binary
+*.pdb binary
+*.zip binary
