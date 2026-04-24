@@ -123,11 +123,6 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         sh0Samples[i] = perMaterial.rtgiSH0Tex.Load(int3(sc, 0));
         sh1Samples[i] = perMaterial.rtgiSH1Tex.Load(int3(sc, 0));
         sh2Samples[i] = perMaterial.rtgiSH2Tex.Load(int3(sc, 0));
-        if (perMaterial.disocclusionMaskTex.Load(int3(sc, 0)).x > 0.5)
-        {
-            weights[i] = 0.0;
-            continue;
-        }
 
         uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw);
         float2 probeUv = GetFullResUv(probeSourceCoord, fullResRtSize);
@@ -147,7 +142,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         float distWeight = saturate(1.0 - distSq / 0.0064);
         float planeWeight = saturate(1.0 - abs(planeDist) / probePlaneThreshold);
 
-        weights[i] *= distWeight * planeWeight * (accumWeight > 0.95 ? 1 : 0);
+        weights[i] *= distWeight * planeWeight * accumWeight;
         totalWeight += weights[i];
     }
 

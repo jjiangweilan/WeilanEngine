@@ -366,15 +366,21 @@ float2 GetSHProbeGridFromFullResUv(float2 fullResUv, float2 fullResRtSize)
 
 uint2 GetSHProbeCoordFromFullResUv(float2 fullResUv, float2 fullResRtSize)
 {
-    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize);
-    float2 probeGrid = GetSHProbeGridFromFullResUv(fullResUv, fullResRtSize);
-    return min(uint2(probeGrid + 0.5), probeRtSize - 1);
+    float2 fullResPixels = fullResUv * fullResRtSize;
+    uint2 probeResPixels = uint2(fullResPixels / 2);
+    return probeResPixels;
 }
 
 float2 GetFullResUv(uint2 fullResCoord, float4 fullResRtSize)
 {
     float2 fullResUv = (float2(min(fullResCoord, fullResRtSize.xy - 1)) + 0.5f) * fullResRtSize.zw;
     return fullResUv;
+}
+
+float2 GetProbeResUv(uint2 probeResCoord, float2 fullResRtSize)
+{
+    float2 probeRtSize = GetSHProbeResolution(fullResRtSize);
+    return (float2(probeResCoord) + 0.5f) / probeRtSize;
 }
 
 SparseRaySample LoadSparseRaySample(
