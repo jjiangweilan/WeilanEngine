@@ -14,6 +14,14 @@
 namespace Editor
 {
 
+namespace
+{
+bool IsMetaFile(const std::filesystem::path& path)
+{
+    return path.extension() == ".meta";
+}
+} // namespace
+
 AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     : engine(engine), gameEditor(gameEditor), currentDragDropAssetFileDepth(0)
 {
@@ -220,6 +228,11 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
     {
         if (entry.is_regular_file())
         {
+            if (IsMetaFile(entry.path()))
+            {
+                continue;
+            }
+
             std::string pathStr = entry.path().filename().string();
             auto treeTitle = fmt::format("{} {}", FileIcons::GetIcon(entry.path().extension()), pathStr);
             bool open = ImGui::TreeNodeEx(treeTitle.c_str(), ImGuiTreeNodeFlags_Leaf);
@@ -327,7 +340,7 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         {
             if (entry.is_directory())
                 directories.push_back(entry);
-            else if (entry.is_regular_file())
+            else if (entry.is_regular_file() && !IsMetaFile(entry.path()))
                 files.push_back(entry);
         }
 

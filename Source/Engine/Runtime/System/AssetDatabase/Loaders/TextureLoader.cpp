@@ -11,6 +11,12 @@
 #include <fstream>
 #include <ktx.h>
 #include <ktxvulkan.h>
+#include <string_view>
+
+namespace
+{
+constexpr std::string_view TextureArtifactKind = "texture_ktx";
+} // namespace
 
 DEFINE_ASSET_LOADER(TextureLoader, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
 
@@ -36,11 +42,20 @@ bool TextureLoader::IsKTX1File(ktx_uint8_t* imageData)
 
 void TextureLoader::Load()
 {
-    std::string importedSourcePath = meta["importedKtxFile"];
+    std::filesystem::path importedSourcePath;
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, importedSourcePath))
+    {
+        return;
+    }
 
-    auto sourceBinaryVec = importDatabase->ReadFile(importedSourcePath);
+    auto sourceBinaryVec = importDatabase->ReadArtifactFile(importedSourcePath);
     uint8_t* sourceBinary = sourceBinaryVec.data();
     size_t binarySize = sourceBinaryVec.size();
+
+    if (binarySize == 0)
+    {
+        return;
+    }
 
     this->texture = std::make_unique<Texture>(KtxTexture{sourceBinary, binarySize});
     this->texture->SetName(absoluteAssetPath.filename().string());

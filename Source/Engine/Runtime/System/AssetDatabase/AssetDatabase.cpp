@@ -9,6 +9,14 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 
+namespace
+{
+bool IsMetaFile(const std::filesystem::path& path)
+{
+    return path.extension() == ".meta";
+}
+} // namespace
+
 AssetDatabase* AssetDatabase::Singleton()
 {
     return SingletonReference();
@@ -416,7 +424,7 @@ Asset* AssetDatabase::LoadAsset(const AssetPath& path, bool forceReload)
     if (loader == nullptr)
         return nullptr;
 
-    loader->Setup(&importDatabase, absoluteAssetPath, *assetMeta);
+    loader->Setup(&importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
     bool loadNeeded = asset == nullptr || forceReload;
@@ -503,25 +511,31 @@ void AssetDatabase::Remove(const AssetPath& path)
         // TODO: sync async works before accessing assetFileSystem
         AssetData* assetData = assetFileSystem.GetAssetData(path);
 
+        assetFileSystem.Remove(path);
+
         if (assetData)
         {
+            importDatabase.DeleteAssetRows(assetData->GetAssetUUID().ToString());
+            assetFileSystem.RemoveAssetData(assetData);
             assetDatas.erase(
                 std::remove_if(assetDatas.begin(), assetDatas.end(), [&](auto& d)
-                               { return d.get() == assetData; })
+                               { return d.get() == assetData; }),
+                assetDatas.end()
             );
         }
-
-        assetFileSystem.Remove(path);
     }
 }
 
 void AssetDatabase::RemoveAssetData(AssetData* assetData)
 {
     std::error_code e;
-    std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString(), e);
+    std::filesystem::remove(assetData->GetMetaAbsolutePath(), e);
 
-    if (e.value() == 0)
+    if (e.value() == 0 || e == std::errc::no_such_file_or_directory)
     {
+        importDatabase.DeleteAssetRows(assetData->GetAssetUUID().ToString());
+        assetFileSystem.RemoveAssetData(assetData);
+
         auto iter = std::find_if(
             assetDatas.begin(),
             assetDatas.end(),
@@ -533,8 +547,6 @@ void AssetDatabase::RemoveAssetData(AssetData* assetData)
         {
             assetDatas.erase(iter);
         }
-
-        assetFileSystem.RemoveAssetData(assetData);
     }
 }
 
@@ -611,25 +623,31 @@ std::vector<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
 
 void AssetDatabase::LoadAssetDatas()
 {
-    // we need to load all the already imported asset when AssetDatabase starts so that when user load an asset we
-    // know it's already in the database
-    for (auto const& dirEntry : std::filesystem::directory_iterator{assetDatabaseDirectory})
+    if (!std::filesystem::exists(assetDirectory))
     {
-        if (dirEntry.is_regular_file())
-        {
-            // assetData's file name is it's UUID
-            UUID uuid(dirEntry.path().filename().string());
-            auto ad = std::make_unique<AssetData>(uuid, projectRoot);
+        return;
+    }
 
-            if (ad->IsValid())
-            {
-                AddAssetData(std::move(ad));
-            }
-            else
-            {
-                // TODO: is AssetData is not valid... do something with it!
-            }
+    // rebuild the runtime index directly from files under Assets/. Sibling .meta files are skipped.
+    for (auto const& dirEntry : std::filesystem::recursive_directory_iterator{assetDirectory})
+    {
+        if (!dirEntry.is_regular_file() || IsMetaFile(dirEntry.path()))
+        {
+            continue;
         }
+
+        if (AssetImporterRegistry::CreateAssetImporterByExtension(dirEntry.path().extension().string()) == nullptr)
+        {
+            continue;
+        }
+
+        auto assetPath = AssetPath(dirEntry.path());
+        if (assetPath.empty() || assetFileSystem.GetAssetData(assetPath) != nullptr)
+        {
+            continue;
+        }
+
+        AddAssetData(std::make_unique<AssetData>(assetPath, projectRoot));
     }
 }
 
@@ -700,6 +718,10 @@ void AssetDatabase::EnsureAllFilesAreImported(const AbsolutePath& directory)
         if (dirEntry.is_regular_file())
         {
             const auto& path = dirEntry.path();
+            if (IsMetaFile(path))
+            {
+                continue;
+            }
 
             auto assetPath = AssetPath(path);
             ImportAssetIfNeeded(assetPath, false);
@@ -738,7 +760,7 @@ void AssetDatabase::ImportAssetIfNeeded(const AssetPath& path, bool forceReimpor
     if (!std::filesystem::exists(absoluteAssetPath))
         return;
 
-    importer->Setup(importDatabase, absoluteAssetPath, *assetMeta);
+    importer->Setup(importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
 
     bool importNeeded = forceReimport || importer->ImportNeeded();
     std::vector<AssetPath> importedAssetFilePaths;

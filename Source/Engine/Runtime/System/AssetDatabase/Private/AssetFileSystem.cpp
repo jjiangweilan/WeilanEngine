@@ -1,5 +1,18 @@
 #include "AssetFileSystem.hpp"
 
+namespace
+{
+bool IsMetaFile(const std::filesystem::path& path)
+{
+    return path.extension() == ".meta";
+}
+
+std::filesystem::path GetMetaPath(const std::filesystem::path& assetPath)
+{
+    return std::filesystem::path(assetPath.string() + ".meta");
+}
+} // namespace
+
 void AssetFileSystem::Init(const std::filesystem::path& projectRoot)
 {
     this->projectRoot = projectRoot;
@@ -60,30 +73,34 @@ void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
     }
 
     // collect all data before we actually move any file
-    std::vector<AssetData*> moveAssetFiles;
+    std::vector<std::pair<AssetData*, AssetPath>> movedAssets;
 
     if (std::filesystem::is_directory(fullOldPath))
     {
         for (auto entry : std::filesystem::recursive_directory_iterator(fullOldPath))
         {
-            if (entry.is_regular_file())
+            if (entry.is_regular_file() && !IsMetaFile(entry.path()))
             {
                 auto relativeAssetPath = AssetPath(std::filesystem::relative(entry.path(), GetAssetDirectory()));
                 AssetData* assetData = GetAssetData(relativeAssetPath);
                 if (assetData != nullptr)
                 {
-                    moveAssetFiles.push_back(assetData);
+                    auto relativeWithinRenamedDirectory = std::filesystem::relative(entry.path(), fullOldPath);
+                    auto remappedPath = AssetPath(
+                        std::filesystem::relative(fullNewPath / relativeWithinRenamedDirectory, GetAssetDirectory())
+                    );
+                    movedAssets.emplace_back(assetData, remappedPath);
                 }
             }
         }
     }
-    else if (std::filesystem::is_regular_file(fullOldPath))
+    else if (std::filesystem::is_regular_file(fullOldPath) && !IsMetaFile(fullOldPath))
     {
         AssetData* assetData =
             GetAssetData(oldPath); // at this point old path must be a relative path in Assets directory
         if (assetData != nullptr)
         {
-            moveAssetFiles.push_back(assetData);
+            movedAssets.emplace_back(assetData, newPath);
         }
     }
     else
@@ -96,16 +113,30 @@ void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
     if (renameErrorCode)
         return;
 
-    // change assetData information
-    for (auto& d : moveAssetFiles)
+    if (std::filesystem::is_regular_file(fullNewPath))
     {
-        d->SetAssetPath(newPath);
-        byPath.erase(oldPath);
-        byPath[newPath] = d;
+        std::error_code metaRenameError;
+        auto oldMetaPath = GetMetaPath(fullOldPath);
+        auto newMetaPath = GetMetaPath(fullNewPath);
+        if (std::filesystem::exists(oldMetaPath))
+        {
+            std::filesystem::rename(oldMetaPath, newMetaPath, metaRenameError);
+            if (metaRenameError)
+            {
+                spdlog::warn("failed to rename asset meta from {} to {}: {}", oldMetaPath.string(), newMetaPath.string(), metaRenameError.message());
+            }
+        }
+    }
 
-        d->SaveToDisk(GetProjectRoot());
+    // change assetData information
+    for (auto& [assetData, remappedPath] : movedAssets)
+    {
+        auto oldStoredPath = assetData->GetAssetPath();
+        byPath.erase(oldStoredPath);
+        assetData->SetAssetPath(remappedPath);
+        byPath[remappedPath] = assetData;
 
-        // TODO: meta
+        assetData->SaveToDisk(GetProjectRoot());
     }
 }
 
@@ -126,16 +157,16 @@ void AssetFileSystem::Remove(const AssetPath& path)
         {
             // set assetData's imported file to nothing (effectly remove all imported assets)
             SyncImportedAssetFiles(assetData, {});
-
-            std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString());
         }
+
+        std::filesystem::remove(GetMetaPath(path));
     };
 
     if (std::filesystem::is_directory(fullPath))
     {
         for (auto entry : std::filesystem::recursive_directory_iterator(fullPath))
         {
-            if (entry.is_regular_file())
+            if (entry.is_regular_file() && !IsMetaFile(entry.path()))
             {
                 RemoveAsset(entry.path());
             }
@@ -151,21 +182,27 @@ void AssetFileSystem::Remove(const AssetPath& path)
 
 void AssetFileSystem::RemoveAssetData(AssetData* assetData)
 {
-    for (auto& p : byPath)
+    for (auto iter = byPath.begin(); iter != byPath.end();)
     {
-        if (p.second == assetData)
+        if (iter->second == assetData)
         {
-            byPath.erase(p.first);
-            break;
+            iter = byPath.erase(iter);
+        }
+        else
+        {
+            ++iter;
         }
     }
 
-    for (auto& p : byUUID)
+    for (auto iter = byUUID.begin(); iter != byUUID.end();)
     {
-        if (p.second == assetData)
+        if (iter->second == assetData)
         {
-            byUUID.erase(p.first);
-            break;
+            iter = byUUID.erase(iter);
+        }
+        else
+        {
+            ++iter;
         }
     }
 }

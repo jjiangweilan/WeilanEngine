@@ -12,6 +12,7 @@ class AssetLoader
 protected:
     // asset to import
     std::filesystem::path absoluteAssetPath{};
+    UUID assetUUID;
 
     std::vector<std::unique_ptr<AssetLoader>> dependencies;
     const ImportDatabase* importDatabase;
@@ -19,9 +20,15 @@ protected:
 
 public:
     virtual ~AssetLoader() {}
-    void Setup(const ImportDatabase* importDatabase, const std::filesystem::path& assetPath, const AssetMeta& meta)
+    void Setup(
+        const ImportDatabase* importDatabase,
+        const UUID& assetUUID,
+        const std::filesystem::path& assetPath,
+        const AssetMeta& meta
+    )
     {
         this->absoluteAssetPath = assetPath;
+        this->assetUUID = assetUUID;
         this->importDatabase = importDatabase;
         this->meta = meta;
     }

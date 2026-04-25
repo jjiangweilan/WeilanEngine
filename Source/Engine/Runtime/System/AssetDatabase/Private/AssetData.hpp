@@ -13,6 +13,8 @@ using AssetMeta = nlohmann::json;
 // an AssetData represent an imported Asset, it contains meta information about the asset and the asset itself
 class AssetData
 {
+    void LoadSharedFieldsFromJson(const nlohmann::json& dataJson);
+
     // scaii code stands for Wei Lan Engine AssetFile
     static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
 
@@ -96,6 +98,7 @@ public:
 
     const AssetPath& GetAssetPath() { return assetPath; };
     const std::filesystem::path& GetAssetAbsolutePath() { return absolutePath; }
+    std::filesystem::path GetMetaAbsolutePath() const;
     void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot);
     Asset* GetAsset();

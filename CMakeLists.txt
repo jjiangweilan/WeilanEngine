@@ -196,6 +196,21 @@ FetchContent_Declare(json
 set(JSON_BuildTests OFF)
 FetchContent_MakeAvailable(json)
 
+FetchContent_Declare(sqlite3
+    URL https://www.sqlite.org/2024/sqlite-amalgamation-3460100.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_GetProperties(sqlite3)
+if(NOT sqlite3_POPULATED)
+    FetchContent_Populate(sqlite3)
+    add_library(sqlite3 STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
+    target_include_directories(sqlite3 PUBLIC ${sqlite3_SOURCE_DIR})
+    if(MSVC)
+        target_compile_definitions(sqlite3 PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+endif()
+add_library(SQLite::SQLite3 ALIAS sqlite3)
+
 FetchContent_Declare(glm
     GIT_REPOSITORY "https://github.com/g-truc/glm.git"
     GIT_TAG 1.0.1
@@ -375,6 +390,7 @@ target_link_libraries( WeilanEngine
     Boost::lockfree
     Boost::program_options
     Boost::container
+    SQLite::SQLite3
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp

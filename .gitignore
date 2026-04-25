@@ -30,3 +30,6 @@ docs/.trash
 
 .worktree/
 .worktree/**
+
+.docs/
+.docs/**

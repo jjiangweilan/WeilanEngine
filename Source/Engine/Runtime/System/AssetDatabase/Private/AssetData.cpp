@@ -2,14 +2,43 @@
 #include "Engine/Library/PodVector.hpp"
 #include <spdlog/spdlog.h>
 
+namespace
+{
+bool TryLoadJsonFile(const std::filesystem::path& path, nlohmann::json& out)
+{
+    if (!std::filesystem::exists(path))
+    {
+        return false;
+    }
+
+    try
+    {
+        std::ifstream file(path);
+        if (file.good() && file.peek() != std::ifstream::traits_type::eof())
+        {
+            out = nlohmann::json::parse(file);
+            return true;
+        }
+    }
+    catch (...)
+    {
+        spdlog::warn("failed to load json at {}", path.string());
+    }
+
+    return false;
+}
+} // namespace
+
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const AssetPath& assetPath, const std::filesystem::path& projectRoot
 )
     : assetDataUUID(), assetPath(), absolutePath(), asset(std::move(asset)),
       lastWriteTime(0)
 {
+    (void)projectRoot;
     SetAssetPath(assetPath);
     assetUUID = this->asset->GetUUID();
+    assetTypeID = this->asset->GetObjectTypeID();
 
     for (auto obj : this->asset->GetInternalAssets())
     {
@@ -20,7 +49,8 @@ AssetData::AssetData(
     {
         lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
     }
-    isValid = false;
+    dirty = true;
+    isValid = true;
 }
 
 static PodVector<uint8_t> ReadFile(const std::filesystem::path& path)
@@ -73,20 +103,9 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
             return;
         }
 
-        assetUUID = std::string(dataJson["assetUUID"]);
-        assetTypeID = std::string(dataJson["assetTypeID"]);
         AssetPath loadedAssetPath = dataJson.value("assetPath", "");
         SetAssetPath(loadedAssetPath);
-        meta = dataJson.value("meta", nlohmann::json::object());
-
-        auto nameToUUIDJson = dataJson["nameToUUID"];
-        if (nameToUUIDJson.is_object())
-        {
-            for (auto pair : nameToUUIDJson.items())
-            {
-                nameToUUID[pair.key()] = std::string(pair.value());
-            }
-        }
+        LoadSharedFieldsFromJson(dataJson);
 
         isValid = true;
 
@@ -106,6 +125,17 @@ AssetData::AssetData(const UUID& assetUUID, const AssetPath& internalAssetPath, 
     : assetUUID(assetUUID), lastWriteTime(0), assetPath(internalAssetPath),
       absolutePath(internalAssetPath.ToAbsolutePath()), internal(true)
 {
+    nlohmann::json metaJson;
+    if (TryLoadJsonFile(GetMetaAbsolutePath(), metaJson))
+    {
+        LoadSharedFieldsFromJson(metaJson);
+    }
+
+    if (this->assetUUID.IsEmpty())
+    {
+        this->assetUUID = assetUUID;
+    }
+
     isValid = true;
 
     if (std::filesystem::exists(absolutePath))
@@ -132,22 +162,35 @@ AssetData::AssetData(const AssetPath& assetPath, const std::filesystem::path& pr
     : assetPath(), assetUUID(), absolutePath(), assetDataUUID(),
       lastWriteTime(0), assetTypeID(UUID::GetEmptyUUID())
 {
+    (void)projectRoot;
     SetAssetPath(assetPath);
+
+    nlohmann::json metaJson;
+    if (TryLoadJsonFile(GetMetaAbsolutePath(), metaJson))
+    {
+        LoadSharedFieldsFromJson(metaJson);
+    }
+    else
+    {
+        assetUUID = internal ? UUID(assetPath.string(), UUID::FromStrTag{}) : UUID();
+        dirty = !internal;
+    }
+
+    isValid = true;
+
+    if (std::filesystem::exists(absolutePath))
+    {
+        lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+    }
 }
 
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& inAsset, const std::filesystem::path& projectRoot)
 {
     this->asset = std::move(inAsset); // note: asset UUID  will be updated laster in UpdateAssetUUIDs
-
-    std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
-    if (std::filesystem::exists(path))
-    {
-        std::filesystem::remove(path);
-    }
-
-    SaveToDisk(projectRoot);
+    assetTypeID = this->asset->GetObjectTypeID();
 
     UpdateAssetUUIDs();
+    SaveToDisk(projectRoot);
     return this->asset.get();
 }
 
@@ -180,14 +223,21 @@ void AssetData::UpdateAssetUUIDs()
             auto key = GetNameToUUIDKey(obj);
             obj->SetUUID(concatUUID);
             nameToUUID[key] = obj->GetUUID().ToString();
-            dirty = true;
         }
     }
 }
 
 void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
 {
-    std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
+    (void)projectRoot;
+    std::filesystem::path path = GetMetaAbsolutePath();
+
+    if (internal && !dirty && !std::filesystem::exists(path))
+    {
+        isValid = true;
+        return;
+    }
+
     std::ofstream f(path, std::ios::trunc);
     if (f.is_open() && f.good())
     {
@@ -195,10 +245,11 @@ void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
 
         f << j.dump();
         isValid = true;
+        dirty = false;
         return;
     }
 
-    dirty = false;
+    spdlog::warn("failed to save AssetData meta at {}", path.string());
 }
 
 bool AssetData::NeedRefresh() const
@@ -221,6 +272,7 @@ void AssetData::UpdateLastWriteTime()
 nlohmann::json AssetData::DumpInfo() const
 {
     nlohmann::json j = nlohmann::json::object();
+    j["version"] = 1;
     j["assetUUID"] = assetUUID.ToString();
     j["assetTypeID"] = assetTypeID.ToString();
     j["assetPath"] = assetPath.string();
@@ -237,4 +289,27 @@ nlohmann::json AssetData::DumpInfo() const
 std::string AssetData::GetNameToUUIDKey(Asset* obj)
 {
     return fmt::format("{}-{}", obj->GetName(), ObjectRegistry::GetObjectTypeInfo(obj->GetObjectTypeID())->GetTypeName());
+}
+
+void AssetData::LoadSharedFieldsFromJson(const nlohmann::json& dataJson)
+{
+    auto assetUUIDStr = dataJson.value("assetUUID", "");
+    assetUUID = assetUUIDStr.empty() ? UUID() : UUID(assetUUIDStr);
+    assetTypeID = dataJson.value("assetTypeID", UUID::GetEmptyUUID().ToString());
+    meta = dataJson.value("meta", nlohmann::json::object());
+    nameToUUID.clear();
+
+    auto nameToUUIDJson = dataJson.value("nameToUUID", nlohmann::json::object());
+    if (nameToUUIDJson.is_object())
+    {
+        for (auto pair : nameToUUIDJson.items())
+        {
+            nameToUUID[pair.key()] = std::string(pair.value());
+        }
+    }
+}
+
+std::filesystem::path AssetData::GetMetaAbsolutePath() const
+{
+    return std::filesystem::path(absolutePath.string() + ".meta");
 }

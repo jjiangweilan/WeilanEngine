@@ -82,7 +82,7 @@ std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const AssetPath& path, A
     if (loader == nullptr)
         return nullptr;
 
-    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
+    loader->Setup(importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
     bool isReload = asset == nullptr;

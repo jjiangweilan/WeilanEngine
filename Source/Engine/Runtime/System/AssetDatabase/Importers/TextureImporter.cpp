@@ -9,8 +9,20 @@
 #include "Engine/Library/Utils.hpp"
 #include "Engine/ThirdParty/stb/stb_image.h"
 #include <fstream>
+#include <functional>
 #include <ktx.h>
 #include <ktxvulkan.h>
+#include <string_view>
+
+namespace
+{
+constexpr std::string_view TextureArtifactKind = "texture_ktx";
+
+uint64_t ComputeMetaHash(const nlohmann::json& meta)
+{
+    return std::hash<std::string>{}(meta.value("importOption", nlohmann::json::object()).dump());
+}
+} // namespace
 
 void StbiDeleter(uint8_t* p)
 {
@@ -34,19 +46,23 @@ const std::vector<std::type_index>& TextureImporter::GetImportTypes()
 
 bool TextureImporter::ImportNeeded()
 {
-    size_t oldLastWriteTime = meta.value("lastImportedWriteTime", 0ll);
-    size_t lastWriteTime = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
-    bool reimport = lastWriteTime > oldLastWriteTime;
+    ImportDatabase::ImportState state{};
+    std::filesystem::path artifactPath;
+    const auto currentWriteTime = static_cast<uint64_t>(std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count());
+    const auto currentMetaHash = ComputeMetaHash(meta);
 
-    // meta file validation
-    if (meta.contains("importedKtxFile"))
+    if (!importDatabase->TryGetImportState(assetUUID.ToString(), state))
     {
-        reimport = reimport || !importDatabase->ExistImportFile(std::string(meta["importedKtxFile"]));
+        return true;
     }
-    else
-        reimport = true;
 
-    return reimport;
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, artifactPath))
+    {
+        return true;
+    }
+
+    return state.sourceWriteTime != currentWriteTime || state.metaHash != currentMetaHash ||
+           !importDatabase->ArtifactExists(artifactPath);
 }
 
 std::vector<std::filesystem::path> TextureImporter::Import()
@@ -67,7 +83,6 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         return linearFormat;
     };
 
-    std::string importFileUUID = meta.value("importFileUUID", UUID().ToString());
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
     bool generateMipmap = option.value("generateMipmap", true);
     bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
@@ -85,7 +100,11 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         generateMipmap = false;
     }
 
-    auto importedAssetPath = importDatabase->GetImportAssetPath(importFileUUID).replace_extension(".ktx");
+    std::filesystem::path importedAssetPath;
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, importedAssetPath))
+    {
+        importedAssetPath = importDatabase->GetImportAssetPath(UUID().ToString()).replace_extension(".ktx");
+    }
 
     std::fstream f;
     f.open(absoluteAssetPath, std::ios::binary | std::ios_base::in);
@@ -250,16 +269,24 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             }
         }
     }
-    meta["lastImportedWriteTime"] = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
-    meta["importedKtxFile"] = importedAssetPath.string();
-    meta["importFileUUID"] = importFileUUID;
-
     option["linearFormat"] = linearFormat;
     option["generateMipmap"] = generateMipmap;
     option["convertToIrradianceCubemap"] = converToIrradianceCubemap;
     option["convertToReflectanceCubemap"] = convertToReflectanceCubemap;
     option["convertToCubemap"] = convertToCubemap;
+    meta.erase("lastImportedWriteTime");
+    meta.erase("importedKtxFile");
+    meta.erase("importFileUUID");
     meta["importOption"] = option;
 
-    return {importedAssetPath};
+    importDatabase->ReplaceArtifact(assetUUID.ToString(), TextureArtifactKind, importedAssetPath);
+    importDatabase->UpsertImportState(
+        assetUUID.ToString(),
+        ImportDatabase::ImportState{
+            static_cast<uint64_t>(std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count()),
+            ComputeMetaHash(meta)
+        }
+    );
+
+    return {};
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Runtime/System/AssetDatabase/Private/ImportDatabase.hpp"
+#include "Engine/Library/UUID.hpp"
 #include "Engine/Library/PodVector.hpp"
 #include "Engine/Library/Utils.hpp"
 #include <filesystem>
@@ -13,15 +14,22 @@ protected:
     // asset to import
     //
     std::filesystem::path absoluteAssetPath{};
+    UUID assetUUID;
 
     // meta in the AssetDatabase
     nlohmann::json meta;
     const ImportDatabase* importDatabase;
 
 public:
-    void Setup(const ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta)
+    void Setup(
+        const ImportDatabase& importDatabase,
+        const UUID& assetUUID,
+        const std::filesystem::path& assetPath,
+        const nlohmann::json& meta
+    )
     {
         this->absoluteAssetPath = assetPath;
+        this->assetUUID = assetUUID;
         this->importDatabase = &importDatabase;
         this->meta = meta;
     }

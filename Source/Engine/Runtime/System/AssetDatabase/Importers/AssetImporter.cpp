@@ -1,19 +1,4 @@
 #include "AssetImporter.hpp"
-#include <fstream>
-
-PodVector<uint8_t> ImportDatabase::ReadFile(const std::string& filename) const
-{
-    std::ifstream f;
-    auto absoluteAssetPath = importDatabaseRoot / filename;
-    // f.rdbuf()->pubsetbuf(streamBuf.data(), streamBufSize);
-    f.open(absoluteAssetPath, std::ios::binary);
-    if (!f.good())
-        return {};
-    auto fileSize = std::filesystem::file_size(absoluteAssetPath);
-    PodVector<uint8_t> d(fileSize);
-    f.read((char*)d.data(), fileSize);
-    return d;
-}
 
 std::unique_ptr<AssetImporter> AssetImporterRegistry::CreateAssetImporterByExtension(const Extension& id)
 {
