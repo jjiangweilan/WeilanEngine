@@ -12,6 +12,7 @@ public:
     {
         uint64_t sourceWriteTime = 0;
         uint64_t metaHash = 0;
+        uint64_t contentHash = 0;
     };
 
     ImportDatabase() = default;

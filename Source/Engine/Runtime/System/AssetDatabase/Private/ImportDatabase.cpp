@@ -1,6 +1,8 @@
 #include "ImportDatabase.hpp"
+#include <fmt/format.h>
 #include <fstream>
 #include <spdlog/spdlog.h>
+#include <string_view>
 
 namespace
 {
@@ -29,6 +31,30 @@ sqlite3_stmt* Prepare(sqlite3* db, const char* sql)
     }
 
     return stmt;
+}
+
+bool ColumnExists(sqlite3* db, const char* tableName, const char* columnName)
+{
+    std::string sql = fmt::format("PRAGMA table_info({});", tableName);
+    sqlite3_stmt* stmt = Prepare(db, sql.c_str());
+    if (stmt == nullptr)
+    {
+        return false;
+    }
+
+    bool found = false;
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        const char* name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        if (name != nullptr && std::string_view(name) == columnName)
+        {
+            found = true;
+            break;
+        }
+    }
+
+    sqlite3_finalize(stmt);
+    return found;
 }
 } // namespace
 
@@ -73,7 +99,7 @@ bool ImportDatabase::TryGetImportState(const std::string& assetUUID, ImportState
 
     sqlite3_stmt* stmt = Prepare(
         db,
-        "SELECT source_write_time, meta_hash FROM imports WHERE asset_uuid = ?1;"
+        "SELECT source_write_time, meta_hash, content_hash FROM imports WHERE asset_uuid = ?1;"
     );
     if (stmt == nullptr)
     {
@@ -86,6 +112,7 @@ bool ImportDatabase::TryGetImportState(const std::string& assetUUID, ImportState
     {
         state.sourceWriteTime = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
         state.metaHash = static_cast<uint64_t>(sqlite3_column_int64(stmt, 1));
+        state.contentHash = static_cast<uint64_t>(sqlite3_column_int64(stmt, 2));
         sqlite3_finalize(stmt);
         return true;
     }
@@ -103,8 +130,8 @@ void ImportDatabase::UpsertImportState(const std::string& assetUUID, const Impor
 
     sqlite3_stmt* stmt = Prepare(
         db,
-        "INSERT INTO imports (asset_uuid, source_write_time, meta_hash) VALUES (?1, ?2, ?3) "
-        "ON CONFLICT(asset_uuid) DO UPDATE SET source_write_time = excluded.source_write_time, meta_hash = excluded.meta_hash;"
+        "INSERT INTO imports (asset_uuid, source_write_time, meta_hash, content_hash) VALUES (?1, ?2, ?3, ?4) "
+        "ON CONFLICT(asset_uuid) DO UPDATE SET source_write_time = excluded.source_write_time, meta_hash = excluded.meta_hash, content_hash = excluded.content_hash;"
     );
     if (stmt == nullptr)
     {
@@ -114,6 +141,7 @@ void ImportDatabase::UpsertImportState(const std::string& assetUUID, const Impor
     sqlite3_bind_text(stmt, 1, assetUUID.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int64(stmt, 2, static_cast<sqlite3_int64>(state.sourceWriteTime));
     sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(state.metaHash));
+    sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(state.contentHash));
 
     if (sqlite3_step(stmt) != SQLITE_DONE)
     {
@@ -275,9 +303,16 @@ void ImportDatabase::CreateSchema() const
         "CREATE TABLE IF NOT EXISTS imports ("
         "asset_uuid TEXT PRIMARY KEY,"
         "source_write_time INTEGER NOT NULL,"
-        "meta_hash INTEGER NOT NULL"
+        "meta_hash INTEGER NOT NULL,"
+        "content_hash INTEGER NOT NULL DEFAULT 0"
         ");"
     );
+
+    if (!ColumnExists(db, "imports", "content_hash"))
+    {
+        ExecSql(db, "ALTER TABLE imports ADD COLUMN content_hash INTEGER NOT NULL DEFAULT 0;");
+    }
+
     ExecSql(
         db,
         "CREATE TABLE IF NOT EXISTS artifacts ("
