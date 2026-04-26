@@ -162,7 +162,7 @@ bool ImportDatabase::TryGetArtifactPath(
 
     sqlite3_stmt* stmt = Prepare(
         db,
-        "SELECT relative_path FROM artifacts WHERE asset_uuid = ?1 AND kind = ?2;"
+        "SELECT relative_path FROM artifacts WHERE source_asset_uuid = ?1 AND kind = ?2 AND is_main = 1;"
     );
     if (stmt == nullptr)
     {
@@ -184,8 +184,63 @@ bool ImportDatabase::TryGetArtifactPath(
     return false;
 }
 
+bool ImportDatabase::TryGetArtifactPath(
+    const std::string& assetUUID, AssetArtifacts::Kind kind, std::filesystem::path& relativePath
+) const
+{
+    return TryGetArtifactPath(assetUUID, AssetArtifacts::ToString(kind), relativePath);
+}
+
+bool ImportDatabase::TryGetArtifactPath(const UUID& artifactUUID, std::filesystem::path& relativePath) const
+{
+    if (db == nullptr)
+    {
+        return false;
+    }
+
+    sqlite3_stmt* stmt = Prepare(db, "SELECT relative_path FROM artifacts WHERE artifact_uuid = ?1;");
+    if (stmt == nullptr)
+    {
+        return false;
+    }
+
+    auto artifactUUIDStr = artifactUUID.ToString();
+    sqlite3_bind_text(stmt, 1, artifactUUIDStr.c_str(), -1, SQLITE_TRANSIENT);
+
+    int step = sqlite3_step(stmt);
+    if (step == SQLITE_ROW)
+    {
+        relativePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+        sqlite3_finalize(stmt);
+        return true;
+    }
+
+    sqlite3_finalize(stmt);
+    return false;
+}
+
 void ImportDatabase::ReplaceArtifact(
     const std::string& assetUUID, std::string_view kind, const std::filesystem::path& relativePath
+) const
+{
+    ReplaceArtifact(UUID(assetUUID), UUID(assetUUID), kind, "main", relativePath, true);
+}
+
+void ImportDatabase::ReplaceArtifact(
+    const std::string& assetUUID, AssetArtifacts::Kind kind, const std::filesystem::path& relativePath
+) const
+{
+    ReplaceArtifact(assetUUID, AssetArtifacts::ToString(kind), relativePath);
+}
+
+void ImportDatabase::ReplaceArtifact(
+    const UUID& sourceAssetUUID,
+    const UUID& artifactUUID,
+    std::string_view kind,
+    std::string_view name,
+    const std::filesystem::path& relativePath,
+    bool isMain,
+    std::string_view locator
 ) const
 {
     if (db == nullptr)
@@ -195,8 +250,15 @@ void ImportDatabase::ReplaceArtifact(
 
     sqlite3_stmt* stmt = Prepare(
         db,
-        "INSERT INTO artifacts (asset_uuid, kind, relative_path) VALUES (?1, ?2, ?3) "
-        "ON CONFLICT(asset_uuid, kind) DO UPDATE SET relative_path = excluded.relative_path;"
+        "INSERT INTO artifacts (artifact_uuid, source_asset_uuid, kind, name, relative_path, is_main, locator) "
+        "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) "
+        "ON CONFLICT(artifact_uuid) DO UPDATE SET "
+        "source_asset_uuid = excluded.source_asset_uuid, "
+        "kind = excluded.kind, "
+        "name = excluded.name, "
+        "relative_path = excluded.relative_path, "
+        "is_main = excluded.is_main, "
+        "locator = excluded.locator;"
     );
     if (stmt == nullptr)
     {
@@ -204,16 +266,130 @@ void ImportDatabase::ReplaceArtifact(
     }
 
     auto relativePathStr = relativePath.generic_string();
-    sqlite3_bind_text(stmt, 1, assetUUID.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, kind.data(), static_cast<int>(kind.size()), SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, relativePathStr.c_str(), -1, SQLITE_TRANSIENT);
+    auto sourceAssetUUIDStr = sourceAssetUUID.ToString();
+    auto artifactUUIDStr = artifactUUID.ToString();
+    sqlite3_bind_text(stmt, 1, artifactUUIDStr.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, sourceAssetUUIDStr.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, kind.data(), static_cast<int>(kind.size()), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 4, name.data(), static_cast<int>(name.size()), SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 5, relativePathStr.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 6, isMain ? 1 : 0);
+    if (locator.empty())
+    {
+        sqlite3_bind_null(stmt, 7);
+    }
+    else
+    {
+        sqlite3_bind_text(stmt, 7, locator.data(), static_cast<int>(locator.size()), SQLITE_TRANSIENT);
+    }
 
     if (sqlite3_step(stmt) != SQLITE_DONE)
     {
-        spdlog::error("failed to replace artifact for {}: {}", assetUUID, sqlite3_errmsg(db));
+        spdlog::error("failed to replace artifact for {}: {}", sourceAssetUUIDStr, sqlite3_errmsg(db));
     }
 
     sqlite3_finalize(stmt);
+}
+
+void ImportDatabase::ReplaceArtifact(
+    const UUID& sourceAssetUUID,
+    const UUID& artifactUUID,
+    AssetArtifacts::Kind kind,
+    std::string_view name,
+    const std::filesystem::path& relativePath,
+    bool isMain,
+    std::string_view locator
+) const
+{
+    ReplaceArtifact(sourceAssetUUID, artifactUUID, AssetArtifacts::ToString(kind), name, relativePath, isMain, locator);
+}
+
+std::vector<ImportDatabase::ArtifactRecord> ImportDatabase::ListArtifacts(const UUID& sourceAssetUUID) const
+{
+    std::vector<ArtifactRecord> artifacts;
+    if (db == nullptr)
+    {
+        return artifacts;
+    }
+
+    sqlite3_stmt* stmt = Prepare(
+        db,
+        "SELECT artifact_uuid, source_asset_uuid, kind, name, relative_path, is_main, locator "
+        "FROM artifacts WHERE source_asset_uuid = ?1 ORDER BY kind, name;"
+    );
+    if (stmt == nullptr)
+    {
+        return artifacts;
+    }
+
+    auto sourceAssetUUIDStr = sourceAssetUUID.ToString();
+    sqlite3_bind_text(stmt, 1, sourceAssetUUIDStr.c_str(), -1, SQLITE_TRANSIENT);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        ArtifactRecord record{};
+        record.artifactUUID = UUID(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+        record.sourceAssetUUID = UUID(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
+        record.kind = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        record.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        record.relativePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        record.isMain = sqlite3_column_int(stmt, 5) != 0;
+        const char* locator = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6));
+        record.locator = locator == nullptr ? "" : locator;
+        artifacts.push_back(std::move(record));
+    }
+
+    sqlite3_finalize(stmt);
+    return artifacts;
+}
+
+std::vector<ImportDatabase::ArtifactRecord> ImportDatabase::ListArtifacts(
+    const UUID& sourceAssetUUID, std::string_view kind
+) const
+{
+    std::vector<ArtifactRecord> artifacts;
+    if (db == nullptr)
+    {
+        return artifacts;
+    }
+
+    sqlite3_stmt* stmt = Prepare(
+        db,
+        "SELECT artifact_uuid, source_asset_uuid, kind, name, relative_path, is_main, locator "
+        "FROM artifacts WHERE source_asset_uuid = ?1 AND kind = ?2 ORDER BY name;"
+    );
+    if (stmt == nullptr)
+    {
+        return artifacts;
+    }
+
+    auto sourceAssetUUIDStr = sourceAssetUUID.ToString();
+    sqlite3_bind_text(stmt, 1, sourceAssetUUIDStr.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, kind.data(), static_cast<int>(kind.size()), SQLITE_TRANSIENT);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        ArtifactRecord record{};
+        record.artifactUUID = UUID(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+        record.sourceAssetUUID = UUID(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1)));
+        record.kind = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+        record.name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        record.relativePath = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        record.isMain = sqlite3_column_int(stmt, 5) != 0;
+        const char* locator = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 6));
+        record.locator = locator == nullptr ? "" : locator;
+        artifacts.push_back(std::move(record));
+    }
+
+    sqlite3_finalize(stmt);
+    return artifacts;
+}
+
+std::vector<ImportDatabase::ArtifactRecord> ImportDatabase::ListArtifacts(
+    const UUID& sourceAssetUUID, AssetArtifacts::Kind kind
+) const
+{
+    return ListArtifacts(sourceAssetUUID, AssetArtifacts::ToString(kind));
 }
 
 void ImportDatabase::DeleteAssetRows(const std::string& assetUUID) const
@@ -223,7 +399,7 @@ void ImportDatabase::DeleteAssetRows(const std::string& assetUUID) const
         return;
     }
 
-    sqlite3_stmt* readArtifacts = Prepare(db, "SELECT relative_path FROM artifacts WHERE asset_uuid = ?1;");
+    sqlite3_stmt* readArtifacts = Prepare(db, "SELECT relative_path FROM artifacts WHERE source_asset_uuid = ?1;");
     if (readArtifacts != nullptr)
     {
         sqlite3_bind_text(readArtifacts, 1, assetUUID.c_str(), -1, SQLITE_TRANSIENT);
@@ -243,7 +419,7 @@ void ImportDatabase::DeleteAssetRows(const std::string& assetUUID) const
         sqlite3_finalize(readArtifacts);
     }
 
-    sqlite3_stmt* artifactStmt = Prepare(db, "DELETE FROM artifacts WHERE asset_uuid = ?1;");
+    sqlite3_stmt* artifactStmt = Prepare(db, "DELETE FROM artifacts WHERE source_asset_uuid = ?1;");
     if (artifactStmt != nullptr)
     {
         sqlite3_bind_text(artifactStmt, 1, assetUUID.c_str(), -1, SQLITE_TRANSIENT);
@@ -316,11 +492,22 @@ void ImportDatabase::CreateSchema() const
     ExecSql(
         db,
         "CREATE TABLE IF NOT EXISTS artifacts ("
-        "asset_uuid TEXT NOT NULL,"
+        "artifact_uuid TEXT PRIMARY KEY,"
+        "source_asset_uuid TEXT NOT NULL,"
         "kind TEXT NOT NULL,"
-        "relative_path TEXT NOT NULL,"
-        "PRIMARY KEY (asset_uuid, kind),"
-        "FOREIGN KEY (asset_uuid) REFERENCES imports(asset_uuid) ON DELETE CASCADE"
+        "name TEXT NOT NULL,"
+        "relative_path TEXT,"
+        "is_main INTEGER NOT NULL DEFAULT 0,"
+        "locator TEXT,"
+        "FOREIGN KEY (source_asset_uuid) REFERENCES imports(asset_uuid) ON DELETE CASCADE"
         ");"
     );
+
+    ExecSql(db, "CREATE INDEX IF NOT EXISTS idx_artifacts_source ON artifacts(source_asset_uuid);");
+    ExecSql(db, "CREATE INDEX IF NOT EXISTS idx_artifacts_source_kind ON artifacts(source_asset_uuid, kind);");
+    ExecSql(
+        db,
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_source_kind_name ON artifacts(source_asset_uuid, kind, name);"
+    );
+    ExecSql(db, "CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_main ON artifacts(source_asset_uuid) WHERE is_main = 1;");
 }
