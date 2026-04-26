@@ -72,6 +72,15 @@ public:
         std::vector<std::unique_ptr<Animation>>&& animations
     );
 
+    void SetModelGraph(
+        std::vector<std::unique_ptr<GameObject>>&& gameObjects,
+        std::vector<ObjPtr<GameObject>>&& roots,
+        std::vector<std::unique_ptr<Mesh>>&& meshes,
+        std::vector<std::unique_ptr<Texture>>&& textures,
+        std::vector<std::unique_ptr<Material>>&& materials,
+        std::vector<std::unique_ptr<Animation>>&& animations
+    );
+
     void OnLoaded() override;
 
 private:
@@ -83,6 +92,8 @@ private:
 
     ModelNode rootNode;
     std::vector<std::unique_ptr<GameObject>> gameObjects; // the first one is the root
+    std::vector<std::unique_ptr<GameObject>> modelGameObjects;
+    std::vector<ObjPtr<GameObject>> modelRoots;
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;

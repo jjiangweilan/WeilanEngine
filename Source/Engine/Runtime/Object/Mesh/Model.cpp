@@ -14,6 +14,16 @@ static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
+static void MoveOwningChildrenToFlatList(std::unique_ptr<GameObject>& root, std::vector<std::unique_ptr<GameObject>>& out)
+{
+    auto owningChildren = root->GetOwningChildren();
+    out.push_back(std::move(root));
+    for (auto& child : owningChildren)
+    {
+        MoveOwningChildrenToFlatList(child, out);
+    }
+}
+
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
@@ -230,8 +240,42 @@ void Model::SetModel(
     SetMaterialKeywords(rootNode);
 }
 
+void Model::SetModelGraph(
+    std::vector<std::unique_ptr<GameObject>>&& gameObjects,
+    std::vector<ObjPtr<GameObject>>&& roots,
+    std::vector<std::unique_ptr<Mesh>>&& meshes,
+    std::vector<std::unique_ptr<Texture>>&& textures,
+    std::vector<std::unique_ptr<Material>>&& materials,
+    std::vector<std::unique_ptr<Animation>>&& animations
+)
+{
+    assimpLoaded = false;
+    this->modelGameObjects = std::move(gameObjects);
+    this->modelRoots = std::move(roots);
+    this->meshes = std::move(meshes);
+    this->textures = std::move(textures);
+    this->materials = std::move(materials);
+    this->animations = std::move(animations);
+}
+
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
+    if (!modelRoots.empty())
+    {
+        std::vector<std::unique_ptr<GameObject>> created;
+        for (auto root : modelRoots)
+        {
+            if (root == nullptr)
+            {
+                continue;
+            }
+
+            auto rootCopy = std::make_unique<GameObject>(*root);
+            MoveOwningChildrenToFlatList(rootCopy, created);
+        }
+        return created;
+    }
+
     if (assimpLoaded)
     {
         auto gos = CreateGameObject(rootNode, nullptr);
@@ -346,4 +390,11 @@ void Model::SetMaterialKeywords(ModelNode& node)
 void Model::OnLoaded()
 {
     std::for_each(materials.begin(), materials.end(), [](auto& m) { m->OnLoaded(); });
+    for (auto& go : modelGameObjects)
+    {
+        if (go)
+        {
+            go->OnLoaded();
+        }
+    }
 }

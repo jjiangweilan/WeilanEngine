@@ -52,6 +52,21 @@ public:
 
     const AnimationClips& GetAnimationClips() { return clips; }
 
+    void AddClip(std::unique_ptr<const AnimationClip>&& clip)
+    {
+        clips[clip->name] = std::move(clip);
+    }
+
+    void AddClip(
+        const std::string& name,
+        float tickPerSecond,
+        float duration,
+        const std::vector<Channel>& channels
+    )
+    {
+        clips[name] = std::make_unique<AnimationClip>(name, tickPerSecond, duration, channels);
+    }
+
 private:
     AnimationClips clips;
     friend struct ModelImporterImple;

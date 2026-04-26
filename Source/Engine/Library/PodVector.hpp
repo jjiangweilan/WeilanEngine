@@ -97,6 +97,7 @@ public:
     }
 
     T* data() { return m_Data; }
+    const T* data() const { return m_Data; }
     size_t size() const { return m_Size; }
 
 private:

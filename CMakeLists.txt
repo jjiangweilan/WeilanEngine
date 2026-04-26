@@ -286,6 +286,14 @@ if(NOT assimp_POPULATED)
 endif()
 
 FetchContent_Declare(
+    meshoptimizer
+    GIT_REPOSITORY "https://github.com/zeux/meshoptimizer.git"
+    GIT_TAG "v1.1"
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(meshoptimizer)
+
+FetchContent_Declare(
     JoltPhysics
     GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
     GIT_TAG "v5.5.0"
@@ -394,6 +402,7 @@ target_link_libraries( WeilanEngine
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
     assimp
+    meshoptimizer
     volk
 )
 

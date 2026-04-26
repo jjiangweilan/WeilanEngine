@@ -13,6 +13,7 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(Material, shaderInUse),
     TYPE_REFLECTION_MEM(Material, ubo),
     TYPE_REFLECTION_MEM(Material, textureValues),
+    TYPE_REFLECTION_MEM(Material, textureSamplerIndices),
     TYPE_REFLECTION_MEM(Material, enabledFeatures),
     TYPE_REFLECTION_MEM(Material, overrideShaderConfig),
     TYPE_REFLECTION_MEM(Material, shaderConfig)
@@ -328,6 +329,7 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("shader", shaderInUse);
     s->Serialize("ubo", ubo);
     s->Serialize("textureValues", textureValues);
+    s->Serialize("textureSamplerIndices", textureSamplerIndices);
     std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
     s->Serialize("overrideShaderConfig", overrideShaderConfig);
@@ -400,6 +402,7 @@ void Material::Deserialize(Serializer* s)
     // s->Deserialize("shader", shader);
     s->Deserialize("ubo", ubo);
     s->Deserialize("textureValues", textureValues);
+    s->Deserialize("textureSamplerIndices", textureSamplerIndices);
     std::vector<std::string> enabledFeatureVec;
     s->Deserialize("enabledFeature", enabledFeatureVec);
     for (auto& f : enabledFeatureVec)
