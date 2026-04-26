@@ -1,4 +1,5 @@
 #include "Scene.hpp"
+#include <unordered_set>
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
 Scene::Scene() : Asset(), renderingScene(), physicsScene(this)
@@ -89,25 +90,12 @@ void Scene::MoveGameObjectToRoot(GameObject* obj)
     roots.push_back(obj);
 }
 
-static void GetAllGameObjects(GameObject* current, std::vector<GameObject*>& objs)
-{
-    objs.push_back(current);
-    for (auto& child : current->GetChildren())
-    {
-        if (child)
-            GetAllGameObjects(child, objs);
-    }
-}
-
 std::vector<GameObject*> Scene::GetAllGameObjects()
 {
     std::vector<GameObject*> objs;
-    objs.reserve(256);
+    objs.reserve(gameObjects.size());
 
-    for (auto& obj : roots)
-    {
-        ::GetAllGameObjects(obj, objs);
-    }
+    ForEachGameObject([&objs](GameObject* obj) { objs.push_back(obj); });
 
     return objs;
 }
@@ -294,11 +282,10 @@ void Scene::Deserialize(Serializer* s)
 
 void Scene::OnLoaded()
 {
-    for (auto go : GetAllGameObjects())
+    ForEachGameObject([](GameObject* go)
     {
-        if (go != nullptr)
-            go->OnLoaded();
-    }
+        go->OnLoaded();
+    });
 
     for (auto& g : gameObjects)
     {
@@ -327,7 +314,9 @@ std::unique_ptr<GameObject> Scene::RetrieveGameObject(GameObject* obj)
 void Scene::FixUndestroiedGameObjectNotInSceneTree()
 {
 
-    auto gos = GetAllGameObjects();
+    std::unordered_set<GameObject*> gos;
+    gos.reserve(gameObjects.size());
+    ForEachGameObject([&gos](GameObject* go) { gos.insert(go); });
 
     bool nextErase = true;
     while (nextErase)
@@ -336,8 +325,7 @@ void Scene::FixUndestroiedGameObjectNotInSceneTree()
         for (int i = 0; i < gs.size(); ++i)
         {
             auto& g = gs[i];
-            auto iter = std::find(gos.begin(), gos.end(), g.get());
-            if (iter == gos.end())
+            if (!gos.contains(g.get()))
             {
                 nextErase = true;
                 gs.erase(gs.begin() + i);

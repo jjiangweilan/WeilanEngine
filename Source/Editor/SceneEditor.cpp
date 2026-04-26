@@ -547,7 +547,7 @@ bool SceneEditor::Tick()
         if (scene && showGizmos)
         {
             // Gizmo
-            for (auto g : scene->GetAllGameObjects())
+            scene->ForEachGameObject([this](GameObject* g)
             {
                 GizmoBase::SetActiveCarrier(g);
                 for (auto& c : g->GetComponents())
@@ -559,7 +559,7 @@ bool SceneEditor::Tick()
                     }
                 }
                 GizmoBase::ClearActiveCarrier();
-            }
+            });
         }
 
         bool anyItemHovered = ImGui::IsAnyItemHovered();

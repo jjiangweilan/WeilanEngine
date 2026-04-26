@@ -79,8 +79,7 @@ public:
     static std::vector<PickCandidate> GetCandidateFromScene(Scene& scene)
     {
         std::vector<PickCandidate> pending;
-        auto gameObjects = scene.GetAllGameObjects();
-        for (auto obj : gameObjects)
+        scene.ForEachGameObject([&pending](GameObject* obj)
         {
             if (obj != nullptr && obj->IsActiveInScene())
             {
@@ -103,7 +102,7 @@ public:
                     });
                 }
             }
-        }
+        });
         return pending;
     }
 

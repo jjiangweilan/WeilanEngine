@@ -262,14 +262,14 @@ void GlobalIlluminaion::PreprocessScene(Scene& scene, const BakeProbesInfo& info
     // collect all suitable renderers
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
     DrawList drawList;
-    for (auto go : scene.GetAllGameObjects())
+    scene.ForEachGameObject([&drawList](GameObject* go)
     {
         auto m = go->GetComponent<MeshRenderer>();
         if (m)
         {
             drawList.Add(*m);
         }
-    }
+    });
 
     //
 }

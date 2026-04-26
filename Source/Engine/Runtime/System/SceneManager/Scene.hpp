@@ -10,6 +10,7 @@
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
+#include <type_traits>
 
 class [[LuaClass]] Scene : public Asset
 {
@@ -42,6 +43,17 @@ public:
     std::unique_ptr<Asset> Clone() override;
 
     std::vector<GameObject*> GetAllGameObjects();
+    template <class Func>
+    bool ForEachGameObject(Func&& func)
+    {
+        for (auto& obj : roots)
+        {
+            if (!ForEachGameObject(obj, func))
+                return false;
+        }
+
+        return true;
+    }
     std::vector<Light*> GetActiveLights();
 
     void Serialize(Serializer* s) const override;
@@ -50,15 +62,16 @@ public:
     {
         if (camera == nullptr)
         {
-            for (auto go : GetAllGameObjects())
+            ForEachGameObject([this](GameObject* go)
             {
                 auto cam = go->GetComponent<Camera>();
                 if (cam)
                 {
                     camera = cam;
-                    break;
+                    return false;
                 }
-            }
+                return true;
+            });
         }
         return camera;
     }
@@ -89,4 +102,30 @@ protected:
     void TickGameObject(GameObject* obj);
     void PrePhysicsTickGameObject(GameObject* obj);
     void DestroyGameObjectNestedCall(GameObject* obj);
+
+    template <class Func>
+    bool ForEachGameObject(GameObject* current, Func& func)
+    {
+        if (current == nullptr)
+            return true;
+
+        using Result = std::invoke_result_t<Func&, GameObject*>;
+        if constexpr (std::is_same_v<Result, bool>)
+        {
+            if (!func(current))
+                return false;
+        }
+        else
+        {
+            func(current);
+        }
+
+        for (auto& child : current->GetChildren())
+        {
+            if (!ForEachGameObject(child, func))
+                return false;
+        }
+
+        return true;
+    }
 };

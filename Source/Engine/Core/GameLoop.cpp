@@ -150,16 +150,15 @@ void GameLoop::Play()
 
     isPlaying = true;
 
-    auto gos = scene->GetAllGameObjects();
     std::vector<GameObject*> awakedGos{};
-    for (auto go : gos)
+    scene->ForEachGameObject([&awakedGos](GameObject* go)
     {
         if (go->IsActiveInScene())
         {
             go->OnAwake();
             awakedGos.push_back(go);
         }
-    }
+    });
 
     for (auto go : awakedGos)
     {
@@ -173,11 +172,10 @@ void GameLoop::Play()
 void GameLoop::Stop()
 {
     isPlaying = false;
-    auto gos = scene->GetAllGameObjects();
-    for (auto go : gos)
+    scene->ForEachGameObject([](GameObject* go)
     {
         go->OnStop();
-    }
+    });
 
     // recreate render pipeline after playing for editor
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();

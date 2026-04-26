@@ -40,13 +40,15 @@ public:
             std::string objName = vm["name"].as<std::string>();
             spdlog::info("Finding object with name: {}", vm["name"].as<std::string>());
 
-            for (auto go : SceneManager::GetActiveScene()->GetAllGameObjects())
+            SceneManager::GetActiveScene()->ForEachGameObject([&objName](GameObject* go)
             {
                 if (go && go->GetName() == objName)
                 {
                     Editor::EditorState::SelectObject(go);
+                    return false;
                 }
-            }
+                return true;
+            });
         }
     }
 };
