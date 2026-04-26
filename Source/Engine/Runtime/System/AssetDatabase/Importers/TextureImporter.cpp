@@ -8,6 +8,7 @@
 #include "Engine/Library/UUID.hpp"
 #include "Engine/Library/Utils.hpp"
 #include "Engine/ThirdParty/stb/stb_image.h"
+#include "Engine/ThirdParty/xxHash/xxhash.h"
 #include <fstream>
 #include <functional>
 #include <ktx.h>
@@ -21,6 +22,20 @@ constexpr std::string_view TextureArtifactKind = "texture_ktx";
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
     return std::hash<std::string>{}(meta.value("importOption", nlohmann::json::object()).dump());
+}
+
+uint64_t ComputeContentHash(const std::filesystem::path& path)
+{
+    std::ifstream f(path, std::ios::binary);
+    if (!f.good())
+    {
+        return 0;
+    }
+
+    const auto fileSize = std::filesystem::file_size(path);
+    std::vector<char> fileData(fileSize);
+    f.read(fileData.data(), static_cast<std::streamsize>(fileSize));
+    return XXH3_64bits(fileData.data(), fileData.size());
 }
 } // namespace
 
@@ -50,6 +65,7 @@ bool TextureImporter::ImportNeeded()
     std::filesystem::path artifactPath;
     const auto currentWriteTime = static_cast<uint64_t>(std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count());
     const auto currentMetaHash = ComputeMetaHash(meta);
+    const auto currentContentHash = ComputeContentHash(absoluteAssetPath);
 
     if (!importDatabase->TryGetImportState(assetUUID.ToString(), state))
     {
@@ -62,6 +78,7 @@ bool TextureImporter::ImportNeeded()
     }
 
     return state.sourceWriteTime != currentWriteTime || state.metaHash != currentMetaHash ||
+           state.contentHash != currentContentHash ||
            !importDatabase->ArtifactExists(artifactPath);
 }
 
@@ -284,7 +301,8 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         assetUUID.ToString(),
         ImportDatabase::ImportState{
             static_cast<uint64_t>(std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count()),
-            ComputeMetaHash(meta)
+            ComputeMetaHash(meta),
+            ComputeContentHash(absoluteAssetPath)
         }
     );
 
