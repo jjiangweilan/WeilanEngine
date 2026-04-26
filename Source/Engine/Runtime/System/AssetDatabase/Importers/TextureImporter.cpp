@@ -1,4 +1,5 @@
 #include "TextureImporter.hpp"
+#include "Engine/Runtime/System/AssetDatabase/ArtifactTypes.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
@@ -17,8 +18,6 @@
 
 namespace
 {
-constexpr std::string_view TextureArtifactKind = "texture_ktx";
-
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
     return std::hash<std::string>{}(meta.value("importOption", nlohmann::json::object()).dump());
@@ -72,7 +71,7 @@ bool TextureImporter::ImportNeeded()
         return true;
     }
 
-    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, artifactPath))
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), AssetArtifacts::Kind::Texture, artifactPath))
     {
         return true;
     }
@@ -118,9 +117,9 @@ std::vector<std::filesystem::path> TextureImporter::Import()
     }
 
     std::filesystem::path importedAssetPath;
-    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, importedAssetPath))
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), AssetArtifacts::Kind::Texture, importedAssetPath))
     {
-        importedAssetPath = importDatabase->GetImportAssetPath(UUID().ToString()).replace_extension(".ktx");
+        importedAssetPath = importDatabase->GetImportAssetPath(UUID().ToString()).replace_extension(AssetArtifacts::Extension(AssetArtifacts::Kind::Texture));
     }
 
     std::fstream f;
@@ -296,7 +295,6 @@ std::vector<std::filesystem::path> TextureImporter::Import()
     meta.erase("importFileUUID");
     meta["importOption"] = option;
 
-    importDatabase->ReplaceArtifact(assetUUID.ToString(), TextureArtifactKind, importedAssetPath);
     importDatabase->UpsertImportState(
         assetUUID.ToString(),
         ImportDatabase::ImportState{
@@ -305,6 +303,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             ComputeContentHash(absoluteAssetPath)
         }
     );
+    importDatabase->ReplaceArtifact(assetUUID.ToString(), AssetArtifacts::Kind::Texture, importedAssetPath);
 
     return {};
 }

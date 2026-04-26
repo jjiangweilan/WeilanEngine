@@ -78,7 +78,7 @@ void AssetDatabase::Init(const AbsolutePath& projectRoot)
 
 void AssetDatabase::SaveAsset(Asset& asset)
 {
-    if (asset.IsExternalAsset() || HasFlag(asset.GetFlags(), AssetState::DontSave))
+    if (asset.IsExternalAsset() || IsImportedSubAsset(asset) || HasFlag(asset.GetFlags(), AssetState::DontSave))
         return;
     // this method only saves asset that is already imported
     AssetData* assetData = assetFileSystem.GetAssetData(asset.GetUUID());
@@ -87,6 +87,12 @@ void AssetDatabase::SaveAsset(Asset& asset)
     {
         SerializeAssetToDisk(asset, assetData->GetAssetAbsolutePath());
     }
+}
+
+bool AssetDatabase::IsImportedSubAsset(const Asset& asset) const
+{
+    AssetData* assetData = assetFileSystem.GetAssetData(asset.GetUUID());
+    return assetData != nullptr && assetData->GetAssetUUID() != asset.GetUUID();
 }
 
 bool AssetDatabase::IsAssetInDatabase(Asset& asset)
@@ -811,7 +817,13 @@ void AssetDatabase::ImportAssetIfNeeded(const AssetPath& path, bool forceReimpor
     if (!std::filesystem::exists(absoluteAssetPath))
         return;
 
-    importer->Setup(importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
+    importer->Setup(
+        importDatabase,
+        assetData->GetAssetUUID(),
+        absoluteAssetPath,
+        *assetMeta,
+        &assetData->GetInternalObjectAssetNameToUUID()
+    );
 
     bool importNeeded = forceReimport || importer->ImportNeeded();
     std::vector<AssetPath> importedAssetFilePaths;

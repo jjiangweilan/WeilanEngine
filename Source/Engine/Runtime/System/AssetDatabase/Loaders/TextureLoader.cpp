@@ -1,4 +1,5 @@
 #include "TextureLoader.hpp"
+#include "Engine/Runtime/System/AssetDatabase/ArtifactTypes.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
@@ -12,11 +13,6 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 #include <string_view>
-
-namespace
-{
-constexpr std::string_view TextureArtifactKind = "texture_ktx";
-} // namespace
 
 DEFINE_ASSET_LOADER(TextureLoader, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
 
@@ -43,7 +39,7 @@ bool TextureLoader::IsKTX1File(ktx_uint8_t* imageData)
 void TextureLoader::Load()
 {
     std::filesystem::path importedSourcePath;
-    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), TextureArtifactKind, importedSourcePath))
+    if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), AssetArtifacts::Kind::Texture, importedSourcePath))
     {
         return;
     }

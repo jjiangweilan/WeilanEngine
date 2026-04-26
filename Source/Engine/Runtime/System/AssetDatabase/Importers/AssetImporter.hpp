@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 class AssetImporter
@@ -19,19 +20,22 @@ protected:
     // meta in the AssetDatabase
     nlohmann::json meta;
     const ImportDatabase* importDatabase;
+    const std::unordered_map<std::string, UUID>* internalNameToUUID = nullptr;
 
 public:
     void Setup(
         const ImportDatabase& importDatabase,
         const UUID& assetUUID,
         const std::filesystem::path& assetPath,
-        const nlohmann::json& meta
+        const nlohmann::json& meta,
+        const std::unordered_map<std::string, UUID>* internalNameToUUID = nullptr
     )
     {
         this->absoluteAssetPath = assetPath;
         this->assetUUID = assetUUID;
         this->importDatabase = &importDatabase;
         this->meta = meta;
+        this->internalNameToUUID = internalNameToUUID;
     }
     virtual ~AssetImporter() {}
     virtual nlohmann::json GetMeta() { return meta; }

@@ -5,8 +5,8 @@ class ModelImporter : public AssetImporter
 {
     DECLARE_ASSET_IMPORTER()
 public:
-    bool ImportNeeded() override { return false; }
-    std::vector<std::filesystem::path> Import() override { return {}; }
+    bool ImportNeeded() override;
+    std::vector<std::filesystem::path> Import() override;
 
     static const std::vector<std::type_index>& GetImportTypes();
 };

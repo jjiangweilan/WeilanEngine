@@ -93,6 +93,7 @@ private:
     void SerializeAssetToDisk(Asset& asset, const AbsolutePath& path);
     void LoadEngineInternal();
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
+    bool IsImportedSubAsset(const Asset& asset) const;
     void LoadAssetDatas();
     void EnsureAllFilesAreImported(const AbsolutePath& directory);
     void ImportAssetIfNeeded(const AssetPath& path, bool forceReimport);
