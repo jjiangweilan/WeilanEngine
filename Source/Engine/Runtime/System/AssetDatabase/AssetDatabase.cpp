@@ -703,6 +703,57 @@ AssetData* AssetDatabase::AddAssetData(std::unique_ptr<AssetData>&& newAssetData
     if (newAssetData != nullptr)
     {
         auto ptr = newAssetData.get();
+
+        bool repairedIdentity = false;
+        while (ptr->GetAssetUUID().IsEmpty() || assetFileSystem.GetAssetData(ptr->GetAssetUUID()) != nullptr)
+        {
+            AssetData* existingAssetData = assetFileSystem.GetAssetData(ptr->GetAssetUUID());
+            if (existingAssetData != nullptr)
+            {
+                spdlog::warn(
+                    "duplicate asset UUID {} detected at {} and {}; regenerating UUID for {}",
+                    ptr->GetAssetUUID().ToString(),
+                    existingAssetData->GetAssetPath().string(),
+                    ptr->GetAssetPath().string(),
+                    ptr->GetAssetPath().string()
+                );
+            }
+            else
+            {
+                spdlog::warn("empty asset UUID detected at {}; regenerating UUID", ptr->GetAssetPath().string());
+            }
+
+            ptr->RegenerateAssetUUID();
+            repairedIdentity = true;
+        }
+
+        bool clearInternalUUIDs = false;
+        for (const auto& [name, uuid] : ptr->GetInternalObjectAssetNameToUUID())
+        {
+            if (!uuid.IsEmpty() && assetFileSystem.GetAssetData(uuid) != nullptr)
+            {
+                spdlog::warn(
+                    "duplicate internal asset UUID {} detected for {} in {}; regenerating internal UUID map on next load",
+                    uuid.ToString(),
+                    name,
+                    ptr->GetAssetPath().string()
+                );
+                clearInternalUUIDs = true;
+                break;
+            }
+        }
+
+        if (clearInternalUUIDs)
+        {
+            ptr->ClearInternalObjectUUIDs();
+            repairedIdentity = true;
+        }
+
+        if (repairedIdentity)
+        {
+            ptr->SaveToDisk(projectRoot);
+        }
+
         assetFileSystem.Add(ptr);
         assetDatas.push_back(std::move(newAssetData));
         return ptr;

@@ -77,6 +77,7 @@ public:
     ~AssetData();
 
     const UUID& GetAssetUUID() const { return assetUUID; }
+    void RegenerateAssetUUID();
 
     const UUID& GetAssetDataUUID() const { return assetDataUUID; }
 
@@ -105,8 +106,11 @@ public:
     void UnloadAsset() { asset = nullptr; }
 
     std::unordered_map<std::string, UUID>& GetInternalObjectAssetNameToUUID() { return nameToUUID; }
+    const std::unordered_map<std::string, UUID>& GetInternalObjectAssetNameToUUID() const { return nameToUUID; }
+    void ClearInternalObjectUUIDs();
 
     bool IsDirty() { return dirty; }
+    void MarkDirty() { dirty = true; }
 
     nlohmann::json DumpInfo() const;
 

@@ -148,6 +148,18 @@ AssetData::AssetData() : assetUUID(), assetDataUUID(), lastWriteTime(0), assetTy
 
 AssetData::~AssetData() {}
 
+void AssetData::RegenerateAssetUUID()
+{
+    assetUUID = UUID();
+    dirty = true;
+}
+
+void AssetData::ClearInternalObjectUUIDs()
+{
+    nameToUUID.clear();
+    dirty = true;
+}
+
 Asset* AssetData::GetAsset()
 {
     if (asset != nullptr)
