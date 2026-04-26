@@ -224,8 +224,8 @@ void AssetDatabase::LoadEngineInternal()
     ShaderLibrary::CompileAllDefaultShaders();
 
     std::vector<AssetPath> pathes;
-    auto cwdAssetsDir = std::filesystem::current_path() / "Assets";
-    for (auto entry : std::filesystem::recursive_directory_iterator(cwdAssetsDir))
+    auto engineAssetsDir = EngineConfig::GetEngineAssetsRoot();
+    for (auto entry : std::filesystem::recursive_directory_iterator(engineAssetsDir))
     {
         if (!entry.is_directory())
         {

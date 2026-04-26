@@ -22,27 +22,27 @@ class AssetPath
         if (fsPath.is_absolute())
         {
             std::error_code ec;
-            // Try project assets first
-            auto projectAssets = EngineConfig::GetProjectAssetsRoot();
-            if (!projectAssets.empty())
+            // Prefer engine assets so internal files keep a stable identity even when the
+            // project root is the engine checkout during development.
+            auto engineAssets = EngineConfig::GetEngineAssetsRoot();
+            if (!engineAssets.empty())
             {
-                auto rel = std::filesystem::relative(fsPath, projectAssets, ec);
+                auto rel = std::filesystem::relative(fsPath, engineAssets, ec);
                 if (!ec && !rel.empty() && rel.generic_string().find("..") == std::string::npos)
                 {
-                    pathStr = rel.generic_string();
+                    pathStr = "_engine_internal/" + rel.generic_string();
                 }
             }
 
             if (pathStr.empty())
             {
-                // Try engine assets
-                auto engineAssets = EngineConfig::GetEngineAssetsRoot();
-                if (!engineAssets.empty())
+                auto projectAssets = EngineConfig::GetProjectAssetsRoot();
+                if (!projectAssets.empty())
                 {
-                    auto rel = std::filesystem::relative(fsPath, engineAssets, ec);
+                    auto rel = std::filesystem::relative(fsPath, projectAssets, ec);
                     if (!ec && !rel.empty() && rel.generic_string().find("..") == std::string::npos)
                     {
-                        pathStr = "_engine_internal/" + rel.generic_string();
+                        pathStr = rel.generic_string();
                     }
                 }
             }
