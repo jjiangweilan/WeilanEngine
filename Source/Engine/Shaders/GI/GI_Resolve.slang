@@ -1,4 +1,5 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
 import Lighting;
 import GI.GI_Common;
@@ -67,9 +68,9 @@ static const float kHistoryClampSlack = 1.01;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 coord = dispatchThreadID.xy;
+    uint2 coord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     float2 texelSize = perMaterial.texelSize.xy;
 
     if (coord.x >= (uint)perMaterial.texelSize.z || coord.y >= (uint)perMaterial.texelSize.w)
@@ -85,8 +86,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    float4 currentPosH = mul(perScene.camera.invNDCToWorld, float4(uv * 2.0 - 1.0, currentDepth, 1.0));
-    float3 currentPos = currentPosH.xyz / currentPosH.w;
+    float3 currentPos = ReconstructWorldPos(perScene, uv, currentDepth);
 
     uint2 shSize = GetSHProbeResolution(perMaterial.texelSize.zw);
     float2 probeGrid = GetSHProbeGridFromFullResCoord(coord, perMaterial.texelSize.zw);
@@ -102,17 +102,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         int2(1, 1)
     };
 
-    float weights[4] =
-    {
-        (1.0 - probeFrac.x) * (1.0 - probeFrac.y),
-        probeFrac.x * (1.0 - probeFrac.y),
-        (1.0 - probeFrac.x) * probeFrac.y,
-        probeFrac.x * probeFrac.y
-    };
-
-    float4 sh0Samples[4];
-    float4 sh1Samples[4];
-    float4 sh2Samples[4];
+    float4 sh0Sum = 0;
+    float4 sh1Sum = 0;
+    float4 sh2Sum = 0;
     float totalWeight = 0;
     float4 fullResRtSize = float4(perMaterial.texelSize.zw, perMaterial.texelSize.xy);
 
@@ -120,18 +112,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     for (int i = 0; i < 4; ++i)
     {
         int2 sc = clamp(shCoord00 + kOffsets[i], int2(0, 0), shMaxCoord);
-        sh0Samples[i] = perMaterial.rtgiSH0Tex.Load(int3(sc, 0));
-        sh1Samples[i] = perMaterial.rtgiSH1Tex.Load(int3(sc, 0));
-        sh2Samples[i] = perMaterial.rtgiSH2Tex.Load(int3(sc, 0));
+        float2 offsetWeight = i == 0 ? 1.0 - probeFrac : (i == 1 ? float2(probeFrac.x, 1.0 - probeFrac.y) : (i == 2 ? float2(1.0 - probeFrac.x, probeFrac.y) : probeFrac));
+        float weight = offsetWeight.x * offsetWeight.y;
 
         uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw);
         float2 probeUv = GetFullResUv(probeSourceCoord, fullResRtSize);
         float probeDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
-        if (probeDepth <= 0.0000001)
-        {
-            weights[i] = 0.0;
+        if (probeDepth <= 0.0000001 || weight <= 0.0)
             continue;
-        }
 
         float3 probePos = ReconstructWorldPos(perScene, probeUv, probeDepth);
         float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePos);
@@ -142,8 +130,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         float distWeight = saturate(1.0 - distSq / 0.0064);
         float planeWeight = saturate(1.0 - abs(planeDist) / probePlaneThreshold);
 
-        weights[i] *= distWeight * planeWeight * accumWeight;
-        totalWeight += weights[i];
+        weight *= distWeight * planeWeight * accumWeight;
+        if (weight <= 0.0)
+            continue;
+
+        sh0Sum += perMaterial.rtgiSH0Tex.Load(int3(sc, 0)) * weight;
+        sh1Sum += perMaterial.rtgiSH1Tex.Load(int3(sc, 0)) * weight;
+        sh2Sum += perMaterial.rtgiSH2Tex.Load(int3(sc, 0)) * weight;
+        totalWeight += weight;
     }
 
     float3 irradiance = 0.0;
@@ -158,23 +152,16 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     else
     {
         float invTotal = 1.0 / totalWeight;
-        float4 sh0 = (sh0Samples[0] * weights[0] + sh0Samples[1] * weights[1] + sh0Samples[2] * weights[2] + sh0Samples[3] * weights[3]) * invTotal;
-        float4 sh1 = (sh1Samples[0] * weights[0] + sh1Samples[1] * weights[1] + sh1Samples[2] * weights[2] + sh1Samples[3] * weights[3]) * invTotal;
-        float4 sh2 = (sh2Samples[0] * weights[0] + sh2Samples[1] * weights[1] + sh2Samples[2] * weights[2] + sh2Samples[3] * weights[3]) * invTotal;
-
-        irradiance = DecodeLinearSH(sh0, sh1, sh2, normalWS);
+        irradiance = DecodeLinearSH(sh0Sum * invTotal, sh1Sum * invTotal, sh2Sum * invTotal, normalWS);
     }
 
     uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw);
     bool nearestProbeDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(nearestProbeCoord, 0)).x > 0.5;
 
-    float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
-    float2 prevUV = uv - motion;
-
-    bool luminanceClamping = !nearestProbeDisoccluded;
-    if (luminanceClamping)
+    if (!nearestProbeDisoccluded)
     {
-        prevUV = clamp(prevUV, 0, 1);
+        float2 motion = perMaterial.motionVectorTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xy;
+        float2 prevUV = clamp(uv - motion, 0, 1);
         float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, prevUV, 0).x;
         if (historyDepth > 0.00000001)
         {

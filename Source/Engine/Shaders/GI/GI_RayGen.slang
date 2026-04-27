@@ -1,4 +1,5 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
 import Library.RayTracing;
 import Lighting;
@@ -44,9 +45,9 @@ float3 GetNormalWS(float2 uv)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 rayCoord = dispatchThreadID.xy;
+    uint2 rayCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 rayRtSize = GetRayAtlasResolution(perMaterial.rtSize.xy);
     if (rayCoord.x >= rayRtSize.x || rayCoord.y >= rayRtSize.y)
         return;
