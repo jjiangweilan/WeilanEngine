@@ -13,6 +13,7 @@ struct GIRayGenParameter
     float maxRayCount;
     float stableAccumFrames;
     float distanceScale;
+    float probeDownsample;
 
     Texture2D hierarchyDepth;
     Texture2D normalTex;
@@ -73,8 +74,9 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
     float minHistoryAccum = 0.0;
     if (prevUv.x >= 0.0 && prevUv.x < 1.0 && prevUv.y >= 0.0 && prevUv.y < 1.0)
     {
-        uint2 historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUv, perMaterial.rtSize.xy);
-        uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, perMaterial.rtSize.xy);
+        uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+        uint2 historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUv, perMaterial.rtSize.xy, probeDownsample);
+        uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, perMaterial.rtSize.xy, probeDownsample);
         float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, perMaterial.rtSize);
         float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, historyProbeUv, 0).x;
         if (historyDepth > 0.0000001)

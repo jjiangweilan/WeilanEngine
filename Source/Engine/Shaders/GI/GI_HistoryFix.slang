@@ -5,6 +5,7 @@ import GI.GI_Common;
 struct GIHistoryFixParameter
 {
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
+    float probeDownsample;
 
     Texture2D hierarchyDepth;
     Texture2D<float4> inSH0Tex;
@@ -54,7 +55,7 @@ bool LoadProbeInput(
         return false;
     }
 
-    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy, GetGIProbeDownsample(perMaterial.probeDownsample));
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
     float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
     if (depth <= 0.0000001)
@@ -177,7 +178,7 @@ void WriteMip(uint mip, uint2 coord, uint2 probeRtSize)
 void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 probeCoord = dispatchThreadID.xy;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, GetGIProbeDownsample(perMaterial.probeDownsample));
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 

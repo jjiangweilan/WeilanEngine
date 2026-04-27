@@ -7,6 +7,7 @@ struct GIDisocclusionParameter
 {
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
     float distanceScale;
+    float probeDownsample;
 
     Texture2D<uint2> probeGeometryTex;
     Texture2D<float2> motionVectorTex;
@@ -27,7 +28,8 @@ ParameterBlock<GIDisocclusionParameter> perMaterial;
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, probeDownsample);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 
@@ -41,6 +43,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
             perMaterial.probeGeometryTex,
             perMaterial.rtSize,
             perMaterial.distanceScale,
+            probeDownsample,
             probeCoord,
             probeFullResCoord,
             probeUv,
@@ -59,6 +62,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
         perMaterial.motionVectorTex,
         perMaterial.historyProbeGeometryTex,
         perMaterial.rtSize,
+        probeDownsample,
         probeCoord,
         probeUv,
         probePositionWS,

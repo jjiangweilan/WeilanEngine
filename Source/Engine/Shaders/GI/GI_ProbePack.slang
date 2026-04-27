@@ -6,6 +6,7 @@ import Lighting;
 struct GIProbePackParameter
 {
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
+    float probeDownsample;
 
     Texture2D hierarchyDepth;
     Texture2D normalTex;
@@ -31,11 +32,12 @@ ParameterBlock<GIProbePackParameter> perMaterial;
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, probeDownsample);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 
-    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy, probeDownsample);
 
     float depth = perMaterial.hierarchyDepth.Load(int3(probeFullResCoord, 0)).x;
     float4 normal = perMaterial.normalTex.Load(int3(probeFullResCoord, 0));

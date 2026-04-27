@@ -28,6 +28,7 @@ float3 DecodeLinearSH(float4 sh0, float4 sh1, float4 sh2, float3 normal)
 struct GIResolveParameter
 {
     float4 texelSize; // xy: 1/width, 1/height; zw: width, height
+    float probeDownsample;
     float distanceScale;
     float resolveClampWeightScale;
 
@@ -68,9 +69,9 @@ static const float kHistoryClampSlack = 1.01;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 pixelCoord : SV_DispatchThreadID)
 {
-    uint2 coord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
+    uint2 coord = pixelCoord.xy;// MortonDecode8x8(groupIndex) + groupID.xy * 8;
     float2 texelSize = perMaterial.texelSize.xy;
 
     if (coord.x >= (uint)perMaterial.texelSize.z || coord.y >= (uint)perMaterial.texelSize.w)
@@ -88,8 +89,9 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
     float3 currentPos = ReconstructWorldPos(perScene, uv, currentDepth);
 
-    uint2 shSize = GetSHProbeResolution(perMaterial.texelSize.zw);
-    float2 probeGrid = GetSHProbeGridFromFullResCoord(coord, perMaterial.texelSize.zw);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 shSize = GetSHProbeResolution(perMaterial.texelSize.zw, probeDownsample);
+    float2 probeGrid = GetSHProbeGridFromFullResCoord(coord, perMaterial.texelSize.zw, probeDownsample);
     int2 shCoord00 = int2(floor(probeGrid));
     int2 shMaxCoord = int2(shSize) - 1;
     float2 probeFrac = frac(probeGrid);
@@ -115,7 +117,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
         float2 offsetWeight = i == 0 ? 1.0 - probeFrac : (i == 1 ? float2(probeFrac.x, 1.0 - probeFrac.y) : (i == 2 ? float2(1.0 - probeFrac.x, probeFrac.y) : probeFrac));
         float weight = offsetWeight.x * offsetWeight.y;
 
-        uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw);
+        uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw, probeDownsample);
         float2 probeUv = GetFullResUv(probeSourceCoord, fullResRtSize);
         float probeDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
         if (probeDepth <= 0.0000001 || weight <= 0.0)
@@ -123,12 +125,11 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 
         float3 probePos = ReconstructWorldPos(perScene, probeUv, probeDepth);
         float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePos);
-        float3 diff = probePos - currentPos;
-        float distSq = dot(diff, diff);
-        float planeDist = dot(normalWS, diff);
+        float distanceDiff = length(probePos - currentPos);
         float accumWeight = perMaterial.accumTex.Load(int3(sc, 0)).x;
-        float distWeight = saturate(1.0 - distSq / 0.0064);
-        float planeWeight = saturate(1.0 - abs(planeDist) / probePlaneThreshold);
+        float adaptiveCellSize = probePlaneThreshold * float(probeDownsample);
+        float distWeight = saturate(1.0 - distanceDiff / max(adaptiveCellSize, 1e-4));
+        float planeWeight = saturate(1.0 - abs(dot(normalWS, probePos - currentPos)) / probePlaneThreshold);
 
         weight *= distWeight * planeWeight * accumWeight;
         if (weight <= 0.0)
@@ -143,7 +144,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
     float3 irradiance = 0.0;
     if (totalWeight < 1e-6)
     {
-        int2 fallbackCoord = int2(GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw));
+        int2 fallbackCoord = int2(GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw, probeDownsample));
         float4 sh0 = perMaterial.rtgiSH0Tex.Load(int3(fallbackCoord, 0));
         float4 sh1 = perMaterial.rtgiSH1Tex.Load(int3(fallbackCoord, 0));
         float4 sh2 = perMaterial.rtgiSH2Tex.Load(int3(fallbackCoord, 0));
@@ -155,7 +156,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
         irradiance = DecodeLinearSH(sh0Sum * invTotal, sh1Sum * invTotal, sh2Sum * invTotal, normalWS);
     }
 
-    uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw);
+    uint2 nearestProbeCoord = GetSHProbeCoordFromFullResCoord(coord, perMaterial.texelSize.zw, probeDownsample);
     bool nearestProbeDisoccluded = perMaterial.disocclusionMaskTex.Load(int3(nearestProbeCoord, 0)).x > 0.5;
 
     if (!nearestProbeDisoccluded)

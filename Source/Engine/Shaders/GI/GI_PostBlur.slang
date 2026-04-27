@@ -11,6 +11,7 @@ struct GIPostBlurParameter
 {
     float4 rtSize;       // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
     float distanceScale;
+    float probeDownsample;
     float4 blurParams;   // (stablePassCount, unstablePassCount, stableAccumFrames, legacyPlaneSigma)
     float4 atrousParams; // (stepSize, iterationIndex, unused, unused)
     float minNormalDot;
@@ -54,7 +55,7 @@ bool LoadPostBlurProbeGeometry(uint2 probeCoord, out float3 probePosition, out f
         return false;
     }
 
-    uint2 fullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    uint2 fullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy, GetGIProbeDownsample(perMaterial.probeDownsample));
     float2 uv = GetFullResUv(fullResCoord, perMaterial.rtSize);
     probePosition = ReconstructWorldPos(perScene, uv, depth);
     probeNormal = normalize(probeNormal);
@@ -74,7 +75,7 @@ int GetIterationBudget(float accumFrames)
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, GetGIProbeDownsample(perMaterial.probeDownsample));
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 

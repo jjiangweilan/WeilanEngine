@@ -5,12 +5,13 @@
 #include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
+#include <algorithm>
 #include <memory>
 
 namespace Rendering::Passes
 {
 /// SH-based screen-space GI pass: one sparse ray is traced for each 4x4
-/// full-resolution footprint, then resampled into a half-resolution reservoir
+/// full-resolution footprint, then resampled into a configurable-resolution reservoir
 /// atlas aligned with the probe tiles. The selected reservoir sample is
 /// converted into SH, filtered on the probe atlas, and finally resolved to
 /// full resolution.
@@ -22,10 +23,11 @@ public:
 
     static uint32_t ComputeAdaptiveRayCount(float accumRatio, uint32_t lowRayCount, uint32_t maxRayCount, float stableAccumFrames);
 
-    static void GetProbeAtlasSize(int width, int height, int& outWidth, int& outHeight)
+    static void GetProbeAtlasSize(int width, int height, uint32_t probeDownsample, int& outWidth, int& outHeight)
     {
-        outWidth = (width + 1) / 2;
-        outHeight = (height + 1) / 2;
+        probeDownsample = std::max(probeDownsample, 1u);
+        outWidth = (width + (int)probeDownsample - 1) / (int)probeDownsample;
+        outHeight = (height + (int)probeDownsample - 1) / (int)probeDownsample;
     }
 
     static void GetRayAtlasSize(int width, int height, int& outWidth, int& outHeight)
@@ -55,17 +57,17 @@ public:
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:
-    void EnsureHistoryBuffers(int width, int height);
+    void EnsureHistoryBuffers(int width, int height, uint32_t probeDownsample);
 
     // Sparse ray generation pass.
     Shader* giRayGenShader = nullptr;
     Material rayGenMat;
 
-    // Half-res probe geometry packing pass.
+    // Probe-res geometry packing pass.
     Shader* probePackShader = nullptr;
     Material probePackMat;
 
-    // Half-res disocclusion classification pass.
+    // Probe-res disocclusion classification pass.
     Shader* giDisocclusionShader = nullptr;
     Material disocclusionMat;
 
@@ -94,15 +96,15 @@ private:
     Gfx::ImageIdentifier giRayData = "GI_RayData";
     Gfx::ImageIdentifier giRayMeta = "GI_RayMeta";
 
-    // Half-res probe disocclusion mask.
+    // Probe-res disocclusion mask.
     Gfx::ImageIdentifier giDisocclusionMask = "GI_DisocclusionMask";
 
-    // Half-res probe geometry pack.
+    // Probe-res geometry pack.
     Gfx::ImageIdentifier giProbeGeometry = "GI_ProbeGeometry";
     Gfx::ImageIdentifier giProbeMotion = "GI_ProbeMotion";
     Gfx::ImageIdentifier giHistoryProbeGeometry = "GI_HistoryProbeGeometry";
 
-    // SH probe output identifiers (half resolution per dimension).
+    // SH probe output identifiers (configurable probe resolution per dimension).
     Gfx::ImageIdentifier giSH0 = "GI_SH0";
     Gfx::ImageIdentifier giSH1 = "GI_SH1";
     Gfx::ImageIdentifier giSH2 = "GI_SH2";
@@ -121,7 +123,7 @@ private:
     Gfx::ImageIdentifier giLuminance   = "GI_Luminance";
     Gfx::ImageIdentifier giOutput      = "GI_Output";
 
-    // Persistent cross-frame SH history buffers (probe atlas, half resolution).
+    // Persistent cross-frame SH history buffers (probe atlas resolution).
     std::unique_ptr<Gfx::Image> historySH0;
     std::unique_ptr<Gfx::Image> historySH1;
     std::unique_ptr<Gfx::Image> historySH2;

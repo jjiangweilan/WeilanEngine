@@ -8,6 +8,7 @@ struct GIParameter
 {
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
     float distanceScale;
+    float probeDownsample;
 
     // Full-res G-buffer inputs
     Texture2D<uint2> probeGeometryTex;
@@ -85,6 +86,7 @@ void GatherSparseRaySH(
             perMaterial.rayDataTex,
             perMaterial.rayMetaTex,
             perMaterial.rtSize,
+            GetGIProbeDownsample(perMaterial.probeDownsample),
             rayCoord,
             frameIndex
         );
@@ -120,11 +122,12 @@ void GatherSparseRaySH(
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, probeDownsample);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 
-    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy, probeDownsample);
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
     float depth;
     float3 probeNormalWS;
@@ -168,7 +171,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
     float accumRatio = 0.0;
     float alpha = 1.0;
 
-    uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy);
+    uint2 historyCenterCoord = GetSHProbeCoordFromFullResUv(prevUV, perMaterial.rtSize.xy, probeDownsample);
     int2 probeMaxCoord = int2(probeRtSize) - 1;
     float bestWeight = 0;
 
@@ -181,7 +184,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
                 continue;
 
             uint2 candidateCoord = uint2(candidateCoordI);
-            uint2 candidateFullResCoord = GetSHProbeSourceCoord(candidateCoord, perMaterial.rtSize.xy);
+            uint2 candidateFullResCoord = GetSHProbeSourceCoord(candidateCoord, perMaterial.rtSize.xy, probeDownsample);
             float2 candidateUv = GetFullResUv(candidateFullResCoord, perMaterial.rtSize);
             float candidateDepth;
             float3 candidateNormalWS;

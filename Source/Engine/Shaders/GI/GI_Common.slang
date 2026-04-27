@@ -263,6 +263,7 @@ bool LoadProbeGeometry(
     SamplerState pointSampler,
     float4 rtSize,
     float distanceScale,
+    uint probeDownsample,
     uint2 probeCoord,
     out uint2 probeFullResCoord,
     out float2 probeUv,
@@ -270,7 +271,7 @@ bool LoadProbeGeometry(
     out float3 probeNormal,
     out float probePlaneThreshold)
 {
-    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy);
+    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy, probeDownsample);
     probeUv = GetFullResUv(probeFullResCoord, rtSize);
 
     float depth = hierarchyDepth.Load(int3(probeCoord, 0)).x;
@@ -318,6 +319,7 @@ bool LoadPackedProbeGeometry(
     Texture2D<uint2> probeGeometryTex,
     float4 rtSize,
     float distanceScale,
+    uint probeDownsample,
     uint2 probeCoord,
     out uint2 probeFullResCoord,
     out float2 probeUv,
@@ -325,7 +327,7 @@ bool LoadPackedProbeGeometry(
     out float3 probeNormal,
     out float probePlaneThreshold)
 {
-    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy);
+    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy, probeDownsample);
     probeUv = GetFullResUv(probeFullResCoord, rtSize);
 
     float depth;
@@ -344,10 +346,16 @@ bool LoadPackedProbeGeometry(
     return true;
 }
 
-uint2 GetSHProbeResolution(float2 fullResRtSize)
+uint2 GetSHProbeResolution(float2 fullResRtSize, uint probeDownsample)
 {
-    uint2 size = uint2(uint(fullResRtSize.x + 1) / 2, uint(fullResRtSize.y + 1) / 2);
-    return size;
+    probeDownsample = max(probeDownsample, 1u);
+    uint2 fullResSize = uint2(fullResRtSize);
+    return (fullResSize + probeDownsample - 1u) / probeDownsample;
+}
+
+uint GetGIProbeDownsample(float probeDownsample)
+{
+    return probeDownsample >= 3.0 ? 4u : 2u;
 }
 
 uint2 GetRayAtlasResolution(float2 fullResRtSize)
@@ -374,25 +382,27 @@ uint2 GetRaySourceCoord(uint2 rayCoord, uint frameIndex, float2 fullResRtSize)
     return ClampFullResCoord(rayCoord * 4 + tileOffset, fullResRtSize);
 }
 
-uint2 GetSHProbeSourceCoord(uint2 probeCoord, float2 fullResRtSize)
+uint2 GetSHProbeSourceCoord(uint2 probeCoord, float2 fullResRtSize, uint probeDownsample)
 {
-    return ClampFullResCoord(probeCoord * 2, fullResRtSize);
+    return ClampFullResCoord(probeCoord * max(probeDownsample, 1u), fullResRtSize);
 }
 
-uint2 GetSHProbeCoordFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize)
+uint2 GetSHProbeCoordFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize, uint probeDownsample)
 {
-    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize);
-    return min(fullResCoord / 2, probeRtSize - 1);
+    probeDownsample = max(probeDownsample, 1u);
+    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize, probeDownsample);
+    return min(fullResCoord / probeDownsample, probeRtSize - 1);
 }
 
-float GetSHProbeGridFromFullResCoord1D(float fullResCoord, uint fullResSize)
+float GetSHProbeGridFromFullResCoord1D(float fullResCoord, uint fullResSize, uint probeDownsample)
 {
+    probeDownsample = max(probeDownsample, 1u);
     float clampedFullResCoord = clamp(fullResCoord, 0.0, float(fullResSize - 1));
-    uint probeSize = (fullResSize + 1) / 2;
-    uint probeCoord = min((uint)(clampedFullResCoord * 0.5), probeSize - 1);
+    uint probeSize = (fullResSize + probeDownsample - 1u) / probeDownsample;
+    uint probeCoord = min((uint)(clampedFullResCoord / float(probeDownsample)), probeSize - 1);
     uint nextProbeCoord = min(probeCoord + 1, probeSize - 1);
-    float probeSourceCoord = float(min(probeCoord * 2, fullResSize - 1));
-    float nextProbeSourceCoord = float(min(nextProbeCoord * 2, fullResSize - 1));
+    float probeSourceCoord = float(min(probeCoord * probeDownsample, fullResSize - 1));
+    float nextProbeSourceCoord = float(min(nextProbeCoord * probeDownsample, fullResSize - 1));
     if (nextProbeSourceCoord <= probeSourceCoord)
         return (float)probeCoord;
 
@@ -401,28 +411,30 @@ float GetSHProbeGridFromFullResCoord1D(float fullResCoord, uint fullResSize)
     return (float)probeCoord + ((clampedFullResCoord - probeSourceCoord) / (nextProbeSourceCoord - probeSourceCoord));
 }
 
-float2 GetSHProbeGridFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize)
+float2 GetSHProbeGridFromFullResCoord(uint2 fullResCoord, float2 fullResRtSize, uint probeDownsample)
 {
     uint2 fullResSize = uint2(fullResRtSize);
     return float2(
-        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.x, fullResSize.x),
-        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.y, fullResSize.y)
+        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.x, fullResSize.x, probeDownsample),
+        GetSHProbeGridFromFullResCoord1D((float)fullResCoord.y, fullResSize.y, probeDownsample)
     );
 }
 
-float2 GetSHProbeGridFromFullResUv(float2 fullResUv, float2 fullResRtSize)
+float2 GetSHProbeGridFromFullResUv(float2 fullResUv, float2 fullResRtSize, uint probeDownsample)
 {
     uint2 fullResSize = uint2(fullResRtSize);
     return float2(
-        GetSHProbeGridFromFullResCoord1D(fullResUv.x * fullResRtSize.x - 0.5, fullResSize.x),
-        GetSHProbeGridFromFullResCoord1D(fullResUv.y * fullResRtSize.y - 0.5, fullResSize.y)
+        GetSHProbeGridFromFullResCoord1D(fullResUv.x * fullResRtSize.x - 0.5, fullResSize.x, probeDownsample),
+        GetSHProbeGridFromFullResCoord1D(fullResUv.y * fullResRtSize.y - 0.5, fullResSize.y, probeDownsample)
     );
 }
 
-uint2 GetSHProbeCoordFromFullResUv(float2 fullResUv, float2 fullResRtSize)
+uint2 GetSHProbeCoordFromFullResUv(float2 fullResUv, float2 fullResRtSize, uint probeDownsample)
 {
-    float2 fullResPixels = fullResUv * fullResRtSize;
-    uint2 probeResPixels = uint2(fullResPixels / 2);
+    probeDownsample = max(probeDownsample, 1u);
+    float2 fullResPixels = clamp(fullResUv * fullResRtSize, 0.0, fullResRtSize - 1.0);
+    uint2 probeRtSize = GetSHProbeResolution(fullResRtSize, probeDownsample);
+    uint2 probeResPixels = min(uint2(fullResPixels / float(probeDownsample)), probeRtSize - 1);
     return probeResPixels;
 }
 
@@ -432,9 +444,9 @@ float2 GetFullResUv(uint2 fullResCoord, float4 fullResRtSize)
     return fullResUv;
 }
 
-float2 GetProbeResUv(uint2 probeResCoord, float2 fullResRtSize)
+float2 GetProbeResUv(uint2 probeResCoord, float2 fullResRtSize, uint probeDownsample)
 {
-    float2 probeRtSize = GetSHProbeResolution(fullResRtSize);
+    float2 probeRtSize = GetSHProbeResolution(fullResRtSize, probeDownsample);
     return (float2(probeResCoord) + 0.5f) / probeRtSize;
 }
 
@@ -444,14 +456,15 @@ SparseRaySample LoadSparseRaySample(
     Texture2D<float4> rayDataTex,
     Texture2D<float4> rayMetaTex,
     float4 rtSize,
+    uint probeDownsample,
     uint2 rayCoord,
     uint frameIndex)
 {
     SparseRaySample sample = MakeInvalidSparseRaySample();
 
     uint2 sourceCoord = GetRaySourceCoord(rayCoord, frameIndex, rtSize.xy);
-    uint2 sourceProbeCoord = GetSHProbeCoordFromFullResCoord(sourceCoord, rtSize.xy);
-    uint2 sourceProbeFullResCoord = GetSHProbeSourceCoord(sourceProbeCoord, rtSize.xy);
+    uint2 sourceProbeCoord = GetSHProbeCoordFromFullResCoord(sourceCoord, rtSize.xy, probeDownsample);
+    uint2 sourceProbeFullResCoord = GetSHProbeSourceCoord(sourceProbeCoord, rtSize.xy, probeDownsample);
     float2 sourceUv = GetFullResUv(sourceProbeFullResCoord, rtSize);
 
     float sourceDepth;
@@ -659,6 +672,7 @@ bool EvaluateProbeDisocclusion(
     Texture2D<float2> motionVectorTex,
     Texture2D<uint2> historyProbeGeometryTex,
     float4 rtSize,
+    uint probeDownsample,
     uint2 probeCoord,
     float2 probeUv,
     float3 probePosition,
@@ -674,8 +688,8 @@ bool EvaluateProbeDisocclusion(
     if (isOffScreen)
         return true;
 
-    historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUV, rtSize.xy);
-    uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, rtSize.xy);
+    historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUV, rtSize.xy, probeDownsample);
+    uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, rtSize.xy, probeDownsample);
     float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, rtSize);
     float historyDepth;
     float3 historyNormal;

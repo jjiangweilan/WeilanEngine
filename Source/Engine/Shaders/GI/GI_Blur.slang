@@ -8,6 +8,7 @@ struct GIBlurParameter
 {
     float4 rtSize;     // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
     float distanceScale;
+    float probeDownsample;
     float4 blurParams; // (minRadius, maxRadius, stableAccumFrames, legacyPlaneSigma)
     float minNormalDot;
 
@@ -34,7 +35,8 @@ ParameterBlock<GIBlurParameter> perMaterial;
 
 bool LoadProbeGeometry(uint2 probeCoord, out float3 probePos, out float3 probeNormal)
 {
-    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy, probeDownsample);
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
     float depth;
     DecodeProbeGeometry(perMaterial.probeGeometryTex.Load(int3(probeCoord, 0)), depth, probeNormal);
@@ -55,7 +57,8 @@ bool LoadProbeGeometry(uint2 probeCoord, out float3 probePos, out float3 probeNo
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
     uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
+    uint probeDownsample = GetGIProbeDownsample(perMaterial.probeDownsample);
+    uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy, probeDownsample);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 

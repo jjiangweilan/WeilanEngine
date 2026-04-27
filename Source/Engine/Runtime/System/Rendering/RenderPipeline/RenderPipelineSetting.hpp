@@ -181,6 +181,7 @@ public:
         uint32_t lowRayCount = 1;
         uint32_t maxRayCount = 8;
         float stableAccumFrames = 24.0f;
+        uint32_t probeDownsample = 2;
         float adaptivePlaneProjectedCellPixels = 8.0f;
         float resolveClampWeightScale = 1.0f;
         float4 debugPixel = {100, 100, 0, 0};
@@ -215,6 +216,7 @@ public:
             SER(lowRayCount),
             SER(maxRayCount),
             SER(stableAccumFrames),
+            SER(probeDownsample),
             SER(adaptivePlaneProjectedCellPixels),
             SER(resolveClampWeightScale),
             SER(debugPixel),

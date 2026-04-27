@@ -17,7 +17,8 @@ struct PostBlurInput
 {
     glm::float4 rtSize = glm::float4(0.0f);
     float distanceScale = 0.0f;
-    glm::float3 padding0 = glm::float3(0.0f);
+    float probeDownsample = 2.0f;
+    glm::float2 padding0 = glm::float2(0.0f);
     glm::float4 blurParams = glm::float4(0.0f);
     glm::float4 atrousParams = glm::float4(0.0f);
     float minNormalDot = 0.0f;
@@ -90,11 +91,11 @@ GI::GI()
     memcpy(haltonBuffer->GetCPUVisibleAddress(), haltonData, sizeof(haltonData));
 }
 
-void GI::EnsureHistoryBuffers(int width, int height)
+void GI::EnsureHistoryBuffers(int width, int height, uint32_t probeDownsample)
 {
     int probeWidth = 0;
     int probeHeight = 0;
-    GetProbeAtlasSize(width, height, probeWidth, probeHeight);
+    GetProbeAtlasSize(width, height, probeDownsample, probeWidth, probeHeight);
 
     if (historySize.x == probeWidth && historySize.y == probeHeight && historyFullResSize.x == width && historyFullResSize.y == height)
         return;
@@ -105,7 +106,7 @@ void GI::EnsureHistoryBuffers(int width, int height)
     auto usage = Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage |
                  Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment;
 
-    // Half-resolution SH probe history.
+    // Probe-resolution SH history.
     Gfx::ImageDescription shDesc(probeWidth, probeHeight, Gfx::GfxFormat::R16G16B16A16_SFloat);
 
     historySH0 = GetGfxDriver()->CreateImage(shDesc, usage);
@@ -168,14 +169,15 @@ void GI::Execute(
 
     int width = renderingData.screenSize.x;
     int height = renderingData.screenSize.y;
+    uint32_t probeDownsample = setting->gi.probeDownsample == 4 ? 4u : 2u;
     int probeWidth = 0;
     int probeHeight = 0;
     int rayWidth = 0;
     int rayHeight = 0;
-    GetProbeAtlasSize(width, height, probeWidth, probeHeight);
+    GetProbeAtlasSize(width, height, probeDownsample, probeWidth, probeHeight);
     GetRayAtlasSize(width, height, rayWidth, rayHeight);
 
-    EnsureHistoryBuffers(width, height);
+    EnsureHistoryBuffers(width, height, probeDownsample);
 
     glm::float4 rtSize(width, height, 1.0f / width, 1.0f / height);
     float distanceScale = 0.0f;
@@ -222,6 +224,7 @@ void GI::Execute(
     rayGenMat.SetTexture("outRayDataTex", GetGfxDriver()->GetImageFromRenderGraph(giRayData));
     rayGenMat.SetTexture("outRayMetaTex", GetGfxDriver()->GetImageFromRenderGraph(giRayMeta));
     rayGenMat.SetVector("rtSize", rtSize);
+    rayGenMat.SetFloat("probeDownsample", (float)probeDownsample);
     rayGenMat.SetFloat("secondary_bounce", setting->gi.secondary_bounce ? 1.0f : 0.0f);
     rayGenMat.SetFloat("lowRayCount", (float)setting->gi.lowRayCount);
     rayGenMat.SetFloat("maxRayCount", (float)setting->gi.maxRayCount);
@@ -239,7 +242,7 @@ void GI::Execute(
     cmd->EndLabel(); // GI_RayGen
 
     // =========================================================================
-    // Pass 2: Half-res probe geometry packing
+    // Pass 2: Probe-res geometry packing
     // =========================================================================
     cmd->BeginLabel("GI_ProbePack", {0.205, 0.705, 0.405, 1.0});
 
@@ -261,6 +264,7 @@ void GI::Execute(
     probePackMat.SetTexture("outProbeMotionTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
     probePackMat.SetTexture("outHistoryProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeGeometry));
     probePackMat.SetVector("rtSize", rtSize);
+    probePackMat.SetFloat("probeDownsample", (float)probeDownsample);
 
     auto* probePackProgram = probePackMat.GetShaderProgram();
     cmd->BindResource(probePackMat.GetSet(Gfx::DescriptorSetSemantics::Material), probePackMat.GetShaderResource());
@@ -270,7 +274,7 @@ void GI::Execute(
     cmd->EndLabel(); // GI_ProbePack
 
     // =========================================================================
-    // Pass 3: Half-res probe disocclusion classification
+    // Pass 3: Probe-res disocclusion classification
     // =========================================================================
     cmd->BeginLabel("GI_Disocclusion", {0.21, 0.71, 0.41, 1.0});
 
@@ -283,6 +287,7 @@ void GI::Execute(
     disocclusionMat.SetTexture("historyProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeGeometry));
     disocclusionMat.SetTexture("outDisocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     disocclusionMat.SetVector("rtSize", rtSize);
+    disocclusionMat.SetFloat("probeDownsample", (float)probeDownsample);
     disocclusionMat.SetFloat("distanceScale", distanceScale);
 
     auto* disocclusionProgram = disocclusionMat.GetShaderProgram();
@@ -294,7 +299,7 @@ void GI::Execute(
     cmd->EndLabel(); // GI_Disocclusion
 
     // =========================================================================
-    // Pass 4: Half-res SH probe gathering + history blend
+    // Pass 4: Probe-res SH gathering + history blend
     // =========================================================================
     cmd->BeginLabel("GI_SH", {0.2, 0.7, 0.4, 1.0});
 
@@ -327,6 +332,7 @@ void GI::Execute(
     mat.SetTexture("outSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH2));
     mat.SetTexture("outAccumTex", GetGfxDriver()->GetImageFromRenderGraph(giAccumulationCount));
     mat.SetVector("rtSize", rtSize);
+    mat.SetFloat("probeDownsample", (float)probeDownsample);
     mat.SetFloat("distanceScale", distanceScale);
 
     auto* giProgram = mat.GetShaderProgram();
@@ -359,6 +365,7 @@ void GI::Execute(
     blurMat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH1));
     blurMat.SetTexture("outSH2Tex", GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH2));
     blurMat.SetVector("rtSize", rtSize);
+    blurMat.SetFloat("probeDownsample", (float)probeDownsample);
     blurMat.SetFloat("distanceScale", distanceScale);
     blurMat.SetVector(
         "blurParams",
@@ -424,6 +431,7 @@ void GI::Execute(
             PostBlurInput inputData;
             inputData.rtSize = rtSize;
             inputData.distanceScale = distanceScale;
+            inputData.probeDownsample = (float)probeDownsample;
             inputData.blurParams = glm::float4(
                 (float)stablePassCount,
                 (float)unstablePassCount,
@@ -497,6 +505,7 @@ void GI::Execute(
     resolveMat.SetTexture("outIrradianceTex", GetGfxDriver()->GetImageFromRenderGraph(giIrradiance));
     resolveMat.SetTexture("outLuminanceTex", GetGfxDriver()->GetImageFromRenderGraph(giLuminance));
     resolveMat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
+    resolveMat.SetFloat("probeDownsample", (float)probeDownsample);
     resolveMat.SetFloat("distanceScale", distanceScale);
     resolveMat.SetFloat("resolveClampWeightScale", setting->gi.resolveClampWeightScale);
 
