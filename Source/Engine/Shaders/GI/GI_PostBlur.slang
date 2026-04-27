@@ -1,4 +1,5 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
 import Lighting;
 import GI.GI_Common;
@@ -14,8 +15,7 @@ struct GIPostBlurParameter
     float4 atrousParams; // (stepSize, iterationIndex, unused, unused)
     float minNormalDot;
 
-    Texture2D hierarchyDepth;
-    Texture2D normalTex;
+    Texture2D<uint2> probeGeometryTex;
     Texture2D<float4> inSH0Tex;
     Texture2D<float4> inSH1Tex;
     Texture2D<float4> inSH2Tex;
@@ -44,7 +44,8 @@ float LoadAccumFrames(uint2 probeCoord)
 
 bool LoadPostBlurProbeGeometry(uint2 probeCoord, out float3 probePosition, out float3 probeNormal, out float probePlaneThreshold)
 {
-    float depth = perMaterial.hierarchyDepth.Load(int3(probeCoord, 0)).x;
+    float depth;
+    DecodeProbeGeometry(perMaterial.probeGeometryTex.Load(int3(probeCoord, 0)), depth, probeNormal);
     if (depth <= 0.0000001)
     {
         probePosition = 0;
@@ -56,7 +57,7 @@ bool LoadPostBlurProbeGeometry(uint2 probeCoord, out float3 probePosition, out f
     uint2 fullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
     float2 uv = GetFullResUv(fullResCoord, perMaterial.rtSize);
     probePosition = ReconstructWorldPos(perScene, uv, depth);
-    probeNormal = normalize(DecodeGBufferNormal(perMaterial.normalTex.Load(int3(probeCoord, 0)).xyz));
+    probeNormal = normalize(probeNormal);
     probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePosition);
     return true;
 }
@@ -70,9 +71,9 @@ int GetIterationBudget(float accumFrames)
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
@@ -111,41 +112,50 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float totalWeight = centerWeight;
     int2 maxCoord = int2(probeRtSize) - 1;
 
-    for (int y = -2; y <= 2; ++y)
+    static int2 baseOffsets[25] = 
     {
-        for (int x = -2; x <= 2; ++x)
-        {
-            int2 sampleCoordI = int2(probeCoord) + int2(x, y) * stepSize;
-            if (sampleCoordI.x < 0 || sampleCoordI.y < 0 || sampleCoordI.x > maxCoord.x || sampleCoordI.y > maxCoord.y)
-                continue;
+            {-2, -2}, {-1, -2}, {0, -2}, {1, -2}, {2, -2},
+            {-2, -1}, {-1, -1}, {0, -1}, {1, -1}, {2, -1},
+            {-2,  0}, {-1,  0}, {0,  0}, {1,  0}, {2,  0},
+            {-2,  1}, {-1,  1}, {0,  1}, {1,  1}, {2,  1},
+            {-2,  2}, {-1,  2}, {0,  2}, {1,  2}, {2,  2}
+    };
 
-            uint2 sampleCoord = uint2(sampleCoordI);
-            bool isCenterSample = sampleCoord.x == probeCoord.x && sampleCoord.y == probeCoord.y;
-            if (isCenterSample)
-                continue;
+    [unroll]
+    for (int i = 0; i < 25; ++i)
+    {
+        int x = baseOffsets[i].x;
+        int y = baseOffsets[i].y;
+        int2 sampleCoordI = int2(probeCoord) + int2(x, y) * stepSize;
+        if (sampleCoordI.x < 0 || sampleCoordI.y < 0 || sampleCoordI.x > maxCoord.x || sampleCoordI.y > maxCoord.y)
+            continue;
 
-            float3 samplePos;
-            float3 sampleNormal;
-            float samplePlaneThreshold;
-            if (!LoadPostBlurProbeGeometry(sampleCoord, samplePos, sampleNormal, samplePlaneThreshold))
-                continue;
+        uint2 sampleCoord = uint2(sampleCoordI);
+        bool isCenterSample = sampleCoord.x == probeCoord.x && sampleCoord.y == probeCoord.y;
+        if (isCenterSample)
+            continue;
 
-            float planeThreshold = max(centerPlaneThreshold, samplePlaneThreshold) * planeThresholdScale;
-            float normalDot = dot(centerNormal, sampleNormal);
-            float normalWeight = saturate((normalDot - minNormalDot) * invNormalDotRange);
-            float planeDistance = abs(dot(centerNormal, samplePos - centerPos));
-            float planeWeight = saturate(1.0 - planeDistance / max(planeThreshold, 1e-4));
+        float3 samplePos;
+        float3 sampleNormal;
+        float samplePlaneThreshold;
+        if (!LoadPostBlurProbeGeometry(sampleCoord, samplePos, sampleNormal, samplePlaneThreshold))
+            continue;
 
-            float kernelWeight = kAtrousKernelWeights[abs(x)] * kAtrousKernelWeights[abs(y)];
-            float weight = kernelWeight * normalWeight * planeWeight;
-            if (weight <= 0.0)
-                continue;
+        float planeThreshold = max(centerPlaneThreshold, samplePlaneThreshold) * planeThresholdScale;
+        float normalDot = dot(centerNormal, sampleNormal);
+        float normalWeight = saturate((normalDot - minNormalDot) * invNormalDotRange);
+        float planeDistance = abs(dot(centerNormal, samplePos - centerPos));
+        float planeWeight = saturate(1.0 - planeDistance / max(planeThreshold, 1e-4));
 
-            sh0Sum += perMaterial.inSH0Tex.Load(int3(sampleCoord, 0)) * weight;
-            sh1Sum += perMaterial.inSH1Tex.Load(int3(sampleCoord, 0)) * weight;
-            sh2Sum += perMaterial.inSH2Tex.Load(int3(sampleCoord, 0)) * weight;
-            totalWeight += weight;
-        }
+        float kernelWeight = kAtrousKernelWeights[abs(x)] * kAtrousKernelWeights[abs(y)];
+        float weight = kernelWeight * normalWeight * planeWeight;
+        if (weight <= 0.0)
+            continue;
+
+        sh0Sum += perMaterial.inSH0Tex.Load(int3(sampleCoord, 0)) * weight;
+        sh1Sum += perMaterial.inSH1Tex.Load(int3(sampleCoord, 0)) * weight;
+        sh2Sum += perMaterial.inSH2Tex.Load(int3(sampleCoord, 0)) * weight;
+        totalWeight += weight;
     }
 
     float invTotalWeight = 1.0 / totalWeight;
