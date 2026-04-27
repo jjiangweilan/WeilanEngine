@@ -1,4 +1,5 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
 import GI.GI_Common;
 
@@ -7,11 +8,9 @@ struct GIDisocclusionParameter
     float4 rtSize; // (fullWidth, fullHeight, 1/fullWidth, 1/fullHeight)
     float distanceScale;
 
-    Texture2D hierarchyDepth;
-    Texture2D normalTex;
+    Texture2D<uint2> probeGeometryTex;
     Texture2D<float2> motionVectorTex;
-    Texture2D<float> historyDepthTex;
-    Texture2D historyNormalTex;
+    Texture2D<uint2> historyProbeGeometryTex;
 
     RWTexture2D<float> outDisocclusionMaskTex;
 
@@ -25,9 +24,9 @@ ParameterBlock<GIDisocclusionParameter> perMaterial;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
@@ -37,11 +36,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float3 probePositionWS;
     float3 probeNormalWS;
     float probePlaneThreshold;
-    if (!LoadProbeGeometry(
+    if (!LoadPackedProbeGeometry(
             perScene,
-            perMaterial.hierarchyDepth,
-            perMaterial.normalTex,
-            perMaterial.sampler_point_clamp,
+            perMaterial.probeGeometryTex,
             perMaterial.rtSize,
             perMaterial.distanceScale,
             probeCoord,
@@ -60,9 +57,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     bool isDisoccluded = EvaluateProbeDisocclusion(
         perScene,
         perMaterial.motionVectorTex,
-        perMaterial.historyDepthTex,
-        perMaterial.historyNormalTex,
-        perMaterial.sampler_point_clamp,
+        perMaterial.historyProbeGeometryTex,
         perMaterial.rtSize,
         probeCoord,
         probeUv,

@@ -10,8 +10,7 @@ struct GIParameter
     float distanceScale;
 
     // Full-res G-buffer inputs
-    Texture2D hierarchyDepth;
-    Texture2D normalTex;
+    Texture2D<uint2> probeGeometryTex;
     Texture2D<float2> motionVectorTex;
     Texture2D<float> disocclusionMaskTex;
     Texture2D<float4> rayDataTex;
@@ -25,8 +24,7 @@ struct GIParameter
     Texture2D<float> historyAccumTex;
 
     // Full-res history for disocclusion detection
-    Texture2D<float> historyDepthTex;
-    Texture2D historyNormalTex;
+    Texture2D<uint2> historyProbeGeometryTex;
 
     // Half-res SH outputs (current frame)
     RWTexture2D<float4> outSH0Tex;
@@ -41,12 +39,6 @@ struct GIParameter
 ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIParameter> perMaterial;
-
-float3 GetNormalWS(uint2 probeCoord)
-{
-    float3 normalWS = perMaterial.normalTex.Load(int3(probeCoord, 0)).xyz;
-    return DecodeGBufferNormal(normalWS);
-}
 
 int2 GetVogelRayOffset(int sampleIndex, int sampleCount, float rotation)
 {
@@ -89,9 +81,7 @@ void GatherSparseRaySH(
         uint2 rayCoord = uint2(clamp(rayCoordCenter + sampleOffset * 2, int2(0, 0), rayMaxCoord));
         SparseRaySample sample = LoadSparseRaySample(
             perScene,
-            perMaterial.hierarchyDepth,
-            perMaterial.normalTex,
-            perMaterial.sampler_point_clamp,
+            perMaterial.probeGeometryTex,
             perMaterial.rayDataTex,
             perMaterial.rayMetaTex,
             perMaterial.rtSize,
@@ -127,16 +117,18 @@ void GatherSparseRaySH(
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
 
     uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
-    float depth = perMaterial.hierarchyDepth.Load(int3(probeCoord, 0)).x;
+    float depth;
+    float3 probeNormalWS;
+    DecodeProbeGeometry(perMaterial.probeGeometryTex.Load(int3(probeCoord, 0)), depth, probeNormalWS);
     if (depth <= 0.0000001)
     {
         perMaterial.outSH0Tex[probeCoord] = 0;
@@ -147,7 +139,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     }
 
     float3 probePositionWS = ReconstructWorldPos(perScene, probeUv, depth);
-    float3 probeNormalWS = normalize(GetNormalWS(probeCoord));
+    probeNormalWS = normalize(probeNormalWS);
     float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePositionWS);
 
     float4 currentSH0 = 0;
@@ -191,12 +183,14 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             uint2 candidateCoord = uint2(candidateCoordI);
             uint2 candidateFullResCoord = GetSHProbeSourceCoord(candidateCoord, perMaterial.rtSize.xy);
             float2 candidateUv = GetFullResUv(candidateFullResCoord, perMaterial.rtSize);
-            float candidateDepth = perMaterial.historyDepthTex.Load(int3(candidateCoord, 0)).x;
+            float candidateDepth;
+            float3 candidateNormalWS;
+            DecodeProbeGeometry(perMaterial.historyProbeGeometryTex.Load(int3(candidateCoord, 0)), candidateDepth, candidateNormalWS);
             if (candidateDepth <= 0.0000001)
                 continue;
 
             float3 candidatePositionWS = ReconstructPreviousWorldPos(perScene, candidateUv, candidateDepth);
-            float3 candidateNormalWS = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.Load(int3(candidateCoord, 0)).xyz));
+            candidateNormalWS = normalize(candidateNormalWS);
             float candidatePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, candidatePositionWS);
             float probeCandidatePlaneThreshold = candidatePlaneThreshold;
 

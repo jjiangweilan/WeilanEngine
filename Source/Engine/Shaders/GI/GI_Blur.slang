@@ -1,4 +1,5 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import Library.PerScene;
 import Lighting;
 import GI.GI_Common;
@@ -10,8 +11,7 @@ struct GIBlurParameter
     float4 blurParams; // (minRadius, maxRadius, stableAccumFrames, legacyPlaneSigma)
     float minNormalDot;
 
-    Texture2D hierarchyDepth;
-    Texture2D normalTex;
+    Texture2D<uint2> probeGeometryTex;
     Texture2D<float4> inSH0Tex;
     Texture2D<float4> inSH1Tex;
     Texture2D<float4> inSH2Tex;
@@ -32,17 +32,12 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GIBlurParameter> perMaterial;
 
-float3 GetNormalWS(float2 uv)
-{
-    float3 normalWS = perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz;
-    return DecodeGBufferNormal(normalWS);
-}
-
 bool LoadProbeGeometry(uint2 probeCoord, out float3 probePos, out float3 probeNormal)
 {
     uint2 probeFullResCoord = GetSHProbeSourceCoord(probeCoord, perMaterial.rtSize.xy);
     float2 probeUv = GetFullResUv(probeFullResCoord, perMaterial.rtSize);
-    float depth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
+    float depth;
+    DecodeProbeGeometry(perMaterial.probeGeometryTex.Load(int3(probeCoord, 0)), depth, probeNormal);
     if (depth <= 0.0000001)
     {
         probePos = 0;
@@ -51,15 +46,15 @@ bool LoadProbeGeometry(uint2 probeCoord, out float3 probePos, out float3 probeNo
     }
 
     probePos = ReconstructWorldPos(perScene, probeUv, depth);
-    probeNormal = normalize(GetNormalWS(probeUv));
+    probeNormal = normalize(probeNormal);
     return true;
 }
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;

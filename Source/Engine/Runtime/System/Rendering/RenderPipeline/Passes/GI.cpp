@@ -243,15 +243,10 @@ void GI::Execute(
     // =========================================================================
     cmd->BeginLabel("GI_ProbePack", {0.205, 0.705, 0.405, 1.0});
 
-    Gfx::RenderImageDescriptor probeDepthDesc(probeWidth, probeHeight, Gfx::GfxFormat::R32_SFloat);
-    probeDepthDesc.SetRandomWrite(true);
-    cmd->AllocateAttachment(giProbeDepth, probeDepthDesc);
-    cmd->AllocateAttachment(giHistoryProbeDepth, probeDepthDesc);
-
-    Gfx::RenderImageDescriptor probeNormalDesc(probeWidth, probeHeight, Gfx::GfxFormat::A2B10G10R10_UNorm);
-    probeNormalDesc.SetRandomWrite(true);
-    cmd->AllocateAttachment(giProbeNormal, probeNormalDesc);
-    cmd->AllocateAttachment(giHistoryProbeNormal, probeNormalDesc);
+    Gfx::RenderImageDescriptor probeGeometryDesc(probeWidth, probeHeight, Gfx::GfxFormat::R32G32_UInt);
+    probeGeometryDesc.SetRandomWrite(true);
+    cmd->AllocateAttachment(giProbeGeometry, probeGeometryDesc);
+    cmd->AllocateAttachment(giHistoryProbeGeometry, probeGeometryDesc);
 
     Gfx::RenderImageDescriptor probeMotionDesc(probeWidth, probeHeight, Gfx::GfxFormat::R16G16_SFloat);
     probeMotionDesc.SetRandomWrite(true);
@@ -262,11 +257,9 @@ void GI::Execute(
     probePackMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
     probePackMat.SetTexture("historyDepthTex", historyDepth.get());
     probePackMat.SetTexture("historyNormalTex", historyNormal.get());
-    probePackMat.SetTexture("outProbeDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
-    probePackMat.SetTexture("outProbeNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    probePackMat.SetTexture("outProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeGeometry));
     probePackMat.SetTexture("outProbeMotionTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
-    probePackMat.SetTexture("outHistoryProbeDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
-    probePackMat.SetTexture("outHistoryProbeNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
+    probePackMat.SetTexture("outHistoryProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeGeometry));
     probePackMat.SetVector("rtSize", rtSize);
 
     auto* probePackProgram = probePackMat.GetShaderProgram();
@@ -285,11 +278,9 @@ void GI::Execute(
     disocclusionDesc.SetRandomWrite(true);
     cmd->AllocateAttachment(giDisocclusionMask, disocclusionDesc);
 
-    disocclusionMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
-    disocclusionMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    disocclusionMat.SetTexture("probeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeGeometry));
     disocclusionMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
-    disocclusionMat.SetTexture("historyDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
-    disocclusionMat.SetTexture("historyNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
+    disocclusionMat.SetTexture("historyProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeGeometry));
     disocclusionMat.SetTexture("outDisocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     disocclusionMat.SetVector("rtSize", rtSize);
     disocclusionMat.SetFloat("distanceScale", distanceScale);
@@ -318,8 +309,7 @@ void GI::Execute(
     accumCountDesc.SetRandomWrite(true);
     cmd->AllocateAttachment(giAccumulationCount, accumCountDesc);
 
-    mat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
-    mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    mat.SetTexture("probeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeGeometry));
     mat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeMotion));
     mat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     mat.SetTexture("rayDataTex", GetGfxDriver()->GetImageFromRenderGraph(giRayData));
@@ -330,8 +320,7 @@ void GI::Execute(
     mat.SetTexture("historySH1Tex", historySH1.get());
     mat.SetTexture("historySH2Tex", historySH2.get());
     mat.SetTexture("historyAccumTex", historyAccumulationCount.get());
-    mat.SetTexture("historyDepthTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeDepth));
-    mat.SetTexture("historyNormalTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeNormal));
+    mat.SetTexture("historyProbeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giHistoryProbeGeometry));
 
     mat.SetTexture("outSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     mat.SetTexture("outSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
@@ -360,8 +349,7 @@ void GI::Execute(
     cmd->AllocateAttachment(giBlurredSH1, blurredShDesc);
     cmd->AllocateAttachment(giBlurredSH2, blurredShDesc);
 
-    blurMat.SetTexture("hierarchyDepth", GetGfxDriver()->GetImageFromRenderGraph(giProbeDepth));
-    blurMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeNormal));
+    blurMat.SetTexture("probeGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(giProbeGeometry));
     blurMat.SetTexture("disocclusionMaskTex", GetGfxDriver()->GetImageFromRenderGraph(giDisocclusionMask));
     blurMat.SetTexture("inSH0Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH0));
     blurMat.SetTexture("inSH1Tex", GetGfxDriver()->GetImageFromRenderGraph(giSH1));
@@ -459,8 +447,7 @@ void GI::Execute(
                 postBlurSet,
                 {
                     Gfx::DynamicBinding("perMaterial", *postBlurPassResource.inputBuffer.GetBuffer()),
-                    Gfx::DynamicBinding("hierarchyDepth", giProbeDepth),
-                    Gfx::DynamicBinding("normalTex", giProbeNormal),
+                    Gfx::DynamicBinding("probeGeometryTex", giProbeGeometry),
                     Gfx::DynamicBinding("inSH0Tex", postBlurSH0),
                     Gfx::DynamicBinding("inSH1Tex", postBlurSH1),
                     Gfx::DynamicBinding("inSH2Tex", postBlurSH2),

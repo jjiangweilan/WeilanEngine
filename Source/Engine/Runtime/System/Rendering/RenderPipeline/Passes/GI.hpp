@@ -98,11 +98,9 @@ private:
     Gfx::ImageIdentifier giDisocclusionMask = "GI_DisocclusionMask";
 
     // Half-res probe geometry pack.
-    Gfx::ImageIdentifier giProbeDepth = "GI_ProbeDepth";
-    Gfx::ImageIdentifier giProbeNormal = "GI_ProbeNormal";
+    Gfx::ImageIdentifier giProbeGeometry = "GI_ProbeGeometry";
     Gfx::ImageIdentifier giProbeMotion = "GI_ProbeMotion";
-    Gfx::ImageIdentifier giHistoryProbeDepth = "GI_HistoryProbeDepth";
-    Gfx::ImageIdentifier giHistoryProbeNormal = "GI_HistoryProbeNormal";
+    Gfx::ImageIdentifier giHistoryProbeGeometry = "GI_HistoryProbeGeometry";
 
     // SH probe output identifiers (half resolution per dimension).
     Gfx::ImageIdentifier giSH0 = "GI_SH0";

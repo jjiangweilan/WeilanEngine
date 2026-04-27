@@ -289,6 +289,61 @@ bool LoadProbeGeometry(
     return true;
 }
 
+uint PackProbeNormalOct16(float3 normalWS)
+{
+    float2 oct = EncodeOcta(normalize(normalWS));
+    uint2 encoded = uint2(round(saturate(oct) * 65535.0));
+    return encoded.x | (encoded.y << 16);
+}
+
+float3 UnpackProbeNormalOct16(uint packedNormal)
+{
+    uint2 encoded = uint2(packedNormal & 0xffffu, packedNormal >> 16);
+    return DecodeOcta(float2(encoded) / 65535.0);
+}
+
+uint2 PackProbeGeometry(float depth, float3 normalWS)
+{
+    return uint2(asuint(depth), PackProbeNormalOct16(normalWS));
+}
+
+void DecodeProbeGeometry(uint2 packedGeometry, out float depth, out float3 normalWS)
+{
+    depth = asfloat(packedGeometry.x);
+    normalWS = UnpackProbeNormalOct16(packedGeometry.y);
+}
+
+bool LoadPackedProbeGeometry(
+    ParameterBlock<PerScene> scene,
+    Texture2D<uint2> probeGeometryTex,
+    float4 rtSize,
+    float distanceScale,
+    uint2 probeCoord,
+    out uint2 probeFullResCoord,
+    out float2 probeUv,
+    out float3 probePosition,
+    out float3 probeNormal,
+    out float probePlaneThreshold)
+{
+    probeFullResCoord = GetSHProbeSourceCoord(probeCoord, rtSize.xy);
+    probeUv = GetFullResUv(probeFullResCoord, rtSize);
+
+    float depth;
+    DecodeProbeGeometry(probeGeometryTex.Load(int3(probeCoord, 0)), depth, probeNormal);
+    if (depth <= 0.0000001)
+    {
+        probePosition = 0;
+        probeNormal = 0;
+        probePlaneThreshold = 0;
+        return false;
+    }
+
+    probePosition = ReconstructWorldPos(scene, probeUv, depth);
+    probeNormal = normalize(probeNormal);
+    probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(scene, distanceScale, probePosition);
+    return true;
+}
+
 uint2 GetSHProbeResolution(float2 fullResRtSize)
 {
     uint2 size = uint2(uint(fullResRtSize.x + 1) / 2, uint(fullResRtSize.y + 1) / 2);
@@ -385,9 +440,7 @@ float2 GetProbeResUv(uint2 probeResCoord, float2 fullResRtSize)
 
 SparseRaySample LoadSparseRaySample(
     ParameterBlock<PerScene> scene,
-    Texture2D hierarchyDepth,
-    Texture2D normalTex,
-    SamplerState pointSampler,
+    Texture2D<uint2> probeGeometryTex,
     Texture2D<float4> rayDataTex,
     Texture2D<float4> rayMetaTex,
     float4 rtSize,
@@ -397,8 +450,12 @@ SparseRaySample LoadSparseRaySample(
     SparseRaySample sample = MakeInvalidSparseRaySample();
 
     uint2 sourceCoord = GetRaySourceCoord(rayCoord, frameIndex, rtSize.xy);
-    float2 sourceUv = GetFullResUv(sourceCoord, rtSize);
-    float sourceDepth = hierarchyDepth.SampleLevel(pointSampler, sourceUv, 0).x;
+    uint2 sourceProbeCoord = GetSHProbeCoordFromFullResCoord(sourceCoord, rtSize.xy);
+    uint2 sourceProbeFullResCoord = GetSHProbeSourceCoord(sourceProbeCoord, rtSize.xy);
+    float2 sourceUv = GetFullResUv(sourceProbeFullResCoord, rtSize);
+
+    float sourceDepth;
+    DecodeProbeGeometry(probeGeometryTex.Load(int3(sourceProbeCoord, 0)), sourceDepth, sample.sourceNormal);
     if (sourceDepth <= 0.0000001)
         return sample;
 
@@ -411,7 +468,7 @@ SparseRaySample LoadSparseRaySample(
     sample.shBasis = rayMeta;
     sample.sourceUv = sourceUv;
     sample.sourcePosition = ReconstructWorldPos(scene, sourceUv, sourceDepth);
-    sample.sourceNormal = normalize(DecodeGIWorldNormal(normalTex, pointSampler, sourceUv));
+    sample.sourceNormal = normalize(sample.sourceNormal);
     return sample;
 }
 
@@ -600,9 +657,7 @@ float3 ReconstructPreviousWorldPos(ParameterBlock<PerScene> scene, float2 uv, fl
 bool EvaluateProbeDisocclusion(
     ParameterBlock<PerScene> scene,
     Texture2D<float2> motionVectorTex,
-    Texture2D<float> historyDepthTex,
-    Texture2D historyNormalTex,
-    SamplerState pointSampler,
+    Texture2D<uint2> historyProbeGeometryTex,
     float4 rtSize,
     uint2 probeCoord,
     float2 probeUv,
@@ -622,14 +677,14 @@ bool EvaluateProbeDisocclusion(
     historyProbeCoord = GetSHProbeCoordFromFullResUv(prevUV, rtSize.xy);
     uint2 historyProbeFullResCoord = GetSHProbeSourceCoord(historyProbeCoord, rtSize.xy);
     float2 historyProbeUv = GetFullResUv(historyProbeFullResCoord, rtSize);
-    float historyDepth = historyDepthTex.Load(int3(historyProbeCoord, 0)).x;
+    float historyDepth;
+    float3 historyNormal;
+    DecodeProbeGeometry(historyProbeGeometryTex.Load(int3(historyProbeCoord, 0)), historyDepth, historyNormal);
     if (historyDepth <= 0.0000001)
         return true;
 
     float3 historyPosition = ReconstructPreviousWorldPos(scene, historyProbeUv, historyDepth);
-    float3 historyNormal = normalize(
-        DecodeGBufferNormal(historyNormalTex.Load(int3(historyProbeCoord, 0)).xyz)
-    );
+    historyNormal = normalize(historyNormal);
 
     float historyPlaneDistance = length(historyPosition - probePosition);
     return historyPlaneDistance > probePlaneThreshold || dot(probeNormal, historyNormal) < 0.9;

@@ -1,5 +1,7 @@
 import WeilanEngine;
+import Library.CommonUtils;
 import GI.GI_Common;
+import Lighting;
 
 struct GIProbePackParameter
 {
@@ -11,16 +13,12 @@ struct GIProbePackParameter
     Texture2D<float> historyDepthTex;
     Texture2D historyNormalTex;
 
-    [format("r32f")]
-    RWTexture2D<float> outProbeDepthTex;
-    [format("rgb10_a2")]
-    RWTexture2D<float4> outProbeNormalTex;
+    [format("rg32ui")]
+    RWTexture2D<uint2> outProbeGeometryTex;
     [format("rg16f")]
     RWTexture2D<float2> outProbeMotionTex;
-    [format("r32f")]
-    RWTexture2D<float> outHistoryProbeDepthTex;
-    [format("rgb10_a2")]
-    RWTexture2D<float4> outHistoryProbeNormalTex;
+    [format("rg32ui")]
+    RWTexture2D<uint2> outHistoryProbeGeometryTex;
 
     SamplerState sampler_point_clamp;
 };
@@ -30,9 +28,9 @@ ParameterBlock<GIProbePackParameter> perMaterial;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
-void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
+void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
 {
-    uint2 probeCoord = dispatchThreadID.xy;
+    uint2 probeCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
     uint2 probeRtSize = GetSHProbeResolution(perMaterial.rtSize.xy);
     if (probeCoord.x >= probeRtSize.x || probeCoord.y >= probeRtSize.y)
         return;
@@ -46,9 +44,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     float historyDepth = perMaterial.historyDepthTex.Load(int3(probeFullResCoord, 0)).x;
     float4 historyNormal = perMaterial.historyNormalTex.Load(int3(probeFullResCoord, 0));
 
-    perMaterial.outProbeDepthTex[probeCoord] = depth;
-    perMaterial.outProbeNormalTex[probeCoord] = normal;
+    perMaterial.outProbeGeometryTex[probeCoord] = PackProbeGeometry(depth, DecodeGBufferNormal(normal.xyz));
     perMaterial.outProbeMotionTex[probeCoord] = motion;
-    perMaterial.outHistoryProbeDepthTex[probeCoord] = historyDepth;
-    perMaterial.outHistoryProbeNormalTex[probeCoord] = historyNormal;
+    perMaterial.outHistoryProbeGeometryTex[probeCoord] = PackProbeGeometry(historyDepth, DecodeGBufferNormal(historyNormal.xyz));
 }
