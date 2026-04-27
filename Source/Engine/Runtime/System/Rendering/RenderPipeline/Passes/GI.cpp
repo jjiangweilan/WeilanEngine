@@ -199,6 +199,7 @@ void GI::Execute(
             }
         }
     }
+    distanceScale *= std::max(setting->gi.distanceScale, 0.0f);
 
     // =========================================================================
     // Pass 1: Sparse ray generation (one ray per 4x4 footprint)
