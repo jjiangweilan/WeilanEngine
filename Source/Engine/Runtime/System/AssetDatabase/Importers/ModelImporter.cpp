@@ -16,6 +16,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <cstring>
 #include <fstream>
 #include <meshoptimizer.h>
 #include <set>
@@ -24,7 +25,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 5;
+constexpr uint64_t ModelImporterVersion = 6;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
@@ -116,9 +117,25 @@ void OptimizeMesh(std::vector<glm::vec3>& positions, std::vector<uint8_t>& attri
         return;
     }
 
+    const size_t positionStride = sizeof(glm::vec3);
+    const size_t vertexStride = positionStride + attributeStride;
+    std::vector<uint8_t> vertexData(vertexStride * positions.size());
+    for (size_t i = 0; i < positions.size(); ++i)
+    {
+        std::memcpy(vertexData.data() + vertexStride * i, &positions[i], positionStride);
+        if (attributeStride > 0)
+        {
+            std::memcpy(
+                vertexData.data() + vertexStride * i + positionStride,
+                attributeData.data() + attributeStride * i,
+                attributeStride
+            );
+        }
+    }
+
     std::vector<unsigned int> remap(positions.size());
     size_t vertexCount = meshopt_generateVertexRemap(
-        remap.data(), indices.data(), indices.size(), positions.data(), positions.size(), sizeof(glm::vec3)
+        remap.data(), indices.data(), indices.size(), vertexData.data(), positions.size(), vertexStride
     );
 
     std::vector<uint32_t> remappedIndices(indices.size());
