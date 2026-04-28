@@ -206,7 +206,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
             float planeWeight = saturate(1 - planeDistance / probeCandidatePlaneThreshold);
 
 
-            float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / (probePlaneThreshold * lerp(100, 1, 1 - viewDotNorm)));
+            float distanceWeight = saturate(1.0 - length(candidatePositionWS - probePositionWS) / (probePlaneThreshold * lerp(100, 1, viewDotNorm)));
 
             float weight = normalWeight * planeWeight * distanceWeight;
             if (weight > bestWeight)

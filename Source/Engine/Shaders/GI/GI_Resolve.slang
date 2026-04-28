@@ -114,24 +114,30 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, ui
     for (int i = 0; i < 4; ++i)
     {
         int2 sc = clamp(shCoord00 + kOffsets[i], int2(0, 0), shMaxCoord);
-        float2 offsetWeight = i == 0 ? 1.0 - probeFrac : (i == 1 ? float2(probeFrac.x, 1.0 - probeFrac.y) : (i == 2 ? float2(1.0 - probeFrac.x, probeFrac.y) : probeFrac));
-        float weight = offsetWeight.x * offsetWeight.y;
 
         uint2 probeSourceCoord = GetSHProbeSourceCoord(uint2(sc), perMaterial.texelSize.zw, probeDownsample);
         float2 probeUv = GetFullResUv(probeSourceCoord, fullResRtSize);
         float probeDepth = perMaterial.hierarchyDepth.SampleLevel(perMaterial.sampler_point_clamp, probeUv, 0).x;
-        if (probeDepth <= 0.0000001 || weight <= 0.0)
+        if (probeDepth <= 0.0000001)
             continue;
 
         float3 probePos = ReconstructWorldPos(perScene, probeUv, probeDepth);
-        float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePos);
+
         float distanceDiff = length(probePos - currentPos);
-        float accumWeight = perMaterial.accumTex.Load(int3(sc, 0)).x;
+        float3 probeNormalWS = normalize(DecodeGBufferNormal(perMaterial.normalTex.Load(int3(probeSourceCoord, 0)).xyz));
+
+        float3 cameraViewDir = normalize(probePos - perScene.camera.position.xyz);
+        float viewDotNorm = dot(cameraViewDir, probeNormalWS);
+        float probePlaneThreshold = GetAdaptivePlaneDistanceThreshold(perScene, perMaterial.distanceScale, probePos) ;
+
         float adaptiveCellSize = probePlaneThreshold * float(probeDownsample);
         float distWeight = saturate(1.0 - distanceDiff / max(adaptiveCellSize, 1e-4));
-        float planeWeight = saturate(1.0 - abs(dot(normalWS, probePos - currentPos)) / probePlaneThreshold);
 
-        weight *= distWeight * planeWeight * accumWeight;
+        float normalWeight = saturate((dot(normalWS, probeNormalWS) - 0.8) / 0.2);
+        float planeWeight = saturate(1.0 - abs(dot(normalWS, probePos - currentPos)) / probePlaneThreshold);
+        float accumWeight = perMaterial.accumTex.Load(int3(sc, 0)).x;
+
+        float weight = distWeight * planeWeight * normalWeight * accumWeight;
         if (weight <= 0.0)
             continue;
 
