@@ -1,11 +1,13 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/Buffer.hpp"
+#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/Sampler.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Library/Allocators/VirtualTLSFAllocator.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include <mutex>
+#include <span>
 
 class Submesh;
 namespace Rendering
@@ -99,6 +101,15 @@ struct GpuObjectDescriptor
     GpuObject gpuObject;
 };
 
+struct DrawIndexedIndirectCommand
+{
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    int32_t vertexOffset;
+    uint32_t firstInstance;
+};
+
 struct GpuGeometryDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
@@ -170,9 +181,16 @@ public:
     Gfx::Buffer* GetSceneBuffer() { return sceneBuffer.get(); }
     Gfx::Buffer* GetCameraBuffer() { return cameraBuffer.get(); }
     Gfx::Buffer* GetMainLightShadowBuffer() { return mainLightShadowBuffer.get(); }
+    Gfx::Buffer* GetIndirectCommandBuffer() { return indirectCommandBuffer.get(); }
+    Gfx::Buffer* GetIndirectCommandExtraBuffer() { return indirectCommandExtraBuffer.get(); }
 
     void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
     void SetRTObjectOffsetBuffer(Gfx::Buffer* buffer);
+    void UploadIndirectDrawData(
+        Gfx::CommandBuffer& cmd,
+        std::span<const DrawIndexedIndirectCommand> commands,
+        std::span<const uint32_t> objectOffsets
+    );
 
     void Deinit();
 
@@ -205,6 +223,11 @@ private:
     std::unique_ptr<Gfx::Buffer> sceneBuffer;
     std::unique_ptr<Gfx::Buffer> cameraBuffer;
     std::unique_ptr<Gfx::Buffer> mainLightShadowBuffer;
+    std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
+    std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
+    uint32_t indirectCommandBufferCapacity = 0;
+
+    void EnsureIndirectCommandCapacity(uint32_t requiredSize);
 
     // Mesh data
     ObjectPool<GpuGeometryDescriptor> geometryDescriptors;

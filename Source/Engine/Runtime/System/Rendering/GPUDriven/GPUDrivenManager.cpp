@@ -308,6 +308,59 @@ void GPUDrivenManager::SetRTObjectOffsetBuffer(Gfx::Buffer* buffer)
     globalDescriptorSet->SetBuffer("rtObjectOffsets", buffer);
 }
 
+void GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
+{
+    if (requiredSize <= indirectCommandBufferCapacity)
+        return;
+
+    uint32_t newCapacity = indirectCommandBufferCapacity == 0 ? 256 : indirectCommandBufferCapacity;
+    while (newCapacity < requiredSize)
+        newCapacity *= 2;
+
+    indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
+        newCapacity * sizeof(DrawIndexedIndirectCommand),
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
+        false,
+        false,
+        "GPUDrivenIndirectCommands"
+    );
+
+    indirectCommandExtraBuffer = GetGfxDriver()->CreateBuffer(
+        newCapacity * sizeof(uint32_t),
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+        false,
+        false,
+        "GPUDrivenIndirectCommands Extra"
+    );
+
+    indirectCommandBufferCapacity = newCapacity;
+    SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
+}
+
+void GPUDrivenManager::UploadIndirectDrawData(
+    Gfx::CommandBuffer& cmd,
+    std::span<const DrawIndexedIndirectCommand> commands,
+    std::span<const uint32_t> objectOffsets
+)
+{
+    EnsureIndirectCommandCapacity(static_cast<uint32_t>(commands.size()));
+
+    if (commands.empty())
+        return;
+
+    SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
+    cmd.UploadData(
+        *indirectCommandBuffer,
+        const_cast<DrawIndexedIndirectCommand*>(commands.data()),
+        commands.size() * sizeof(DrawIndexedIndirectCommand)
+    );
+    cmd.UploadData(
+        *indirectCommandExtraBuffer,
+        const_cast<uint32_t*>(objectOffsets.data()),
+        objectOffsets.size() * sizeof(uint32_t)
+    );
+}
+
 // --- Lifecycle ---
 
 GPUDrivenManager& GPUDrivenManager::Instance()

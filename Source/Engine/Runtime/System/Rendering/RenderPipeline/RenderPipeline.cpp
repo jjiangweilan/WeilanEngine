@@ -115,7 +115,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     ENGINE_END_PROFILE; // Bulid Scene Draw List
 
     // Build GPU-driven indirect draw data
-    BuildGPUObjectDrawData(renderingScene);
+    BuildGPUObjectDrawData(*cmd, renderingScene);
 
     ENGINE_END_PROFILE; // RenderPipeline - Setup
 
@@ -797,7 +797,7 @@ void RenderPipeline::SetupGPUDrivenBindings()
 {
 }
 
-void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
+void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene)
 {
     gpuObjectShaderGroups.clear();
     gpuObjectOffsets.clear();
@@ -876,42 +876,16 @@ void RenderPipeline::BuildGPUObjectDrawData(RenderingScene& renderingScene)
         gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart)});
     }
 
-    // Upload indirect commands to buffer
-    uint32_t requiredSize = static_cast<uint32_t>(allIndirectCmds.size());
-    if (requiredSize > indirectCommandBufferCapacity)
-    {
-        uint32_t newCapacity = indirectCommandBufferCapacity == 0 ? 256 : indirectCommandBufferCapacity;
-        while (newCapacity < requiredSize)
-            newCapacity *= 2;
+    auto& gpuDriven = GPUDrivenManager::Instance();
+    gpuDriven.UploadIndirectDrawData(cmd, allIndirectCmds, allIndirectCmdsExtra);
 
-        indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
-            newCapacity * sizeof(DrawIndexedIndirectCommand),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Indirect | Gfx::BufferUsage::Transfer_Dst,
-            false,
-            false,
-            "GPUDrivenIndirectCommands"
-        );
-
-        indirectCommandExtraBuffer = GetGfxDriver()->CreateBuffer(
-            newCapacity * sizeof(uint32_t),
-            Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
-            false,
-            false,
-            "GPUDrivenIndirectCommands Extra"
-        );
-        indirectCommandBufferCapacity = newCapacity;
-        GPUDrivenManager::Instance().SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
-    }
-
-    GetGfxDriver()->UploadBuffer(*indirectCommandBuffer, (uint8_t*)allIndirectCmds.data(), static_cast<uint32_t>(allIndirectCmds.size() * sizeof(DrawIndexedIndirectCommand)));
-    GetGfxDriver()->UploadBuffer(*indirectCommandExtraBuffer, (uint8_t*)allIndirectCmdsExtra.data(), static_cast<uint32_t>(allIndirectCmdsExtra.size() * sizeof(uint32_t)));
-
-    renderingData.gpuDrivenIndirectBuffer = indirectCommandBuffer.get();
+    renderingData.gpuDrivenIndirectBuffer = gpuDriven.GetIndirectCommandBuffer();
     renderingData.gpuDrivenIndirectDrawCount = static_cast<uint32_t>(allIndirectCmds.size());
 }
 
 void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
 {
+    auto* indirectCommandBuffer = GPUDrivenManager::Instance().GetIndirectCommandBuffer();
     if (gpuObjectShaderGroups.empty() || !indirectCommandBuffer)
         return;
 
@@ -937,7 +911,7 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
         pconst.d0[0][0] = std::bit_cast<float>(firstDrawIndex);
         cmd.SetPushConstant(group.shaderProgram, &pconst);
         cmd.DrawIndexedIndirect(
-            indirectCommandBuffer.get(),
+            indirectCommandBuffer,
             group.firstDrawIndex * sizeof(DrawIndexedIndirectCommand),
             group.drawCount,
             sizeof(DrawIndexedIndirectCommand)

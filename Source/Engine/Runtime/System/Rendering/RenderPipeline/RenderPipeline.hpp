@@ -4,6 +4,7 @@
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Module/VolumetricCloud/Cloud.hpp"
+#include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/FogPass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/RayTracingTestPass.hpp"
@@ -116,15 +117,6 @@ class RenderPipeline
 
     std::unique_ptr<PipelineGPUBufferAllocator> bufferAllocator;
 
-    struct DrawIndexedIndirectCommand
-    {
-        uint32_t indexCount;
-        uint32_t instanceCount;
-        uint32_t firstIndex;
-        int32_t vertexOffset;
-        uint32_t firstInstance;
-    };
-
     struct FlatDrawInfo
     {
         Gfx::ShaderProgram* shaderProgram;
@@ -141,11 +133,8 @@ class RenderPipeline
     std::vector<FlatDrawInfo> flatDrawInfos;
     std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
     std::vector<uint32_t> allIndirectCmdsExtra;
-    std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
-    std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
-    uint32_t indirectCommandBufferCapacity = 0;
 
-    void BuildGPUObjectDrawData(RenderingScene& renderingScene);
+    void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt);
 
     struct ExecutionState
