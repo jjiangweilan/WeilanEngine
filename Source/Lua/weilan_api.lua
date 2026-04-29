@@ -305,6 +305,10 @@ wl.AnimationPlayer = {}
 function wl.AnimationPlayer:SetClip(animationName) end
 function wl.AnimationPlayer:Play(...) end
 
+---@class wl.Boids
+wl.Boids = {}
+
+
 ---@class wl.PhysicsBody
 wl.PhysicsBody = {}
 
