@@ -83,6 +83,9 @@ json AddPrimitiveAssetToActiveScene(const json& id, std::string_view path) {
         return MakeToolErrorResult(id, "No active scene is available");
     }
 
+    const auto gpuRendererCountBefore = scene->GetRenderingScene().GetGPUObjectRenderers().size();
+    const auto rootCountBefore = scene->GetRootObjects().size();
+
     auto model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
     if (model == nullptr || model->GetMeshes().empty() || model->GetMeshes()[0] == nullptr) {
         spdlog::error("Failed to create primitive from asset: {}", path);
@@ -101,7 +104,42 @@ json AddPrimitiveAssetToActiveScene(const json& id, std::string_view path) {
     gameObject->SetName("New GameObject");
     scene->AddGameObject(std::move(gameObject));
 
+    spdlog::info(
+        "MCP AddPrimitiveAssetToScene complete: path={}, roots {}->{}, gpuObjectRenderers {}->{}, meshRendererActiveGPUObject={}",
+        path,
+        rootCountBefore,
+        scene->GetRootObjects().size(),
+        gpuRendererCountBefore,
+        scene->GetRenderingScene().GetGPUObjectRenderers().size(),
+        meshRenderer->IsActiveGPUObject()
+    );
+
     return MakeToolTextResult(id, fmt::format("Added primitive asset to scene: {}", path));
+}
+
+json GetGPUDrivenDebugState(const json& id) {
+    auto scene = SceneManager::GetActiveScene();
+    if (scene == nullptr) {
+        return MakeToolErrorResult(id, "No active scene is available");
+    }
+
+    json state;
+    state["rootCount"] = scene->GetRootObjects().size();
+    state["gpuObjectRendererCount"] = scene->GetRenderingScene().GetGPUObjectRenderers().size();
+    state["meshRendererCount"] = scene->GetRenderingScene().GetMeshRenderers().size();
+    state["gpuObjectRenderers"] = json::array();
+    for (auto* renderer : scene->GetRenderingScene().GetGPUObjectRenderers()) {
+        if (renderer == nullptr) continue;
+        auto go = renderer->GetGameObject();
+        state["gpuObjectRenderers"].push_back({
+            {"renderer", fmt::format("{}", static_cast<const void*>(renderer))},
+            {"gameObject", go ? go->GetName() : "<null>"},
+            {"activeGPUObject", renderer->IsActiveGPUObject()},
+            {"activeInScene", renderer->IsActiveInScene()}
+        });
+    }
+
+    return MakeToolTextResult(id, state.dump());
 }
 
 json HandleJsonRpc(const json& request) {
@@ -173,6 +211,14 @@ json HandleJsonRpc(const json& request) {
                             }},
                             {"required", {"path"}}
                         }}
+                    },
+                    {
+                        {"name", "GetGPUDrivenDebugState"},
+                        {"description", "Gets GPU-driven renderer counts and active renderer state for the active scene"},
+                        {"inputSchema", {
+                            {"type", "object"},
+                            {"properties", json::object()}
+                        }}
                     }
                 }}
             }}
@@ -207,6 +253,8 @@ json HandleJsonRpc(const json& request) {
             }
 
             return AddPrimitiveAssetToActiveScene(id, arguments["path"].get<std::string>());
+        } else if (toolName == "GetGPUDrivenDebugState") {
+            return GetGPUDrivenDebugState(id);
         } else {
             return {
                 {"jsonrpc", "2.0"},
