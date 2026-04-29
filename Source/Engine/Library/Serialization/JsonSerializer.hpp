@@ -1,11 +1,12 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "Serializable.hpp"
 #include "Serializer.hpp"
 #include <nlohmann/json.hpp>
 
-class JsonSerializer : public Serializer
+class WEILAN_ENGINE_API JsonSerializer : public Serializer
 {
 public:
     JsonSerializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : Serializer(data, resolve)

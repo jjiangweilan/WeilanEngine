@@ -334,10 +334,6 @@ endif()
 
 # WeilanEngine
 
-if (WIN32)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
-
 option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
@@ -417,6 +413,9 @@ endif()
 
 target_compile_definitions(
     WeilanEngine
+    PRIVATE
+    WEILAN_ENGINE_EXPORTS
+
     PUBLIC
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL

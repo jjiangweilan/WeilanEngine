@@ -1,7 +1,8 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include <filesystem>
 
-class EngineConfig
+class WEILAN_ENGINE_API EngineConfig
 {
 public:
     static void SetProjectRoot(const std::filesystem::path& root);

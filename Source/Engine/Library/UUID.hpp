@@ -1,9 +1,10 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Internal/uuids/uuid.h"
 #include <cinttypes>
 #include <functional>
 #include <memory>
-class UUID
+class WEILAN_ENGINE_API UUID
 {
 public:
     struct FromStrTag

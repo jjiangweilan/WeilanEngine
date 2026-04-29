@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Core/ObjectTracker.hpp"
 #include "Engine/Library/Serialization/Serializable.hpp"
 #include "Engine/Library/TypeReflection.hpp"
@@ -12,7 +13,7 @@
 
 class Component;
 class Serializer;
-class ObjectTypeInfo
+class WEILAN_ENGINE_API ObjectTypeInfo
 {
 public:
 class PropertyIterator
@@ -193,7 +194,7 @@ private:
 };
 
 using ObjectTypeID = UUID;
-class Object : public Serializable, public SafeReferenceable<Object>
+class WEILAN_ENGINE_API Object : public Serializable, public SafeReferenceable<Object>
 {
 public:
     static const ObjectTypeID& StaticGetObjectTypeID();
@@ -254,7 +255,7 @@ protected:
     friend class TypeReflection;
 };
 
-class ObjectRegistry
+class WEILAN_ENGINE_API ObjectRegistry
 {
 public:
     using Creator = std::function<std::unique_ptr<Object>()>;

@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Library/SpinLock.hpp"
 #include "Engine/Library/UUID.hpp"
 #include <boost/unordered/unordered_flat_map.hpp>
@@ -11,7 +12,7 @@
 class Object;
 using ObjectTrackHandle = uint32_t;
 
-class ObjectTracker
+class WEILAN_ENGINE_API ObjectTracker
 {
 public:
     static const ObjectTrackHandle NullHandle = 0;

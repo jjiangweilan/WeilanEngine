@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Driver/GfxDriver/RenderGraph.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/PipelineGPUBuffer.hpp"
@@ -21,7 +22,7 @@ public:
     GI();
     ~GI() = default;
 
-    static uint32_t ComputeAdaptiveRayCount(float accumRatio, uint32_t lowRayCount, uint32_t maxRayCount, float stableAccumFrames);
+    static WEILAN_ENGINE_API uint32_t ComputeAdaptiveRayCount(float accumRatio, uint32_t lowRayCount, uint32_t maxRayCount, float stableAccumFrames);
 
     static void GetProbeAtlasSize(int width, int height, uint32_t probeDownsample, int& outWidth, int& outHeight)
     {

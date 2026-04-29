@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Core/Object.hpp"
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Library/DynamicArray.hpp"
@@ -45,7 +46,7 @@ struct SerializeReferenceResolve
 
 using SerializeReferenceResolveMap = std::unordered_map<UUID, std::vector<SerializeReferenceResolve>>;
 
-class Serializer
+class WEILAN_ENGINE_API Serializer
 {
 public:
     // used for deserialization

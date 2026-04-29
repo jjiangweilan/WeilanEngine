@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Library/MPMCQueue.hpp"
 #include <functional>
 #include <future>
@@ -33,19 +34,19 @@ public:
 class JobSystem
 {
 public:
-    JobSystem();
-    ~JobSystem();
+    WEILAN_ENGINE_API JobSystem();
+    WEILAN_ENGINE_API ~JobSystem();
     const int TotalWorkers = GetTotalWorkers();
     const int jobCapacityPerWorker = 256;
-    JobHandle Schedule(const std::function<void()>& f);
-    JobHandle Schedule(std::function<void()>&& f);
+    WEILAN_ENGINE_API JobHandle Schedule(const std::function<void()>& f);
+    WEILAN_ENGINE_API JobHandle Schedule(std::function<void()>&& f);
     void Execute();
     const std::thread::id& GetMainThreadID() { return mainThreadID; }
     void WaitAll();
-    static int GetTotalWorkers();
-    static void DeinitJobSystem();
-    static void InitJobSystem();
-    static JobSystem& Instance();
+    WEILAN_ENGINE_API static int GetTotalWorkers();
+    WEILAN_ENGINE_API static void DeinitJobSystem();
+    WEILAN_ENGINE_API static void InitJobSystem();
+    WEILAN_ENGINE_API static JobSystem& Instance();
 
 private:
     static std::unique_ptr<JobSystem> instance;

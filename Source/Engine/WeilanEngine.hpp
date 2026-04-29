@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Editor/IGameEditor.hpp"
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/Time.hpp"
@@ -19,7 +20,7 @@ class GameEditor;
 }
 class MCPServer;
 // class Physics;
-class WeilanEngine
+class WEILAN_ENGINE_API WeilanEngine
 {
 public:
     WeilanEngine();

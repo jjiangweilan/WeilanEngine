@@ -1,11 +1,12 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/CodeGen/Serialization_Generated.hpp"
 #include "Engine/Library/CppUtility.hpp"
 #include <concepts>
 #include <string>
 #include <unordered_map>
 class Serializer;
-class Serializable
+class WEILAN_ENGINE_API Serializable
 {
 public:
     virtual void SerializeByReflection(Serializer* s) {};

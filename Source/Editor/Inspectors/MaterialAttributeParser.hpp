@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include <string>
 #include <vector>
 #include <optional>
@@ -30,5 +31,5 @@ namespace Editor
         std::optional<Tooltip> tooltip;
     };
 
-    MaterialAttributeInfo ParseAttributes(const std::vector<std::string>& rawAttributes);
+    WEILAN_ENGINE_API MaterialAttributeInfo ParseAttributes(const std::vector<std::string>& rawAttributes);
 }
