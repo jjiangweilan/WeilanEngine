@@ -22,6 +22,11 @@
 #include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -40,6 +45,64 @@ struct SharedState {
     std::mutex queueMutex;
     std::queue<std::shared_ptr<Message>> messageQueue;
 };
+
+json MakeToolTextResult(const json& id, std::string text) {
+    return {
+        {"jsonrpc", "2.0"},
+        {"id", id},
+        {"result", {
+            {"content", {
+                {
+                    {"type", "text"},
+                    {"text", std::move(text)}
+                }
+            }}
+        }}
+    };
+}
+
+json MakeToolErrorResult(const json& id, std::string text) {
+    return {
+        {"jsonrpc", "2.0"},
+        {"id", id},
+        {"result", {
+            {"isError", true},
+            {"content", {
+                {
+                    {"type", "text"},
+                    {"text", std::move(text)}
+                }
+            }}
+        }}
+    };
+}
+
+json AddPrimitiveAssetToActiveScene(const json& id, std::string_view path) {
+    auto scene = SceneManager::GetActiveScene();
+    if (scene == nullptr) {
+        return MakeToolErrorResult(id, "No active scene is available");
+    }
+
+    auto model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
+    if (model == nullptr || model->GetMeshes().empty() || model->GetMeshes()[0] == nullptr) {
+        spdlog::error("Failed to create primitive from asset: {}", path);
+        return MakeToolErrorResult(id, fmt::format("Failed to create primitive from asset: {}", path));
+    }
+
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->SetName(model->GetName());
+    gameObject->SetWantsToBeEnabled();
+
+    auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+    meshRenderer->SetMesh(model->GetMeshes()[0].get());
+    meshRenderer->SetMaterial(EngineInternalResources::GetDefaultGridMaterial());
+    gameObject->AddComponent<PhysicsBody>();
+
+    gameObject->SetName("New GameObject");
+    scene->AddGameObject(std::move(gameObject));
+
+    return MakeToolTextResult(id, fmt::format("Added primitive asset to scene: {}", path));
+}
 
 json HandleJsonRpc(const json& request) {
     if (!request.is_object() || 
@@ -96,6 +159,20 @@ json HandleJsonRpc(const json& request) {
                             {"type", "object"},
                             {"properties", json::object()}
                         }}
+                    },
+                    {
+                        {"name", "AddPrimitiveAssetToScene"},
+                        {"description", "Adds a primitive/model asset to the active scene"},
+                        {"inputSchema", {
+                            {"type", "object"},
+                            {"properties", {
+                                {"path", {
+                                    {"type", "string"},
+                                    {"description", "Asset path, for example _engine_internal/Models/Cube.fbx"}
+                                }}
+                            }},
+                            {"required", {"path"}}
+                        }}
                     }
                 }}
             }}
@@ -123,6 +200,13 @@ json HandleJsonRpc(const json& request) {
                     }}
                 }}
             };
+        } else if (toolName == "AddPrimitiveAssetToScene") {
+            const json& arguments = request["params"].contains("arguments") ? request["params"]["arguments"] : json::object();
+            if (!arguments.is_object() || !arguments.contains("path") || !arguments["path"].is_string()) {
+                return MakeToolErrorResult(id, "AddPrimitiveAssetToScene requires a string 'path' argument");
+            }
+
+            return AddPrimitiveAssetToActiveScene(id, arguments["path"].get<std::string>());
         } else {
             return {
                 {"jsonrpc", "2.0"},

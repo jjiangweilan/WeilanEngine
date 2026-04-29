@@ -26,6 +26,20 @@ TOOLS = [
         description="Gets the names of all root game objects in the active scene",
         inputSchema={"type": "object", "properties": {}},
     ),
+    types.Tool(
+        name="AddPrimitiveAssetToScene",
+        description="Adds a primitive/model asset to the active scene",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Asset path, for example _engine_internal/Models/Cube.fbx",
+                },
+            },
+            "required": ["path"],
+        },
+    ),
 ]
 
 
