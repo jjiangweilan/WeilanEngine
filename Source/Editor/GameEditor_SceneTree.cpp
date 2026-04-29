@@ -37,6 +37,58 @@ static bool IsAncestorOf(GameObject* ancestor, GameObject* child)
     return parent == ancestor;
 }
 
+static std::vector<GameObject*> ResolveDraggedGameObjects(GameObject* draggedObject)
+{
+    auto selects = EditorState::GetSelectedObjects();
+    bool draggedIsSelected = std::find_if(selects.begin(), selects.end(), [draggedObject](const ObjPtr<Object>& selected)
+                                          { return selected.Get() == draggedObject; }) != selects.end();
+
+    if (!draggedIsSelected)
+    {
+        return {draggedObject};
+    }
+
+    std::vector<GameObject*> draggedGameObjects;
+    draggedGameObjects.reserve(selects.size());
+
+    for (auto& selected : selects)
+    {
+        GameObject* selectedGameObject = dynamic_cast<GameObject*>(selected.Get());
+        if (selectedGameObject == nullptr)
+        {
+            continue;
+        }
+
+        bool hasSelectedAncestor = false;
+        for (auto& potentialAncestor : selects)
+        {
+            GameObject* ancestorGameObject = dynamic_cast<GameObject*>(potentialAncestor.Get());
+            if (ancestorGameObject == nullptr || ancestorGameObject == selectedGameObject)
+            {
+                continue;
+            }
+
+            if (IsAncestorOf(ancestorGameObject, selectedGameObject))
+            {
+                hasSelectedAncestor = true;
+                break;
+            }
+        }
+
+        if (!hasSelectedAncestor)
+        {
+            draggedGameObjects.push_back(selectedGameObject);
+        }
+    }
+
+    if (draggedGameObjects.empty())
+    {
+        draggedGameObjects.push_back(draggedObject);
+    }
+
+    return draggedGameObjects;
+}
+
 void GameEditor::ShowSceneTree(Scene& scene)
 {
     ENGINE_BEGIN_PROFILE("ShowSceneTree");
@@ -85,26 +137,11 @@ void GameEditor::ShowSceneTree(Scene& scene)
     Object* moveToRoot = nullptr;
     if (EditorGUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
     {
-        endEvents.Register([moveToRoot]()
+        std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(moveToRoot));
+        endEvents.Register([draggedGameObjects]()
                            {
-            auto selects = EditorState::GetSelectedObjects();
-            bool isMultiDrag = false;
-            for (auto& s : selects) {
-                if (s.Get() == moveToRoot) {
-                    isMultiDrag = true;
-                    break;
-                }
-            }
-
-            if (isMultiDrag) {
-                for (auto& s : selects) {
-                    if (GameObject* casted = dynamic_cast<GameObject*>(s.Get())) {
-                        casted->SetParent(nullptr, true);
-                    }
-                }
-            } else {
-                GameObject* casted = static_cast<GameObject*>(moveToRoot);
-                casted->SetParent(nullptr, true);
+            for (GameObject* gameObject : draggedGameObjects) {
+                gameObject->SetParent(nullptr, true);
             } });
     }
 
@@ -285,7 +322,8 @@ void GameEditor::SceneTree(
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{:p}", go->GetName(), (void*)go).c_str(), nodeFlags);
 
-    if (ImGui::IsItemHovered())
+    bool itemHovered = ImGui::IsItemHovered();
+    if (itemHovered)
     {
         sceneViewHightedGameObjectCandidate = go;
     }
@@ -293,10 +331,27 @@ void GameEditor::SceneTree(
     if (hasPrefab)
         ImGui::PopStyleColor();
 
-    if (ImGui::IsItemHovered())
+    EditorGUI::DragDropSource(go->GetName().c_str(), go);
+
+    bool acceptedGameObjectDrop = false;
+    Object* dropGO;
+    if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
+    {
+        acceptedGameObjectDrop = true;
+        std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(dropGO));
+        endEvents.Register([go, draggedGameObjects]()
+                           {
+            for (GameObject* gameObject : draggedGameObjects) {
+                if (gameObject != go && !IsAncestorOf(gameObject, go)) {
+                    gameObject->SetParent(go);
+                }
+            } });
+    }
+
+    if (itemHovered)
     {
         // select game object
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        if (!acceptedGameObjectDrop && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             bool deselect = ImGui::IsKeyDown(ImGuiKey_LeftAlt);
             bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
@@ -354,38 +409,6 @@ void GameEditor::SceneTree(
             sceneTreeContextObject = go;
             beginSceneTreeContextPopup = true;
         }
-    }
-
-    EditorGUI::DragDropSource(go->GetName().c_str(), go);
-
-    Object* dropGO;
-    if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
-    {
-        endEvents.Register([go, dropGO]()
-                           {
-            auto selects = EditorState::GetSelectedObjects();
-            bool isMultiDrag = false;
-            for (auto& s : selects) {
-                if (s.Get() == dropGO) {
-                    isMultiDrag = true;
-                    break;
-                }
-            }
-
-            if (isMultiDrag) {
-                for (auto& s : selects) {
-                    if (GameObject* casted = dynamic_cast<GameObject*>(s.Get())) {
-                        if (casted != go && !IsAncestorOf(casted, go)) {
-                            casted->SetParent(go);
-                        }
-                    }
-                }
-            } else {
-                GameObject* casted = static_cast<GameObject*>(dropGO);
-                if (casted != go && !IsAncestorOf(casted, go)) {
-                    casted->SetParent(go);
-                }
-            } });
     }
 
     if (EditorGUI::DragDropTarget(dropGO))
