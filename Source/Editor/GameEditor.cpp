@@ -10,6 +10,7 @@
 #include "Engine/MiddleLayer/EngineDebug.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
@@ -311,18 +312,25 @@ void GameEditor::ShowGameProfiler(IProfiler& cpuProfiler)
 
 void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
-    auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
-    auto gameObjects = model->CreateGameObject();
-    auto go =
-        gameObjects[1].get(); // internal object uses fbx from Blender, there is an empty root object we need to skip
-    std::unique_ptr<GameObject> firstModelClone = std::make_unique<GameObject>(*go);
-    firstModelClone->SetWantsToBeEnabled();
-    Material* mats[] = {EngineInternalResources::GetDefaultGridMaterial()};
-    for (auto c : firstModelClone->GetComponentsInChildren<MeshRenderer>())
+    auto model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
+    if (model == nullptr || model->GetMeshes().empty() || model->GetMeshes()[0] == nullptr)
     {
-        c->SetMaterials(mats);
+        spdlog::error("Failed to create primitive from asset: {}", path);
+        return;
     }
-    scene.AddGameObject(std::move(firstModelClone));
+
+    auto gameObject = std::make_unique<GameObject>();
+    gameObject->SetName(model->GetName());
+    gameObject->SetWantsToBeEnabled();
+
+    auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+    meshRenderer->SetMesh(model->GetMeshes()[0].get());
+    meshRenderer->SetMaterial(EngineInternalResources::GetDefaultGridMaterial());
+    gameObject->AddComponent<PhysicsBody>();
+
+    gameObject->SetName("New GameObject");
+
+    scene.AddGameObject(std::move(gameObject));
 }
 
 static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
