@@ -3,14 +3,7 @@ import Library.PerScene;
 import Lighting;
 #include "Library/Grid.hlsl"
 
-interface IVertexInput
-{
-    float3 GetPosition();
-    float3 GetNormal();
-    float4 GetTangent();
-    float2 GetUV();
-    float4 GetBone();
-}
+static extern const bool _GPUDriven = true;
 
 struct VertexOutput
 {
@@ -19,9 +12,7 @@ struct VertexOutput
     float3 normalWS;
     float3 tangentWS;
     float3 bitangentWS;
-    float3 positionOS; 
-    float2 uv;
-    nointerpolation uint objectOffset;
+    float3 positionOS;
 }
 
 struct PushConstant
@@ -37,55 +28,30 @@ ParameterBlock<PerScene> perScene;
 [shader("vertex")]
 VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
-    float4x4 modelMatrix;
-    float4x4 invTspModelMatrix;
-    uint indexOffset;
-    uint positionOffset;
-    uint attributeOffset;
-    uint objectOffset = 0;
-
-    objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
     ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
+    float4x4 modelMatrix = entity.GetModelMatrix();
+    float4x4 invTspModelMatrix = entity.GetInvModelMatrix();
 
     VertexOutput output;
-    float3 vertexPos = entity.GetPosition();// input.GetPosition();
-
-    float3 normal = entity.GetNormal();//ainput.GetNormal();
-    float4 tangent = entity.GetTangent();// input.GetTangent();
+    float3 vertexPos = entity.GetPosition();
+    float3 normal = entity.GetNormal();
+    float4 tangent = entity.GetTangent();
 
     output.positionWS = mul(modelMatrix, float4(vertexPos, 1)).xyz;
 
-    matrix<float,3,3> model33 = (matrix<float,3,3>)invTspModelMatrix;
+    float3x3 model33 = (float3x3)invTspModelMatrix;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = entity.GetUV();// input.GetUV();
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     float3 scale = float3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz));
-    output.positionOS = vertexPos * scale;// input.GetPosition() * scale;
-    output.objectOffset = objectOffset;
+    output.positionOS = vertexPos * scale;
 
     return output;
 }
-
-struct PerMaterial
-{
-    float4 baseColorFactor;
-    float4 emissive;
-    float roughness;
-    float metallic;
-    float alphaCutoff;
-
-    Sampler2D baseColorTex;
-    Sampler2D normalMap;
-    Sampler2D metallicRoughnessMap;
-    Sampler2D emissiveMap;
-};
-
-[Material]
-ParameterBlock<PerMaterial> perMaterial;
 
 struct FragmentOutput
 {
