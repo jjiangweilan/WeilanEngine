@@ -1,7 +1,6 @@
 #include "Mesh.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
-#include "Engine/Library/GLB.hpp"
 #include <filesystem>
 
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
@@ -176,20 +175,7 @@ const VertexAttributes& Submesh::GetAttribute() const
 
 bool Mesh::LoadFromFile(const char* path)
 {
-    std::vector<uint32_t> fullData;
-    nlohmann::json jsonData;
-    unsigned char* binaryData;
-    Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);
-    auto meshes = Utils::GLB::ExtractMeshes(jsonData, binaryData, 1);
-    if (!meshes.empty())
-    {
-        submeshes = std::move(meshes[0]->submeshes);
-        SetName(meshes[0]->GetName());
-    }
-    else
-        return false;
-
-    return true;
+    return false;
 }
 
 const AABB& Mesh::GetAABB() const

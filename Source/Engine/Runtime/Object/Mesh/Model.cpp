@@ -3,7 +3,6 @@
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
-#include "Engine/Library/GLB.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <fstream>
@@ -298,7 +297,6 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
     {
         nlohmann::json& sceneJson = scenesJson[i];
         std::unique_ptr<GameObject> rootGameObject = std::make_unique<GameObject>();
-        Utils::GLB::SetGameObjectName(rootGameObject.get(), jsonData, "scenes", i);
         rootGameObject->SetName(std::string(sceneJson.value("name", "root")));
 
         for (int nodeIndex : sceneJson["nodes"])
