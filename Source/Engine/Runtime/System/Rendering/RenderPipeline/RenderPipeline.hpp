@@ -7,7 +7,6 @@
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/FogPass.hpp"
-#include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/RayTracingTestPass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
@@ -99,7 +98,6 @@ class RenderPipeline
     Passes::CloudPass* cloudPass;
     Passes::ColorGradingPass* colorGradingPass;
     Passes::FXAAPass* fxaaPass;
-    Passes::RayTracingTestPass* rayTracingTestPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
     Passes::SSAO* ssaoPass;
     Passes::SSIL* ssilPass;

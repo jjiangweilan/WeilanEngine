@@ -36,7 +36,6 @@ RenderPipeline::RenderPipeline()
     cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
     colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
-    rayTracingTestPass = AddRenderPipelinePass<Passes::RayTracingTestPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     ssilPass = AddRenderPipelinePass<Passes::SSIL>();
@@ -390,16 +389,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Fog
     fogPass->Execute(*cmd, mainColor, depthCopy, renderingScene.GetSceneEnvironmentData().fogPassParameters);
-
-    // Ray Tracing Test
-    rayTracingTestPass->Execute(
-        *cmd,
-        depthCopy,
-        scene.GetRenderingScene().GetRayTracingSceneHandle(),
-        scene.GetRenderingScene().GetRayTracingContext(),
-        GetPerSceneGPUResource(),
-        mainRTSize
-    );
 
     // S2H Debug Merge (overlays GI debug drawings onto mainColor using depth test)
     // if (setting->gi.enabled)
