@@ -836,6 +836,11 @@ void AssetDatabase::ImportAssetIfNeeded(const AssetPath& path, bool forceReimpor
     std::vector<AssetPath> importedAssetFilePaths;
     if (importNeeded)
     {
+        if (assetData->GetAsset() != nullptr)
+        {
+            assetData->UnloadAsset();
+        }
+
         auto stdImported = importer->Import();
         for (auto& p : stdImported)
             importedAssetFilePaths.push_back(AssetPath(p));

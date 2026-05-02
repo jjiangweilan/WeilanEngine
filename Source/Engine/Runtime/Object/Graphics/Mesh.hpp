@@ -28,8 +28,8 @@ class Submesh
     // general version API
 public:
     Submesh() {}
-    Submesh(Submesh&& other) = default;
-    Submesh& operator=(Submesh&& other) = default;
+    Submesh(Submesh&& other) noexcept;
+    Submesh& operator=(Submesh&& other) noexcept;
     ~Submesh();
 
     inline int GetIndexCount() const { return indexCount; }
@@ -106,6 +106,7 @@ private:
     uint32_t vertexBufferSize;
     uint32_t indexBufferSize;
 
+    void ReleaseGPUGeometry();
     void UpdateVertexDataByteSize();
     void UpdateIndexDataByteSize();
 };

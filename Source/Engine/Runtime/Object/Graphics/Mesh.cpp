@@ -2,10 +2,55 @@
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include <filesystem>
+#include <utility>
 
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
 
-Submesh::~Submesh() {}
+Submesh::Submesh(Submesh&& other) noexcept
+{
+    *this = std::move(other);
+}
+
+Submesh& Submesh::operator=(Submesh&& other) noexcept
+{
+    if (this == &other)
+    {
+        return *this;
+    }
+
+    ReleaseGPUGeometry();
+
+    gpuMeshHandle = std::exchange(other.gpuMeshHandle, -1);
+    indices = std::move(other.indices);
+    positions = std::move(other.positions);
+    attributes = std::move(other.attributes);
+    gfxVertexBuffer = std::move(other.gfxVertexBuffer);
+    gfxIndexBuffer = std::move(other.gfxIndexBuffer);
+    indexBufferType = other.indexBufferType;
+    bindings = std::move(other.bindings);
+    gfxBindings = std::move(other.gfxBindings);
+    aabb = other.aabb;
+    indexCount = other.indexCount;
+    name = std::move(other.name);
+    vertexBufferSize = other.vertexBufferSize;
+    indexBufferSize = other.indexBufferSize;
+
+    return *this;
+}
+
+Submesh::~Submesh()
+{
+    ReleaseGPUGeometry();
+}
+
+void Submesh::ReleaseGPUGeometry()
+{
+    if (gpuMeshHandle != -1)
+    {
+        Rendering::GPUDrivenManager::Instance().UnregisterGeometry(gpuMeshHandle);
+        gpuMeshHandle = -1;
+    }
+}
 
 uint32_t Submesh::GetVertexDataByteSize() const
 {
@@ -65,6 +110,7 @@ void Submesh::SetVertexAttribute(const VertexAttributes& vertAttributes)
 
 void Submesh::Apply()
 {
+    ReleaseGPUGeometry();
     bindings.clear();
 
     VertexBinding posBinding{

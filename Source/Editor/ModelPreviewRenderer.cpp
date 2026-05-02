@@ -307,7 +307,7 @@ void ModelPreviewRenderer::FocusCamera(Camera& camera, Scene& scene)
     float halfWidth = glm::max(glm::abs(minAABBV.x), glm::abs(maxAABBV.x));
     float halfHeight = glm::max(glm::abs(minAABBV.y), glm::abs(maxAABBV.y));
     float halfDepth = glm::max(glm::abs(minAABBV.z), glm::abs(maxAABBV.z));
-    float distance = glm::max(halfWidth, halfHeight) / glm::tan(camera.GetFoV() * 0.5f) + halfDepth;
-    distance = glm::max(distance * 1.25f, 1.0f);
-    cameraGO->SetPosition(center - camera.GetForward() * distance);
+    float diagnalLength = glm::sqrt(halfWidth * halfWidth + halfHeight * halfHeight + halfDepth * halfDepth);
+    diagnalLength = glm::max(diagnalLength * 1.05f, 1.0f);
+    cameraGO->SetPosition(center - camera.GetForward() * diagnalLength);
 }
