@@ -103,12 +103,13 @@ bool AssetDatabase::IsAssetInDatabase(Asset& asset)
 void AssetDatabase::Reimport(const AssetPath& path)
 {
     ImportAssetIfNeeded(path, true);
+    LoadAsset(path, true);
 }
 
 void AssetDatabase::ReimportByID(const UUID& uuid)
 {
     auto assetPath = assetFileSystem.GetAssetData(uuid)->GetAssetPath();
-    ImportAssetIfNeeded(assetPath, true);
+    Reimport(assetPath);
 }
 
 Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
