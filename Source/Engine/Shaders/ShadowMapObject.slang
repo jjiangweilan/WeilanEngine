@@ -30,8 +30,8 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
 {
     float4x4 modelMatrix;
 
-    uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
+    GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     modelMatrix = entity.GetModelMatrix();
 
@@ -47,4 +47,3 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
 void FragmentMain()
 {
 }
-

@@ -32,13 +32,7 @@ public:
 
     bool IsMultipassEnabled() { return multipass; }
 
-    void SetMaterialSize(int size)
-    {
-        if (size >= 0)
-        {
-            materials.resize(size);
-        }
-    }
+    void SetMaterialSize(int size);
 
     int GetMaterialSize() { return materials.size(); }
 
@@ -83,6 +77,14 @@ public:
         return gpuRenderDataListDescriptor;
     }
 
+    Material* GetGpuRenderMaterial(int index) const
+    {
+        if (index >= 0 && index < gpuRenderMaterials.size())
+            return gpuRenderMaterials[index].Get();
+
+        return nullptr;
+    }
+
     const Rendering::GpuGeometryDescriptor& GetGpuGeometry(int index) const
     {
         if (index >= 0 && index < gpuGeometries.size())
@@ -114,6 +116,7 @@ private:
     Rendering::GpuObjectDescriptor gpuObjectDescriptor;
     Rendering::GpuRenderDataListDescriptor gpuRenderDataListDescriptor;
     std::vector<Rendering::GpuGeometryDescriptor> gpuGeometries;
+    std::vector<ObjPtr<Material>> gpuRenderMaterials;
     bool gpuObjectRegistered = false;
 
     bool hasSkeleton = false;
@@ -150,6 +153,8 @@ private:
     void RegisterGPUSceneObjects();
     void UnregisterGPUSceneObjects();
     void UpdateGPUSceneObjectTransforms();
+    void RefreshGPUSceneObjects();
+    size_t GetSubmeshDrawSlotCount() const;
 
     void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);
 };

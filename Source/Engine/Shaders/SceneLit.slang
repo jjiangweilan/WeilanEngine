@@ -80,10 +80,10 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex, uint renderDataIndex)
+VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex)
 {
-    uint objectOffset = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    ObjectEntity entity = ObjectEntity(perScene, objectOffset, renderDataIndex, vertexIndex);
+    GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     float4x4 modelMatrix = entity.GetModelMatrix();
     float4x4 invTspModelMatrix = entity.GetInvModelMatrix();
@@ -101,8 +101,8 @@ VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex, uint renderDataInd
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = entity.GetUV();
-    output.objectOffset = objectOffset;
-    output.renderDataIndex = renderDataIndex;
+    output.objectOffset = drawExtra.objectOffset;
+    output.renderDataIndex = drawExtra.renderDataIndex;
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
@@ -112,7 +112,7 @@ VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex, uint renderDataInd
 [shader("vertex")]
 VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint geometryOffset : SV_InstanceID)
 {
-    return SceneLitVertex(vertexID, drawIndex, geometryOffset);
+    return SceneLitVertex(vertexID, drawIndex);
 }
 
 FragmentOutput SceneLitFragment(VertexOutput input)

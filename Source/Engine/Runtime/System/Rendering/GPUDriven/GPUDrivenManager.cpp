@@ -350,7 +350,7 @@ bool GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
     );
 
     indirectCommandExtraBuffer = GetGfxDriver()->CreateBuffer(
-        newCapacity * sizeof(uint32_t),
+        newCapacity * sizeof(GpuDrawExtra),
         Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
         false,
         false,
@@ -365,7 +365,7 @@ bool GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
 IndirectDrawData GPUDrivenManager::UploadIndirectDrawData(
     Gfx::CommandBuffer& cmd,
     std::span<const DrawIndexedIndirectCommand> commands,
-    std::span<const uint32_t> objectOffsets
+    std::span<const GpuDrawExtra> drawExtras
 )
 {
     BeginIndirectArenaFrame();
@@ -389,9 +389,9 @@ IndirectDrawData GPUDrivenManager::UploadIndirectDrawData(
     );
     cmd.UploadData(
         *indirectCommandExtraBuffer,
-        const_cast<uint32_t*>(objectOffsets.data()),
-        objectOffsets.size() * sizeof(uint32_t),
-        firstDrawIndex * sizeof(uint32_t)
+        const_cast<GpuDrawExtra*>(drawExtras.data()),
+        drawExtras.size() * sizeof(GpuDrawExtra),
+        firstDrawIndex * sizeof(GpuDrawExtra)
     );
 
     indirectCommandBufferOffset = requiredSize;

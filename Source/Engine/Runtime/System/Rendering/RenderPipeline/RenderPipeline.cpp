@@ -808,22 +808,16 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
 
         const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
         const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
-        const auto& materials = renderer->GetMaterials();
 
-        int renderDataListIndex = 0;
-        for (const auto& renderData : gpuRenderDataListDescriptor.renderDataList)
+        for (size_t renderDataListIndex = 0; renderDataListIndex < gpuRenderDataListDescriptor.renderDataList.size(); ++renderDataListIndex)
         {
-            if (renderDataListIndex < materials.size())
+            auto mat = renderer->GetGpuRenderMaterial(static_cast<int>(renderDataListIndex));
+            if (mat)
             {
-                auto& mat = materials[renderDataListIndex];
-                if (mat)
-                {
-                    auto geometryDescriptor = renderer->GetGpuGeometry(renderDataListIndex);
-                    auto& config = mat->GetShaderConfig();
-                    flatDrawInfos.push_back({mat->GetShaderProgram(), &config, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
-                }
+                auto geometryDescriptor = renderer->GetGpuGeometry(static_cast<int>(renderDataListIndex));
+                auto& config = mat->GetShaderConfig();
+                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
             }
-            renderDataListIndex += 1;
         }
     }
 
@@ -832,7 +826,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
 
     // 2. Sort the flat array by ShaderProgram pointer to group them together
     std::sort(flatDrawInfos.begin(), flatDrawInfos.end(), [](const FlatDrawInfo& a, const FlatDrawInfo& b)
-              { return std::tie(a.shaderProgram, a.pipelineConfigHash) < std::tie(a.shaderProgram, b.pipelineConfigHash); });
+              { return std::tie(a.shaderProgram, a.pipelineConfigHash) < std::tie(b.shaderProgram, b.pipelineConfigHash); });
 
     // 3. Build the indirect command buffers and shader groups in a single pass
     Gfx::ShaderProgram* currentShader = nullptr;
@@ -856,8 +850,8 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             currentGroupStart = static_cast<uint32_t>(i);
         }
 
-        allIndirectCmds.push_back({.indexCount = info.indexCount, .instanceCount = 1, .firstIndex = info.firstIndex, .vertexOffset = 0, .firstInstance = info.firstInstance});
-        allIndirectCmdsExtra.push_back(info.objectOffset);
+        allIndirectCmds.push_back({.indexCount = info.indexCount, .instanceCount = 1, .firstIndex = info.firstIndex, .vertexOffset = 0, .firstInstance = 0});
+        allIndirectCmdsExtra.push_back({.objectOffset = info.objectOffset, .renderDataIndex = info.firstInstance});
     }
 
     // Push the final group

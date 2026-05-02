@@ -118,6 +118,12 @@ struct IndirectDrawData
     uint32_t drawCount = 0;
 };
 
+struct GpuDrawExtra
+{
+    uint32_t objectOffset;
+    uint32_t renderDataIndex;
+};
+
 struct GpuGeometryDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
@@ -197,7 +203,7 @@ public:
     IndirectDrawData UploadIndirectDrawData(
         Gfx::CommandBuffer& cmd,
         std::span<const DrawIndexedIndirectCommand> commands,
-        std::span<const uint32_t> objectOffsets
+        std::span<const GpuDrawExtra> drawExtras
     );
 
     void Deinit();

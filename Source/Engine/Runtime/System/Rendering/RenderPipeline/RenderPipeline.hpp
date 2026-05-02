@@ -130,7 +130,7 @@ class RenderPipeline
     std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
     std::vector<FlatDrawInfo> flatDrawInfos;
     std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
-    std::vector<uint32_t> allIndirectCmdsExtra;
+    std::vector<GpuDrawExtra> allIndirectCmdsExtra;
 
     void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt);

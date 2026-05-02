@@ -45,14 +45,39 @@ void MeshRenderer::SetMaterial(Material* material)
     SetMaterials(mats);
 }
 
+void MeshRenderer::SetMaterialSize(int size)
+{
+    if (size >= 0)
+    {
+        materials.resize(size);
+        RefreshGPUSceneObjects();
+    }
+}
+
+size_t MeshRenderer::GetSubmeshDrawSlotCount() const
+{
+    size_t count = 0;
+    for (const auto& mesh : meshes)
+    {
+        if (mesh != nullptr)
+            count += mesh->GetSubmeshes().size();
+    }
+
+    return count;
+}
+
 void MeshRenderer::SetMeshes(std::span<Mesh*> meshes)
 {
+    auto oldMaterials = std::move(this->materials);
     this->meshes.clear();
     for (auto m : meshes)
         this->meshes.push_back(m);
-    this->materials.resize(meshes.size());
+    this->materials = std::move(oldMaterials);
+    if (!multipass)
+        this->materials.resize(GetSubmeshDrawSlotCount());
     aabbBoundsNeedUpdate = true;
     CheckSkeleton();
+    RefreshGPUSceneObjects();
 }
 
 void MeshRenderer::UpdateAABB()
@@ -83,12 +108,14 @@ void MeshRenderer::UpdateAABB()
 void MeshRenderer::SetMaterials(std::span<ObjPtr<Material>> materials)
 {
     this->materials = std::vector<ObjPtr<Material>>(materials.begin(), materials.end());
+    RefreshGPUSceneObjects();
 }
 void MeshRenderer::SetMaterials(std::span<Material*> materials)
 {
     this->materials.clear();
     for (auto m : materials)
         this->materials.push_back(m);
+    RefreshGPUSceneObjects();
 }
 
 Mesh* MeshRenderer::GetMesh()
@@ -420,6 +447,7 @@ void MeshRenderer::RegisterGPUSceneObjects()
         return;
 
     gpuGeometries.clear();
+    gpuRenderMaterials.clear();
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
 
     if (meshes.empty())
@@ -428,8 +456,7 @@ void MeshRenderer::RegisterGPUSceneObjects()
     auto worldMatrix = GetGameObject()->GetWorldMatrix();
     auto invTspBase = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix))));
 
-    int mi = 0;
-    int handleIdx = 0;
+    int drawSlotIndex = 0;
     std::vector<Rendering::GpuRenderData> renderDatas;
 
     for (int i = 0; i < static_cast<int>(meshes.size()); ++i)
@@ -440,8 +467,8 @@ void MeshRenderer::RegisterGPUSceneObjects()
 
         for (auto& submesh : mesh->GetSubmeshes())
         {
-            auto material = mi < static_cast<int>(materials.size()) ? materials[mi].Get() : nullptr;
-            mi++;
+            auto material = drawSlotIndex < static_cast<int>(materials.size()) ? materials[drawSlotIndex].Get() : nullptr;
+            drawSlotIndex++;
 
             if (material == nullptr)
                 continue;
@@ -457,10 +484,12 @@ void MeshRenderer::RegisterGPUSceneObjects()
 
             renderDatas.push_back(renderData);
             gpuGeometries.push_back(submesh.GetGpuGeometry());
-
-            handleIdx++;
+            gpuRenderMaterials.push_back(material);
         }
     }
+
+    if (renderDatas.empty())
+        return;
 
     renderDataListHandle = gpuDriven.RegisterRenderDataList(renderDatas);
 
@@ -484,6 +513,8 @@ void MeshRenderer::UnregisterGPUSceneObjects()
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
     gpuDriven.UnregisterObject(gpuObjectHandle);
     gpuDriven.UnregisterRenderDataList(renderDataListHandle);
+    gpuGeometries.clear();
+    gpuRenderMaterials.clear();
     gpuObjectRegistered = false;
 
     if (auto scene = GetScene())
@@ -508,4 +539,15 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
     };
 
     gpuDriven.UpdateObject(gpuObjectHandle, gpuObject);
+}
+
+void MeshRenderer::RefreshGPUSceneObjects()
+{
+    if (!isGPUObject || !IsEnabled() || GetScene() == nullptr)
+        return;
+
+    if (gpuObjectRegistered)
+        UnregisterGPUSceneObjects();
+
+    RegisterGPUSceneObjects();
 }

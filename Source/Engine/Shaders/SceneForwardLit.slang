@@ -6,7 +6,7 @@ import Lighting; // use it's lighting function
 [shader("vertex")]
 VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint instanceID : SV_InstanceID)
 {
-    return SceneLitVertex(vertexID, drawIndex, instanceID);
+    return SceneLitVertex(vertexID, drawIndex);
 }
 
 [shader("fragment")]

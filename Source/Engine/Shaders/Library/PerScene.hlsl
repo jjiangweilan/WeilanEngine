@@ -62,6 +62,12 @@ struct Scene
     Light lights[MAX_LIGHT_COUNT];
 };
 
+struct GpuDrawExtra
+{
+    uint32_t objectOffset;
+    uint32_t renderDataIndex;
+};
+
 struct PerScene
 {
 #if GPU_RESOURCE
@@ -75,7 +81,7 @@ struct PerScene
     SamplerState globalSamplers[10];
 
     ByteAddressBuffer globalBuffer;
-    StructuredBuffer<uint> gpuObjectOffsets;
+    StructuredBuffer<GpuDrawExtra> gpuObjectOffsets;
     StructuredBuffer<uint> rtObjectOffsets;
     Texture2D globalTextures[];
 
