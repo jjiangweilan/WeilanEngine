@@ -1,9 +1,18 @@
 #pragma once
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include <memory>
 #include <filesystem>
 #include <typeindex>
 #include <unordered_map>
+
+class WeilanEngine;
+class ModelPreviewRenderer;
+
+namespace Gfx
+{
+class CommandBuffer;
+}
 
 class FileIcons
 {
@@ -12,7 +21,11 @@ public:
     // enter utf code picked from here: https://www.nerdfonts.com/cheat-sheet
     static std::string Utf16ToUtf8(char16_t utf16_codepoint);
     static std::string GetIcon(const AssetPath& path);
+    void Initialize(WeilanEngine* engine);
+    void Shutdown();
     Gfx::Image* GetIconImage(const AssetPath& path);
+    Gfx::Image* GetModelPreviewImage(const AssetPath& path);
+    void RenderQueuedPreviews(Gfx::CommandBuffer& cmd);
     Gfx::Image* GetDirectoryIconImage() { return fileIcon->GetGfxImage(); }
 
 private:
@@ -46,5 +59,7 @@ private:
     LazyLoadedAsset<Texture> prefabIcon = "_engine_internal/Editor/Icons/prefab.png";
     LazyLoadedAsset<Texture> renderPipelineIcon = "_engine_internal/Editor/Icons/render-pipeline.png";
 
+    WeilanEngine* engine = nullptr;
     Gfx::Image* LoadPreviewImage(const AssetPath& path);
+    std::unique_ptr<ModelPreviewRenderer> modelPreviewRenderer;
 };

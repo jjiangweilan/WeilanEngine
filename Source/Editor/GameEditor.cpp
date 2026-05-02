@@ -159,6 +159,7 @@ GameEditor::GameEditor(WeilanEngine* engine, const char* path)
 
     fontImage = CreateImGuiFont(nullptr);
     gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
+    FileIcons::Instance().Initialize(engine);
 
     ImPlot::CreateContext();
 };
@@ -170,6 +171,7 @@ GameEditor::~GameEditor()
     ImPlot::DestroyContext();
     fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
+    FileIcons::Instance().Shutdown();
     InspectorRegistry::DestroyAll();
 
     if (SceneManager::GetActiveScene())
@@ -675,6 +677,7 @@ void GameEditor::Render(
     ENGINE_END_PROFILE; // Game View
 
     ENGINE_BEGIN_PROFILE("Editor")
+    FileIcons::Instance().RenderQueuedPreviews(cmd);
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
     ENGINE_END_PROFILE; // Editor
 

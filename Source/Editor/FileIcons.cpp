@@ -1,4 +1,5 @@
 #include "FileIcons.hpp"
+#include "Editor/ModelPreviewRenderer.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/ModelLoader.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/TextureLoader.hpp"
@@ -13,12 +14,29 @@ std::string FileIcons::Utf16ToUtf8(char16_t utf16_codepoint)
     return convert_utf16_to_utf8.to_bytes(utf16_str);
 }
 
+void FileIcons::Initialize(WeilanEngine* engine)
+{
+    this->engine = engine;
+}
+
+void FileIcons::Shutdown()
+{
+    modelPreviewRenderer.reset();
+    engine = nullptr;
+}
+
 Gfx::Image* FileIcons::LoadPreviewImage(const AssetPath& path)
 {
     auto iter = previewImages.caches.find(path);
     if (iter != previewImages.caches.end() && iter->second != nullptr)
     {
         return iter->second->GetGfxImage();
+    }
+
+    std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(path.GetExtension());
+    if (loader == nullptr || typeid(*loader) != typeid(TextureLoader))
+    {
+        return nullptr;
     }
 
     auto texture = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
@@ -56,6 +74,19 @@ Gfx::Image* FileIcons::GetIconImage(const AssetPath& path)
         // Load file icon from preset
         auto configuredFileIcon = GetFileIcon(typeid(*loader), ext);
 
+        if (typeid(*loader) == typeid(ModelLoader) && engine != nullptr)
+        {
+            if (modelPreviewRenderer == nullptr)
+            {
+                modelPreviewRenderer = std::make_unique<ModelPreviewRenderer>(engine);
+            }
+
+            if (Gfx::Image* modelPreview = modelPreviewRenderer->GetOrQueuePreview(path))
+            {
+                return modelPreview;
+            }
+        }
+
         if (configuredFileIcon)
         {
             return configuredFileIcon;
@@ -64,6 +95,35 @@ Gfx::Image* FileIcons::GetIconImage(const AssetPath& path)
 
     // Nothing works, just return default file icon
     return GetDefaultFileIcon();
+}
+
+Gfx::Image* FileIcons::GetModelPreviewImage(const AssetPath& path)
+{
+    if (engine == nullptr || path.empty())
+    {
+        return nullptr;
+    }
+
+    std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(path.GetExtension());
+    if (loader == nullptr || typeid(*loader) != typeid(ModelLoader))
+    {
+        return nullptr;
+    }
+
+    if (modelPreviewRenderer == nullptr)
+    {
+        modelPreviewRenderer = std::make_unique<ModelPreviewRenderer>(engine);
+    }
+
+    return modelPreviewRenderer->GetOrQueuePreview(path);
+}
+
+void FileIcons::RenderQueuedPreviews(Gfx::CommandBuffer& cmd)
+{
+    if (modelPreviewRenderer != nullptr)
+    {
+        modelPreviewRenderer->RenderQueuedPreviews(cmd, 1);
+    }
 }
 
 std::string FileIcons::GetIcon(const AssetPath& path)

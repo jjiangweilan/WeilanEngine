@@ -1,4 +1,5 @@
 #include "Editor/EditorState.hpp"
+#include "Editor/FileIcons.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/GameEditor.hpp"
@@ -13,6 +14,27 @@ class ModelInspector : public Inspector<Model>
 public:
     void DrawInspector(GameEditor& editor) override
     {
+        const AssetPath& modelPath = editor.GetEngine()->assetDatabase->GetAssetPath(target->GetUUID());
+        if (!modelPath.empty())
+        {
+            EditorGUI::SeparatorTextLabeled("Preview");
+            Gfx::Image* previewImage = FileIcons::Instance().GetModelPreviewImage(modelPath);
+            if (previewImage != nullptr)
+            {
+                float previewSize = 192.0f;
+                float availableWidth = ImGui::GetContentRegionAvail().x;
+                if (availableWidth > 0.0f && previewSize > availableWidth)
+                {
+                    previewSize = availableWidth;
+                }
+                ImGui::Image(&previewImage->GetDefaultImageView(), {previewSize, previewSize});
+            }
+            else
+            {
+                ImGui::TextDisabled("Generating preview...");
+            }
+        }
+
         // object information
         EditorGUI::Text("Name", target->GetName().c_str());
 
