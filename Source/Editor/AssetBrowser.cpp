@@ -238,6 +238,17 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             bool open = ImGui::TreeNodeEx(treeTitle.c_str(), ImGuiTreeNodeFlags_Leaf);
             if (ImGui::BeginPopupContextItem("asset window context menu"))
             {
+                AssetPath assetPath(entry.path());
+                if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
+                {
+                    endEvents.Register(
+                        [assetPath]()
+                        {
+                            AssetDatabase::Singleton()->Reimport(assetPath);
+                        }
+                    );
+                }
+
                 if (ImGui::MenuItem("Change File Name"))
                 {
                     ActivateFileNameField(entry.path());
@@ -616,6 +627,17 @@ void AssetBrowser::ShowAssetIconItem(
         }
         else
         {
+            AssetPath assetPath(entry.path());
+            if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
+            {
+                endEvents.Register(
+                    [assetPath]()
+                    {
+                        AssetDatabase::Singleton()->Reimport(assetPath);
+                    }
+                );
+            }
+
             if (ImGui::MenuItem("Delete"))
             {
                 endEvents.Register(

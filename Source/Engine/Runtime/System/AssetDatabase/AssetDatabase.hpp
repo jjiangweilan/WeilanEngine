@@ -72,6 +72,7 @@ public:
 
     void Reimport(const AssetPath& path);
     void ReimportByID(const UUID& uuid);
+    bool CanImport(const AssetPath& path) const;
 
     template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
     void CopyThroughSerialization(T& origin, T& copy)

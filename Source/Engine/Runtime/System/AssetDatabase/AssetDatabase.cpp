@@ -112,6 +112,12 @@ void AssetDatabase::ReimportByID(const UUID& uuid)
     Reimport(assetPath);
 }
 
+bool AssetDatabase::CanImport(const AssetPath& path) const
+{
+    std::filesystem::path stdPath = path.ToFilesystemPath();
+    return AssetImporterRegistry::CreateAssetImporterByExtension(stdPath.extension().string()) != nullptr;
+}
+
 Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
 {
     auto assetData = assetFileSystem.GetAssetData(uuid);
