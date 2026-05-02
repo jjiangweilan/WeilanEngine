@@ -83,6 +83,7 @@ public:
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;
     virtual Extent2D GetSurfaceSize() = 0;
+    virtual uint64_t GetFrameIndex() const = 0;
 
     // virtual const Profiler& GetFrameProfiler() const {return {};}
     virtual bool BeginFrame() = 0;

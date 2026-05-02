@@ -4,6 +4,7 @@
 #include "Engine/Library/Allocators/ThreadLocalAllocator.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/System/Rendering/GPUParameter.hpp"
+#include <spdlog/spdlog.h>
 
 namespace Rendering
 {
@@ -308,14 +309,37 @@ void GPUDrivenManager::SetRTObjectOffsetBuffer(Gfx::Buffer* buffer)
     globalDescriptorSet->SetBuffer("rtObjectOffsets", buffer);
 }
 
-void GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
+void GPUDrivenManager::BeginIndirectArenaFrame()
+{
+    uint64_t frameIndex = GetGfxDriver()->GetFrameIndex();
+    if (indirectArenaFrameIndex == frameIndex)
+    {
+        return;
+    }
+
+    indirectArenaFrameIndex = frameIndex;
+    indirectCommandBufferOffset = 0;
+}
+
+bool GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
 {
     if (requiredSize <= indirectCommandBufferCapacity)
-        return;
+        return true;
 
-    uint32_t newCapacity = indirectCommandBufferCapacity == 0 ? 256 : indirectCommandBufferCapacity;
+    if (indirectCommandBufferOffset != 0)
+    {
+        SPDLOG_ERROR(
+            "GPUDriven indirect arena overflow: required {} draws, capacity {}. Increase arena slack or reduce same-frame preview renders.",
+            requiredSize,
+            indirectCommandBufferCapacity
+        );
+        return false;
+    }
+
+    uint32_t newCapacity = indirectCommandBufferCapacity == 0 ? 8192 : indirectCommandBufferCapacity;
     while (newCapacity < requiredSize)
         newCapacity *= 2;
+    newCapacity *= 2;
 
     indirectCommandBuffer = GetGfxDriver()->CreateBuffer(
         newCapacity * sizeof(DrawIndexedIndirectCommand),
@@ -335,30 +359,43 @@ void GPUDrivenManager::EnsureIndirectCommandCapacity(uint32_t requiredSize)
 
     indirectCommandBufferCapacity = newCapacity;
     SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
+    return true;
 }
 
-void GPUDrivenManager::UploadIndirectDrawData(
+IndirectDrawData GPUDrivenManager::UploadIndirectDrawData(
     Gfx::CommandBuffer& cmd,
     std::span<const DrawIndexedIndirectCommand> commands,
     std::span<const uint32_t> objectOffsets
 )
 {
-    EnsureIndirectCommandCapacity(static_cast<uint32_t>(commands.size()));
+    BeginIndirectArenaFrame();
 
     if (commands.empty())
-        return;
+        return {};
+
+    uint32_t firstDrawIndex = indirectCommandBufferOffset;
+    uint32_t requiredSize = firstDrawIndex + static_cast<uint32_t>(commands.size());
+    if (!EnsureIndirectCommandCapacity(requiredSize))
+    {
+        return {};
+    }
 
     SetObjectOffsetBuffer(indirectCommandExtraBuffer.get());
     cmd.UploadData(
         *indirectCommandBuffer,
         const_cast<DrawIndexedIndirectCommand*>(commands.data()),
-        commands.size() * sizeof(DrawIndexedIndirectCommand)
+        commands.size() * sizeof(DrawIndexedIndirectCommand),
+        firstDrawIndex * sizeof(DrawIndexedIndirectCommand)
     );
     cmd.UploadData(
         *indirectCommandExtraBuffer,
         const_cast<uint32_t*>(objectOffsets.data()),
-        objectOffsets.size() * sizeof(uint32_t)
+        objectOffsets.size() * sizeof(uint32_t),
+        firstDrawIndex * sizeof(uint32_t)
     );
+
+    indirectCommandBufferOffset = requiredSize;
+    return {indirectCommandBuffer.get(), firstDrawIndex, static_cast<uint32_t>(commands.size())};
 }
 
 // --- Lifecycle ---

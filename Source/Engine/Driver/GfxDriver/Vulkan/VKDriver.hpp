@@ -62,6 +62,7 @@ public:
     SDL_Window* GetSDLWindow() override;
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
+    uint64_t GetFrameIndex() const override { return frameCount; }
     Backend GetGfxBackendType() override;
     RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
 

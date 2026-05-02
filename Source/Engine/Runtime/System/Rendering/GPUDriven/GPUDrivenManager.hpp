@@ -8,6 +8,7 @@
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include <mutex>
 #include <span>
+#include <vector>
 
 class Submesh;
 namespace Rendering
@@ -110,6 +111,13 @@ struct DrawIndexedIndirectCommand
     uint32_t firstInstance;
 };
 
+struct IndirectDrawData
+{
+    Gfx::Buffer* commandBuffer = nullptr;
+    uint32_t firstDrawIndex = 0;
+    uint32_t drawCount = 0;
+};
+
 struct GpuGeometryDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
@@ -186,7 +194,7 @@ public:
 
     void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
     void SetRTObjectOffsetBuffer(Gfx::Buffer* buffer);
-    void UploadIndirectDrawData(
+    IndirectDrawData UploadIndirectDrawData(
         Gfx::CommandBuffer& cmd,
         std::span<const DrawIndexedIndirectCommand> commands,
         std::span<const uint32_t> objectOffsets
@@ -225,9 +233,12 @@ private:
     std::unique_ptr<Gfx::Buffer> mainLightShadowBuffer;
     std::unique_ptr<Gfx::Buffer> indirectCommandBuffer;
     std::unique_ptr<Gfx::Buffer> indirectCommandExtraBuffer;
+    uint64_t indirectArenaFrameIndex = 0;
     uint32_t indirectCommandBufferCapacity = 0;
+    uint32_t indirectCommandBufferOffset = 0;
 
-    void EnsureIndirectCommandCapacity(uint32_t requiredSize);
+    void BeginIndirectArenaFrame();
+    bool EnsureIndirectCommandCapacity(uint32_t requiredSize);
 
     // Mesh data
     ObjectPool<GpuGeometryDescriptor> geometryDescriptors;
