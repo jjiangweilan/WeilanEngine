@@ -12,6 +12,7 @@
 #include "VKShaderProgram.hpp"
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
+#include <array>
 
 namespace Gfx
 {
@@ -185,6 +186,9 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
     // handle case like shadow map being binded to global descriptor set but also set to render pass attachment
     std::vector<VKImage*> shaderImageSampleIgnoreList;
     shaderImageSampleIgnoreList.reserve(8);
+    std::array<VKBuffer*, 8> boundVertexBuffers{};
+    uint32_t boundVertexBufferCount = 0;
+    VKBuffer* boundIndexBuffer = nullptr;
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
     // and AddSubpass(0)
@@ -270,8 +274,50 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         {
             ScheduleBindShaderProgram(cmd, visitIndex);
         }
+        else if (cmd.type == VKCmdType::BindVertexBuffer)
+        {
+            auto& args = std::get<VKBindVertexBufferCmd>(cmd.args);
+            boundVertexBufferCount = args.vertexBufferBindingCount;
+            for (uint32_t i = 0; i < boundVertexBufferCount && i < boundVertexBuffers.size(); ++i)
+            {
+                boundVertexBuffers[i] = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer);
+            }
+        }
+        else if (cmd.type == VKCmdType::BindIndexBuffer)
+        {
+            auto& args = std::get<VKBindIndexBufferCmd>(cmd.args);
+            boundIndexBuffer = args.buffer;
+        }
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed || cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
+            for (uint32_t i = 0; i < boundVertexBufferCount && i < boundVertexBuffers.size(); ++i)
+            {
+                auto buffer = boundVertexBuffers[i];
+                if (buffer && TrackResource(buffer, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT))
+                    barrierCount += MakeBarrierForLastUsage(buffer, buffer->GetUUID());
+            }
+
+            if ((cmd.type == VKCmdType::DrawIndexed || cmd.type == VKCmdType::DrawIndexedIndirect) && boundIndexBuffer &&
+                TrackResource(boundIndexBuffer, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT))
+            {
+                barrierCount += MakeBarrierForLastUsage(boundIndexBuffer, boundIndexBuffer->GetUUID());
+            }
+
+            if (cmd.type == VKCmdType::DrawIndirect)
+            {
+                auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
+                auto buffer = static_cast<VKBuffer*>(args.buffer);
+                if (buffer && TrackResource(buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                    barrierCount += MakeBarrierForLastUsage(buffer, buffer->GetUUID());
+            }
+            else if (cmd.type == VKCmdType::DrawIndexedIndirect)
+            {
+                auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
+                auto buffer = static_cast<VKBuffer*>(args.buffer);
+                if (buffer && TrackResource(buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                    barrierCount += MakeBarrierForLastUsage(buffer, buffer->GetUUID());
+            }
+
             MakeBarrierForAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
             FlushAllBindedSetUpdate(inflightIndex, exectedCmds, shaderImageSampleIgnoreList, barrierCount);
         }
@@ -925,8 +971,36 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
+            if (args.buffer && TrackResource(args.buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                args.barrierCount += MakeBarrierForLastUsage(args.buffer, args.buffer->GetUUID());
             MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(inflightIndex, executedCmds, list, args.barrierCount);
+        }
+        else if (cmd.type == VKCmdType::ClearColorImage)
+        {
+            ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: clear color image");
+            auto& args = std::get<VKClearColorImageCmd>(cmd.args);
+            auto image = static_cast<VKImage*>(args.image);
+            Gfx::ImageSubresourceRange range{
+                .aspectMask = ImageAspectFlags::Color,
+                .baseMipLevel = 0,
+                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .baseArrayLayer = 0,
+                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+            };
+
+            args.barrierOffset = barriers.size();
+            args.barrierCount = 0;
+            if (image && TrackResource(
+                    image,
+                    range,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT
+                ))
+            {
+                args.barrierCount += MakeBarrierForLastUsage2(image);
+            }
         }
     }
 }
