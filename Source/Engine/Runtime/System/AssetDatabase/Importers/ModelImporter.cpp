@@ -482,7 +482,7 @@ void ProcessMeshes(ModelImportContext& context)
         importedMesh->SetUUID(artifactUUID);
         auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Mesh);
         ModelArtifact::WriteMeshBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *importedMesh);
-        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Mesh)), fmt::format("mesh_{}", meshIndex), relativePath, false, fmt::format("mesh/{}", meshIndex)});
+        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Mesh)), importedMesh->GetName(), relativePath, false, fmt::format("mesh/{}", meshIndex)});
         context.meshes.push_back(std::move(importedMesh));
     }
 }
@@ -619,7 +619,7 @@ void ProcessMaterials(ModelImportContext& context)
         auto binary = ser.GetBinary();
         std::ofstream out(context.importDatabase->GetImportDatabaseRootPath() / relativePath, std::ios::binary | std::ios::trunc);
         out.write(reinterpret_cast<const char*>(binary.data()), static_cast<std::streamsize>(binary.size()));
-        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Material)), fmt::format("material_{}", materialIndex), relativePath, false, fmt::format("material/{}", materialIndex)});
+        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Material)), mat->GetName(), relativePath, false, fmt::format("material/{}", materialIndex)});
         context.materials.push_back(std::move(mat));
     }
 }

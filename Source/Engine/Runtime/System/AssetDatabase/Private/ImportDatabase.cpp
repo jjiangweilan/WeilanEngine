@@ -505,9 +505,6 @@ void ImportDatabase::CreateSchema() const
 
     ExecSql(db, "CREATE INDEX IF NOT EXISTS idx_artifacts_source ON artifacts(source_asset_uuid);");
     ExecSql(db, "CREATE INDEX IF NOT EXISTS idx_artifacts_source_kind ON artifacts(source_asset_uuid, kind);");
-    ExecSql(
-        db,
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_source_kind_name ON artifacts(source_asset_uuid, kind, name);"
-    );
+    ExecSql(db, "DROP INDEX IF EXISTS idx_artifacts_source_kind_name;");
     ExecSql(db, "CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_main ON artifacts(source_asset_uuid) WHERE is_main = 1;");
 }
