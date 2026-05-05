@@ -5,6 +5,7 @@
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
@@ -57,6 +58,18 @@ void ExpandViewSpaceAABB(const glm::mat4& viewMatrix, const AABB& aabb, glm::vec
         glm::vec3 viewCorner = glm::vec3(viewMatrix * glm::vec4(corner, 1.0f)) - center;
         outMinAABB = glm::min(outMinAABB, viewCorner);
         outMaxAABB = glm::max(outMaxAABB, viewCorner);
+    }
+}
+
+void SetPreviewHierarchyEnabled(GameObject& gameObject)
+{
+    gameObject.SetWantsToBeEnabled();
+    for (GameObject* child : gameObject.GetChildren())
+    {
+        if (child != nullptr)
+        {
+            SetPreviewHierarchyEnabled(*child);
+        }
     }
 }
 } // namespace
@@ -144,7 +157,8 @@ bool ModelPreviewRenderer::InitializePreview(const AssetPath& path, PreviewEntry
 {
     Asset* asset = engine->assetDatabase->LoadAsset(path);
     Model* model = dynamic_cast<Model*>(asset);
-    if (model == nullptr)
+    Prefab* prefab = dynamic_cast<Prefab*>(asset);
+    if (model == nullptr && prefab == nullptr)
     {
         return false;
     }
@@ -176,7 +190,14 @@ bool ModelPreviewRenderer::InitializePreview(const AssetPath& path, PreviewEntry
     light->SetIntensity(2.0f);
     light->SetLightColor({1.0f, 1.0f, 1.0f});
 
-    SetupPreviewScene(*entry.scene, *model, entry);
+    if (model != nullptr)
+    {
+        SetupPreviewScene(*entry.scene, *model, entry);
+    }
+    else
+    {
+        SetupPreviewScene(*entry.scene, *prefab, entry);
+    }
 
     const char* blitKeywords[] = {"_ResetAlpha"};
     entry.blitShader = ShaderLibrary::GetShader(
@@ -227,6 +248,26 @@ void ModelPreviewRenderer::SetupPreviewScene(Scene& scene, Model& model, Preview
     }
 
     scene.AddGameObjects(std::move(gameObjects));
+    FocusCamera(*entry.camera, scene);
+
+    if (entry.light != nullptr)
+    {
+        glm::vec3 lightDirection = glm::normalize(glm::vec3(-0.6f, -0.8f, -0.4f));
+        entry.light->LookAt(lightDirection);
+    }
+}
+
+void ModelPreviewRenderer::SetupPreviewScene(Scene& scene, Prefab& prefab, PreviewEntry& entry)
+{
+    if (prefab.GetGameObject() == nullptr)
+    {
+        FocusCamera(*entry.camera, scene);
+        return;
+    }
+
+    std::unique_ptr<GameObject> gameObject = prefab.Instantiate();
+    SetPreviewHierarchyEnabled(*gameObject);
+    scene.AddGameObject(std::move(gameObject));
     FocusCamera(*entry.camera, scene);
 
     if (entry.light != nullptr)

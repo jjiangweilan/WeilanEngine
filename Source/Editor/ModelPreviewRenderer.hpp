@@ -14,6 +14,7 @@
 class WeilanEngine;
 class Model;
 class GameObject;
+class Prefab;
 class Camera;
 class Shader;
 
@@ -59,5 +60,6 @@ private:
     bool InitializePreview(const AssetPath& path, PreviewEntry& entry);
     bool RenderPreview(PreviewEntry& entry, Gfx::CommandBuffer& cmd);
     void SetupPreviewScene(Scene& scene, Model& model, PreviewEntry& entry);
+    void SetupPreviewScene(Scene& scene, Prefab& prefab, PreviewEntry& entry);
     void FocusCamera(Camera& camera, Scene& scene);
 };

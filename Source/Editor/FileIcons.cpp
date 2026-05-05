@@ -74,7 +74,7 @@ Gfx::Image* FileIcons::GetIconImage(const AssetPath& path)
         // Load file icon from preset
         auto configuredFileIcon = GetFileIcon(typeid(*loader), ext);
 
-        if (typeid(*loader) == typeid(ModelLoader) && engine != nullptr)
+        if ((typeid(*loader) == typeid(ModelLoader) || ext == ".prefab") && engine != nullptr)
         {
             if (modelPreviewRenderer == nullptr)
             {
