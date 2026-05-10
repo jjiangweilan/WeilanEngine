@@ -4,6 +4,7 @@
 #include "Engine/Library/UUID.hpp"
 #include <cstddef>
 #include <memory>
+#include <utility>
 
 template <class T>
 class ObjPtr
@@ -34,8 +35,11 @@ public:
     ~ObjPtr() { ObjectTracker::Singleton().Detrack(handle); }
 
     template <class U>
-    ObjPtr<U>& operator=(ObjPtr<U>&& other)
+    ObjPtr<T>& operator=(ObjPtr<U>&& other) noexcept
     {
+        if (handle != ObjectTracker::NullHandle)
+            ObjectTracker::Singleton().Detrack(handle);
+
         handle = std::exchange(other.handle, 0);
 
         return *this;
