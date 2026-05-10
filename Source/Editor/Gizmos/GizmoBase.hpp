@@ -1,7 +1,7 @@
 #pragma once
-#include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include "Editor/EditorContext.hpp"
 #include "Engine/Library/DynamicArray.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include <glm/glm.hpp>
@@ -26,7 +26,6 @@ public:
      */
     static void SetActiveCarrier(GameObject* carrier);
     static void ClearActiveCarrier();
-    static ObjPtr<Shader> GetBillboardShader();
 
     /**
      * @brief Tick gizmo for editor interaction

@@ -1,6 +1,7 @@
 #include "./GizmoManager.hpp"
 #include "./MeshGizmo.hpp"
 #include "./ScaleBoxGizmo.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 GizmoManager::GizmoManager() {}
@@ -42,6 +43,15 @@ bool GizmoManager::ValidateGizmoHandle(GizmoHandle& handle)
     activeGizmos->splice(activeGizmos->end(), *inactiveGizmos, handle.selfNode);
 
     return true;
+}
+
+ObjPtr<Shader> GizmoManager::GetBillboardShader()
+{
+    if (billboardShader == nullptr)
+    {
+        billboardShader = ShaderLibrary::GetShader("Billboard");
+    }
+    return billboardShader;
 }
 
 void GizmoManager::DrawMesh(

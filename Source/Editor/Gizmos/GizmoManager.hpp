@@ -41,6 +41,7 @@ public:
     void ResetState() { anyActiveGizmo = false; }
 
     const GizmoList& GetActiveGizmos() { return *activeGizmos; }
+    ObjPtr<Shader> GetBillboardShader();
 
     void ClearInactiveGizmos();
     void Render(Camera* camera, Gfx::ShaderResource* perScene, Gfx::CommandBuffer& cmd)
@@ -58,6 +59,7 @@ private:
     GizmoList* activeGizmos = &gizmoList0;
     GizmoList* inactiveGizmos = &gizmoList1;
     GizmoRenderer renderer;
+    ObjPtr<Shader> billboardShader = nullptr;
     bool anyActiveGizmo = false;
 
     bool ValidateGizmoHandle(GizmoHandle& handle);
