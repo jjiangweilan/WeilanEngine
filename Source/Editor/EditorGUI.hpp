@@ -361,22 +361,21 @@ public:
 
         if (ImGui::BeginDragDropSource(flags))
         {
-            DragDrop d;
+            DragDrop d = {};
             Object* payload = nullptr;
+            d.tags = DragDropTag::Path;
             if (onDrag)
             {
                 onDrag(payload);
-                if (payload == nullptr)
+                if (payload != nullptr)
                 {
-                    ImGui::EndDragDropSource();
-                    return false;
+                    d.type = &typeid(*payload);
+                    d.objectPayload = payload;
+                    d.tags |= DragDropTag::Object;
                 }
-                d.type = &typeid(*payload);
             }
 
-            d.objectPayload = payload;
             strcpy(d.pathString, asString.data());
-            d.tags = DragDropTag::Path | DragDropTag::Object;
             ImGui::SetDragDropPayload(PayloadType, &d, sizeof(DragDrop));
             ImGui::Text("%s", asString.data());
             isValid = true;

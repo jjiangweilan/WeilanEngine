@@ -108,7 +108,16 @@ public:
 
     static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
     {
-        distance = std::numeric_limits<float>::max();
+        glm::vec3 dummyPoint, dummyNormal;
+        return IsRayObjectIntersect(ori, dir, obj, distance, dummyPoint, dummyNormal);
+    }
+
+    static bool IsRayObjectIntersect(
+        glm::vec3 ori, glm::vec3 dir, GameObject* obj,
+        float& outDistance, glm::vec3& outPoint, glm::vec3& outNormal
+    )
+    {
+        outDistance = std::numeric_limits<float>::max();
         auto mr = obj->GetComponent<MeshRenderer>();
         bool intersected = false;
         if (mr)
@@ -124,7 +133,6 @@ public:
                         auto& indices = submesh.GetIndices();
                         auto& positions = submesh.GetPositions();
 
-                        // I just assume binding zero is a vec3 position, this is not robust
                         for (int i = 0; i < submesh.GetIndexCount(); i += 3)
                         {
                             int j = i + 1;
@@ -139,11 +147,12 @@ public:
                             float newDistance = -1;
                             if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
                             {
-                                // newDistance > 0 means the triangle is in front of the camera
-                                if (newDistance > 0)
+                                if (newDistance > 0 && newDistance < outDistance)
                                 {
                                     intersected = true;
-                                    distance = glm::min(distance, newDistance);
+                                    outDistance = newDistance;
+                                    outPoint = ori + dir * newDistance;
+                                    outNormal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
                                 }
                             }
                         }
@@ -155,3 +164,38 @@ public:
         return intersected;
     }
 };
+
+struct SurfaceHit
+{
+    GameObject* go = nullptr;
+    float distance = std::numeric_limits<float>::max();
+    glm::vec3 point = glm::vec3(0);
+    glm::vec3 normal = glm::vec3(0, 1, 0);
+};
+
+inline SurfaceHit RaycastSceneSurface(const Ray& ray, Scene& scene)
+{
+    SurfaceHit bestHit;
+    scene.ForEachGameObject([&](GameObject* obj)
+    {
+        if (obj != nullptr && obj->IsActiveInScene())
+        {
+            auto mr = obj->GetComponent<MeshRenderer>();
+            if (mr)
+            {
+                float distance;
+                glm::vec3 point, normal;
+                if (PickGameObjectFromScene::IsRayObjectIntersect(
+                        ray.origin, ray.direction, obj, distance, point, normal)
+                    && distance > 0 && distance < bestHit.distance)
+                {
+                    bestHit.go = obj;
+                    bestHit.distance = distance;
+                    bestHit.point = point;
+                    bestHit.normal = normal;
+                }
+            }
+        }
+    });
+    return bestHit;
+}

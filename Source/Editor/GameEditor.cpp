@@ -694,6 +694,12 @@ void GameEditor::Render(
 
 void GameEditor::OpenWindow() {}
 
+void GameEditor::SetActiveSceneEditorTool(SceneEditorTool* tool)
+{
+    if (sceneEditor)
+        sceneEditor->SetActiveTool(tool);
+}
+
 void GameEditor::ShowInspectorWindow()
 {
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_I))

@@ -1,26 +1,34 @@
 #pragma once
-#include "Component.hpp"
+#include "RenderingComponent.hpp"
 
-class GrassSurface : public Component
+struct [[SerClass]] GrassPatch
 {
+    [[SerProp]] float3 position;
+    [[SerProp]] int meshIndex;
+};
 
-    DECLARE_OBJECT();
+struct [[SerClass]] GrassPatchGroup
+{
+public:
+    [[SerProp]] std::vector<ObjPtr<Mesh>> patchMeshes;
+    [[SerProp]] std::vector<GrassPatch> patches;
+};
+
+class GrassSurface : public RenderingComponent<GrassSurface>
+{
+    DECLARE_RENDERING_COMPONENT(GrassSurface);
 
 public:
-    GrassSurface();
-    GrassSurface(GameObject* gameObject);
-    ~GrassSurface();
-    std::unique_ptr<Component> Clone(GameObject& owner) override;
-    const std::string& GetName() const override;
-
     Material computeDispatchMat;
     Material drawMat;
+
     std::unique_ptr<Gfx::Buffer> grassDispatcherIndirectDrawBuffer;
 
-    void OnStart() override;
+    void Serialize(Serializer* ser) const override;
+    void Deserialize(Serializer* ser) override;
+    void OnDrawGizmos(GizmoManager& manager) override;
 
-private:
-    void Init();
-    void OnEnable() override;
-    void OnDisable() override;
+    GrassPatchGroup grassPatchGroup;
+
+    void Tick() override;
 };

@@ -6,6 +6,7 @@
 #include "Editor/Gizmos/Gizmo.hpp"
 #include "Editor/HudDebug.hpp"
 #include "Editor/PickObjectFromGameView.hpp"
+#include "Editor/SceneEditorTool.hpp"
 #include "Engine/Core/EngineState.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
@@ -28,6 +29,15 @@ SceneEditor::SceneEditor() {}
 SceneEditor::~SceneEditor() {}
 
 void SceneEditor::Deinit() {}
+
+void SceneEditor::SetActiveTool(SceneEditorTool* tool)
+{
+    if (activeTool)
+        activeTool->OnDeactivate();
+    activeTool = tool;
+    if (activeTool)
+        activeTool->OnActivate();
+}
 
 void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
@@ -544,6 +554,24 @@ bool SceneEditor::Tick()
             HudDebug::Print(fmt::format("Mouse Pixel Location: {:.0f}, {:.0f}", mouseContentPos.x, mouseContentPos.y));
         }
 
+        // Compute world ray for tool and picking
+        auto mainCam = GetCurrentlyActiveCamera();
+        Ray worldRay;
+        bool hasWorldRay = false;
+        if (mainCam != nullptr)
+        {
+            worldRay = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+            hasWorldRay = true;
+        }
+
+        // Active tool dispatch
+        bool toolConsumedInput = false;
+        if (activeTool && hasWorldRay && isGameViewHovered)
+        {
+            SceneEditorToolContext ctx{this, screenUV, worldRay, isGameViewHovered, gizmoManager, editorContext};
+            toolConsumedInput = activeTool->Tick(ctx);
+        }
+
         if (scene && showGizmos)
         {
             // Gizmo
@@ -564,16 +592,15 @@ bool SceneEditor::Tick()
 
         bool anyItemHovered = ImGui::IsAnyItemHovered();
         auto selected = EditorState::GetMainSelectedObject();
-        if (!anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
+        if (!toolConsumedInput && !anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
         {
             // pick a GameObject trough ray
             if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
             {
-                auto mainCam = GetCurrentlyActiveCamera();
                 if (mainCam != nullptr)
                 {
                     using Intersected = PickGameObjectFromScene::Intersected;
-                    Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+                    Ray ray = worldRay;
 
                     std::vector<Intersected> intersected;
                     intersected.reserve(32);
@@ -1045,6 +1072,11 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
                     glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
                 );
             }
+        }
+
+        if (activeTool)
+        {
+            activeTool->OnDraw(cmd);
         }
 
         if (showGizmos)

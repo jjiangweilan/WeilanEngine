@@ -4,8 +4,35 @@
 #include "Engine/Library/Serialization/Serializer.hpp"
 #include "Serialization_Generated.hpp"
 
+#include "../Runtime/Object/Component/GrassSurface.hpp"
 #include "../Runtime/System/Rendering/SceneEnvironmentData.hpp"
 #include "../Runtime/System/Rendering/RenderPipeline/Passes/FogPassParameters.hpp"
+
+void Serialize(Serializer* s, const GrassPatch* val)
+{
+    s->Serialize("position", val->position);
+    s->Serialize("meshIndex", val->meshIndex);
+}
+
+void Deserialize(Serializer* s, GrassPatch* val)
+{
+    s->Deserialize("position", val->position);
+    s->Deserialize("meshIndex", val->meshIndex);
+}
+
+
+void Serialize(Serializer* s, const GrassPatchGroup* val)
+{
+    s->Serialize("patchMeshes", val->patchMeshes);
+    s->Serialize("patches", val->patches);
+}
+
+void Deserialize(Serializer* s, GrassPatchGroup* val)
+{
+    s->Deserialize("patchMeshes", val->patchMeshes);
+    s->Deserialize("patches", val->patches);
+}
+
 
 void Serialize(Serializer* s, const SceneEnvironmentData* val)
 {

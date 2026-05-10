@@ -47,6 +47,7 @@ public:
     static GameEditor* instance;
 
     EditorContext* GetEditorContext() { return editorContext.get(); }
+    void SetActiveSceneEditorTool(SceneEditorTool* tool);
 
 private:
     void EnableMultiViewport();

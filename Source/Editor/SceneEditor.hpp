@@ -2,6 +2,7 @@
 #include "Editor/EditorContext.hpp"
 #include "Editor/Gizmos/Gizmo.hpp"
 #include "Editor/Gizmos/GizmoManager.hpp"
+#include "Editor/SceneEditorTool.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
@@ -27,6 +28,7 @@ public:
     void Render(Gfx::CommandBuffer& cmd);
 
     void SetActiveScene(ObjPtr<Scene> scene);
+    void SetActiveTool(SceneEditorTool* tool);
 
     Camera* GetEditorCamera() const { return editorCamera; }
 
@@ -152,6 +154,7 @@ private:
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
     GizmoHandle gridGizmo;
+    SceneEditorTool* activeTool = nullptr;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4 proj);
