@@ -17,6 +17,11 @@ std::unordered_map<void*, std::unique_ptr<Asset>>& GetLuaCreatedRuntimeAssets()
     return luaCreatedAssets;
 }
 
+void ClearLuaCreatedRuntimeAssets()
+{
+    GetLuaCreatedRuntimeAssets().clear();
+}
+
 // define typeToName
 std::unordered_map<std::type_index, std::string> LuaTypeRegistery::typeToName =
     std::unordered_map<std::type_index, std::string>();

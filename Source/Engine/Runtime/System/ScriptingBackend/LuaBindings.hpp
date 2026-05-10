@@ -10,4 +10,4 @@ public:
 };
 
 void BindGeneratedClasses(lua_State* L);
-
+void ClearLuaCreatedRuntimeAssets();

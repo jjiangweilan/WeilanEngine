@@ -8,6 +8,7 @@
 #include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
@@ -42,6 +43,7 @@ WeilanEngine::~WeilanEngine()
     event->Deinit();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
+    ClearLuaCreatedRuntimeAssets();
     gameLoop = nullptr;
     DeinitAssetDatabase();
     ShaderLibrary::Singleton().DestoryShaderLibrary();
