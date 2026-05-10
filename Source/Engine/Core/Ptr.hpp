@@ -37,6 +37,9 @@ public:
     template <class U>
     ObjPtr<T>& operator=(ObjPtr<U>&& other) noexcept
     {
+        if (this == &other)
+            return *this;
+
         if (handle != ObjectTracker::NullHandle)
             ObjectTracker::Singleton().Detrack(handle);
 
@@ -45,12 +48,9 @@ public:
         return *this;
     }
 
-    ObjPtr<T>& operator=(const ObjPtr<T>& other)
+    ObjPtr<T>& operator=(ObjPtr<T> other)
     {
-        if (handle != ObjectTracker::NullHandle)
-            ObjectTracker::Singleton().Detrack(handle);
-
-        handle = ObjectTracker::Singleton().Track(other.handle);
+        Swap(other);
 
         return *this;
     }
@@ -94,8 +94,10 @@ public:
     inline operator T*() const { return Get(); }
     inline bool operator==(std::nullptr_t) const { return Get() == nullptr; }
     inline bool operator!=(std::nullptr_t) const { return Get() != nullptr; }
-    inline bool operator==(ObjPtr<T> other) const { return handle == other.handle; }
-    inline bool operator!=(ObjPtr<T> other) const { return handle != other.handle; }
+    inline bool operator==(const ObjPtr<T>& other) const { return handle == other.handle; }
+    inline bool operator!=(const ObjPtr<T>& other) const { return handle != other.handle; }
+
+    void Swap(ObjPtr<T>& other) noexcept { std::swap(handle, other.handle); }
 
     inline T* operator->() const { return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
     inline T& operator*() const { return *(T*)(ObjectTracker::Singleton().GetObject(handle)); }
@@ -124,6 +126,12 @@ private:
     // TODO: considering using double pointer
     ObjectTrackHandle handle;
 };
+
+template <class T>
+void swap(ObjPtr<T>& lhs, ObjPtr<T>& rhs) noexcept
+{
+    lhs.Swap(rhs);
+}
 
 template <class T>
 struct IsObjPtr : public std::false_type
