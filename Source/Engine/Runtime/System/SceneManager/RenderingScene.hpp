@@ -17,6 +17,8 @@
 #include <unordered_map>
 
 class MeshRenderer;
+class Material;
+class Mesh;
 class SceneEnvironment;
 class Terrain;
 class GrassSurface;
@@ -260,6 +262,11 @@ private:
     bool updateRendererNodeHierarchy = false;
 
     void BVHDebug();
+    Mesh* GetBVHDebugMesh();
+    Material& GetBVHDebugMaterial();
+
+    Mesh* bvhDebugMesh = nullptr;
+    std::unique_ptr<Material> bvhDebugMaterial;
 
     friend class Scene;
 };

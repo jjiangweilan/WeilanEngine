@@ -5,6 +5,7 @@
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 #include "Engine/ThirdParty/imgui/imgui.h"
@@ -318,8 +319,8 @@ void RenderingScene::BVHDebug()
     ImGui::Checkbox("Test Cull Object", &testCullObject);
     ImGui::InputInt("Debug Level", &debugLevel);
     ImGui::End();
-    static Mesh* mesh = EngineInternalResources::GetModels().cube;
-    static Material mat = Material(ShaderLibrary::GetShader(Shaders::SimpleColor));
+    Mesh* mesh = GetBVHDebugMesh();
+    Material& mat = GetBVHDebugMaterial();
     Frustum frustum = scene->GetMainCamera()->GetFrustum();
 
     auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
@@ -439,6 +440,24 @@ void RenderingScene::BVHDebug()
             }
         }
     }
+}
+
+Mesh* RenderingScene::GetBVHDebugMesh()
+{
+    if (bvhDebugMesh == nullptr)
+    {
+        bvhDebugMesh = EngineInternalResources::GetModels().cube;
+    }
+    return bvhDebugMesh;
+}
+
+Material& RenderingScene::GetBVHDebugMaterial()
+{
+    if (bvhDebugMaterial == nullptr)
+    {
+        bvhDebugMaterial = std::make_unique<Material>(ShaderLibrary::GetShader(Shaders::SimpleColor));
+    }
+    return *bvhDebugMaterial;
 }
 bool BoundingVolumeHierarchy::Node::IsFullyVisibleInFrustum(const Frustum& Frustum)
 {
