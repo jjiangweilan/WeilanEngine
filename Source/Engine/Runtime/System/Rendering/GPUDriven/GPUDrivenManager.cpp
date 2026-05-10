@@ -405,6 +405,11 @@ GPUDrivenManager& GPUDrivenManager::Instance()
     return *GetInstanceInternal();
 }
 
+GPUDrivenManager* GPUDrivenManager::TryGetInstance()
+{
+    return GetInstanceInternal().get();
+}
+
 void GPUDrivenManager::Deinit()
 {
     GetInstanceInternal() = nullptr;

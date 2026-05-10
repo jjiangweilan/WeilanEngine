@@ -653,6 +653,10 @@ void Material::RegisterGPUMaterial()
     if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
         return;
 
+    auto* gpuDrivenManager = Rendering::GPUDrivenManager::TryGetInstance();
+    if (gpuDrivenManager == nullptr)
+        return;
+
     Rendering::GpuMaterial data{};
     data.baseColorFactor = GetVector("", "baseColorFactor");
     data.emissive = GetVector("", "emissive");
@@ -688,7 +692,7 @@ void Material::RegisterGPUMaterial()
     data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
     data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
 
-    gpuMaterialHandle = Rendering::GPUDrivenManager::Instance().RegisterMaterial(data);
+    gpuMaterialHandle = gpuDrivenManager->RegisterMaterial(data);
 }
 
 void Material::UnregisterGPUMaterial()
@@ -696,7 +700,11 @@ void Material::UnregisterGPUMaterial()
     if (gpuMaterialHandle == Rendering::InvalidGPUHandle)
         return;
 
-    Rendering::GPUDrivenManager::Instance().UnregisterMaterial(gpuMaterialHandle);
+    auto* gpuDrivenManager = Rendering::GPUDrivenManager::TryGetInstance();
+    if (gpuDrivenManager != nullptr)
+    {
+        gpuDrivenManager->UnregisterMaterial(gpuMaterialHandle);
+    }
     gpuMaterialHandle = Rendering::InvalidGPUHandle;
 }
 
@@ -705,6 +713,10 @@ void Material::UpdateGPUMaterialData()
     if (gpuMaterialHandle == Rendering::InvalidGPUHandle)
         return;
 
+    auto* gpuDrivenManager = Rendering::GPUDrivenManager::TryGetInstance();
+    if (gpuDrivenManager == nullptr)
+        return;
+
     Rendering::GpuMaterial data{};
     data.baseColorFactor = GetVector("", "baseColorFactor");
     data.emissive = GetVector("", "emissive");
@@ -740,5 +752,5 @@ void Material::UpdateGPUMaterialData()
     data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
     data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
 
-    Rendering::GPUDrivenManager::Instance().UpdateMaterial(gpuMaterialHandle, data);
+    gpuDrivenManager->UpdateMaterial(gpuMaterialHandle, data);
 }

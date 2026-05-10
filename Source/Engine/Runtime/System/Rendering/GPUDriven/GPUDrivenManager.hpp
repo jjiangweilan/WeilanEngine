@@ -135,6 +135,7 @@ class GPUDrivenManager
 {
 public:
     static GPUDrivenManager& Instance();
+    static GPUDrivenManager* TryGetInstance();
 
     // Mesh registration (existing)
     GpuGeometryHandle RegisterGeometry(const Submesh& submesh);
