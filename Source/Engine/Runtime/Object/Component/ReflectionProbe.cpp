@@ -37,7 +37,7 @@ void ReflectionProbe::OnDisable()
     RenderingComponent::OnDisable();
 }
 
-void ReflectionProbe::OnInit()
+void ReflectionProbe::OnAwake()
 {
     Gfx::ImageDescription desc(256, 256, 1, Gfx::GfxFormat::B10G11R11_UFloat_Pack32, Gfx::MultiSampling::Sample_Count_1, 6, true);
     cubemap = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Storage);

@@ -157,6 +157,7 @@ void Scene::DestroyGameObject(GameObject* obj)
     }
 
     obj->SetEnable(false);
+    obj->OnDestroy();
 
     if (GameObject* parent = obj->GetParent())
     {
@@ -187,6 +188,7 @@ void Scene::DestroyGameObjectNestedCall(GameObject* obj)
     }
 
     obj->SetEnable(false);
+    obj->OnDestroy();
 
     auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o)
                              { return o.get() == obj; });

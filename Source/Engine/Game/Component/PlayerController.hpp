@@ -91,7 +91,7 @@ private:
     );
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
 
-    void OnAwake() override;
+    void OnStart() override;
     void OnDestroy() override;
     void OnDrawGizmos() override;
     void UpdatePhysicalCharacterVelocity();

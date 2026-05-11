@@ -5,7 +5,7 @@
 
 DEFINE_COMPONENT(ParticleSystem, "78E33F89-76E6-4B90-831F-490EB6C9F8D1")
 
-void ParticleSystem::OnInit()
+void ParticleSystem::OnAwake()
 {
     if (particleMesh == nullptr)
     {

@@ -35,15 +35,6 @@ public:
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
-    void Init()
-    {
-        if (!isInited)
-        {
-            OnInit();
-            isInited = true;
-        }
-    }
-
     void Destroy()
     {
         if (isAlive)
@@ -81,25 +72,18 @@ public:
     virtual void OnLoaded() {}
 
 protected:
-    bool isInited = false;
     bool isAlive = true;
     bool enabled = false;
     bool isAwake = false;
     bool isStarted = false;
     GameObject* gameObject;
 
-    virtual void OnInit() {};
-    virtual void OnDestroy() {};
-
     virtual void OnEnable() {};
     virtual void OnDisable() {};
 
-    // called when play mode enter
     virtual void OnAwake() {}
     virtual void OnStart() {}
-
-    // TODO: remove OnStop, merge it with OnDestroy
-    virtual void OnStop() {}
+    virtual void OnDestroy() {};
 
     // editor only
     virtual void TransformChanged() {}

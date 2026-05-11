@@ -200,7 +200,7 @@ public:
     // Lifecycle Callbacks
     void OnAwake();
     void OnStart();
-    void OnStop();
+    void OnDestroy();
 
     [[LuaRawFn("GetComponent")]]
     static int LuaGetComponent(lua_State* L);
@@ -229,7 +229,7 @@ T* GameObject::AddComponent(Args&&... args)
     auto p = std::make_unique<T>(this, args...);
     T* temp = p.get();
     components.push_back(std::move(p));
-    temp->OnInit();
+    temp->Awake();
     temp->Enable();
 
     UpdateAllComponents();

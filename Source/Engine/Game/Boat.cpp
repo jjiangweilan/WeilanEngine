@@ -32,7 +32,7 @@ DEFINE_SERIALIZATION(
     SER(initDistance)
 )
 
-void Boat::OnInit()
+void Boat::OnAwake()
 {
     SetInitDistance(initDistance);
 }

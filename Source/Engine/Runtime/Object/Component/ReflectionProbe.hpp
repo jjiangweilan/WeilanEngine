@@ -72,7 +72,7 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    void OnInit() override;
+    void OnAwake() override;
     void OnEnable() override;
     void OnDisable() override;
 

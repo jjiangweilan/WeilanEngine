@@ -14,6 +14,46 @@ GameLoop::GameLoop()
 
 GameLoop::~GameLoop() {}
 
+void GameLoop::SetScene(Scene& scene)
+{
+    if (this->scene.Get() == &scene)
+        return;
+
+    if (this->scene != nullptr)
+        DestroyScene(*this->scene);
+
+    this->scene = &scene;
+
+    if (isPlaying)
+        StartScene(scene);
+}
+
+void GameLoop::StartScene(Scene& scene)
+{
+    std::vector<GameObject*> awakedGos{};
+    scene.ForEachGameObject([&awakedGos](GameObject* go)
+    {
+        if (go->IsActiveInScene())
+        {
+            go->OnAwake();
+            awakedGos.push_back(go);
+        }
+    });
+
+    for (auto go : awakedGos)
+    {
+        go->OnStart();
+    }
+}
+
+void GameLoop::DestroyScene(Scene& scene)
+{
+    scene.ForEachGameObject([](GameObject* go)
+    {
+        go->OnDestroy();
+    });
+}
+
 static void TickGameObjectDebugDraw(const std::vector<ObjPtr<GameObject>>& rootObjects)
 {
     static std::function<void(GameObject*)> f = [](GameObject* go)
@@ -150,20 +190,7 @@ void GameLoop::Play()
 
     isPlaying = true;
 
-    std::vector<GameObject*> awakedGos{};
-    scene->ForEachGameObject([&awakedGos](GameObject* go)
-    {
-        if (go->IsActiveInScene())
-        {
-            go->OnAwake();
-            awakedGos.push_back(go);
-        }
-    });
-
-    for (auto go : awakedGos)
-    {
-        go->OnStart();
-    }
+    StartScene(*scene);
 
     // recreate render pipeline when playing
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
@@ -172,10 +199,6 @@ void GameLoop::Play()
 void GameLoop::Stop()
 {
     isPlaying = false;
-    scene->ForEachGameObject([](GameObject* go)
-    {
-        go->OnStop();
-    });
 
     // recreate render pipeline after playing for editor
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();

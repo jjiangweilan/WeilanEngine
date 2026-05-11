@@ -1,4 +1,6 @@
 #include "Component.hpp"
+#include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Core/GameLoop.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 
 DEFINE_OBJECT(Object, Component, "2C3B2BF0-8BBD-4373-AC09-5B7AD2128630")
@@ -6,9 +8,7 @@ DEFINE_OBJECT(Object, Component, "2C3B2BF0-8BBD-4373-AC09-5B7AD2128630")
 Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 
 Component::~Component()
-{
-    OnDestroy();
-}
+{}
 
 GameObject* Component::GetGameObject()
 {
@@ -44,7 +44,8 @@ void Component::Enable()
         if (gameObject->IsActiveInScene())
         {
             Awake();
-            Start();
+            if (GameLoop::IsPlaying())
+                Start();
             OnEnable();
         }
     }

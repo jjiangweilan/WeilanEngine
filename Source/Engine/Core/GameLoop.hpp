@@ -17,7 +17,7 @@ class GameLoop
 public:
     GameLoop();
     ~GameLoop();
-    void SetScene(Scene& scene) { this->scene = &scene; }
+    void SetScene(Scene& scene);
 
     void Play();
     void Stop();
@@ -37,6 +37,8 @@ public:
 private:
     static bool isPlaying;
 
+    void StartScene(Scene& scene);
+    void DestroyScene(Scene& scene);
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     ObjPtr<Scene> scene = nullptr;

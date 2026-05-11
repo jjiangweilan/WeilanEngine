@@ -18,7 +18,7 @@ DEFINE_SERIALIZATION(
     SER(boat)
 );
 
-void GameGlobal::OnInit()
+void GameGlobal::OnAwake()
 {
 }
 

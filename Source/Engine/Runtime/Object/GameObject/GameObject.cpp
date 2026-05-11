@@ -201,7 +201,7 @@ void GameObject::OnLoaded()
     {
         if (c)
         {
-            c->Init();
+            c->Awake();
             c->OnLoaded();
         }
     }
@@ -312,7 +312,10 @@ void GameObject::SetScene(Scene* scene)
         this->gameScene = scene;
         for (auto& c : allComponents)
         {
-            if (c && c->IsEnabled() && enabled)
+            if (c && scene != nullptr)
+                c->Awake();
+
+            if (c && scene != nullptr && c->IsEnabled() && enabled)
                 c->OnEnable();
         }
 
@@ -335,18 +338,20 @@ void GameObject::SetEnable(bool isEnabled)
 
     if (isEnabled)
     {
-        for (auto& c : allComponents)
-        {
-            if (c && c->IsEnabled())
-            {
-                c->OnEnable();
-            }
-        }
-
         if (!isAwaked)
         {
             isAwaked = true;
             OnAwake();
+        }
+
+        for (auto& c : allComponents)
+        {
+            if (c && c->IsEnabled())
+            {
+                if (GameLoop::IsPlaying())
+                    c->Start();
+                c->OnEnable();
+            }
         }
     }
     else
@@ -589,11 +594,10 @@ void GameObject::ResetToPrefab()
 
         for (auto& c : prefabComponents)
         {
-            c->Init();
+            c->Awake();
             if (GameLoop::IsPlaying())
             {
-                c->OnAwake();
-                c->OnStart();
+                c->Start();
             }
 
             if (c->IsEnabled())
@@ -679,7 +683,7 @@ Component* GameObject::AddComponent(std::string_view componentName)
     temp->gameObject = this;
     std::unique_ptr<Component> compPtr(temp);
     components.push_back(std::move(compPtr));
-    temp->Init();
+    temp->Awake();
     temp->Enable();
 
     UpdateAllComponents();
@@ -707,6 +711,7 @@ void GameObject::RemoveComponent(void* comp)
     {
         std::unique_ptr<Component>& comp = *iter;
         comp->Disable();
+        comp->Destroy();
         components.erase(iter);
     }
 
@@ -721,6 +726,7 @@ void GameObject::RemoveComponentByIndex(int componentIndex)
         if (comp != nullptr)
         {
             comp->Disable();
+            comp->Destroy();
         }
         components.erase(components.begin() + componentIndex);
     }
@@ -771,6 +777,8 @@ void GameObject::OnContactRemoved(
 
 void GameObject::OnAwake()
 {
+    isAwaked = true;
+
     for (auto& c : allComponents)
     {
         if (c)
@@ -787,15 +795,12 @@ void GameObject::OnStart()
     }
 }
 
-void GameObject::OnStop()
+void GameObject::OnDestroy()
 {
     for (auto& c : allComponents)
     {
         if (c)
-        {
             c->Destroy();
-            c->OnStop();
-        }
     }
 }
 
@@ -966,7 +971,7 @@ void GameObject::ApplyPrefabComponents()
         for (auto& c : prefabComponents)
         {
             c->Disable();
-            c->OnDestroy();
+            c->Destroy();
         }
         prefabComponents.clear();
 

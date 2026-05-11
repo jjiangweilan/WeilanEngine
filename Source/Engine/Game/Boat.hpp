@@ -39,7 +39,7 @@ class Boat : public Component
 public:
     void Tick() override;
     void IdleTick() override;
-    void OnInit() override;
+    void OnAwake() override;
     void PrePhysicsTick() override;
     void DebugDraw() override;
 

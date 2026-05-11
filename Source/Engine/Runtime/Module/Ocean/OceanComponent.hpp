@@ -53,7 +53,7 @@ public:
     };
 
     void Reset();
-    void OnInit() override;
+    void OnAwake() override;
     void Render(Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData) override;
     void RandomizeWaves(int iteration);
     float TestThis(float h) { return h + 5.0f; };

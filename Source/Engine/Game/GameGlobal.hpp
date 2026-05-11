@@ -13,7 +13,7 @@ public:
     ObjPtr<Boat> boat;
 
 public:
-    void OnInit() override;
+    void OnAwake() override;
     void Tick() override;
 
 private:

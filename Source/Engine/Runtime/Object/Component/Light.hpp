@@ -94,7 +94,7 @@ public:
 
     float GetShadowPlane() { return 100; }
 
-    void OnInit() override;
+    void OnAwake() override;
     void SetShadowCascadeEnabled(bool enabled);
     void SetCascadeShadowSplits(const std::vector<ShadowCascade>& cascades) { shadowCascades = cascades; }
     const std::vector<ShadowCascade>& GetShadowCascadeSplits() const { return shadowCascades; }

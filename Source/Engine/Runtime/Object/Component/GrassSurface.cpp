@@ -10,11 +10,13 @@ void GrassSurface::Tick()
 
 void GrassSurface::Serialize(Serializer* ser) const
 {
+    RenderingComponent::Serialize(ser);
     SERIALIZE(ser, grassPatchGroup);
 }
 
 void GrassSurface::Deserialize(Serializer* ser)
 {
+    RenderingComponent::Deserialize(ser);
     DESERIALIZE(ser, grassPatchGroup);
 }
 

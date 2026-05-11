@@ -53,7 +53,7 @@ void OceanComponent::OnLoaded()
     material.OnLoaded();
 }
 
-void OceanComponent::OnInit()
+void OceanComponent::OnAwake()
 {
     SetRenderEvent(Rendering::RenderEvents::ForwardOpaque);
     plane = Rendering::GeneratePlane(1, 1, 256, 256);

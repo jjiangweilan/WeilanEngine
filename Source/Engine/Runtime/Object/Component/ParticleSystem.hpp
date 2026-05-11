@@ -193,7 +193,7 @@ public:
     void Serialize(Serializer* ser) const override;
     void Deserialize(Serializer* des) override;
 
-    void OnInit() override;
+    void OnAwake() override;
     void Tick() override;
     void IdleTick() override;
 

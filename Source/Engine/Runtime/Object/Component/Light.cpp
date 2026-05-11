@@ -30,7 +30,7 @@ void Light::SetLightType(LightType type)
     this->lightType = type;
 }
 
-void Light::OnInit()
+void Light::OnAwake()
 {
     SetShadowCascadeEnabled(IsCascadeShadowEnabled());
 }

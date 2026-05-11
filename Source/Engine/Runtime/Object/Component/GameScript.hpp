@@ -26,7 +26,6 @@ public:
     void Tick() override;
     void PrePhysicsTick() override;
     void OnStart() override;
-    void OnStop() override;
     void OnDestroy() override;
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
@@ -61,6 +60,7 @@ private:
 
     LuaRef luaRef = LUA_REFNIL;
 
+    void StopScript();
     void RegisterPhysicsCallbacks();
     void UnregisterPhysicsCallbacks();
 

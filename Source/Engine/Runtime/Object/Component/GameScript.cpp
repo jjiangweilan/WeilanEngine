@@ -26,8 +26,9 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
     if (luaRef != LUA_REFNIL && luaBackendUUID == LuaBackend::currentStateUUID)
     {
-        LuaOnStop();
+        StopScript();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
+        luaRef = LUA_REFNIL;
     }
 
     luaBackendUUID = LuaBackend::currentStateUUID;
@@ -137,12 +138,6 @@ void GameScript::OnStart()
     LuaOnStart();
 }
 
-void GameScript::OnStop()
-{
-    UnregisterPhysicsCallbacks();
-    LuaOnStop();
-}
-
 void GameScript::LuaOnStart()
 {
     const auto L = LuaBackend::L;
@@ -184,8 +179,9 @@ void GameScript::OnDestroy()
 
     if (luaRef != LUA_REFNIL)
     {
-        OnStop();
+        StopScript();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
+        luaRef = LUA_REFNIL;
     }
 }
 
@@ -445,6 +441,12 @@ int GameScript::LuaPushReferenceToStack()
     return 0;
 }
 
+void GameScript::StopScript()
+{
+    UnregisterPhysicsCallbacks();
+    LuaOnStop();
+}
+
 void GameScript::RegisterPhysicsCallbacks()
 {
     ObjPtr<GameScript> self = this;
@@ -466,11 +468,20 @@ void GameScript::RegisterPhysicsCallbacks()
 
 void GameScript::UnregisterPhysicsCallbacks()
 {
+    if (gameObject == nullptr)
+        return;
+
     if (onContactID_Added != -1)
+    {
         gameObject->UnregisterContactEventAdded(onContactID_Added);
+        onContactID_Added = -1;
+    }
 
     if (onContactID_Removed != -1)
-        gameObject->UnregisterContactEventAdded(onContactID_Removed);
+    {
+        gameObject->UnregisterContactEventRemoved(onContactID_Removed);
+        onContactID_Removed = -1;
+    }
 }
 
 void GameScript::OnContactAdded(
