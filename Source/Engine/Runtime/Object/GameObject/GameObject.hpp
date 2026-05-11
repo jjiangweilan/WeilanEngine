@@ -124,6 +124,8 @@ public:
     void SetParent(GameObject* parent, bool keepWorldSpacePostion = true);
     const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
     void RemoveChild(GameObject* child);
+    void InsertChild(GameObject* child, int index);
+    void MoveChildToIndex(GameObject* child, int index);
     auto GetOwningChildren() { return std::move(owningChildren); }
     GameObject* Find(std::string_view name);
 

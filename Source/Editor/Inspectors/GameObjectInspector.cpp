@@ -1,11 +1,25 @@
 #include "GameObjectInspector.hpp"
 #include "Editor/EditorState.hpp"
+#include "Editor/UndoManager.hpp"
 #include "Engine/Runtime/Object/Component/Component.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
+namespace
+{
+bool InspectorUndoInputEvent()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    return ImGui::IsAnyItemActive() || ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
+           ImGui::IsMouseClicked(ImGuiMouseButton_Right) || io.InputQueueCharacters.Size > 0 ||
+           ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space) ||
+           ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
+}
+
+} // namespace
+
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();
 
 void GameObjectInspector::PreventNegativeZero(float& val)
@@ -16,6 +30,8 @@ void GameObjectInspector::PreventNegativeZero(float& val)
 
 void GameObjectInspector::DrawInspector(GameEditor& editor)
 {
+    auto& undoManager = EditorState::GetUndoManager();
+
     ImGui::BeginMenuBar();
     // Create Component
 
@@ -29,13 +45,15 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         int firstItem = -1;
         if (EditorGUI::SearchableMenuItems(componentNames, searchComponent, selected, firstItem))
         {
-            auto& componentName = componentNames[selected];
+            std::string componentName = componentNames[selected];
+            undoManager.TrackGameObject(target.Get());
             target->AddComponent(componentName);
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_Enter) && firstItem != -1)
         {
-            auto& componentName = componentNames[firstItem];
+            std::string componentName = componentNames[firstItem];
+            undoManager.TrackGameObject(target.Get());
             target->AddComponent(componentName);
 
             ImGui::CloseCurrentPopup();
@@ -55,32 +73,41 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     bool enabled = target->IsEnabled() || target->WantsTobeEnabled(); // wants to be enabled is used for prefab inspector
     if (ImGui::Checkbox("##Enable Box", &enabled))
     {
+        undoManager.TrackGameObject(target.Get());
         target->SetEnable(enabled);
     }
 
     ImGui::SameLine();
 
-    if (EditorGUI::InputTextLabeled("Name", cname, 1024))
+    bool nameChanged = EditorGUI::InputTextLabeled("Name", cname, 1024);
+    if (nameChanged)
     {
+        undoManager.TrackGameObject(target.Get());
         target->SetName(cname);
     }
 
     glm::vec3 pos = target->GetLocalPosition();
-    if (ImGui::DragFloat3("Position", &pos[0]))
+    bool positionChanged = ImGui::DragFloat3("Position", &pos[0]);
+    if (positionChanged)
     {
+        undoManager.TrackGameObjectHierarchyPlacement(target.Get());
         target->SetLocalPosition(pos);
     }
 
     auto rotation = target->GetEuluerAngles();
     auto degree = glm::degrees(rotation);
-    if (ImGui::DragFloat3("rotation", &degree[0]))
+    bool rotationChanged = ImGui::DragFloat3("rotation", &degree[0]);
+    if (rotationChanged)
     {
+        undoManager.TrackGameObjectHierarchyPlacement(target.Get());
         target->SetEulerAngles(glm::radians(degree));
     }
 
     auto scale = target->GetLocalScale();
-    if (ImGui::DragFloat3("scale", &scale[0]))
+    bool scaleChanged = ImGui::DragFloat3("scale", &scale[0]);
+    if (scaleChanged)
     {
+        undoManager.TrackGameObjectHierarchyPlacement(target.Get());
         target->SetScale(scale);
     }
 
@@ -117,6 +144,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
             bool cEnabled = c.IsEnabled();
             if (ImGui::Checkbox("##Enable", &cEnabled))
             {
+                undoManager.TrackGameObject(targetGO);
                 if (cEnabled)
                     c.Enable();
                 else
@@ -144,6 +172,8 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
             {
                 auto inspector = InspectorRegistry::GetInspector(c);
                 inspector->OnEnable(c);
+                if (InspectorUndoInputEvent())
+                    undoManager.TrackGameObject(targetGO);
                 inspector->DrawInspector(editor);
                 ImGui::TreePop();
             }
@@ -176,7 +206,9 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     {
         if (ImGui::MenuItem("Delete"))
         {
-            target->RemoveComponentByIndex(contextComponentIdx);
+            int componentIndex = contextComponentIdx;
+            undoManager.TrackGameObject(target.Get());
+            target->RemoveComponentByIndex(componentIndex);
             contextComponent = nullptr;
             contextComponentIdx = -1;
         }
@@ -190,11 +222,13 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
     if (resetToPrefab)
     {
+        undoManager.TrackGameObject(target.Get());
         target->ResetToPrefab();
     }
 
     if (applyToPrefab)
     {
+        undoManager.TrackAsset(target->GetPrefab().Get());
         target->ApplyToPrefab();
     }
 }

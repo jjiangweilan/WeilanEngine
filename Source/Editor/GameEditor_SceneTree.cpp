@@ -89,6 +89,20 @@ static std::vector<GameObject*> ResolveDraggedGameObjects(GameObject* draggedObj
     return draggedGameObjects;
 }
 
+static std::vector<GameObject*> GetReparentUndoTargets(const std::vector<GameObject*>& movedObjects)
+{
+    std::vector<GameObject*> targets;
+    auto addUnique = [&targets](GameObject* gameObject)
+    {
+        if (gameObject != nullptr && std::find(targets.begin(), targets.end(), gameObject) == targets.end())
+            targets.push_back(gameObject);
+    };
+
+    for (GameObject* gameObject : movedObjects)
+        addUnique(gameObject);
+    return targets;
+}
+
 void GameEditor::ShowSceneTree(Scene& scene)
 {
     ENGINE_BEGIN_PROFILE("ShowSceneTree");
@@ -101,7 +115,11 @@ void GameEditor::ShowSceneTree(Scene& scene)
     {
         if (ImGui::MenuItem("Create Object"))
         {
-            scene.CreateGameObject();
+            EditorState::GetUndoManager().CaptureGameObjectCreation(
+                "Create GameObject",
+                [&scene]()
+                { return std::vector<GameObject*>{scene.CreateGameObject()}; }
+            );
         }
         ImGui::EndMenu();
     }
@@ -122,15 +140,34 @@ void GameEditor::ShowSceneTree(Scene& scene)
         Object* asset = AssetDatabase::Singleton()->LoadAsset(filePath);
         if (Model* model = dynamic_cast<Model*>(asset))
         {
-            auto gos = model->CreateGameObject();
-            for (auto& go : gos)
-                go->SetWantsToBeEnabled();
-            scene.AddGameObjects(std::move(gos));
+            EditorState::GetUndoManager().CaptureGameObjectCreation(
+                "Add Model To Scene",
+                [&scene, model]()
+                {
+                    auto gos = model->CreateGameObject();
+                    std::vector<GameObject*> createdGameObjects;
+                    createdGameObjects.reserve(gos.size());
+                    for (auto& go : gos)
+                    {
+                        go->SetWantsToBeEnabled();
+                        createdGameObjects.push_back(go.get());
+                    }
+                    scene.AddGameObjects(std::move(gos));
+                    return createdGameObjects;
+                }
+            );
         }
 
         if (Prefab* prefab = dynamic_cast<Prefab*>(asset))
         {
-            scene.SpawnPrefab(prefab);
+            EditorState::GetUndoManager().CaptureGameObjectCreation(
+                "Spawn Prefab",
+                [&scene, prefab]()
+                {
+                    ObjPtr<GameObject> gameObject = scene.SpawnPrefab(prefab);
+                    return std::vector<GameObject*>{gameObject.Get()};
+                }
+            );
         }
     }
 
@@ -140,9 +177,16 @@ void GameEditor::ShowSceneTree(Scene& scene)
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(moveToRoot));
         endEvents.Register([draggedGameObjects]()
                            {
-            for (GameObject* gameObject : draggedGameObjects) {
-                gameObject->SetParent(nullptr, true);
-            } });
+            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                "Reparent GameObject",
+                GetReparentUndoTargets(draggedGameObjects),
+                [draggedGameObjects]()
+                {
+                    for (GameObject* gameObject : draggedGameObjects) {
+                        gameObject->SetParent(nullptr, true);
+                    }
+                }
+            ); });
     }
 
     bool autoExpand = false;
@@ -188,16 +232,27 @@ void GameEditor::ShowSceneTree(Scene& scene)
     {
         if (ImGui::Button("Create Prefab"))
         {
+            auto& undoManager = EditorState::GetUndoManager();
+            undoManager.BeginTransaction("Create Prefab");
             std::unique_ptr<Prefab> prefab = std::make_unique<Prefab>(sceneTreeContextObject);
 
             auto prefabName = prefab->GetGameObject()->GetName();
-            AssetDatabase::Singleton()->SaveAsset(std::move(prefab), prefabName);
+            Asset* savedPrefab = AssetDatabase::Singleton()->SaveAsset(std::move(prefab), prefabName);
+            undoManager.TrackCreatedAsset(savedPrefab);
+            undoManager.EndTransaction();
         }
 
         if (ImGui::Button("Create GameOject"))
         {
-            auto go = scene.CreateGameObject();
-            go->SetParent(sceneTreeContextObject);
+            EditorState::GetUndoManager().CaptureGameObjectCreation(
+                "Create GameObject",
+                [this, &scene]()
+                {
+                    auto go = scene.CreateGameObject();
+                    go->SetParent(sceneTreeContextObject);
+                    return std::vector<GameObject*>{go};
+                }
+            );
         }
 
         if (ImGui::Button("Split Mesh Renderer"))
@@ -209,6 +264,11 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 auto meshes = meshRenderer->GetMeshes();
                 auto materials = meshRenderer->GetMaterials();
 
+                auto& undoManager = EditorState::GetUndoManager();
+                undoManager.BeginTransaction("Split Mesh Renderer");
+                undoManager.TrackGameObject(selected);
+
+                std::vector<GameObject*> createdGameObjects;
                 for (int i = 0; i < meshes.size() && i < materials.size(); ++i)
                 {
                     auto mesh = meshes[i];
@@ -216,6 +276,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
                     auto child = scene.CreateGameObject();
                     child->SetParent(selected, false);
+                    createdGameObjects.push_back(child);
 
                     auto m = child->AddComponent<MeshRenderer>();
                     m->SetMesh(mesh);
@@ -223,34 +284,30 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 }
 
                 selected->RemoveComponent(meshRenderer);
+
+                for (GameObject* gameObject : createdGameObjects)
+                    undoManager.TrackCreatedGameObject(gameObject, true);
+                undoManager.EndTransaction();
             }
         }
 
         if (ImGui::Button("Delete"))
         {
-            auto selects = EditorState::GetSelectedObjects();
-            if (std::find_if(
-                    selects.begin(),
-                    selects.end(),
-                    [this](ObjPtr<Object>& o)
-                    { return o.Get() == sceneTreeContextObject; }
-                ) != selects.end())
-            {
-                for (auto& s : selects)
+            std::vector<GameObject*> objectsToDelete = ResolveDraggedGameObjects(sceneTreeContextObject);
+            EditorState::GetUndoManager().CaptureGameObjectDeletion(
+                "Delete GameObject",
+                objectsToDelete,
+                [objectsToDelete]()
                 {
-                    GameObject* ptr = static_cast<GameObject*>(s.Get());
-                    if (ptr)
-                        SceneManager::GetActiveScene()->DestroyGameObject(ptr);
+                    for (GameObject* gameObject : objectsToDelete)
+                    {
+                        if (gameObject && gameObject->GetScene())
+                            gameObject->GetScene()->DestroyGameObject(gameObject);
+                    }
                 }
-                ImGui::CloseCurrentPopup();
-                sceneTreeContextObject = nullptr;
-            }
-            else
-            {
-                SceneManager::GetActiveScene()->DestroyGameObject(sceneTreeContextObject);
-                ImGui::CloseCurrentPopup();
-                sceneTreeContextObject = nullptr;
-            }
+            );
+            ImGui::CloseCurrentPopup();
+            sceneTreeContextObject = nullptr;
         }
         ImGui::EndPopup();
     }
@@ -267,19 +324,35 @@ void GameEditor::ShowSceneTree(Scene& scene)
         {
             if (ImGui::MenuItem("New GameObject"))
             {
-                scene.CreateGameObject();
+                EditorState::GetUndoManager().CaptureGameObjectCreation(
+                    "Create GameObject",
+                    [&scene]()
+                    { return std::vector<GameObject*>{scene.CreateGameObject()}; }
+                );
             }
             else if (ImGui::MenuItem("Cube"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.fbx");
+                EditorState::GetUndoManager().CaptureGameObjectCreation(
+                    "Create Cube",
+                    [this, &scene]()
+                    { return std::vector<GameObject*>{AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.fbx")}; }
+                );
             }
             else if (ImGui::MenuItem("Sphere"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.fbx");
+                EditorState::GetUndoManager().CaptureGameObjectCreation(
+                    "Create Sphere",
+                    [this, &scene]()
+                    { return std::vector<GameObject*>{AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.fbx")}; }
+                );
             }
             else if (ImGui::MenuItem("Plane"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.fbx");
+                EditorState::GetUndoManager().CaptureGameObjectCreation(
+                    "Create Plane",
+                    [this, &scene]()
+                    { return std::vector<GameObject*>{AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.fbx")}; }
+                );
             }
             ImGui::EndMenu();
         }
@@ -341,11 +414,18 @@ void GameEditor::SceneTree(
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(dropGO));
         endEvents.Register([go, draggedGameObjects]()
                            {
-            for (GameObject* gameObject : draggedGameObjects) {
-                if (gameObject != go && !IsAncestorOf(gameObject, go)) {
-                    gameObject->SetParent(go);
+            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                "Reparent GameObject",
+                GetReparentUndoTargets(draggedGameObjects),
+                [go, draggedGameObjects]()
+                {
+                    for (GameObject* gameObject : draggedGameObjects) {
+                        if (gameObject != go && !IsAncestorOf(gameObject, go)) {
+                            gameObject->SetParent(go);
+                        }
+                    }
                 }
-            } });
+            ); });
     }
 
     if (itemHovered)
@@ -416,7 +496,12 @@ void GameEditor::SceneTree(
         Component* asComponent = dynamic_cast<Component*>(dropGO);
         if (asComponent)
         {
-            go->MoveInComponent(asComponent);
+            EditorState::GetUndoManager().CaptureGameObjectChange(
+                "Move Component",
+                {go, asComponent->GetGameObject()},
+                [go, asComponent]()
+                { go->MoveInComponent(asComponent); }
+            );
         }
     }
 

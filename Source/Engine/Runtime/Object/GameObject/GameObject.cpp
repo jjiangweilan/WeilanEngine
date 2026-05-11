@@ -221,6 +221,42 @@ void GameObject::RemoveChild(GameObject* child)
     }
 }
 
+void GameObject::InsertChild(GameObject* child, int index)
+{
+    if (child == nullptr || child == this)
+        return;
+
+    RemoveChild(child);
+    child->parent = this;
+
+    if (index < 0 || index >= static_cast<int>(children.size()))
+    {
+        children.push_back(child);
+        return;
+    }
+
+    children.insert(children.begin() + index, child);
+}
+
+void GameObject::MoveChildToIndex(GameObject* child, int index)
+{
+    auto it = std::find_if(children.begin(), children.end(), [child](const ObjPtr<GameObject>& current)
+                           { return current.Get() == child; });
+    if (it == children.end())
+        return;
+
+    ObjPtr<GameObject> childPtr = *it;
+    children.erase(it);
+
+    if (index < 0 || index >= static_cast<int>(children.size()))
+    {
+        children.push_back(childPtr);
+        return;
+    }
+
+    children.insert(children.begin() + index, childPtr);
+}
+
 void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
 {
     if (this->parent.Get() == newParent || HasFlag(flags, GameObjectFlag::DontChangeHierarchy))
@@ -228,13 +264,9 @@ void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
         return;
     }
 
-    if (newParent == nullptr)
-    {
-        Scene* scene = GetScene();
-        if (scene)
-            scene->MoveGameObjectToRoot(this);
-        this->parent->RemoveChild(this);
-    }
+    float4x4 currentWorld(1.0f);
+    if (keepWorldSpacePostion)
+        currentWorld = GetWorldMatrix();
 
     if (this->parent == nullptr)
     {
@@ -247,20 +279,21 @@ void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
         this->parent->RemoveChild(this);
     }
 
-    // fix local transforms
-    if (keepWorldSpacePostion)
-    {
-        float4x4 currentWorld = GetWorldMatrix();
-        this->parent = newParent;
-        SetWorldMatrix(currentWorld);
-    }
-    else
-    {
-        this->parent = newParent;
-    }
+    this->parent = newParent;
 
     if (newParent)
+    {
         newParent->children.push_back(this);
+    }
+    else if (Scene* scene = GetScene())
+    {
+        scene->MoveGameObjectToRoot(this);
+    }
+
+    if (keepWorldSpacePostion)
+        SetWorldMatrix(currentWorld);
+    else
+        TransformChanged();
 }
 
 void GameObject::SetScene(Scene* scene)

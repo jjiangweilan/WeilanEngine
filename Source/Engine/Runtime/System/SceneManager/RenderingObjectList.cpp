@@ -54,6 +54,15 @@ void RenderingObjectList::RemoveFromList(uint32_t objectTypeID, ObjectIndex obje
 
 }
 
+void RenderingObjectList::Clear()
+{
+    renderingObjects.clear();
+    for (auto& objects : renderingObjectsByEvent)
+    {
+        objects->clear();
+    }
+}
+
 RenderingObjectList::ObjectList RenderingObjectList::GetRenderingObjects(uint32_t typeID)
 {
     if (typeID >= renderingObjects.size())

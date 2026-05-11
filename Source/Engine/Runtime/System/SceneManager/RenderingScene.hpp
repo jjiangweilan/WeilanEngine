@@ -63,6 +63,7 @@ public:
     std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
     std::vector<Node*> QueryNodesInFrustum(const Frustum& frustum);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
+    void Clear();
 
     Node& GetRoot() { return nodes[0]; }
 
@@ -216,6 +217,7 @@ public:
     void UpdateRayTracingInstance(Gfx::RayTracingInstanceHandle instance, glm::float4x3 transform);
 
     void Tick();
+    void ResetRuntimeState();
 
 private:
     struct RTInstance

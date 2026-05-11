@@ -29,6 +29,49 @@
 namespace Editor
 {
 
+static void TrackInspectorUndoTarget(UndoManager& undoManager, Object* object)
+{
+    if (object == nullptr)
+        return;
+
+    if (GameObject* gameObject = dynamic_cast<GameObject*>(object))
+    {
+        undoManager.TrackGameObject(gameObject);
+        return;
+    }
+
+    if (Component* component = dynamic_cast<Component*>(object))
+    {
+        undoManager.TrackGameObject(component->GetGameObject());
+        return;
+    }
+
+    if (Asset* asset = dynamic_cast<Asset*>(object))
+    {
+        undoManager.TrackAsset(asset);
+    }
+}
+
+static bool InspectorUndoInputEvent()
+{
+    const bool windowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
+    const bool windowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
+    const bool popupOpen = ImGui::IsPopupOpen((ImGuiID)0, ImGuiPopupFlags_AnyPopupId);
+    if (!windowHovered && !windowFocused && !popupOpen)
+        return false;
+
+    ImGuiIO& io = ImGui::GetIO();
+    return ImGui::IsAnyItemActive() || ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
+           ImGui::IsMouseClicked(ImGuiMouseButton_Right) || io.InputQueueCharacters.Size > 0 ||
+           ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Space) ||
+           ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
+}
+
+static bool InspectorManagesOwnUndo(Object* object)
+{
+    return dynamic_cast<GameObject*>(object) != nullptr;
+}
+
 static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
 {
     ASSERT(customFont == nullptr && "customFont not implemented");
@@ -312,13 +355,13 @@ void GameEditor::ShowGameProfiler(IProfiler& cpuProfiler)
     ImGui::End();
 }
 
-void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
+GameObject* GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
     auto model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
     if (model == nullptr || model->GetMeshes().empty() || model->GetMeshes()[0] == nullptr)
     {
         spdlog::error("Failed to create primitive from asset: {}", path);
-        return;
+        return nullptr;
     }
 
     auto gameObject = std::make_unique<GameObject>();
@@ -332,7 +375,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 
     gameObject->SetName("New GameObject");
 
-    scene.AddGameObject(std::move(gameObject));
+    return scene.AddGameObject(std::move(gameObject));
 }
 
 static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
@@ -372,9 +415,7 @@ void GameEditor::ShowSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene(
-                (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath))
-            );
+            SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
             openSceneWindow = false;
         }
 
@@ -422,6 +463,24 @@ void GameEditor::MainMenuBar()
         if (ImGui::MenuItem("Save All"))
         {
             engine->assetDatabase->SaveDirtyAssets();
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Edit"))
+    {
+        auto& undoManager = EditorState::GetUndoManager();
+        const std::string undoLabel =
+            undoManager.CanUndo() ? fmt::format("Undo {}", undoManager.GetUndoName()) : "Undo";
+        const std::string redoLabel =
+            undoManager.CanRedo() ? fmt::format("Redo {}", undoManager.GetRedoName()) : "Redo";
+        if (ImGui::MenuItem(undoLabel.c_str(), "Ctrl+Z", false, undoManager.CanUndo()))
+        {
+            undoManager.Undo();
+        }
+        if (ImGui::MenuItem(redoLabel.c_str(), "Ctrl+Y / Ctrl+Shift+Z", false, undoManager.CanRedo()))
+        {
+            undoManager.Redo();
         }
         ImGui::EndMenu();
     }
@@ -592,6 +651,20 @@ void GameEditor::GUIPass()
             SPDLOG_INFO("project saved");
         }
 
+        if (!ImGui::GetIO().WantTextInput)
+        {
+            auto& undoManager = EditorState::GetUndoManager();
+            if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Z))
+            {
+                undoManager.Undo();
+            }
+            else if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Y) ||
+                     ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z))
+            {
+                undoManager.Redo();
+            }
+        }
+
         if (SceneManager::GetActiveScene())
         {
             ShowSceneTree(*SceneManager::GetActiveScene());
@@ -642,6 +715,9 @@ void GameEditor::GUIPass()
     {
         SimulatePlayerView(!hideDevTool);
     }
+
+    if (!ImGui::IsAnyItemActive())
+        EditorState::GetUndoManager().CommitImplicitTransaction();
 }
 
 void GameEditor::ShowSurfelGIBakerWindow()
@@ -700,12 +776,31 @@ void GameEditor::SetActiveSceneEditorTool(SceneEditorTool* tool)
         sceneEditor->SetActiveTool(tool);
 }
 
+void GameEditor::DrawInspectorWithUndo(Object* object, InspectorBase* inspector)
+{
+    if (object == nullptr || inspector == nullptr)
+        return;
+
+    if (InspectorManagesOwnUndo(object))
+    {
+        inspector->DrawInspector(*this);
+        return;
+    }
+
+    auto& undoManager = EditorState::GetUndoManager();
+    if (InspectorUndoInputEvent())
+        TrackInspectorUndoTarget(undoManager, object);
+
+    inspector->DrawInspector(*this);
+}
+
 void GameEditor::ShowInspectorWindow()
 {
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_I))
     {
         inspectorWindow = !inspectorWindow;
     }
+
     if (inspectorWindow)
     {
         ImGui::Begin("Inspector", &inspectorWindow, ImGuiWindowFlags_MenuBar);
@@ -737,7 +832,9 @@ void GameEditor::ShowInspectorWindow()
                 }
 
                 if (primaryInspector)
-                    primaryInspector->DrawInspector(*this);
+                {
+                    DrawInspectorWithUndo(primarySelected.Get(), primaryInspector);
+                }
             }
         }
 
@@ -759,7 +856,9 @@ void GameEditor::ShowInspectorWindow()
                 }
 
                 if (secondaryInspector)
-                    secondaryInspector->DrawInspector(*this);
+                {
+                    DrawInspectorWithUndo(selectedObject, secondaryInspector);
+                }
             }
 
             ImGui::End();
@@ -1049,6 +1148,8 @@ void GameEditor::SaveProject()
 
 void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
+    EditorState::GetUndoManager().Clear();
+    EditorState::SelectObject(nullptr);
     sceneEditor->SetActiveScene(scene);
 }
 

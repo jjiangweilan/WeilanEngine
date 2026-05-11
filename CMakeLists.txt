@@ -529,6 +529,9 @@ if (UNIT_TEST)
         PRIVATE
         "Source/"
     )
+    if (${EDITOR_ON})
+        target_compile_definitions(WeilanEngineTest PRIVATE ENGINE_EDITOR)
+    endif()
 
     include(GoogleTest)
     gtest_discover_tests(WeilanEngineTest)

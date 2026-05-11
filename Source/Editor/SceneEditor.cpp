@@ -690,16 +690,34 @@ bool SceneEditor::Tick()
                 if (go)
                 {
                     auto selectedObjects = EditorState::GetSelectedObjects();
+                    std::vector<GameObject*> selectedGameObjects;
+                    std::vector<UUID> selectedGameObjectUUIDs;
+                    selectedGameObjects.reserve(selectedObjects.size());
+                    selectedGameObjectUUIDs.reserve(selectedObjects.size());
+                    for (auto& selected : selectedObjects)
+                    {
+                        if (GameObject* selectedGameObject = dynamic_cast<GameObject*>(selected.Get()))
+                        {
+                            selectedGameObjects.push_back(selectedGameObject);
+                            selectedGameObjectUUIDs.push_back(selectedGameObject->GetUUID());
+                        }
+                    }
+
+                    if (selectedGameObjects.empty())
+                    {
+                        selectedGameObjects.push_back(go);
+                        selectedGameObjectUUIDs.push_back(go->GetUUID());
+                    }
+
                     auto baseModel = go->GetWorldMatrix();
 
                     glm::vec3 avgPos = glm::vec3(0);
 
-                    for (auto& s : selectedObjects)
+                    for (GameObject* selectedGameObject : selectedGameObjects)
                     {
-                        auto go = static_cast<GameObject*>(s.Get());
-                        avgPos += go->GetPosition();
+                        avgPos += selectedGameObject->GetPosition();
                     }
-                    avgPos /= selectedObjects.size();
+                    avgPos /= selectedGameObjects.size();
                     baseModel[3] = glm::vec4(avgPos, 1.0f);
 
                     glm::mat4 deltaMatrix;
@@ -721,20 +739,48 @@ bool SceneEditor::Tick()
 
                     if (ImGuizmo::IsUsing())
                     {
-                        for (auto& s : selectedObjects)
+                        auto& undoManager = EditorState::GetUndoManager();
+                        if (gizmoTransformTransactionActive && gizmoTransformTransactionSelection != selectedGameObjectUUIDs)
                         {
-                            auto go = static_cast<GameObject*>(s.Get());
-                            glm::mat4 worldMatrix = go->GetWorldMatrix();
+                            undoManager.EndTransaction();
+                            gizmoTransformTransactionActive = false;
+                            gizmoTransformTransactionSelection.clear();
+                        }
+
+                        if (!gizmoTransformTransactionActive)
+                        {
+                            if (!undoManager.HasActiveTransaction())
+                            {
+                                undoManager.BeginTransaction("Transform GameObject");
+                                for (GameObject* selectedGameObject : selectedGameObjects)
+                                {
+                                    undoManager.TrackGameObjectHierarchyPlacement(selectedGameObject);
+                                }
+                                gizmoTransformTransactionActive = undoManager.HasActiveTransaction();
+                                gizmoTransformTransactionSelection = selectedGameObjectUUIDs;
+                            }
+                        }
+
+                        for (GameObject* selectedGameObject : selectedGameObjects)
+                        {
+                            glm::mat4 worldMatrix = selectedGameObject->GetWorldMatrix();
 
                             // handle translation and rotation
                             auto afterTR = deltaTR * worldMatrix;
-                            go->SetWorldMatrix(afterTR);
+                            selectedGameObject->SetWorldMatrix(afterTR);
 
                             // handle scale
-                            auto afterS = baseModel * deltaS * baseModelInv * go->GetWorldMatrix();
-                            go->SetWorldMatrix(afterS);
+                            auto afterS = baseModel * deltaS * baseModelInv * selectedGameObject->GetWorldMatrix();
+                            selectedGameObject->SetWorldMatrix(afterS);
                         }
                     }
+                }
+
+                if (gizmoTransformTransactionActive && !ImGuizmo::IsUsing())
+                {
+                    EditorState::GetUndoManager().EndTransaction();
+                    gizmoTransformTransactionActive = false;
+                    gizmoTransformTransactionSelection.clear();
                 }
 
                 // Camera Gizmo

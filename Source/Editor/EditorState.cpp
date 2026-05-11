@@ -7,6 +7,13 @@ GameLoop*& EditorState::GetGameLoop()
     static GameLoop* gameLoop = nullptr;
     return gameLoop;
 }
+
+UndoManager& EditorState::GetUndoManager()
+{
+    static UndoManager undoManager;
+    return undoManager;
+}
+
 void EditorState::DeselectObject(Object* obj)
 {
     if (obj == nullptr)

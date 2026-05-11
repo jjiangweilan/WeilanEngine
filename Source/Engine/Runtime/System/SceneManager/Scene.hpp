@@ -33,6 +33,7 @@ public:
     void OnLoaded() override;
 
     void MoveGameObjectToRoot(GameObject* obj);
+    void MoveRootGameObjectToIndex(GameObject* obj, int index);
     void RemoveGameObjectFromRoot(GameObject* obj);
     [[LuaFn]] ObjPtr<GameObject> SpawnPrefab(const ObjPtr<Prefab>& prefab);
     [[LuaFn]] void DestroyGameObject(GameObject* obj);
@@ -58,6 +59,7 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    void ResetRuntimeAndSerializedState();
     Camera* GetMainCamera()
     {
         if (camera == nullptr)

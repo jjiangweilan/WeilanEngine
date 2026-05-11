@@ -9,6 +9,7 @@
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <list>
+#include <vector>
 
 namespace Editor
 {
@@ -50,6 +51,8 @@ private:
         int frameCount = 0;
     };
     bool activeViewGizmos = false;
+    bool gizmoTransformTransactionActive = false;
+    std::vector<UUID> gizmoTransformTransactionSelection;
     bool isVisible = false;
     bool pixelZoomEnabled = false;
     bool showGizmos = true;

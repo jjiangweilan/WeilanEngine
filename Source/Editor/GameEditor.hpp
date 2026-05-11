@@ -60,12 +60,13 @@ private:
     void SimulatePlayerView(bool enable);
 
     void ShowInspectorWindow();
+    void DrawInspectorWithUndo(Object* object, InspectorBase* inspector);
     void ShowSurfelGIBakerWindow();
     void ShowConsoleOutputWindow();
     void ShowAssetDatabaseViewer();
     void ShowRenderPipelineSetting();
     void ShowStaticEngineDebugs();
-    void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
+    GameObject* AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void ShowSceneTree(Scene& scene);
     void SceneTree(
         GameObject* go,

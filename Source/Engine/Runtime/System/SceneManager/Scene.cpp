@@ -90,6 +90,25 @@ void Scene::MoveGameObjectToRoot(GameObject* obj)
     roots.push_back(obj);
 }
 
+void Scene::MoveRootGameObjectToIndex(GameObject* obj, int index)
+{
+    auto iter = std::find_if(roots.begin(), roots.end(), [obj](const ObjPtr<GameObject>& current)
+                             { return current.Get() == obj; });
+    if (iter == roots.end())
+        return;
+
+    ObjPtr<GameObject> root = *iter;
+    roots.erase(iter);
+
+    if (index < 0 || index >= static_cast<int>(roots.size()))
+    {
+        roots.push_back(root);
+        return;
+    }
+
+    roots.insert(roots.begin() + index, root);
+}
+
 std::vector<GameObject*> Scene::GetAllGameObjects()
 {
     std::vector<GameObject*> objs;
@@ -278,6 +297,22 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("roots", roots);
     s->Deserialize("camera", camera);
     s->Deserialize("renderPipelineSetting", renderPipelineSetting);
+}
+
+void Scene::ResetRuntimeAndSerializedState()
+{
+    for (auto& gameObject : gameObjects)
+    {
+        if (gameObject)
+            gameObject->SetEnable(false);
+    }
+
+    gameObjects.clear();
+    roots.clear();
+    camera = nullptr;
+
+    renderingScene.ResetRuntimeState();
+    physicsScene.ResetRuntimeState();
 }
 
 void Scene::OnLoaded()

@@ -103,6 +103,14 @@ PhysicsScene::PhysicsScene(Scene* scene)
 
 PhysicsScene::~PhysicsScene() {}
 
+void PhysicsScene::ResetRuntimeState()
+{
+    bodies.clear();
+    bodyDrawFilter.drawRequested.clear();
+    optimizeNeeded = false;
+    physicsUpdateDeltaAccumulation = 0.0f;
+}
+
 void PhysicsScene::Tick()
 {
     if (optimizeNeeded)

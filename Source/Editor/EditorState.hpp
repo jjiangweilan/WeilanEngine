@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Object.hpp"
 #include "Engine/Core/Ptr.hpp"
+#include "Editor/UndoManager.hpp"
 #include <span>
 class Object;
 class Scene;
@@ -17,11 +18,13 @@ public:
     static std::vector<ObjPtr<Object>> GetSelectedObjects();
 
     static GameLoop*& GetGameLoop();
+    static UndoManager& GetUndoManager();
 
     static void Clear()
     {
         GetGameLoop() = nullptr;
         StaticGetSelectedObjects() = {};
+        GetUndoManager().Clear();
     }
 
 private:

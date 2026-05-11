@@ -18,6 +18,7 @@ public:
     RenderingObjectList();
     ObjectIndex AddToList(uint32_t objectTypeID, RenderingObjectBase* object);
     void RemoveFromList(uint32_t objectTypeID, ObjectIndex object);
+    void Clear();
     ObjectList GetRenderingObjects(uint32_t typeID);
     ObjectList GetRenderingObjectsByEvent(Rendering::RenderEvents event);
 

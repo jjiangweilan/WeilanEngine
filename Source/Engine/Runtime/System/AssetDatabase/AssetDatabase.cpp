@@ -192,10 +192,11 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, const AssetPath& pat
         if (!std::filesystem::exists(fullPath))
         {
             std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), finalAssetPath, projectRoot);
-            newAssetData->SaveToDisk(projectRoot);
-            Asset* asset = newAssetData->GetAsset();
+            AssetData* addedAssetData = AddAssetData(std::move(newAssetData));
+            addedAssetData->SaveToDisk(projectRoot);
+            Asset* asset = addedAssetData->GetAsset();
 
-            SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
+            SerializeAssetToDisk(*asset, addedAssetData->GetAssetAbsolutePath());
 
             return asset;
         }

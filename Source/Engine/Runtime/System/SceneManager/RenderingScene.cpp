@@ -57,13 +57,37 @@ void RenderingScene::UpdateRayTracingInstance(Gfx::RayTracingInstanceHandle inst
     needsTLASRebuild = true;
 }
 
-void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
+void RenderingScene::ResetRuntimeState()
+{
+    renderingObjects.Clear();
+    particleSystems.clear();
+    meshRenderers.clear();
+    gpuObjectRenderers.clear();
+    grassSurfaces.clear();
+    clouds.clear();
+    sceneEnvironment = nullptr;
+    terrain = nullptr;
+    rendererNodeHierarchy.Clear();
+    updateRendererNodeHierarchy = false;
+    rayTracingInstances.clear();
+    rtObjectOffsetsBuffer = nullptr;
+    needsTLASRebuild = false;
+}
+
+void BoundingVolumeHierarchy::Clear()
 {
     nodes.clear();
     objects.clear();
     objectCenters.clear();
     objectMap.clear();
     objectToLeafIndex.clear();
+    pendingRefit.clear();
+    maxNonLeafNodeIndex = 0;
+}
+
+void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
+{
+    Clear();
     objectToLeafIndex.resize(objectsCount, -1);
 
     int totalNodes = (glm::pow(2, maxNodeLevel) - 1);

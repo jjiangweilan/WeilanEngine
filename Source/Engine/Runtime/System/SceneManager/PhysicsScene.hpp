@@ -126,6 +126,7 @@ public:
 
     void Tick();
     void DebugDraw();
+    void ResetRuntimeState();
 
     JPH::PhysicsSystem& GetPhysicsSystem() { return physicsSystem; }
 
