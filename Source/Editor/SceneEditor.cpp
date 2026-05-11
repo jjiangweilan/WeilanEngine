@@ -1,7 +1,7 @@
 #include "SceneEditor.hpp"
 
-#include "Editor/EditorState.hpp"
 #include "Editor/EditorCameraControllerMath.hpp"
+#include "Editor/EditorState.hpp"
 #include "Editor/GameEditor.hpp"
 #include "Editor/Gizmos/Gizmo.hpp"
 #include "Editor/HudDebug.hpp"
@@ -11,15 +11,15 @@
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/Physics/JoltDebugRenderer.hpp"
+#include "Engine/Game/Input.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/MiddleLayer/DebugOptions.hpp"
 #include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Runtime/Object/Component/Camera.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
-#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
-#include "Engine/Game/Input.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -576,7 +576,7 @@ bool SceneEditor::Tick()
         {
             // Gizmo
             scene->ForEachGameObject([this](GameObject* g)
-            {
+                                     {
                 GizmoBase::SetActiveCarrier(g);
                 for (auto& c : g->GetComponents())
                 {
@@ -586,8 +586,7 @@ bool SceneEditor::Tick()
                         c->OnDrawGizmos(*gizmoManager);
                     }
                 }
-                GizmoBase::ClearActiveCarrier();
-            });
+                GizmoBase::ClearActiveCarrier(); });
         }
 
         bool anyItemHovered = ImGui::IsAnyItemHovered();
@@ -962,7 +961,6 @@ void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
         outMaxAABB = glm::max(outMaxAABB, maxAABBV0);
     };
 
-    glm::vec3 center = gameObject.GetPosition();
     auto meshRenderers = gameObject.GetComponentsInChildren<MeshRenderer>();
     auto viewMatrix = cam.GetViewMatrix();
     glm::vec3 minAABBV =
@@ -970,33 +968,42 @@ void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
     glm::vec3 maxAABBV =
         {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
 
+    float3 center(0);
     if (!meshRenderers.empty())
     {
+        float avgCenterCount = 0;
+
         for (auto m : meshRenderers)
         {
             auto aabb = m->GetAABB();
+            center += aabb.GetCenter();
+            avgCenterCount += 1;
             ViewSpaceMinMaxTest(viewMatrix, aabb, minAABBV, maxAABBV);
+            avgCenterCount = 1;
+        }
+
+        if (avgCenterCount != 0)
+        {
+            center /= avgCenterCount;
         }
     }
     else
     {
+        center = gameObject.GetPosition();
         auto fakeMax = viewMatrix * float4(center + 0.25f, 1.0f);
         auto fakeMin = viewMatrix * float4(center - 0.25f, 1.0f);
 
         ViewSpaceMinMaxTest(viewMatrix, {fakeMin, fakeMax}, minAABBV, maxAABBV);
     }
 
-    float maxSide = glm::max(
-        glm::abs(minAABBV.x),
-        glm::max(glm::abs(minAABBV.y), glm::max(glm::abs(maxAABBV.x), glm::abs(maxAABBV.y)))
-    );
+    float maxSide = glm::max(glm::abs(minAABBV.x), glm::max(glm::abs(minAABBV.y), glm::max(glm::abs(maxAABBV.x), glm::abs(maxAABBV.y))));
     maxSide = glm::max(maxSide, glm::max(glm::abs(minAABBV.z), glm::abs(maxAABBV.z)));
 
     float fov = cam.GetFoV();
     float distance = maxSide / fov;
 
     glm::vec3 forward = cam.GetForward();
-    cam.GetGameObject()->SetPosition(center - forward * distance);
+    cam.GetGameObject()->SetPosition(center - forward * distance * 1.3f);
 }
 
 Camera* SceneEditor::GetCurrentlyActiveCamera()
