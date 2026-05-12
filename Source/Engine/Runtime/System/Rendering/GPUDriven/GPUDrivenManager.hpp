@@ -209,6 +209,25 @@ public:
 
     void Deinit();
 
+    // Texture slot (bindless array element)
+    struct TextureSlot
+    {
+        Texture* texture = nullptr;
+    };
+
+    // Debug / introspection accessors
+    uint32_t GetGlobalBufferSize() const { return globalBufferSize; }
+    uint64_t GetIndirectArenaFrameIndex() const { return indirectArenaFrameIndex; }
+    uint32_t GetIndirectCommandBufferCapacity() const { return indirectCommandBufferCapacity; }
+    uint32_t GetIndirectCommandBufferOffset() const { return indirectCommandBufferOffset; }
+    bool IsGPUDrivenConfigDirty() const { return gpuDrivenConfigDirty; }
+
+    const ObjectPool<GpuGeometryDescriptor>& GetGeometryPool() const { return geometryDescriptors; }
+    const ObjectPool<GpuMaterialDescriptor>& GetMaterialPool() const { return materialDescriptortors; }
+    const ObjectPool<GpuObjectDescriptor>& GetObjectPool() const { return objectDescriptors; }
+    const ObjectPool<GpuRenderDataListDescriptor>& GetRenderDataListPool() const { return renderDataListDescriptors; }
+    const ObjectPool<TextureSlot>& GetTexturePool() const { return textureSlots; }
+
 private:
     GPUDrivenManager();
     std::mutex mutex;
@@ -261,10 +280,6 @@ private:
     void UploadRenderData(GpuRenderDataListHandle handle);
 
     // Texture data (bindless array)
-    struct TextureSlot
-    {
-        Texture* texture = nullptr;
-    };
     ObjectPool<TextureSlot> textureSlots;
 
     static std::unique_ptr<GPUDrivenManager>& GetInstanceInternal();
