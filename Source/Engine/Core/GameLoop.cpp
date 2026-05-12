@@ -2,6 +2,7 @@
 #include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/MiddleLayer/DebugOptions.hpp"
+#include "Engine/Runtime/System/SceneManager/BVHScene.hpp"
 #include "Engine/Runtime/System/SceneManager/RenderingScene.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <spdlog/spdlog.h>
@@ -154,6 +155,10 @@ const void GameLoop::Tick(
 
         ENGINE_BEGIN_PROFILE("GameLoop - Rendering Scene Tick");
         scene->GetRenderingScene().Tick();
+        ENGINE_END_PROFILE
+
+        ENGINE_BEGIN_PROFILE("GameLoop - BVH Scene Tick");
+        scene->GetBVHScene().Tick();
         ENGINE_END_PROFILE
 
         if (!offscreen)

@@ -11,6 +11,13 @@ namespace Editor
 
 DEFINE_EDITOR_WINDOW(GrassSurfacePaintWindow, "Tools/Grass Paint")
 
+void GrassSurfacePaintWindow::OnClose()
+{
+    if (isActive && GameEditor::instance)
+        GameEditor::instance->SetActiveSceneEditorTool(nullptr);
+    isActive = false;
+}
+
 bool GrassSurfacePaintWindow::Tick()
 {
     bool open = true;
@@ -86,16 +93,11 @@ bool GrassSurfacePaintWindow::Tick()
             }
 
             // Drop zone
-            ImGui::Button("Drop Mesh Here", ImVec2(-1, 30));
-            Object* meshPayload = nullptr;
-            if (EditorGUI::DragDropTarget(typeid(Mesh), meshPayload))
+            Mesh* meshPayload = nullptr;
+            if (EditorGUI::DropZone<Mesh>("Drop Mesh Here", meshPayload))
             {
-                Mesh* mesh = static_cast<Mesh*>(meshPayload);
-                if (mesh)
-                {
-                    patchMeshes.push_back(mesh);
-                    tool->meshIndex = (int)patchMeshes.size() - 1;
-                }
+                patchMeshes.push_back(meshPayload);
+                tool->meshIndex = (int)patchMeshes.size() - 1;
             }
         }
         else

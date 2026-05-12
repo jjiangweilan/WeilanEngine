@@ -2,7 +2,7 @@
 #include <unordered_set>
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
-Scene::Scene() : Asset(), renderingScene(), physicsScene(this)
+Scene::Scene() : Asset(), renderingScene(), bvhScene(this), physicsScene(this)
 {
     name = "New GameScene";
     renderingScene.scene = this;
@@ -314,6 +314,7 @@ void Scene::ResetRuntimeAndSerializedState()
     camera = nullptr;
 
     renderingScene.ResetRuntimeState();
+    bvhScene.ResetRuntimeState();
     physicsScene.ResetRuntimeState();
 }
 

@@ -2,7 +2,6 @@
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/RayTracingContext.hpp"
-#include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "Engine/Runtime/System/Rendering/SceneEnvironmentData.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
@@ -12,13 +11,9 @@
 #include "Engine/Library/DynamicArray.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
-#include <set>
 #include <span>
-#include <unordered_map>
 
 class MeshRenderer;
-class Material;
-class Mesh;
 class SceneEnvironment;
 class Terrain;
 class GrassSurface;
@@ -38,56 +33,6 @@ class ParticleSystem;
     {                                                     \
         return container;                                 \
     }
-
-struct BoundingVolumeHierarchy
-{
-public:
-    struct Node
-    {
-        AABB aabb{};
-
-        int parentIndex = -1;
-        int childNodeLeft = -1;
-        int childNodeRight = -1;
-        bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1; }
-        bool IsEmpty() const { return objectIndices.empty(); }
-        bool HasLeftChild() const { return childNodeLeft != -1; }
-        bool HasRightChild() const { return childNodeRight != -1; }
-
-        std::vector<int> objectIndices{};
-
-        static bool IsVisibleInFrustum(const AABB& aabb, const Frustum& frustum);
-        bool IsFullyVisibleInFrustum(const Frustum& frustum);
-    };
-
-    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
-    std::vector<Node*> QueryNodesInFrustum(const Frustum& frustum);
-    void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
-    void Clear();
-
-    Node& GetRoot() { return nodes[0]; }
-
-    std::vector<Node> nodes{};
-    std::vector<ObjPtr<MeshRenderer>> objects{};
-    std::vector<glm::float3> objectCenters{};
-    int maxNonLeafNodeIndex = 0;
-
-    void UpdateNodeBounds(int nodeIndex);
-    void UpdateNode(int nodeIndex);
-
-    void AppendRefitObject(MeshRenderer* object);
-    void Refit();
-
-private:
-    void QueryNodesInFrustum(
-        const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
-    );
-
-    void Refit(int nodeIndex);
-    std::unordered_map<MeshRenderer*, int> objectMap;
-    std::vector<int> objectToLeafIndex;
-    std::set<int> pendingRefit;
-};
 
 class RenderingScene
 {
@@ -122,16 +67,6 @@ public:
         renderingObjects.RemoveFromList(objectTypeID, index);
     }
 
-    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum)
-    {
-        return rendererNodeHierarchy.QueryRendererInFrustum(frustum);
-    }
-
-    std::vector<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(const Frustum& frustum)
-    {
-        return rendererNodeHierarchy.QueryNodesInFrustum(frustum);
-    }
-
     void SetSceneEnvironment(SceneEnvironment& sceneEnvironment)
     {
         if (this->sceneEnvironment == nullptr)
@@ -148,7 +83,6 @@ public:
         }
     }
 
-    void RebuildBVH() { updateRendererNodeHierarchy = true; }
     void SetTerrain(Terrain& terrain) { this->terrain = &terrain; }
 
     void RemoveTerrain(Terrain& terrain)
@@ -168,7 +102,6 @@ public:
     void AddRenderer(MeshRenderer& renderingObject)
     {
         meshRenderers.push_back(&renderingObject);
-        updateRendererNodeHierarchy = true;
     }
 
     void RemoveRenderer(MeshRenderer& renderingObject)
@@ -179,12 +112,6 @@ public:
             std::swap(*iter, meshRenderers.back());
             meshRenderers.pop_back();
         }
-        updateRendererNodeHierarchy = true;
-    }
-
-    void UpdateRenderer(MeshRenderer& renderingObject)
-    {
-        rendererNodeHierarchy.AppendRefitObject(&renderingObject);
     }
 
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
@@ -259,16 +186,6 @@ private:
 
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
-
-    BoundingVolumeHierarchy rendererNodeHierarchy;
-    bool updateRendererNodeHierarchy = false;
-
-    void BVHDebug();
-    Mesh* GetBVHDebugMesh();
-    Material& GetBVHDebugMaterial();
-
-    Mesh* bvhDebugMesh = nullptr;
-    std::unique_ptr<Material> bvhDebugMaterial;
 
     friend class Scene;
 };

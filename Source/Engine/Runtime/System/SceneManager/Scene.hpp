@@ -7,6 +7,7 @@
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
+#include "Engine/Runtime/System/SceneManager/BVHScene.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
@@ -80,6 +81,7 @@ public:
     void SetMainCamera(Camera* camera) { this->camera = camera; }
 
     RenderingScene& GetRenderingScene() { return renderingScene; }
+    BVHScene& GetBVHScene() { return bvhScene; }
     PhysicsScene& GetPhysicsScene() { return physicsScene; }
 
     auto& GetGameObjects() { return gameObjects; }
@@ -92,6 +94,7 @@ public:
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;
+    BVHScene bvhScene;
     PhysicsScene physicsScene;
 
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;

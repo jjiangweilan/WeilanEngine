@@ -26,7 +26,8 @@ namespace Editor
 {
 
 SceneEditor::SceneEditor() {}
-SceneEditor::~SceneEditor() {}
+SceneEditor::~SceneEditor()
+{ }
 
 void SceneEditor::Deinit() {}
 

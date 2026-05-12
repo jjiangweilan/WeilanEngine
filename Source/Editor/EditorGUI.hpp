@@ -453,6 +453,25 @@ public:
         return DragDropTarget(obj, rect, &type);
     }
 
+    template <typename T>
+    static bool DropZone(const char* label, T*& outObj, float height = 40.0f)
+    {
+        DropZoneVisual(label, -1.0f, height);
+        Object* obj = nullptr;
+        if (DragDropTarget(typeid(T), obj))
+        {
+            outObj = static_cast<T*>(obj);
+            return true;
+        }
+        return false;
+    }
+
+    static bool DropZone(const char* label, AssetPath& outPath, float height = 40.0f)
+    {
+        DropZoneVisual(label, -1.0f, height);
+        return DragDropTarget(outPath);
+    }
+
     static bool EnumDropDown(
         const char* fieldName, int& val, int totalEnums, std::function<std::string(int)> mapToString
     )
@@ -839,6 +858,25 @@ public:
 private:
     static const char* PayloadType;
     static std::vector<char> textArea;
+
+    static void DropZoneVisual(const char* label, float width, float height)
+    {
+        float w = (width < 0) ? ImGui::GetContentRegionAvail().x : width;
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImVec2 size(w, height);
+        ImVec2 end(pos.x + w, pos.y + height);
+
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+        dl->AddRectFilled(pos, end, IM_COL32(35, 40, 50, 255), 6.0f);
+        dl->AddRect(pos, end, IM_COL32(100, 110, 130, 255), 6.0f, 0, 2.0f);
+
+        ImVec2 textSize = ImGui::CalcTextSize(label);
+        dl->AddText(
+            ImVec2(pos.x + (w - textSize.x) * 0.5f, pos.y + (height - textSize.y) * 0.5f),
+            IM_COL32(160, 170, 190, 255), label);
+
+        ImGui::InvisibleButton("##DropZone", size);
+    }
 
     static bool DragDropTarget(Object*& obj, ImRect rect, const std::type_info* type)
     {

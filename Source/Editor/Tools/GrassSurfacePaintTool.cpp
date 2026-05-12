@@ -1,10 +1,11 @@
 #include "GrassSurfacePaintTool.hpp"
+#include "Editor/EditorContext.hpp"
 #include "Editor/PickObjectFromGameView.hpp"
 #include "Editor/SceneEditor.hpp"
-#include "Editor/EditorContext.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <cmath>
@@ -39,21 +40,20 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
     if (!scene)
         return false;
 
-    // Raycast only when mouse is pressed
+    SurfaceHit hit = RaycastSceneSurface(ctx.worldRay, *scene);
+    lastHitObject = hit.go;
+    GrassSurface* prevGrassSurface = lastHitGrassSurface;
+    lastHitGrassSurface = hit.go ? FindGrassSurfaceInChain(hit.go) : nullptr;
+    lastHitPoint = hit.point;
+    lastHitNormal = hit.normal;
+
+    if (lastHitGrassSurface != prevGrassSurface)
+    {
+        ClampMeshIndex();
+    }
+
     if (mouseDown || mouseClicked)
     {
-        SurfaceHit hit = RaycastSceneSurface(ctx.worldRay, *scene);
-        lastHitObject = hit.go;
-        GrassSurface* prevGrassSurface = lastHitGrassSurface;
-        lastHitGrassSurface = hit.go ? FindGrassSurfaceInChain(hit.go) : nullptr;
-        lastHitPoint = hit.point;
-        lastHitNormal = hit.normal;
-
-        if (lastHitGrassSurface != prevGrassSurface)
-        {
-            ClampMeshIndex();
-        }
-
         if (mouseClicked && lastHitGrassSurface)
         {
             isPainting = true;
@@ -67,12 +67,6 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
             else
                 PaintStroke(hit);
         }
-    }
-    else
-    {
-        // Not pressing mouse: clear hit state so preview is hidden
-        lastHitObject = nullptr;
-        lastHitGrassSurface = nullptr;
     }
 
     if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
@@ -157,21 +151,19 @@ void GrassSurfacePaintTool::EraseStroke(const SurfaceHit& hit)
         std::remove_if(
             patches.begin(),
             patches.end(),
-            [&](const GrassPatch& p) { return glm::distance(p.position, hit.point) < brushRadius; }
+            [&](const GrassPatch& p)
+            { return glm::distance(p.position, hit.point) < brushRadius; }
         ),
         patches.end()
     );
 }
 
-bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal,
-                                                 GameObject* obj, glm::vec3& outGrounded)
+bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded)
 {
     Ray groundRay(point + normal * 100.0f, -normal);
     float distance;
     glm::vec3 hitPoint, hitNormal;
-    if (PickGameObjectFromScene::IsRayObjectIntersect(groundRay.origin, groundRay.direction, obj,
-                                                       distance, hitPoint, hitNormal)
-        && distance > 0.0f && distance < 200.0f)
+    if (PickGameObjectFromScene::IsRayObjectIntersect(groundRay.origin, groundRay.direction, obj, distance, hitPoint, hitNormal) && distance > 0.0f && distance < 200.0f)
     {
         outGrounded = hitPoint;
         return true;
@@ -191,15 +183,14 @@ void GrassSurfacePaintTool::BuildONB(const glm::vec3& normal, glm::vec3& outTang
 void GrassSurfacePaintTool::OnDraw(Gfx::CommandBuffer& cmd)
 {
     if (!lastHitObject)
-        return;
+        return; 
 
     bool paintable = lastHitGrassSurface != nullptr;
     glm::vec4 color = paintable ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1);
     DrawWireCircle(cmd, lastHitPoint, lastHitNormal, brushRadius, color);
 }
 
-void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::vec3& center,
-                                           const glm::vec3& normal, float radius, const glm::vec4& color)
+void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::vec3& center, const glm::vec3& normal, float radius, const glm::vec4& color)
 {
     glm::vec3 tangent, bitangent;
     BuildONB(normal, tangent, bitangent);
@@ -215,7 +206,8 @@ void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::v
         glm::vec3 p0 = center + (tangent * glm::cos(a0) + bitangent * glm::sin(a0)) * radius;
         glm::vec3 p1 = center + (tangent * glm::cos(a1) + bitangent * glm::sin(a1)) * radius;
 
-        struct {
+        struct
+        {
             glm::vec4 fromPos;
             glm::vec4 toPos;
             glm::vec4 color;

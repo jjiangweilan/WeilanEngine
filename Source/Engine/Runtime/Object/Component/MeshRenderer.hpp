@@ -6,6 +6,7 @@
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
+#include "Engine/Runtime/System/SceneManager/BVHScene.hpp"
 #include <functional>
 #include <memory>
 class RenderingScene;
@@ -109,6 +110,7 @@ private:
     bool isRayTracingInitialized = false;
     Gfx::RayTracingMeshHandle rayTracingMesh = -1;
     Gfx::RayTracingInstanceHandle rayTracingInstance = -1;
+    BVHHandle bvhHandle;
 
     // GPU-Driven handles (one per submesh)
     Rendering::GpuRenderDataListHandle renderDataListHandle;
@@ -138,6 +140,8 @@ private:
         glm::vec3 rootMotionDelta;
     } skinning;
 
+    void AddToBVHScene();
+    void RemoveFromBVHScene();
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
     void UpdateAABB();

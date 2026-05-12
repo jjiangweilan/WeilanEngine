@@ -449,9 +449,8 @@ Texture* EditorGUI::TextureField(const std::string& name, Texture* texture)
     }
     else
     {
-        ImGui::Button(name.c_str());
         AssetPath path;
-        if (EditorGUI::DragDropTarget(path))
+        if (EditorGUI::DropZone(name.c_str(), path))
         {
             auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
             if (tex)

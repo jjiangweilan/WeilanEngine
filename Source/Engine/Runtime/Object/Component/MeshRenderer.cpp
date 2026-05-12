@@ -166,6 +166,32 @@ void MeshRenderer::AddToRenderingScene()
         renderingScene->AddRenderer(*this);
     }
 }
+
+void MeshRenderer::AddToBVHScene()
+{
+    if (Scene* scene = GetScene())
+    {
+        bvhHandle = scene->GetBVHScene().AddNode(BVHNode{
+            .type = BVHNodeType::MeshRenderer,
+            .isValid = [this]()
+            {
+                auto go = GetGameObject();
+                return GetScene() != nullptr && go != nullptr && IsEnabled() && go->IsActiveInScene(); },
+            .getAABB = [this]()
+            { return GetAABB(); },
+            .owner = this,
+        });
+    }
+}
+void MeshRenderer::RemoveFromBVHScene()
+{
+    if (Scene* scene = GetScene())
+    {
+        scene->GetBVHScene().RemoveNode(bvhHandle);
+        bvhHandle = {};
+    }
+}
+
 void MeshRenderer::RemoveFromRenderingScene()
 {
     Scene* scene = GetScene();
@@ -179,6 +205,8 @@ void MeshRenderer::RemoveFromRenderingScene()
 
 void MeshRenderer::OnEnable()
 {
+    AddToBVHScene();
+
     if (isGPUObject)
         RegisterGPUSceneObjects();
     else
@@ -189,6 +217,8 @@ void MeshRenderer::OnEnable()
 
 void MeshRenderer::OnDisable()
 {
+    RemoveFromBVHScene();
+
     if (isGPUObject)
         UnregisterGPUSceneObjects();
     else
@@ -330,7 +360,7 @@ void MeshRenderer::TransformChanged()
         UpdateGPUSceneObjectTransforms();
     else if (auto scene = GetScene())
     {
-        scene->GetRenderingScene().UpdateRenderer(*this);
+        scene->GetBVHScene().MarkDirty(bvhHandle);
     }
 
     if (isRayTracingInitialized && rayTracingInstance >= 0)

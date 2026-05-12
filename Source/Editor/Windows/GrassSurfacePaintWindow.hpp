@@ -12,6 +12,7 @@ class GrassSurfacePaintWindow : public Window
 
 public:
     bool Tick() override;
+    void OnClose() override;
 
 private:
     std::unique_ptr<GrassSurfacePaintTool> tool;

@@ -97,7 +97,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     DrawList sceneDrawList{};
     if (setting->frustumCull)
     {
-        auto renderers = renderingScene.QueryRendererInFrustum(renderingData.cameraFrustum);
+        auto renderers = scene.GetBVHScene().QueryMeshRenderersInFrustum(renderingData.cameraFrustum);
         sceneDrawList.Add(renderers);
     }
     else

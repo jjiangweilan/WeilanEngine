@@ -176,26 +176,29 @@ struct SurfaceHit
 inline SurfaceHit RaycastSceneSurface(const Ray& ray, Scene& scene)
 {
     SurfaceHit bestHit;
-    scene.ForEachGameObject([&](GameObject* obj)
+    auto candidates = scene.GetBVHScene().QueryRay(ray, BVHNodeType::MeshRenderer);
+    spdlog::info("called");
+    for (BVHNode* node : candidates)
     {
+        if (node == nullptr || node->owner == nullptr)
+            continue;
+
+        auto mr = static_cast<MeshRenderer*>(node->owner);
+        GameObject* obj = mr->GetGameObject();
         if (obj != nullptr && obj->IsActiveInScene())
         {
-            auto mr = obj->GetComponent<MeshRenderer>();
-            if (mr)
+            float distance;
+            glm::vec3 point, normal;
+            if (PickGameObjectFromScene::IsRayObjectIntersect(
+                    ray.origin, ray.direction, obj, distance, point, normal)
+                && distance > 0 && distance < bestHit.distance)
             {
-                float distance;
-                glm::vec3 point, normal;
-                if (PickGameObjectFromScene::IsRayObjectIntersect(
-                        ray.origin, ray.direction, obj, distance, point, normal)
-                    && distance > 0 && distance < bestHit.distance)
-                {
-                    bestHit.go = obj;
-                    bestHit.distance = distance;
-                    bestHit.point = point;
-                    bestHit.normal = normal;
-                }
+                bestHit.go = obj;
+                bestHit.distance = distance;
+                bestHit.point = point;
+                bestHit.normal = normal;
             }
         }
-    });
+    }
     return bestHit;
 }

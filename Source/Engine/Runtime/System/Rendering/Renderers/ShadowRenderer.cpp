@@ -150,7 +150,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     if (renderingData.renderPipelineSettings->shadowFrustumCull)
     {
         Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow[0]);
-        auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(frustum);
+        auto renderers = renderingData.scene->GetBVHScene().QueryMeshRenderersInFrustum(frustum);
         shadowDrawList.Add(renderers);
     }
     else
