@@ -10,6 +10,7 @@
 #include "Engine/Runtime/System/Rendering/RenderPipeline/Passes/ReflectionProbeUpdate.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/GrassSurfaceRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/PointLightShadowRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Renderers/ShadowRenderer.hpp"
 #include "Passes/BloomPass.hpp"
@@ -17,17 +18,17 @@
 #include "Passes/ColorGradingPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/FXAAPass.hpp"
+#include "Passes/GI.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
 #include "Passes/LightingCombinePass.hpp"
-#include "Passes/GI.hpp"
+#include "Passes/PixelZoomPass.hpp"
 #include "Passes/RTGI.hpp"
-#include "Passes/Shader2HumanDebugPass.hpp"
 #include "Passes/SSAO.hpp"
 #include "Passes/SSIL.hpp"
 #include "Passes/ScreenSpaceShadowPass.hpp"
+#include "Passes/Shader2HumanDebugPass.hpp"
 #include "Passes/ShadingPass.hpp"
 #include "Passes/StaticMotionVectorPass.hpp"
-#include "Passes/PixelZoomPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
@@ -63,6 +64,7 @@ struct RenderConfig
 
 class RenderPipeline
 {
+    std::unique_ptr<GrassSurfaceRenderer> grassSurfaceRenderer;
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
     std::unique_ptr<PointLightShadowRenderer> pointLightShadowRenderer;

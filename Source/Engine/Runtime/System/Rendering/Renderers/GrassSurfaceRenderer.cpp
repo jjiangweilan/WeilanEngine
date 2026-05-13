@@ -1,36 +1,102 @@
 #include "GrassSurfaceRenderer.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include <algorithm>
 
 GrassSurfaceRenderer::GrassSurfaceRenderer()
 {
-    grassMesh =
-        ((Model*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/GrassBlade.fbx"))->GetMeshes()[0].get();
+    grass = ShaderLibrary::GetShader(Shaders::Grass);
+    paramsSetIndex = grass->GetSet("params");
+    instanceBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer InstanceBuffer", PipelineGPUBufferUsage::Stoage);
 }
 
-void GrassSurfaceRenderer::DispatchCompute(GrassSurface& grassSurface, Gfx::CommandBuffer& cmd)
+GrassSurfaceRenderer::~GrassSurfaceRenderer()
 {
-    // dispatch
-    // cmd.BindResource(2, grassSurface.computeDispatchMat.GetShaderResource());
-    // cmd.BindShaderProgram(
-    //     grassSurface.computeDispatchMat.GetShaderProgram(),
-    //     grassSurface.computeDispatchMat.GetShaderProgram()->GetDefaultShaderConfig()
-    // );
-    // cmd.Dispatch(1, 1, 1);
+    PipelineGPUBufferAllocator::ReturnBuffer(instanceBuffer);
 }
-void GrassSurfaceRenderer::Draw(GrassSurface& grassSurface, Gfx::CommandBuffer& cmd)
-{
 
-    // draw
-    auto submesh = grassMesh->GetSubmesh(0);
-    cmd.BindVertexBuffer(submesh->GetGfxVertexBufferBindings(), 0);
-    cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
-    cmd.BindResource(2, grassSurface.drawMat.GetShaderResource());
-    glm::vec4 pos = glm::vec4(grassSurface.GetGameObject()->GetPosition(), 1.0);
-    cmd.SetPushConstant(grassSurface.drawMat.GetShaderProgram(), &pos);
-    cmd.BindShaderProgram(
-        grassSurface.drawMat.GetShaderProgram(),
-        grassSurface.drawMat.GetShaderProgram()->GetDefaultShaderConfig()
+void GrassSurfaceRenderer::Draw(GrassSurface& grassSurface, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+{
+    if (!grassSurface.IsActiveInScene())
+        return;
+
+    const auto& group = grassSurface.grassPatchGroup;
+    if (group.patches.empty() || group.patchMeshes.empty())
+        return;
+
+    struct PatchToDraw
+    {
+        Mesh* mesh = nullptr;
+        const GrassPatch* patch = nullptr;
+    };
+
+    std::vector<PatchToDraw> patchesToDraw;
+    patchesToDraw.reserve(group.patches.size());
+    for (const auto& patch : group.patches)
+    {
+        if (patch.meshIndex < 0 || patch.meshIndex >= group.patchMeshes.size())
+            continue;
+
+        Mesh* mesh = group.patchMeshes[patch.meshIndex].Get();
+        if (mesh == nullptr || mesh->GetSubmeshes().empty())
+            continue;
+
+        patchesToDraw.push_back({mesh, &patch});
+    }
+
+    if (patchesToDraw.empty())
+        return;
+
+    std::sort(
+        patchesToDraw.begin(), patchesToDraw.end(),
+        [](const PatchToDraw& a, const PatchToDraw& b)
+        {
+            return a.mesh < b.mesh;
+        }
     );
-    cmd.DrawIndexed(submesh->GetIndexCount(), 1024, 0, 0, 0);
+
+    instances.clear();
+    instances.reserve(patchesToDraw.size());
+    batches.clear();
+
+    for (const auto& patchToDraw : patchesToDraw)
+    {
+        if (batches.empty() || batches.back().mesh != patchToDraw.mesh)
+        {
+            batches.push_back({patchToDraw.mesh, static_cast<uint32_t>(instances.size()), 0});
+        }
+
+        instances.push_back({patchToDraw.patch->position, 0.0f});
+        batches.back().instanceCount++;
+    }
+
+    renderingData.pipelineAllocator->AllocateBuffer(instanceBuffer, instances.size() * sizeof(GrassPatchInstanceData));
+    instanceBuffer.Write(instances.data(), instances.size() * sizeof(GrassPatchInstanceData));
+
+    Gfx::ShaderProgram* shaderProgram = grass->GetShaderProgram();
+    auto config = *shaderProgram->GetDefaultShaderConfig();
+    if (renderingData.renderPipelineSettings->debugDraw.wireframe)
+    {
+        config.polygonMode = Gfx::PolygonMode::Line;
+    }
+
+    cmd.BindResource(paramsSetIndex, {Gfx::DynamicBinding("instanceData", *instanceBuffer.GetBuffer())});
+    cmd.BindShaderProgram(shaderProgram, config);
+
+    for (const auto& batch : batches)
+    {
+        PushConstant pushConstant{
+            .instanceOffset = batch.instanceOffset,
+            .albedo = group.config.albedo,
+        };
+        cmd.SetPushConstant(shaderProgram, &pushConstant);
+
+        for (auto& submesh : batch.mesh->GetSubmeshes())
+        {
+            cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
+            cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
+            cmd.DrawIndexed(submesh.GetIndexCount(), batch.instanceCount, 0, 0, batch.instanceOffset);
+        }
+    }
 }

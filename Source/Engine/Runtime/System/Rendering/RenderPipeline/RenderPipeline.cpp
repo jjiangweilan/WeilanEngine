@@ -24,6 +24,7 @@ namespace Rendering
 {
 RenderPipeline::RenderPipeline()
 {
+    grassSurfaceRenderer = std::make_unique<GrassSurfaceRenderer>();
     particleRenderer = std::make_unique<ParticleRenderer>();
     shadowRenderer = std::make_unique<ShadowRenderer>();
     pointLightShadowRenderer = std::make_unique<PointLightShadowRenderer>();
@@ -347,6 +348,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BindResource(0, perScene.GetGlobalResource());
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
+
+        for (auto* grassSurface : scene.GetRenderingScene().GetGrassSurfaces())
+        {
+            grassSurfaceRenderer->Draw(*grassSurface, *cmd, renderingData);
+        }
 
         if (renderConfig.drawGraphics)
         {
