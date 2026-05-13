@@ -21,16 +21,29 @@ void Deserialize(Serializer* s, GrassPatch* val)
 }
 
 
+void Serialize(Serializer* s, const GrassConfig* val)
+{
+    s->Serialize("albedo", val->albedo);
+}
+
+void Deserialize(Serializer* s, GrassConfig* val)
+{
+    s->Deserialize("albedo", val->albedo);
+}
+
+
 void Serialize(Serializer* s, const GrassPatchGroup* val)
 {
     s->Serialize("patchMeshes", val->patchMeshes);
     s->Serialize("patches", val->patches);
+    s->Serialize("config", val->config);
 }
 
 void Deserialize(Serializer* s, GrassPatchGroup* val)
 {
     s->Deserialize("patchMeshes", val->patchMeshes);
     s->Deserialize("patches", val->patches);
+    s->Deserialize("config", val->config);
 }
 
 

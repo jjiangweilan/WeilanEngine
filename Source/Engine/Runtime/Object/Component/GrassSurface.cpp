@@ -4,6 +4,26 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 DEFINE_RENDERING_COMPONENT(GrassSurface, "8B141EA8-BD84-4800-91AA-B07FCA7C7605")
 
+void GrassSurface::OnEnable()
+{
+    RenderingComponent::OnEnable();
+
+    if (auto* scene = GetScene())
+    {
+        scene->GetRenderingScene().AddRenderObject(*this);
+    }
+}
+
+void GrassSurface::OnDisable()
+{
+    if (auto* scene = GetScene())
+    {
+        scene->GetRenderingScene().RemoveRenderObject(*this);
+    }
+
+    RenderingComponent::OnDisable();
+}
+
 void GrassSurface::Tick()
 {
 }

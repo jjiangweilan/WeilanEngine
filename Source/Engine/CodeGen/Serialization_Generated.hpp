@@ -7,6 +7,10 @@ struct GrassPatch;
 void Serialize(Serializer* s, const GrassPatch* val);
 void Deserialize(Serializer* s, GrassPatch* val);
 
+struct GrassConfig;
+void Serialize(Serializer* s, const GrassConfig* val);
+void Deserialize(Serializer* s, GrassConfig* val);
+
 struct GrassPatchGroup;
 void Serialize(Serializer* s, const GrassPatchGroup* val);
 void Deserialize(Serializer* s, GrassPatchGroup* val);

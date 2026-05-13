@@ -3,8 +3,16 @@
 
 struct [[SerClass]] GrassPatch
 {
-    [[SerProp]] float3 position;
-    [[SerProp]] int meshIndex;
+    // patch instance data
+    float3 position;
+
+    // mesh
+    int meshIndex;
+};
+
+struct [[SerClass]] GrassConfig
+{
+    float3 albedo = {0.25f, 0.65f, 0.18f};
 };
 
 struct [[SerClass]] GrassPatchGroup
@@ -12,6 +20,7 @@ struct [[SerClass]] GrassPatchGroup
 public:
     [[SerProp]] std::vector<ObjPtr<Mesh>> patchMeshes;
     [[SerProp]] std::vector<GrassPatch> patches;
+    [[SerProp]] GrassConfig config;
 };
 
 class GrassSurface : public RenderingComponent<GrassSurface>
@@ -19,11 +28,8 @@ class GrassSurface : public RenderingComponent<GrassSurface>
     DECLARE_RENDERING_COMPONENT(GrassSurface);
 
 public:
-    Material computeDispatchMat;
-    Material drawMat;
-
-    std::unique_ptr<Gfx::Buffer> grassDispatcherIndirectDrawBuffer;
-
+    void OnEnable() override;
+    void OnDisable() override;
     void Serialize(Serializer* ser) const override;
     void Deserialize(Serializer* ser) override;
     void OnDrawGizmos(GizmoManager& manager) override;

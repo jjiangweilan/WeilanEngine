@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderEvents.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
@@ -18,7 +19,7 @@ protected:
     Rendering::RenderEvents SetRenderEvent(Rendering::RenderEvents renderEvent) { return this->renderEvent = renderEvent; }
 };
 
-class RenderingObjectID
+class WEILAN_ENGINE_API RenderingObjectID
 {
 public:
     static uint32_t GenerateRenderingObjectTypeID();
