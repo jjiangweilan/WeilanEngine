@@ -1128,15 +1128,17 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
             }
         }
 
-        if (activeTool)
-        {
-            activeTool->OnDraw(cmd);
-        }
-
         if (showGizmos)
         {
             gizmoManager->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
         }
+
+        if (activeTool)
+        {
+            cmd.BindResource(0, renderPipeline->GetPerSceneGPUResource());
+            activeTool->OnDraw(cmd);
+        }
+
         gizmoManager->ClearInactiveGizmos();
         if (showGizmos)
         {
