@@ -229,10 +229,10 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
     {
         case GfxFormat::B10G11R11_UFloat_Pack32: return 4;
         case GfxFormat::A2B10G10R10_UNorm : return 4;
-        case GfxFormat::BC7_UNorm_Block: return 16;
-        case GfxFormat::BC7_SRGB_UNorm_Block: return 16;
-        case GfxFormat::BC3_Unorm_Block: return 16;
-        case GfxFormat::BC3_SRGB_Block: return 16;
+        case GfxFormat::BC7_UNorm_Block: return 1;
+        case GfxFormat::BC7_SRGB_UNorm_Block: return 1;
+        case GfxFormat::BC3_Unorm_Block: return 1;
+        case GfxFormat::BC3_SRGB_Block: return 1;
         case GfxFormat::R16G16B16A16_SFloat: return 8;
         case GfxFormat::R32G32B32A32_SFloat: return 16;
         case GfxFormat::R16G16B16A16_UNorm: return 8;
@@ -284,6 +284,54 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
 
     return 64;
 };
+
+bool IsCompressedFormat(GfxFormat format)
+{
+    switch (format)
+    {
+        case GfxFormat::BC7_UNorm_Block:
+        case GfxFormat::BC7_SRGB_UNorm_Block:
+        case GfxFormat::BC3_Unorm_Block:
+        case GfxFormat::BC3_SRGB_Block: return true;
+        default: return false;
+    }
+}
+
+uint32_t MapGfxFormatToBlockWidth(GfxFormat format)
+{
+    switch (format)
+    {
+        case GfxFormat::BC7_UNorm_Block:
+        case GfxFormat::BC7_SRGB_UNorm_Block:
+        case GfxFormat::BC3_Unorm_Block:
+        case GfxFormat::BC3_SRGB_Block: return 4;
+        default: return 1;
+    }
+}
+
+uint32_t MapGfxFormatToBlockHeight(GfxFormat format)
+{
+    switch (format)
+    {
+        case GfxFormat::BC7_UNorm_Block:
+        case GfxFormat::BC7_SRGB_UNorm_Block:
+        case GfxFormat::BC3_Unorm_Block:
+        case GfxFormat::BC3_SRGB_Block: return 4;
+        default: return 1;
+    }
+}
+
+uint32_t MapGfxFormatToBlockByteSize(GfxFormat format)
+{
+    switch (format)
+    {
+        case GfxFormat::BC7_UNorm_Block:
+        case GfxFormat::BC7_SRGB_UNorm_Block:
+        case GfxFormat::BC3_Unorm_Block:
+        case GfxFormat::BC3_SRGB_Block: return 16;
+        default: return MapGfxFormatToByteSize(format);
+    }
+}
 
 bool HasStencil(GfxFormat format)
 {

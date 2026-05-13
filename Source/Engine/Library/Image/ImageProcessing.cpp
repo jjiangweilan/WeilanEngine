@@ -155,7 +155,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
              .extend = {static_cast<uint32_t>(mipWidth), static_cast<uint32_t>(mipHeight), 1}}
         };
 
-        byteOffset += mipWidth * mipHeight * 6 * Gfx::MapGfxFormatToByteSize(imgDesc.format);
+        byteOffset += imgDesc.GetMipByteSize(mip);
         mipWidth *= 0.5;
         mipHeight *= 0.5;
         cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);

@@ -51,20 +51,36 @@ struct ImageDescription
 
     size_t GetByteSize() const { return CalcByteSize(); }
 
+    size_t GetMipByteSize(uint32_t mipLevel) const
+    {
+        uint32_t mipWidth = width >> mipLevel;
+        uint32_t mipHeight = height >> mipLevel;
+        uint32_t mipDepth = depth >> mipLevel;
+        mipWidth = mipWidth > 0 ? mipWidth : 1;
+        mipHeight = mipHeight > 0 ? mipHeight : 1;
+        mipDepth = mipDepth > 0 ? mipDepth : 1;
+
+        if (IsCompressedFormat(format))
+        {
+            const uint32_t blockWidth = MapGfxFormatToBlockWidth(format);
+            const uint32_t blockHeight = MapGfxFormatToBlockHeight(format);
+            const size_t blockCountX = (mipWidth + blockWidth - 1) / blockWidth;
+            const size_t blockCountY = (mipHeight + blockHeight - 1) / blockHeight;
+            return blockCountX * blockCountY * mipDepth * GetLayer() * MapGfxFormatToBlockByteSize(format);
+        }
+
+        return static_cast<size_t>(mipWidth) * mipHeight * mipDepth * GetLayer() * MapGfxFormatToByteSize(format);
+    }
+
 private:
     size_t CalcByteSize() const
     {
-        size_t pixels = 0;
-        float scale = 1.0f;
-        for (int i = 0; i < mipLevels; i++)
+        size_t byteSize = 0;
+        for (uint32_t i = 0; i < mipLevels; i++)
         {
-            int lw = width * scale;
-            int lh = height * scale;
-
-            pixels += lw * lh;
-            scale *= 0.5;
+            byteSize += GetMipByteSize(i);
         }
-        return pixels * GetLayer() * MapGfxFormatToByteSize(format);
+        return byteSize;
     }
 };
 } // namespace Gfx

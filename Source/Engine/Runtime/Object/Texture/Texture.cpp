@@ -62,7 +62,7 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     );
     image->SetName(GetName());
 
-    size_t byteSize = Gfx::MapGfxFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+    size_t byteSize = texDesc.img.GetMipByteSize(0);
     uint8_t* data = texDesc.data;
 
     GetGfxDriver()->UploadImage(*image, data, byteSize);
@@ -430,21 +430,14 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst
     );
 
-    int preLevelWidth = width;
-    int preLevelHeight = height;
-    int curLevelOffset = 0;
+    size_t curLevelOffset = 0;
     for (uint32_t level = 0; level < texDesc.img.mipLevels; ++level)
     {
-        float scale = std::pow(0.5f, level);
-        int lw = preLevelWidth * scale;
-        int lh = preLevelHeight * scale;
-        size_t byteSize = lw * lh * desiredChannels * elementSize;
+        size_t byteSize = texDesc.img.GetMipByteSize(level);
 
         GetGfxDriver()->UploadImage(*image, texDesc.data + curLevelOffset, byteSize, level, 0);
 
         curLevelOffset += byteSize;
-        preLevelWidth = lw;
-        preLevelHeight = lh;
     }
     GetGfxDriver()->GenerateMipmaps(*image);
 

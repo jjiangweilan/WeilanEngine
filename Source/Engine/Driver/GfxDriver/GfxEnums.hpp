@@ -299,7 +299,11 @@ bool HasReadAccessMask(AccessMaskFlags flags);
 bool IsDepthStencilFormat(GfxFormat format);
 bool HasStencil(GfxFormat format);
 bool IsColoFormat(GfxFormat format);
+bool IsCompressedFormat(GfxFormat format);
 uint32_t MapGfxFormatToByteSize(GfxFormat format);
+uint32_t MapGfxFormatToBlockWidth(GfxFormat format);
+uint32_t MapGfxFormatToBlockHeight(GfxFormat format);
+uint32_t MapGfxFormatToBlockByteSize(GfxFormat format);
 
 ENUM_FLAGS(PipelineStage, uint64_t){
     None = 0,

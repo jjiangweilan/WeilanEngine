@@ -43,7 +43,7 @@ public:
             EditorGUI::TextFormatted("Size", "%d x %d x %d", target->GetDescription().img.width, target->GetDescription().img.height, targetDepth);
         else
             EditorGUI::TextFormatted("Size", "%d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
-        EditorGUI::TextFormatted("Memory Size (without mip)", "%.2f Mb", mb);
+        EditorGUI::TextFormatted("Memory Size", "%.2f Mb", mb);
         EditorGUI::Text("Format", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
 
         // show and update meta

@@ -1,6 +1,6 @@
 #include "KtxExporter.hpp"
+#include <Engine/Driver/GfxDriver/ImageDescription.hpp>
 #include <Engine/Driver/GfxDriver/Vulkan/Internal/VKEnumMapper.hpp>
-#include <glm/glm.hpp>
 #include <ktx.h>
 #include <spdlog/spdlog.h>
 
@@ -46,12 +46,21 @@ void KtxExporter::Export(
     }
 
     size_t offset = 0;
-    const size_t formatByteSize = Gfx::MapGfxFormatToByteSize(format);
-    int lw = width;
-    int lh = height;
+    Gfx::ImageDescription mipDesc{};
+    mipDesc.format = format;
+    mipDesc.layers = 1;
+    mipDesc.mipLevels = 1;
+    mipDesc.isCubemap = false;
+
+    uint32_t lw = width;
+    uint32_t lh = height;
+    uint32_t ld = depth;
     for (int level = 0; level < createInfo.numLevels; ++level)
     {
-        size_t mipSize = lw * lh * formatByteSize;
+        mipDesc.width = lw;
+        mipDesc.height = lh;
+        mipDesc.depth = ld;
+        size_t mipSize = mipDesc.GetMipByteSize(0);
         for (int layer = 0; layer < createInfo.numLayers; ++layer)
         {
             for (int face = 0; face < createInfo.numFaces; ++face)
@@ -67,11 +76,11 @@ void KtxExporter::Export(
             }
         }
 
-        lw *= 0.5;
-        lh *= 0.5;
+        lw = lw > 1 ? lw >> 1 : 1;
+        lh = lh > 1 ? lh >> 1 : 1;
+        ld = ld > 1 ? ld >> 1 : 1;
     }
 
-    
     if (enableCompression && !texture->isCompressed)
     {
         ktxBasisParams params = {0};
@@ -80,12 +89,13 @@ void KtxExporter::Export(
         // params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
         //// For UASTC
         params.uastc = KTX_TRUE;
+
         //// Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
         result = ktxTexture2_CompressBasisEx(texture, &params);
         if (result == KTX_SUCCESS)
         {
             char writer[100];
-            snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", 0);
+            snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", "0");
             ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)strlen(writer) + 1, writer);
         }
         else

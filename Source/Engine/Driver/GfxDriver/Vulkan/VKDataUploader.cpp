@@ -77,7 +77,7 @@ void VKDataUploader::UploadImage(
 
     auto vkDst = static_cast<VKImage*>(dst);
 
-    size_t byteSize = MapGfxFormatToByteSize(vkDst->GetDescription().format);
+    size_t byteSize = MapGfxFormatToBlockByteSize(vkDst->GetDescription().format);
     size_t align = (byteSize - (takingOffCmd.endOffset % byteSize)) % byteSize;
 
     if (size + align > stagingBufferSize)
