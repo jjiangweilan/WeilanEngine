@@ -24,6 +24,8 @@ public:
     int density = 1;
     int meshIndex = 0;
     bool eraseMode = false;
+    bool matchCenterNormal = true;
+    float normalToleranceAngle = 30.0f;
 
     int GetPatchCount() const;
     std::string GetTargetName() const;
@@ -51,6 +53,6 @@ private:
                         float radius, const glm::vec4& color);
     void BuildONB(const glm::vec3& normal, glm::vec3& outTangent, glm::vec3& outBitangent);
     GrassSurface* FindGrassSurfaceInChain(GameObject* go);
-    bool GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded);
+    bool GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded, glm::vec3& outGroundedNormal);
 };
 } // namespace Editor

@@ -111,8 +111,17 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
         glm::vec3 candidate = hit.point + offset;
 
         glm::vec3 grounded;
-        if (!GroundPointOnObject(candidate, hit.normal, hit.go, grounded))
+        glm::vec3 groundedNormal;
+        if (!GroundPointOnObject(candidate, hit.normal, hit.go, grounded, groundedNormal))
             continue;
+
+        if (matchCenterNormal)
+        {
+            float dotProd = glm::dot(glm::normalize(hit.normal), glm::normalize(groundedNormal));
+            float threshold = glm::cos(glm::radians(normalToleranceAngle));
+            if (dotProd < threshold)
+                continue;
+        }
 
         // Reject if too close to existing patches
         bool tooClose = false;
@@ -166,7 +175,7 @@ void GrassSurfacePaintTool::EraseStroke(const SurfaceHit& hit)
     );
 }
 
-bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded)
+bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded, glm::vec3& outGroundedNormal)
 {
     Ray groundRay(point + normal * 100.0f, -normal);
     float distance;
@@ -174,10 +183,12 @@ bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const gl
     if (PickGameObjectFromScene::IsRayObjectIntersect(groundRay.origin, groundRay.direction, obj, distance, hitPoint, hitNormal) && distance > 0.0f && distance < 200.0f)
     {
         outGrounded = hitPoint;
+        outGroundedNormal = hitNormal;
         return true;
     }
     // Fallback: just use the candidate point
     outGrounded = point;
+    outGroundedNormal = normal;
     return true;
 }
 

@@ -35,6 +35,14 @@ bool GrassSurfacePaintWindow::Tick()
         ImGui::SliderFloat("Brush Radius", &tool->brushRadius, 0.1f, 10.0f, "%.2f");
         ImGui::SliderFloat("Spacing", &tool->spacing, 0.05f, 5.0f, "%.2f");
         ImGui::SliderInt("Density", &tool->density, 1, 20);
+        ImGui::Separator();
+        ImGui::Checkbox("Match Center Normal", &tool->matchCenterNormal);
+        if (tool->matchCenterNormal)
+        {
+            ImGui::Indent();
+            ImGui::SliderFloat("Normal Tolerance", &tool->normalToleranceAngle, 5.0f, 90.0f, "%.0f deg");
+            ImGui::Unindent();
+        }
         ImGui::Checkbox("Erase Mode", &tool->eraseMode);
         ImGui::TextDisabled("Configure patch meshes in the GrassSurface component inspector.");
 
