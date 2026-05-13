@@ -63,6 +63,13 @@ private:
      */
     std::filesystem::path currentDirectory;
 
+    // Search state
+    std::string searchQuery;
+    std::filesystem::path searchSelectedPath;
+    void ShowSearchBar();
+    void ShowSearchResults();
+    void PerformSearch(std::vector<std::filesystem::directory_entry>& results);
+
     void ShowDir(const std::filesystem::path& path, int depth);
     void ShowDirUsingIcon(const std::filesystem::path& path, int depth);
     void ShowInternalAssets();

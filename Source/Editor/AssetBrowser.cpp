@@ -8,6 +8,7 @@
 #include "Editor/GameEditor.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/WeilanEngine.hpp"
+#include "Engine/Library/Utils.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -36,6 +37,16 @@ void AssetBrowser::Show(bool& isOpen)
 
         std::filesystem::path fullAssetsPath = engine->GetProjectPath() / "Assets";
 
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && !searchQuery.empty())
+        {
+            if (!searchSelectedPath.empty())
+            {
+                currentDirectory = searchSelectedPath.parent_path();
+                searchSelectedPath.clear();
+            }
+            searchQuery.clear();
+        }
+
         ImGui::Begin(GetWindowName(), &isOpen, ImGuiWindowFlags_MenuBar);
 
         ShowMenuBar();
@@ -53,19 +64,31 @@ void AssetBrowser::Show(bool& isOpen)
         ShowInternalAssets();
         ImGui::Separator();
 
-        ShowIconSizeSlider();
+        ShowSearchBar();
 
-        // Determine mode based on icon size slider
-        Mode effectiveMode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
-
-        switch (effectiveMode)
+        if (!searchQuery.empty())
         {
-            case Mode::Tree: ShowDir(fullAssetsPath, 0); break;
-            case Mode::Icon: ShowDirUsingIcon(currentDirectory, 0); break;
-            default: break;
+            ShowSearchResults();
         }
+        else
+        {
+            if (!searchSelectedPath.empty())
+            {
+                currentDirectory = searchSelectedPath.parent_path();
+                searchSelectedPath.clear();
+            }
 
-        // Show icon size slider in the lower right corner
+            ShowIconSizeSlider();
+
+            Mode effectiveMode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
+
+            switch (effectiveMode)
+            {
+                case Mode::Tree: ShowDir(fullAssetsPath, 0); break;
+                case Mode::Icon: ShowDirUsingIcon(currentDirectory, 0); break;
+                default: break;
+            }
+        }
 
         ImGui::End();
         ENGINE_END_PROFILE;
@@ -701,6 +724,22 @@ void AssetBrowser::ShowMenuBar()
     ImGui::EndMenuBar();
 }
 
+void AssetBrowser::ShowSearchBar()
+{
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+    EditorGUI::InputText("##Search", searchQuery, "Search Assets...");
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    if (ImGui::Button("x"))
+    {
+        searchQuery.clear();
+    }
+    if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Escape) && !searchQuery.empty())
+    {
+        searchQuery.clear();
+    }
+}
+
 AssetIcon* AssetBrowser::GetEditorAssetIcon(const std::filesystem::path& path)
 {
     static AssetIcon empty;
@@ -740,6 +779,160 @@ void AssetBrowser::ShowIconSizeSlider()
     {
         mode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
     }
+}
+
+void AssetBrowser::PerformSearch(std::vector<std::filesystem::directory_entry>& results)
+{
+    results.clear();
+    if (searchQuery.empty())
+        return;
+
+    std::filesystem::path assetsPath = engine->GetProjectPath() / "Assets";
+    std::string lowerQuery = Utils::strToLower(searchQuery);
+
+    for (auto entry : std::filesystem::recursive_directory_iterator(assetsPath))
+    {
+        if (entry.is_directory())
+            continue;
+        if (IsMetaFile(entry.path()))
+            continue;
+
+        std::string filename = entry.path().filename().string();
+        std::string lowerFilename = Utils::strToLower(filename);
+        if (Utils::strContians(lowerFilename, lowerQuery))
+        {
+            results.push_back(entry);
+        }
+    }
+
+    auto sortEntries = [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
+    {
+        return a.path().filename().string() < b.path().filename().string();
+    };
+    std::sort(results.begin(), results.end(), sortEntries);
+}
+
+void AssetBrowser::ShowSearchResults()
+{
+    std::vector<std::filesystem::directory_entry> results;
+    PerformSearch(results);
+
+    if (results.empty())
+    {
+        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "No assets found");
+        return;
+    }
+
+    ImGui::BeginChild("SearchResults", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+    auto& endEvents = gameEditor->endEvents;
+    auto& endPopup = gameEditor->endPopup;
+
+    for (const auto& entry : results)
+    {
+        std::string filename = entry.path().filename().string();
+        std::filesystem::path relativePath = std::filesystem::relative(entry.path(), engine->GetProjectPath() / "Assets");
+
+        ImGui::PushID(entry.path().string().c_str());
+
+        float rowHeight = 20.0f;
+        ImVec2 cursorPos = ImGui::GetCursorPos();
+        ImVec2 buttonSize = {ImGui::GetContentRegionAvail().x, rowHeight};
+
+        bool isSelected = !searchSelectedPath.empty() && AssetPath(searchSelectedPath) == AssetPath(entry.path());
+
+        ImGui::InvisibleButton("##searchrow", buttonSize);
+        bool isHovered = ImGui::IsItemHovered();
+        bool isClicked = isHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        bool isDoubleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+        bool isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
+
+        if (isClicked || isDoubleClicked)
+        {
+            searchSelectedPath = entry.path();
+            Asset* asset = engine->assetDatabase->LoadAsset(
+                std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+            );
+            if (asset)
+            {
+                EditorState::SelectObject(asset);
+            }
+        }
+
+        ImGui::SetCursorPos(cursorPos);
+
+        if (isHovered && !isSelected)
+        {
+            ImVec2 bgMin = ImGui::GetCursorScreenPos();
+            ImVec2 bgMax = {bgMin.x + buttonSize.x, bgMin.y + buttonSize.y};
+            ImU32 bgColor = IM_COL32(70, 70, 70, 100);
+            ImGui::GetWindowDrawList()->AddRectFilled(bgMin, bgMax, bgColor, 4.0f);
+        }
+
+        ImGui::Text("%s ", FileIcons::GetIcon(entry.path().extension()));
+        ImGui::SameLine();
+
+        if (isSelected)
+        {
+            ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_CheckMark), "%s", filename.c_str());
+        }
+        else
+        {
+            ImGui::Text("%s", filename.c_str());
+        }
+
+        ImGui::SameLine();
+        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "  %s", relativePath.parent_path().string().c_str());
+
+        if (isRightClicked)
+        {
+            ImGui::OpenPopup("SearchResultContextMenu");
+        }
+
+        if (ImGui::BeginPopup("SearchResultContextMenu"))
+        {
+            AssetPath assetPath(entry.path());
+            if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
+            {
+                endEvents.Register(
+                    [assetPath]()
+                    {
+                        AssetDatabase::Singleton()->Reimport(assetPath);
+                    }
+                );
+            }
+            if (ImGui::MenuItem("Delete"))
+            {
+                endEvents.Register(
+                    [entry]()
+                    {
+                        AssetDatabase::Singleton()->Remove(
+                            std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
+                        );
+                    }
+                );
+            }
+            if (ImGui::MenuItem("Rename"))
+            {
+                ActivateFileNameField(entry.path());
+            }
+            ImGui::EndPopup();
+        }
+
+        std::filesystem::path filePath = entry.path().string();
+        filePath = AssetPath(filePath);
+        if (EditorGUI::DragDropSource(
+                filePath,
+                [filePath](Object*& obj)
+                { obj = AssetDatabase::Singleton()->LoadAsset(filePath); }
+            ))
+        {
+        }
+
+        ImGui::PopID();
+    }
+
+    ImGui::EndChild();
 }
 
 Gfx::Image* AssetIcon::GetImage()
