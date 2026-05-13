@@ -13,6 +13,7 @@ struct [[SerClass]] GrassPatch
 struct [[SerClass]] GrassConfig
 {
     float3 albedo = {0.25f, 0.65f, 0.18f};
+    float scale = 1.0f;
 };
 
 struct [[SerClass]] GrassPatchGroup

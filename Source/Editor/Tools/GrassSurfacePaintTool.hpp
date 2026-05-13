@@ -20,6 +20,7 @@ public:
 
     // Brush settings (public so window can read/write them)
     float brushRadius = 1.0f;
+    float spacing = 0.5f;
     int density = 1;
     int meshIndex = 0;
     bool eraseMode = false;

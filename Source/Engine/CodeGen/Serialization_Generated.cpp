@@ -24,11 +24,13 @@ void Deserialize(Serializer* s, GrassPatch* val)
 void Serialize(Serializer* s, const GrassConfig* val)
 {
     s->Serialize("albedo", val->albedo);
+    s->Serialize("scale", val->scale);
 }
 
 void Deserialize(Serializer* s, GrassConfig* val)
 {
     s->Deserialize("albedo", val->albedo);
+    s->Deserialize("scale", val->scale);
 }
 
 

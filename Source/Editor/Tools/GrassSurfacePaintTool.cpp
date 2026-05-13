@@ -7,6 +7,7 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <cmath>
 
@@ -30,6 +31,12 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
     {
         lastHitObject = nullptr;
         lastHitGrassSurface = nullptr;
+        return false;
+    }
+
+    if (ImGuizmo::IsOver() || ImGuizmo::IsUsing() || (ctx.gizmoManager && ctx.gizmoManager->AnyGizmoActive()))
+    {
+        currentStrokeSamples.clear();
         return false;
     }
 
@@ -83,11 +90,13 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
     GrassSurface* gs = lastHitGrassSurface;
     if (!gs)
         return;
+    if (gs->grassPatchGroup.patchMeshes.empty())
+        return;
 
     glm::vec3 tangent, bitangent;
     BuildONB(hit.normal, tangent, bitangent);
 
-    float minSpacing = brushRadius / glm::max(glm::sqrt((float)density), 1.0f);
+    float minSpacing = spacing;
     std::uniform_real_distribution<float> distRadius(0.0f, 1.0f);
     std::uniform_real_distribution<float> distAngle(0.0f, 6.28318530718f);
 
@@ -130,9 +139,8 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
         if (tooClose)
             continue;
 
-        int idx = meshIndex;
-        if (!gs->grassPatchGroup.patchMeshes.empty())
-            idx = glm::clamp(idx, 0, (int)gs->grassPatchGroup.patchMeshes.size() - 1);
+        std::uniform_int_distribution<int> distMesh(0, static_cast<int>(gs->grassPatchGroup.patchMeshes.size()) - 1);
+        int idx = distMesh(rng);
 
         gs->grassPatchGroup.patches.push_back({grounded, idx});
         currentStrokeSamples.push_back({grounded});

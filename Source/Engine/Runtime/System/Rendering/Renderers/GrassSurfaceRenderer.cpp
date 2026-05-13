@@ -9,14 +9,24 @@ GrassSurfaceRenderer::GrassSurfaceRenderer()
     grass = ShaderLibrary::GetShader(Shaders::Grass);
     paramsSetIndex = grass->GetSet("params");
     instanceBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer InstanceBuffer", PipelineGPUBufferUsage::Stoage);
+    lightingInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer LightingInput", PipelineGPUBufferUsage::Uniform);
 }
 
 GrassSurfaceRenderer::~GrassSurfaceRenderer()
 {
+    PipelineGPUBufferAllocator::ReturnBuffer(lightingInputBuffer);
     PipelineGPUBufferAllocator::ReturnBuffer(instanceBuffer);
 }
 
-void GrassSurfaceRenderer::Draw(GrassSurface& grassSurface, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+void GrassSurfaceRenderer::Draw(
+    GrassSurface& grassSurface,
+    Gfx::CommandBuffer& cmd,
+    const Rendering::RenderingData& renderingData,
+    Gfx::ImageView* shadowMap,
+    const Gfx::ImageIdentifier& contactShadowMap,
+    Gfx::ImageView* pointLightShadowMap,
+    const GPUParameter::DeferredPBRShadingInput& lightingInput
+)
 {
     if (!grassSurface.IsActiveInScene())
         return;
@@ -73,6 +83,8 @@ void GrassSurfaceRenderer::Draw(GrassSurface& grassSurface, Gfx::CommandBuffer& 
 
     renderingData.pipelineAllocator->AllocateBuffer(instanceBuffer, instances.size() * sizeof(GrassPatchInstanceData));
     instanceBuffer.Write(instances.data(), instances.size() * sizeof(GrassPatchInstanceData));
+    renderingData.pipelineAllocator->AllocateBuffer(lightingInputBuffer, sizeof(GPUParameter::DeferredPBRShadingInput));
+    lightingInputBuffer.Write((void*)&lightingInput, sizeof(GPUParameter::DeferredPBRShadingInput));
 
     Gfx::ShaderProgram* shaderProgram = grass->GetShaderProgram();
     auto config = *shaderProgram->GetDefaultShaderConfig();
@@ -81,14 +93,26 @@ void GrassSurfaceRenderer::Draw(GrassSurface& grassSurface, Gfx::CommandBuffer& 
         config.polygonMode = Gfx::PolygonMode::Line;
     }
 
-    cmd.BindResource(paramsSetIndex, {Gfx::DynamicBinding("instanceData", *instanceBuffer.GetBuffer())});
+    std::vector<Gfx::DynamicBinding> paramsBindings = {
+        Gfx::DynamicBinding("instanceData", *instanceBuffer.GetBuffer()),
+        Gfx::DynamicBinding("input", *lightingInputBuffer.GetBuffer()),
+        Gfx::DynamicBinding("shadowMap", *shadowMap),
+        Gfx::DynamicBinding("contactShadowMap", contactShadowMap),
+    };
+    if (pointLightShadowMap != nullptr)
+    {
+        paramsBindings.push_back(Gfx::DynamicBinding("pointLightShadowMap", *pointLightShadowMap));
+    }
+
+    cmd.BindResource(paramsSetIndex, paramsBindings);
     cmd.BindShaderProgram(shaderProgram, config);
 
     for (const auto& batch : batches)
     {
         PushConstant pushConstant{
+            .albedo = float4(group.config.albedo, 1.0f),
             .instanceOffset = batch.instanceOffset,
-            .albedo = group.config.albedo,
+            .scale = glm::max(group.config.scale, 0.01f),
         };
         cmd.SetPushConstant(shaderProgram, &pushConstant);
 

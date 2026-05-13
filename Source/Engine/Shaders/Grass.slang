@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Library.PerScene;
 import Lighting;
+#include "DeferredPBRShadingInput.hlsl"
 
 struct GrassPatchInstanceData
 {
@@ -10,15 +11,23 @@ struct GrassPatchInstanceData
 
 struct GrassParams
 {
+    DeferredPBRShadingInput input;
     StructuredBuffer<GrassPatchInstanceData> instanceData;
+    Texture2D shadowMap;
+    Texture2D contactShadowMap;
+    TextureCube pointLightShadowMap;
     SamplerState _PointClampSampler;
     SamplerState _LinearClampSampler;
+    SamplerComparisonState samplerShadow_clamp;
+    SamplerComparisonState samplerShadow;
 };
 
 struct PushConstant
 {
+    float4 albedo;
     uint instanceOffset;
-    float3 albedo;
+    float scale;
+    uint2 padding;
 };
 
 [Global]
@@ -49,7 +58,7 @@ Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInst
     GrassPatchInstanceData instanceData = params.instanceData[baseInstance + instanceID];
 
     Varyings output;
-    output.positionWS = input.position + instanceData.position;
+    output.positionWS = input.position * pconst.scale + instanceData.position;
     output.normalWS = normalize(input.normal);
     output.position = perScene.WorldToClipSpace(output.positionWS);
     return output;
@@ -58,30 +67,49 @@ Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInst
 [shader("fragment")]
 float4 Fragment(Varyings input) : SV_Target
 {
-    float2 screenUV = 0.0f;
-    if (perScene.camera.screenSize.x > 0 && perScene.camera.screenSize.y > 0)
-    {
-        screenUV = input.position.xy * perScene.camera.screenSize.zw;
-    }
+    float2 screenUV = input.position.xy * perScene.camera.screenSize.zw;
 
     ShadingObject shadingObject;
     shadingObject.positionWS = input.positionWS;
     shadingObject.normalWS = normalize(input.normalWS);
-    shadingObject.baseColor = pconst.albedo;
+    shadingObject.baseColor = pconst.albedo.xyz;
     shadingObject.viewDir = normalize(perScene.camera.position.xyz - input.positionWS);
     shadingObject.metallic = 0.0f;
     shadingObject.roughness = 0.7f;
 
-    float3 finalColor = pconst.albedo * 0.03f;
+    MainLightShadowData mainLightShadowData;
+    mainLightShadowData.shadowConstantBias = params.input.shadowConstantBias;
+    mainLightShadowData.shadowNormalBias = params.input.shadowNormalBias;
+    mainLightShadowData.shadowMap = params.shadowMap;
+    mainLightShadowData.shadowSampler = params.samplerShadow_clamp;
+
+    GI gi;
+    gi.ao = 1.0f;
+
+    PointLightShadowData pointLightShadowData;
+    pointLightShadowData.shadowMap = params.pointLightShadowMap;
+    pointLightShadowData.shadowSampler = params.samplerShadow;
+    pointLightShadowData.lightIndex = params.input.pointLightShadowLightIndex;
+    pointLightShadowData.farPlane = params.input.pointLightShadowFarPlane;
+    pointLightShadowData.depthBias = params.input.pointLightShadowLightPosAndBias.w;
+    pointLightShadowData.lightPosition = params.input.pointLightShadowLightPosAndBias.xyz;
+
+    float3 finalColor = pconst.albedo.xyz * 0.03f;
     for (int i = 0; i < perScene.scene.lightCount; i++)
     {
-        finalColor += StandardLightShading_DirectLightOnly(
+        finalColor += StandardLightShading(
             params._LinearClampSampler,
             params._PointClampSampler,
             screenUV,
             perScene.scene.lights[i],
+            perScene.camera,
             perScene.mainLightShadow,
-            shadingObject);
+            shadingObject,
+            mainLightShadowData,
+            gi,
+            params.contactShadowMap,
+            i,
+            pointLightShadowData);
     }
 
     return float4(finalColor, 1.0f);

@@ -278,7 +278,7 @@ bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     {
         if (glm::length2(middleMouseDelta) > 0.0f)
         {
-            float panSpeed = editorCameraSpeed * 0.05f;
+            float panSpeed = editorCameraSpeed * 0.01f;
 
             pos = go->GetPosition();
 

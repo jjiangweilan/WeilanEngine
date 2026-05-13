@@ -349,9 +349,38 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
 
+        int plShadowIdx = -1;
+        float plFarPlane = 0.0f;
+        float plDepthBias = 0.0f;
+        glm::vec3 plLightPos = {0, 0, 0};
+        if (renderingData.pointLightShadowIndex >= 0)
+        {
+            plShadowIdx = renderingData.pointLightShadowIndex;
+            plFarPlane = pointLightShadowRenderer->GetFarPlane();
+            plDepthBias = pointLightShadowRenderer->GetDepthBias();
+            plLightPos = pointLightShadowRenderer->GetLightPosition();
+        }
+
+        GPUParameter::DeferredPBRShadingInput grassLightingInput{
+            .shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize(),
+            .shadowConstantBias = setting->shadowMap.constantBias / 1000.0f,
+            .shadowNormalBias = setting->shadowMap.normalBias,
+            .pointLightShadowLightIndex = plShadowIdx,
+            .pointLightShadowFarPlane = plFarPlane,
+            .pointLightShadowLightPosAndBias = {plLightPos.x, plLightPos.y, plLightPos.z, plDepthBias}
+        };
+
         for (auto* grassSurface : scene.GetRenderingScene().GetGrassSurfaces())
         {
-            grassSurfaceRenderer->Draw(*grassSurface, *cmd, renderingData);
+            grassSurfaceRenderer->Draw(
+                *grassSurface,
+                *cmd,
+                renderingData,
+                &shadowRenderer->GetShadowMap()->GetDefaultImageView(),
+                contactShadowPass->GetOutputId(),
+                pointLightShadowRenderer->GetShadowCubemapView(),
+                grassLightingInput
+            );
         }
 
         if (renderConfig.drawGraphics)
