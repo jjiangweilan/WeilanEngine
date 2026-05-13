@@ -40,15 +40,6 @@ struct SceneLitUI
     int emissiveMap;
 };
 
-interface IVertexInput
-{
-    float3 GetPosition();
-    float3 GetNormal();
-    float4 GetTangent();
-    float2 GetUV();
-    float4 GetBone();
-}
-
 struct PushConstant
 {
     uint firstGpuObjectOffset;
