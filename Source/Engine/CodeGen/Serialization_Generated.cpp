@@ -25,12 +25,34 @@ void Serialize(Serializer* s, const GrassConfig* val)
 {
     s->Serialize("albedo", val->albedo);
     s->Serialize("scale", val->scale);
+    s->Serialize("grassShadowMask0", val->grassShadowMask0);
+    s->Serialize("grassShadowMask1", val->grassShadowMask1);
+    s->Serialize("grassColorRamp_Bottom", val->grassColorRamp_Bottom);
+    s->Serialize("grassColorRamp_Top", val->grassColorRamp_Top);
+    s->Serialize("grassColorRamp2_Bottom", val->grassColorRamp2_Bottom);
+    s->Serialize("grassColorRamp2_Top", val->grassColorRamp2_Top);
+    s->Serialize("grassColorRamp3_Bottom", val->grassColorRamp3_Bottom);
+    s->Serialize("grassColorRamp3_Top", val->grassColorRamp3_Top);
+    s->Serialize("grassMaskUVScaler", val->grassMaskUVScaler);
+    s->Serialize("hueShift_0", val->hueShift_0);
+    s->Serialize("hueShift_1", val->hueShift_1);
 }
 
 void Deserialize(Serializer* s, GrassConfig* val)
 {
     s->Deserialize("albedo", val->albedo);
     s->Deserialize("scale", val->scale);
+    s->Deserialize("grassShadowMask0", val->grassShadowMask0);
+    s->Deserialize("grassShadowMask1", val->grassShadowMask1);
+    s->Deserialize("grassColorRamp_Bottom", val->grassColorRamp_Bottom);
+    s->Deserialize("grassColorRamp_Top", val->grassColorRamp_Top);
+    s->Deserialize("grassColorRamp2_Bottom", val->grassColorRamp2_Bottom);
+    s->Deserialize("grassColorRamp2_Top", val->grassColorRamp2_Top);
+    s->Deserialize("grassColorRamp3_Bottom", val->grassColorRamp3_Bottom);
+    s->Deserialize("grassColorRamp3_Top", val->grassColorRamp3_Top);
+    s->Deserialize("grassMaskUVScaler", val->grassMaskUVScaler);
+    s->Deserialize("hueShift_0", val->hueShift_0);
+    s->Deserialize("hueShift_1", val->hueShift_1);
 }
 
 

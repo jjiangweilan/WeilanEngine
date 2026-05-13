@@ -339,7 +339,7 @@ void ProcessMeshes(ModelImportContext& context)
         }
 
         const char* texCoordNames[8] = {"TEXCOORD0", "TEXCOORD1", "TEXCOORD2", "TEXCOORD3", "TEXCOORD4", "TEXCOORD5", "TEXCOORD6", "TEXCOORD7"};
-        const int MaxTexcoordChannels = 1;
+        const int MaxTexcoordChannels = 8;
         for (int i = 0; i < MaxTexcoordChannels; ++i)
         {
             if (mesh->HasTextureCoords(i))
@@ -352,7 +352,7 @@ void ProcessMeshes(ModelImportContext& context)
         }
 
         const char* vertexColorNames[8] = {"COLOR0", "COLOR1", "COLOR2", "COLOR3", "COLOR4", "COLOR5", "COLOR6", "COLOR7"};
-        const uint32_t vertexColorSize = 16;
+        const uint32_t vertexColorSize = 16; // assimp imported vertex color size is always 4 channels no matter if it's color2 or color3 or color4
         for (int i = 0; i < AI_MAX_NUMBER_OF_COLOR_SETS; ++i)
         {
             if (mesh->HasVertexColors(i))
@@ -407,7 +407,8 @@ void ProcessMeshes(ModelImportContext& context)
                 {
                     for (int uvi = 0; uvi < mesh->mNumUVComponents[i]; uvi++)
                     {
-                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + texCoordStrideOffsets[i] + uvi * 4) = mesh->mTextureCoords[i][vi][uvi];
+                        float val = mesh->mTextureCoords[i][vi][uvi];
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + texCoordStrideOffsets[i] + uvi * 4) = val;
                     }
                 }
             }

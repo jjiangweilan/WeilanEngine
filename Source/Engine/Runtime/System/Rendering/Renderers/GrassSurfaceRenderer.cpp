@@ -83,8 +83,20 @@ void GrassSurfaceRenderer::Draw(
 
     renderingData.pipelineAllocator->AllocateBuffer(instanceBuffer, instances.size() * sizeof(GrassPatchInstanceData));
     instanceBuffer.Write(instances.data(), instances.size() * sizeof(GrassPatchInstanceData));
-    renderingData.pipelineAllocator->AllocateBuffer(lightingInputBuffer, sizeof(GPUParameter::DeferredPBRShadingInput));
-    lightingInputBuffer.Write((void*)&lightingInput, sizeof(GPUParameter::DeferredPBRShadingInput));
+
+    GrassParam grassParam;
+    grassParam.input = lightingInput;
+    grassParam.grassColorRamp_Bottom = group.config.grassColorRamp_Bottom;
+    grassParam.grassColorRamp_Top = group.config.grassColorRamp_Top;
+    grassParam.grassColorRamp2_Bottom = group.config.grassColorRamp2_Bottom;
+    grassParam.grassColorRamp2_Top = group.config.grassColorRamp2_Top;
+    grassParam.grassColorRamp3_Bottom = group.config.grassColorRamp3_Bottom;
+    grassParam.grassColorRamp3_Top = group.config.grassColorRamp3_Top;
+    grassParam.grassMaskUVScaler = group.config.grassMaskUVScaler;
+    grassParam.hueShift_0 = group.config.hueShift_0;
+    grassParam.hueShift_1 = group.config.hueShift_1;
+    renderingData.pipelineAllocator->AllocateBuffer(lightingInputBuffer, sizeof(GrassParam));
+    lightingInputBuffer.Write((void*)&grassParam, sizeof(GrassParam));
 
     Gfx::ShaderProgram* shaderProgram = grass->GetShaderProgram();
     auto config = *shaderProgram->GetDefaultShaderConfig();
@@ -95,7 +107,7 @@ void GrassSurfaceRenderer::Draw(
 
     std::vector<Gfx::DynamicBinding> paramsBindings = {
         Gfx::DynamicBinding("instanceData", *instanceBuffer.GetBuffer()),
-        Gfx::DynamicBinding("input", *lightingInputBuffer.GetBuffer()),
+        Gfx::DynamicBinding("params", *lightingInputBuffer.GetBuffer()),
         Gfx::DynamicBinding("shadowMap", *shadowMap),
         Gfx::DynamicBinding("contactShadowMap", contactShadowMap),
     };
@@ -103,6 +115,17 @@ void GrassSurfaceRenderer::Draw(
     {
         paramsBindings.push_back(Gfx::DynamicBinding("pointLightShadowMap", *pointLightShadowMap));
     }
+    if (group.config.grassShadowMask0 != nullptr)
+    {
+        auto image = group.config.grassShadowMask0->GetGfxImage();
+        paramsBindings.push_back(Gfx::DynamicBinding("grassShadowMask0", *image));
+    }
+    if (group.config.grassShadowMask1 != nullptr)
+    {
+        auto image = group.config.grassShadowMask1->GetGfxImage();
+        paramsBindings.push_back(Gfx::DynamicBinding("grassShadowMask1", *image));
+    }
+    paramsBindings.push_back(Gfx::DynamicBinding("blueNoise", *renderingData.blueNoise.GetNoiseTexture()));
 
     cmd.BindResource(paramsSetIndex, paramsBindings);
     cmd.BindShaderProgram(shaderProgram, config);

@@ -40,6 +40,21 @@ private:
         uint32_t padding[2] = {};
     };
 
+    struct GrassParam
+    {
+        GPUParameter::DeferredPBRShadingInput input;
+        glm::float4 grassColorRamp_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
+        glm::float4 grassColorRamp_Top = {0.6f, 0.9f, 0.2f, 1.0f};
+        glm::float4 grassColorRamp2_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
+        glm::float4 grassColorRamp2_Top = {0.6f, 0.9f, 0.2f, 1.0f};
+        glm::float4 grassColorRamp3_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
+        glm::float4 grassColorRamp3_Top = {0.6f, 0.9f, 0.2f, 1.0f};
+        glm::float4 grassMaskUVScaler = {1.0f, 1.0f, 1.0f, 1.0f};
+        float hueShift_0 = 0.0f;
+        float hueShift_1 = 0.0f;
+        uint32_t padding[2] = {};
+    };
+
     ObjPtr<Shader> grass;
     PipelineGPUBuffer instanceBuffer;
     PipelineGPUBuffer lightingInputBuffer;

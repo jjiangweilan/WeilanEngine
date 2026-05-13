@@ -23,6 +23,34 @@ public:
         {
             group.config.scale = glm::max(group.config.scale, 0.01f);
         }
+
+        EditorGUI::SeparatorTextLabeled("Shadow Masks");
+        for (int i = 0; i < 2; ++i)
+        {
+            ImGui::PushID(i);
+            ObjPtr<Texture>& tex = (i == 0) ? group.config.grassShadowMask0 : group.config.grassShadowMask1;
+            std::string label = tex.Get() ? tex->GetName() : "Slot " + std::to_string(i) + ": <empty>";
+            ImGui::Text("%s", label.c_str());
+            Texture* droppedTex = nullptr;
+            if (EditorGUI::DropZone<Texture>("Drop Texture", droppedTex))
+            {
+                tex = droppedTex;
+            }
+            ImGui::PopID();
+        }
+        ImGui::DragFloat2("Mask 0 UV Scaler (XY)", &group.config.grassMaskUVScaler[0], 0.01f, 0.01f, 100.0f, "%.2f");
+        ImGui::DragFloat2("Mask 1 UV Scaler (ZW)", &group.config.grassMaskUVScaler[2], 0.01f, 0.01f, 100.0f, "%.2f");
+
+        EditorGUI::SeparatorTextLabeled("Color Ramp");
+        ImGui::ColorEdit4("Ramp 1 Bottom", &group.config.grassColorRamp_Bottom[0]);
+        ImGui::ColorEdit4("Ramp 1 Top", &group.config.grassColorRamp_Top[0]);
+        ImGui::ColorEdit4("Ramp 2 Bottom", &group.config.grassColorRamp2_Bottom[0]);
+        ImGui::ColorEdit4("Ramp 2 Top", &group.config.grassColorRamp2_Top[0]);
+        ImGui::ColorEdit4("Ramp 3 Bottom", &group.config.grassColorRamp3_Bottom[0]);
+        ImGui::ColorEdit4("Ramp 3 Top", &group.config.grassColorRamp3_Top[0]);
+        ImGui::DragFloat("Hue Shift 0", &group.config.hueShift_0, 0.01f, -1.0f, 1.0f, "%.2f");
+        ImGui::DragFloat("Hue Shift 1", &group.config.hueShift_1, 0.01f, -1.0f, 1.0f, "%.2f");
+
         ImGui::Text("Patches: %d", static_cast<int>(group.patches.size()));
 
         EditorGUI::SeparatorTextLabeled("Patch Meshes");

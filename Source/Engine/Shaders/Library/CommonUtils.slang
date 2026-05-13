@@ -210,6 +210,43 @@ float4 Gaussian_v(float4 v, float sigma)
     return exp(-1/(sigma * sigma) * (v * v));
 }
 
+float Remap(float value, float oriMin, float oriMax, float dstMin, float dstMax)
+{
+    return dstMin + (value - oriMin) * (dstMax - dstMin) / (oriMax - oriMin);
+}
+
+float3 RgbToHsv(float3 rgb)
+{
+    float4 k = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    float4 p = lerp(float4(rgb.bg, k.wz), float4(rgb.gb, k.xy), step(rgb.b, rgb.g));
+    float4 q = lerp(float4(p.xyw, rgb.r), float4(rgb.r, p.yzx), step(p.x, rgb.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 HsvToRgb(float3 hsv)
+{
+    float4 k = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    float3 p = abs(frac(hsv.xxx + k.xyz) * 6.0 - k.www);
+    return hsv.z * lerp(k.xxx, saturate(p - k.xxx), hsv.y);
+}
+
+float3 HueSaturationValueRemap(float3 rgb, float hueOffset, float saturationScale, float valueScale)
+{
+    float3 hsv = RgbToHsv(rgb);
+    hsv.x = frac(hsv.x + hueOffset);
+    hsv.y = saturate(hsv.y * saturationScale);
+    hsv.z = saturate(hsv.z * valueScale);
+    return HsvToRgb(hsv);
+}
+
+float3 HueSaturationValueRemap(float3 rgb, float3 hsvRemap)
+{
+    return HueSaturationValueRemap(rgb, hsvRemap.x, hsvRemap.y, hsvRemap.z);
+}
+
 // float oneMeterPixelSize = sourceDepthTexSize / (2 * renderingData.mainCamera->GetProjectionRight()) * renderingData.mainCamera->GetNear();
 float WorldLengthToScreen(float worldLength, float oneMeterPixelSize, float viewSpaceZ)
 {
