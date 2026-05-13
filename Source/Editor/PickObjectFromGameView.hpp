@@ -5,6 +5,7 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include "Engine/Library/EnumFlags.hpp"
+#include "Engine/Library/Math/Geometry/Geometry.hpp"
 
 enum class PickObjectLayer : int
 {
@@ -122,7 +123,17 @@ public:
         bool intersected = false;
         if (mr)
         {
+            Ray worldRay{ori, dir};
+            float aabbDistance;
+            if (!RayVsAABB(worldRay, mr->GetAABB(), aabbDistance))
+                return false;
+
             auto model = obj->GetWorldMatrix();
+            auto invModel = glm::inverse(model);
+            auto normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+            glm::vec3 localOri = invModel * glm::vec4(ori, 1.0f);
+            glm::vec3 localDir = invModel * glm::vec4(dir, 0.0f);
+
             auto meshes = mr->GetMeshes();
             for (auto mesh : meshes)
             {
@@ -138,21 +149,20 @@ public:
                             int j = i + 1;
                             int k = i + 2;
 
-                            glm::vec3 v0, v1, v2;
-                            v0 = model * glm::vec4(positions[indices[i]], 1.0);
-                            v1 = model * glm::vec4(positions[indices[j]], 1.0);
-                            v2 = model * glm::vec4(positions[indices[k]], 1.0);
+                            const glm::vec3& v0 = positions[indices[i]];
+                            const glm::vec3& v1 = positions[indices[j]];
+                            const glm::vec3& v2 = positions[indices[k]];
 
                             glm::vec2 bary;
                             float newDistance = -1;
-                            if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
+                            if (glm::intersectRayTriangle(localOri, localDir, v0, v1, v2, bary, newDistance))
                             {
                                 if (newDistance > 0 && newDistance < outDistance)
                                 {
                                     intersected = true;
                                     outDistance = newDistance;
                                     outPoint = ori + dir * newDistance;
-                                    outNormal = glm::normalize(glm::cross(v1 - v0, v2 - v0));
+                                    outNormal = glm::normalize(normalMatrix * glm::cross(v1 - v0, v2 - v0));
                                 }
                             }
                         }
@@ -177,7 +187,6 @@ inline SurfaceHit RaycastSceneSurface(const Ray& ray, Scene& scene)
 {
     SurfaceHit bestHit;
     auto candidates = scene.GetBVHScene().QueryRay(ray, BVHNodeType::MeshRenderer);
-    spdlog::info("called");
     for (BVHNode* node : candidates)
     {
         if (node == nullptr || node->owner == nullptr)
