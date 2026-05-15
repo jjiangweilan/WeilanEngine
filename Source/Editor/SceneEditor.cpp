@@ -26,6 +26,92 @@
 namespace Editor
 {
 
+namespace
+{
+struct SelectionRectNDC
+{
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+};
+
+bool VertexInsideSelectionRect(const glm::vec4& clip, const SelectionRectNDC& rect)
+{
+    constexpr float epsilon = 1e-5f;
+    if (clip.w <= epsilon)
+        return false;
+    return clip.x >= rect.minX * clip.w && clip.x <= rect.maxX * clip.w &&
+           clip.y >= rect.minY * clip.w && clip.y <= rect.maxY * clip.w;
+}
+
+bool TriangleFullyInsideSelectionRect(
+    const glm::vec3& p0,
+    const glm::vec3& p1,
+    const glm::vec3& p2,
+    const glm::mat4& mvp,
+    const SelectionRectNDC& rect
+)
+{
+    glm::vec4 c0 = mvp * glm::vec4(p0, 1.0f);
+    glm::vec4 c1 = mvp * glm::vec4(p1, 1.0f);
+    glm::vec4 c2 = mvp * glm::vec4(p2, 1.0f);
+    return VertexInsideSelectionRect(c0, rect) &&
+           VertexInsideSelectionRect(c1, rect) &&
+           VertexInsideSelectionRect(c2, rect);
+}
+
+bool ProjectedAABBOverlapsSelectionRect(const AABB& aabb, const glm::mat4& mvp, const SelectionRectNDC& rect)
+{
+    glm::vec3 corners[] = {
+        {aabb.min.x, aabb.min.y, aabb.min.z},
+        {aabb.max.x, aabb.min.y, aabb.min.z},
+        {aabb.min.x, aabb.max.y, aabb.min.z},
+        {aabb.min.x, aabb.min.y, aabb.max.z},
+        {aabb.max.x, aabb.max.y, aabb.min.z},
+        {aabb.min.x, aabb.max.y, aabb.max.z},
+        {aabb.max.x, aabb.min.y, aabb.max.z},
+        {aabb.max.x, aabb.max.y, aabb.max.z},
+    };
+
+    glm::vec2 screenMin(std::numeric_limits<float>::max());
+    glm::vec2 screenMax(std::numeric_limits<float>::lowest());
+    bool anyInFront = false;
+
+    for (int i = 0; i < 8; ++i)
+    {
+        glm::vec4 clip = mvp * glm::vec4(corners[i], 1.0f);
+        if (clip.w <= 0.0f)
+            continue;
+        anyInFront = true;
+
+        glm::vec3 ndc = glm::vec3(clip) / clip.w;
+        screenMin = glm::min(screenMin, glm::vec2(ndc.x, ndc.y));
+        screenMax = glm::max(screenMax, glm::vec2(ndc.x, ndc.y));
+    }
+
+    if (!anyInFront)
+        return false;
+
+    return screenMin.x <= rect.maxX && screenMax.x >= rect.minX && screenMin.y <= rect.maxY && screenMax.y >= rect.minY;
+}
+
+bool ProjectedAABBInsideSelectionRect(const AABB& aabb, const glm::mat4& mvp, const SelectionRectNDC& rect)
+{
+    for (int i = 0; i < 8; ++i)
+    {
+        glm::vec3 corner = glm::vec3(
+            (i & 1) ? aabb.max.x : aabb.min.x,
+            (i & 2) ? aabb.max.y : aabb.min.y,
+            (i & 4) ? aabb.max.z : aabb.min.z
+        );
+        if (!VertexInsideSelectionRect(mvp * glm::vec4(corner, 1.0f), rect))
+            return false;
+    }
+    return true;
+}
+} // namespace
+
 SceneEditor::SceneEditor() {}
 SceneEditor::~SceneEditor()
 { }
@@ -601,6 +687,7 @@ bool SceneEditor::Tick()
         {
             rectSelect.isActive = true;
             rectSelect.hasDragged = false;
+            rectSelect.pendingClick = true;
             rectSelect.startMouse = mouseContentPos;
             rectSelect.currentMouse = mouseContentPos;
         }
@@ -610,16 +697,16 @@ bool SceneEditor::Tick()
             rectSelect.currentMouse = mouseContentPos;
             float dragDist = glm::length(rectSelect.currentMouse - rectSelect.startMouse);
             if (dragDist > 4.0f)
+            {
                 rectSelect.hasDragged = true;
+                rectSelect.pendingClick = false;
+            }
         }
 
         if (rectSelect.hasDragged)
         {
-            glm::vec2 startUV = rectSelect.startMouse / glm::vec2{imageWidth, imageHeight};
-            glm::vec2 endUV = rectSelect.currentMouse / glm::vec2{imageWidth, imageHeight};
-
-            glm::vec2 rectScreenMin = glm::min(rectSelect.startMouse, rectSelect.currentMouse);
-            glm::vec2 rectScreenMax = glm::max(rectSelect.startMouse, rectSelect.currentMouse);
+                glm::vec2 rectScreenMin = glm::min(rectSelect.startMouse, rectSelect.currentMouse);
+                glm::vec2 rectScreenMax = glm::max(rectSelect.startMouse, rectSelect.currentMouse);
 
             ImVec2 drawMin = ImVec2(sceneImageOrigin.x + rectScreenMin.x, sceneImageOrigin.y + rectScreenMin.y);
             ImVec2 drawMax = ImVec2(sceneImageOrigin.x + rectScreenMax.x, sceneImageOrigin.y + rectScreenMax.y);
@@ -633,8 +720,9 @@ bool SceneEditor::Tick()
         {
             if (rectSelect.hasDragged && scene && mainCam && imageWidth > 0 && imageHeight > 0)
             {
-                glm::vec2 startUV = rectSelect.startMouse / glm::vec2{imageWidth, imageHeight};
-                glm::vec2 endUV = rectSelect.currentMouse / glm::vec2{imageWidth, imageHeight};
+                glm::vec2 imageSize{imageWidth, imageHeight};
+                glm::vec2 startUV = glm::clamp(rectSelect.startMouse / imageSize, glm::vec2(0.0f), glm::vec2(1.0f));
+                glm::vec2 endUV = glm::clamp(rectSelect.currentMouse / imageSize, glm::vec2(0.0f), glm::vec2(1.0f));
 
                 auto objectsInRect = CollectGameObjectsInRect(*scene, *mainCam, startUV, endUV, imageWidth, imageHeight);
 
@@ -658,88 +746,76 @@ bool SceneEditor::Tick()
                         EditorState::SelectObject(go, !objectsInRect.empty());
                 }
             }
-            rectSelect.isActive = false;
-            rectSelect.hasDragged = false;
-        }
-
-        if (!toolConsumedInput && !anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
-        {
-            // pick a GameObject trough ray (only if not rect-selecting)
-            if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused() && !rectSelect.hasDragged)
+            else if (rectSelect.pendingClick && !toolConsumedInput && !anyItemHovered &&
+                     (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) &&
+                     !hoveringViewGizmo && !gizmoManager->AnyGizmoActive() &&
+                     mainCam && scene)
             {
-                if (mainCam != nullptr)
+                using Intersected = PickGameObjectFromScene::Intersected;
+                Ray ray = worldRay;
+
+                std::vector<Intersected> intersected;
+                intersected.reserve(32);
+                std::vector<GameObject*> results;
+                Gizmos::PickGizmos(ray, results);
+                if (results.empty())
                 {
-                    using Intersected = PickGameObjectFromScene::Intersected;
-                    Ray ray = worldRay;
-
-                    std::vector<Intersected> intersected;
-                    intersected.reserve(32);
-                    std::vector<GameObject*> results;
-                    Gizmos::PickGizmos(ray, results);
-                    if (results.empty())
+                    auto sceneIntersected = PickGameObjectFromScene()(*scene, ray, screenUV);
+                    intersected.insert(intersected.end(), sceneIntersected.begin(), sceneIntersected.end());
+                }
+                else
+                {
+                    for (auto g : results)
                     {
-                        if (auto scene = SceneManager::GetActiveScene())
-                        {
-                            auto sceneIntersected = PickGameObjectFromScene()(*scene, ray, screenUV);
-                            intersected.insert(intersected.end(), sceneIntersected.begin(), sceneIntersected.end());
-                        }
-                    }
-                    else
-                    {
-                        for (auto g : results)
-                        {
-                            intersected.push_back(
-                                {g, glm::length(g->GetPosition() - mainCam->GetGameObject()->GetPosition())}
-                            );
-                        }
-                    }
-
-                    auto iter = std::min_element(
-                        intersected.begin(),
-                        intersected.end(),
-                        [](const Intersected& l, const Intersected& r)
-                        { return l.distance > 0 && l.distance < r.distance; }
-                    );
-
-                    GameObject* picked = nullptr;
-                    if (iter != intersected.end())
-                    {
-                        picked = iter->go;
-                    }
-
-                    if (picked)
-                    {
-                        // if picked is already selected, deselect it, otherwise select it
-                        auto selectedObjects = EditorState::GetSelectedObjects();
-                        auto findIter = std::find_if(
-                            selectedObjects.begin(),
-                            selectedObjects.end(),
-                            [picked](ObjPtr<Object> o)
-                            { return o.Get() == picked; }
+                        intersected.push_back(
+                            {g, glm::length(g->GetPosition() - mainCam->GetGameObject()->GetPosition())}
                         );
-                        if (findIter == selectedObjects.end())
-                        {
-                            bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
-                            EditorState::SelectObject(picked, multiSelect);
-                        }
-                        else
-                        {
-                            if (isAltDown)
-                            {
-                                EditorState::DeselectObject(picked);
-                            }
-                            // else
-                            // {
-                            //     EditorState::SelectObject(picked, false);
-                            // }
-                        }
-                    }
-                    else
-                    {
-                        EditorState::SelectObject(nullptr);
                     }
                 }
+
+                auto iter = std::min_element(
+                    intersected.begin(),
+                    intersected.end(),
+                    [](const Intersected& l, const Intersected& r)
+                    { return l.distance > 0 && l.distance < r.distance; }
+                );
+
+                GameObject* picked = nullptr;
+                if (iter != intersected.end())
+                {
+                    picked = iter->go;
+                }
+
+                if (picked)
+                {
+                    auto selectedObjects = EditorState::GetSelectedObjects();
+                    auto findIter = std::find_if(
+                        selectedObjects.begin(),
+                        selectedObjects.end(),
+                        [picked](ObjPtr<Object> o)
+                        { return o.Get() == picked; }
+                    );
+                    if (findIter == selectedObjects.end())
+                    {
+                        bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
+                        EditorState::SelectObject(picked, multiSelect);
+                    }
+                    else
+                    {
+                        if (isAltDown)
+                        {
+                            EditorState::DeselectObject(picked);
+                        }
+                    }
+                }
+                else
+                {
+                    EditorState::SelectObject(nullptr);
+                }
             }
+            rectSelect.isActive = false;
+            rectSelect.hasDragged = false;
+            rectSelect.pendingClick = false;
         }
 
         // Draw View Gizmos
@@ -1232,6 +1308,12 @@ std::vector<GameObject*> SceneEditor::CollectGameObjectsInRect(
 
     glm::vec2 rectMin = glm::min(uvMin, uvMax);
     glm::vec2 rectMax = glm::max(uvMin, uvMax);
+    SelectionRectNDC rect{
+        rectMin.x * 2.0f - 1.0f,
+        rectMax.x * 2.0f - 1.0f,
+        rectMin.y * 2.0f - 1.0f,
+        rectMax.y * 2.0f - 1.0f,
+    };
 
     scene.ForEachGameObject([&](GameObject* go)
     {
@@ -1239,45 +1321,62 @@ std::vector<GameObject*> SceneEditor::CollectGameObjectsInRect(
         if (!mr || !go->IsActiveInScene())
             return;
 
-        AABB aabb = mr->GetAABB();
-
-        glm::vec3 corners[] = {
-            {aabb.min.x, aabb.min.y, aabb.min.z},
-            {aabb.max.x, aabb.min.y, aabb.min.z},
-            {aabb.min.x, aabb.max.y, aabb.min.z},
-            {aabb.min.x, aabb.min.y, aabb.max.z},
-            {aabb.max.x, aabb.max.y, aabb.min.z},
-            {aabb.min.x, aabb.max.y, aabb.max.z},
-            {aabb.max.x, aabb.min.y, aabb.max.z},
-            {aabb.max.x, aabb.max.y, aabb.max.z},
-        };
-
-        glm::vec2 screenMin(std::numeric_limits<float>::max());
-        glm::vec2 screenMax(std::numeric_limits<float>::lowest());
-        bool anyInFront = false;
-
-        for (int i = 0; i < 8; ++i)
-        {
-            glm::vec4 clip = vp * glm::vec4(corners[i], 1.0f);
-            if (clip.w <= 0.0f)
-                continue;
-            anyInFront = true;
-
-            glm::vec3 ndc = glm::vec3(clip) / clip.w;
-            glm::vec2 screenUV = glm::vec2((ndc.x + 1.0f) * 0.5f, (1.0f - ndc.y) * 0.5f);
-
-            screenMin = glm::min(screenMin, screenUV);
-            screenMax = glm::max(screenMax, screenUV);
-        }
-
-        if (!anyInFront)
+        if (!ProjectedAABBOverlapsSelectionRect(mr->GetAABB(), vp, rect))
             return;
 
-        if (screenMin.x <= rectMax.x && screenMax.x >= rectMin.x &&
-            screenMin.y <= rectMax.y && screenMax.y >= rectMin.y)
+        if (ProjectedAABBInsideSelectionRect(mr->GetAABB(), vp, rect))
         {
             result.push_back(go);
+            return;
         }
+
+        glm::mat4 model = go->GetWorldMatrix();
+        glm::mat4 mvp = vp * model;
+
+        bool hasAnyTriangle = false;
+        bool allInside = true;
+
+        for (ObjPtr<Mesh>& meshPtr : mr->GetMeshes())
+        {
+            Mesh* mesh = meshPtr.Get();
+            if (!mesh)
+                continue;
+
+            for (const Submesh& submesh : mesh->GetSubmeshes())
+            {
+                if (!ProjectedAABBOverlapsSelectionRect(submesh.GetAABB(), mvp, rect))
+                    continue;
+
+                if (ProjectedAABBInsideSelectionRect(submesh.GetAABB(), mvp, rect))
+                    continue;
+
+                const auto& indices = submesh.GetIndices();
+                const auto& positions = submesh.GetPositions();
+                for (int i = 0; i + 2 < submesh.GetIndexCount(); i += 3)
+                {
+                    uint32_t i0 = indices[i];
+                    uint32_t i1 = indices[i + 1];
+                    uint32_t i2 = indices[i + 2];
+                    if (i0 >= positions.size() || i1 >= positions.size() || i2 >= positions.size())
+                        continue;
+
+                    hasAnyTriangle = true;
+
+                    if (!TriangleFullyInsideSelectionRect(positions[i0], positions[i1], positions[i2], mvp, rect))
+                    {
+                        allInside = false;
+                        break;
+                    }
+                }
+                if (!allInside)
+                    break;
+            }
+            if (!allInside)
+                break;
+        }
+
+        if (allInside && hasAnyTriangle)
+            result.push_back(go);
     });
 
     return result;

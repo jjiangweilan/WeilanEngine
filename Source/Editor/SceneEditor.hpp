@@ -139,6 +139,7 @@ private:
     {
         bool isActive = false;
         bool hasDragged = false;
+        bool pendingClick = false;
         glm::vec2 startMouse{};
         glm::vec2 currentMouse{};
     } rectSelect;
