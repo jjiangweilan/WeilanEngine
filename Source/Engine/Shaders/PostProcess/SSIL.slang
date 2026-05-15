@@ -11,7 +11,7 @@ import Lighting;
 #define SSIL_PI 3.14159265359f
 #define SSIL_HALF_PI 1.57079632679f
 #define SSIL_TWO_PI 6.28318530718f
-#define SSIL_RAW_MIP 2
+#define SSIL_RAW_MIP 1
 
 // 0 or 1
 #define DEBUG_DRAW 0
@@ -63,7 +63,7 @@ struct SSILPassData
 {
     __init(float2 uv)
     {
-        float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).x;
+        float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).y;
         float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
         float4 posWS = mul(perScene.camera.invNDCToWorld, float4(uv * 2 - 1, depth, 1.0));
 
@@ -177,7 +177,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
                 sampleUV += (randf(screenPos.x, screenPos.y) * 2 - 1) * axis.xy * perMaterial.sampleJitterScale;
-                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
+                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).y;
 #if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
                 GroupMemoryBarrierWithGroupSync();

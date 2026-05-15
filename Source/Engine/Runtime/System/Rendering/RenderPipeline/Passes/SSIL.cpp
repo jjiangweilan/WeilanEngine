@@ -77,10 +77,8 @@ SSIL::SSIL()
     combineConfig = Gfx::PipelineConfig(config);
 
     firstFilterPass = std::make_unique<BilateralFilterPass>();
-    secondFilterPass = std::make_unique<BilateralFilterPass>();
 
     firstFilterPass->depthDiffSigma = 1.0f;
-    secondFilterPass->depthDiffSigma = 1.0f;
 }
 
 void SSIL::Execute(
@@ -98,12 +96,11 @@ void SSIL::Execute(
         return;
 
     firstFilterPass->depthDiffSigma = setting->ssil.filter1DepthDiffSigma;
-    secondFilterPass->depthDiffSigma = setting->ssil.filter2DepthDiffSigma;
 
     cmd->BeginLabel("SSIL", {0.1, 0.4, 0.6, 1.0});
 
-    int width = renderingData.screenSize.x / 4;
-    int height = renderingData.screenSize.y / 4;
+    int width = renderingData.screenSize.x / 2;
+    int height = renderingData.screenSize.y / 2;
 
     Gfx::RenderImageDescriptor desc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
     desc.SetRandomWrite(true);
@@ -135,26 +132,13 @@ void SSIL::Execute(
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     desc.SetRandomWrite(true);
-    desc.SetWidth(width * 2);
-    desc.SetHeight(height * 2);
-    cmd->AllocateAttachment(firstFilterPassOutput, desc);
+    desc.SetWidth(renderingData.screenSize.x);
+    desc.SetHeight(renderingData.screenSize.y);
+    cmd->AllocateAttachment(ssil, desc);
     firstFilterPass->Execute(
         cmd,
         ssilRaw,
         {width, height},
-        hizTex,
-        hizTex,
-        firstFilterPassOutput,
-        2
-    );
-
-    desc.SetWidth(renderingData.screenSize.x);
-    desc.SetHeight(renderingData.screenSize.y);
-    cmd->AllocateAttachment(ssil, desc);
-    secondFilterPass->Execute(
-        cmd,
-        firstFilterPassOutput,
-        {width * 2, height * 2},
         hizTex,
         hizTex,
         ssil,

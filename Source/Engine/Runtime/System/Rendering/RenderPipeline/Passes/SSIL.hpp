@@ -57,7 +57,6 @@ private:
     Gfx::ImageIdentifier ssil = "SSIL_Output";
     Gfx::ImageIdentifier firstFilterPassOutput = "SSIL_Filter1";
     std::unique_ptr<BilateralFilterPass> firstFilterPass;
-    std::unique_ptr<BilateralFilterPass> secondFilterPass;
 
     Gfx::PipelineConfig combineConfig;
 
