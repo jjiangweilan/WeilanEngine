@@ -167,6 +167,30 @@ float4 Fragment(Varyings input) : SV_Target
 
     float3 final = maskedColor0;//Overlay(color0, color1, 0.5);
 
+    float3 normalWS = normalize(input.normalWS);
+    float3 viewDirWS = normalize(input.positionWS - perScene.camera.position.xyz);
+    float3 bladeDirectionWS = float3(0.0f, 1.0f, 0.0f);
+    float3 specularHighlight = 0.0f;
+
+    for (int i = 0; i < perScene.scene.lightCount; i++)
+    {
+        Light light = perScene.scene.lights[i];
+        float4 lightPos = light.position;
+        float3 lightDirWS = lightPos.a == 0.0f ? normalize(lightPos.xyz) : normalize(lightPos.xyz - input.positionWS);
+        float falloff = lightPos.a == 0.0f ? 1.0f : PointLightInverseSquareFalloff(distance(lightPos.xyz, input.positionWS), light.pointLightTerm2);
+
+        specularHighlight += CalculateGrassSpecularHighlight(
+            normalWS,
+            bladeDirectionWS,
+            viewDirWS,
+            lightDirWS,
+            light.lightColor.xyz * light.intensity * falloff,
+            0.35f,
+            0.15f);
+    }
+
+    final += specularHighlight;
+
     // float hueShift = Remap(input.randomValueIsland, 0, 1, params.grassParam.hueShift_0, params.grassParam.hueShift_0 + params.grassParam.hueShift_1);
     // final = HueSaturationValueRemap(final, hueShift, 1, 1);
 
