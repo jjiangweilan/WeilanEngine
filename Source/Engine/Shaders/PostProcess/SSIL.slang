@@ -297,10 +297,6 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint2 pixelCoord = MortonDecode8x8(groupIndex) + groupID.xy * 8;
-    if (all(pixelCoord == uint2(157, 103)))
-    {
-        printf("Processing pixel: (%d, %d)\n", dispatchThreadID.x, dispatchThreadID.y);
-    }
 
     if (pixelCoord.x >= perMaterial.rtSize.x || pixelCoord.y >= perMaterial.rtSize.y)
         return;
