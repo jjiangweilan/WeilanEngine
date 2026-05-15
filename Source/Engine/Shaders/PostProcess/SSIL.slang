@@ -176,15 +176,24 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float3 samplePosVS = posVS + dirDelta * sampleIndex * directionFixed;
                 float4 sampleNDC = mul(perScene.camera.projection, float4(samplePosVS, 1.0));
                 float2 sampleUV = sampleNDC.xy / sampleNDC.w * 0.5 + 0.5;
-                sampleUV += (randf(screenPos.x, screenPos.y) * 2 - 1) * axis.xy * perMaterial.sampleJitterScale;
+                float2 sampleUvDir = sampleUV - uv;
+                float sampleUvDirLenSq = dot(sampleUvDir, sampleUvDir);
+                if (sampleUvDirLenSq > 0.0)
+                {
+                    sampleUV += (randf(int(screenPos.x), int(screenPos.y)) * 2 - 1)
+                        * sampleUvDir * rsqrt(sampleUvDirLenSq)
+                        * perMaterial.rtSize.zw
+                        * perMaterial.sampleJitterScale;
+                }
+
+                if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
+                    continue;
+
                 float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).y;
 #if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
                 GroupMemoryBarrierWithGroupSync();
 #endif
-
-                if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
-                    continue;
 
 #if SSIL_USE_SHARED_SAMPLES
                 for (int sharedSamplesSubgroupIndex = 0; sharedSamplesSubgroupIndex < 4; sharedSamplesSubgroupIndex++) 
