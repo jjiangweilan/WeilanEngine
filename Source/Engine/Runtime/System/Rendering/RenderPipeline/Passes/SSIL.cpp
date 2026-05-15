@@ -149,7 +149,7 @@ void SSIL::Execute(
     mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
     mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
-    mat.SetTexture("ignNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
+    mat.SetTexture("blueNoise", renderingData.blueNoise.GetNoiseTexture());
     mat.SetTexture("outSsilTex", GetGfxDriver()->GetImageFromRenderGraph(ssilRaw));
 
     mat.SetVector("rtSize", glm::float4(width, height, 1.0f / width, 1.0f / height));

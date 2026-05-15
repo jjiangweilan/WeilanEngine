@@ -47,7 +47,7 @@ struct SSILParameter
     Texture2D normalTex;
     Texture2D colorTex;
     Texture2D albedoTex;
-    Texture2D<float4> ignNoise;
+    Texture2D<float2> blueNoise;
     RWTexture2D<float4> outSsilTex;
     SamplerState sampler_point_clamp;
     SamplerState sampler_linear_clamp;
@@ -85,11 +85,7 @@ float3 GetNormalVS(float2 uv)
     return mul((float3x3)perScene.camera.view, normalWS);
 }
 
-// https://blog.demofox.org/2022/01/01/interleaved-gradient-noise-a-different-kind-of-low-discrepancy-sequence/
-float randf(int x, int y) {
-    float f = 1.0f;
-    return modf(52.9829189 * modf(0.06711056 * float(x) + 0.00583715 * float(y), f), f);
-}
+
 
 
 #if DEBUG_DRAW
@@ -129,7 +125,8 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
     // float3 binormaVS = cross(upVS, tangentVS);
 
-    float jitter = randf(int(100 * (passData.positionWS.x + passData.positionWS.z)), int(100 * passData.positionWS.y));
+    float2 noise = perMaterial.blueNoise[uint2(screenPos) % 128];
+    float jitter = noise.x;
 
 #if DEBUG_DRAW
     if (debug)
@@ -180,7 +177,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float sampleUvDirLenSq = dot(sampleUvDir, sampleUvDir);
                 if (sampleUvDirLenSq > 0.0)
                 {
-                    sampleUV += (randf(int(screenPos.x), int(screenPos.y)) * 2 - 1)
+                    sampleUV += (noise.y * 2 - 1)
                         * sampleUvDir * rsqrt(sampleUvDirLenSq)
                         * perMaterial.rtSize.zw
                         * perMaterial.sampleJitterScale;
