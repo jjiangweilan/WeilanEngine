@@ -111,32 +111,6 @@ float AdjustContrast(float value, float contrast)
     return saturate((value - 0.5) * contrast + 0.5);
 }
 
-float3 CalculateGrassSpecularHighlight(
-    float3 normalWS,
-    float3 bladeDirectionWS,
-    float3 viewDirWS,
-    float3 lightDirWS,
-    float3 lightColor,
-    float roughness,
-    float intensity)
-{
-    float3 normal = normalize(normalWS);
-    float3 bladeDirection = normalize(bladeDirectionWS);
-    float3 viewDir = normalize(viewDirWS);
-    float3 lightDir = normalize(lightDirWS);
-    float3 halfDir = normalize(viewDir + lightDir);
-
-    float normalLight = saturate(dot(normal, lightDir));
-    float normalView = saturate(dot(normal, viewDir));
-    float bladeHalf = dot(bladeDirection, halfDir);
-    float strandHighlight = sqrt(saturate(1.0f - bladeHalf * bladeHalf));
-    float specularPower = lerp(96.0f, 8.0f, saturate(roughness));
-    float specular = pow(strandHighlight, specularPower);
-    float visibility = sqrt(max(normalLight * normalView, 1.0e-4f));
-
-    return lightColor * specular * visibility * intensity;
-}
-
 [shader("fragment")]
 float4 Fragment(Varyings input) : SV_Target
 {
@@ -162,37 +136,12 @@ float4 Fragment(Varyings input) : SV_Target
         color1 = params.grassParam.grassColorRamp3_Top.xyz;
     }
 
+    Light mainLight = perScene.GetMainLight();
+
     float3 maskedColor0 = lerp(color0, color1, mask0);
     float3 maskedColor1 = lerp(color0, color1, mask1);
 
-    float3 final = maskedColor0;//Overlay(color0, color1, 0.5);
+    float3 albedo = maskedColor0;// * mainLight.lightColor.xyz * mainLight.intensity * 0.1;//Overlay(color0, color1, 0.5);
 
-    float3 normalWS = normalize(input.normalWS);
-    float3 viewDirWS = normalize(input.positionWS - perScene.camera.position.xyz);
-    float3 bladeDirectionWS = float3(0.0f, 1.0f, 0.0f);
-    float3 specularHighlight = 0.0f;
-
-    for (int i = 0; i < perScene.scene.lightCount; i++)
-    {
-        Light light = perScene.scene.lights[i];
-        float4 lightPos = light.position;
-        float3 lightDirWS = lightPos.a == 0.0f ? normalize(lightPos.xyz) : normalize(lightPos.xyz - input.positionWS);
-        float falloff = lightPos.a == 0.0f ? 1.0f : PointLightInverseSquareFalloff(distance(lightPos.xyz, input.positionWS), light.pointLightTerm2);
-
-        specularHighlight += CalculateGrassSpecularHighlight(
-            normalWS,
-            bladeDirectionWS,
-            viewDirWS,
-            lightDirWS,
-            light.lightColor.xyz * light.intensity * falloff,
-            0.35f,
-            0.15f);
-    }
-
-    final += specularHighlight;
-
-    // float hueShift = Remap(input.randomValueIsland, 0, 1, params.grassParam.hueShift_0, params.grassParam.hueShift_0 + params.grassParam.hueShift_1);
-    // final = HueSaturationValueRemap(final, hueShift, 1, 1);
-
-    return float4(final, 1.0f);
+    return float4(albedo, 1.0f);
 }
