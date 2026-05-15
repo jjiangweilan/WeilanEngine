@@ -173,4 +173,9 @@ bool SSIL::DebugBlit(Gfx::ImageIdentifier& dst)
     }
     return false;
 }
+
+void SSIL::ResetDebugState()
+{
+    debugSSIL = false;
+}
 } // namespace Rendering::Passes

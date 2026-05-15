@@ -144,7 +144,6 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 
     const float Nbits = 32;
     uint lastBits = 0; // For debug display
-    uint bits_i = 0;
     float lightSamples = 0;
 
 #if SSIL_USE_SHARED_SAMPLES
@@ -154,6 +153,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     for(uint sliceIndex = 0; sliceIndex < SSIL_SLICE_COUNT; ++sliceIndex)
 #endif
     {
+        uint bits_i = 0;
 
 #if SSIL_USE_SHARED_SAMPLES
         float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter  * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
@@ -238,10 +238,10 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 #endif
             }
         }
-    }
-    lastBits = bits_i;
-    ao = ao + 1 - countbits(bits_i) / Nbits;
 
+        lastBits = bits_i;
+        ao += 1 - countbits(bits_i) / Nbits;
+    }
     float sliceCount = SSIL_SLICE_COUNT;
     ao /= sliceCount;
 #if SSIL_AO_ONLY == 0
@@ -287,7 +287,8 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 #if SSIL_AO_ONLY == 0
     return perMaterial.strength * max(float4(indirectLight, ao), 0);
 #else
-    return perMaterial.strength * max(float4(ao, ao, ao, ao), 0);
+    ao = pow(saturate(ao), perMaterial.strength);
+    return float4(ao, ao, ao, ao);
 #endif
 }
 

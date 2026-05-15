@@ -45,6 +45,7 @@ public:
     );
 
     Gfx::ImageIdentifier& GetOutputId() { return ssil; }
+    void ResetDebugState();
 
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 

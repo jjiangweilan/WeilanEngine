@@ -12,7 +12,6 @@ public:
 
     void Execute(
         Gfx::CommandBuffer* cmd,
-        const Gfx::ImageIdentifier* ssil,
         const Gfx::ImageIdentifier* rtgiOutput,
         const Gfx::ImageIdentifier* giIrradianceTex,
         const Gfx::ImageIdentifier& albedoTex,

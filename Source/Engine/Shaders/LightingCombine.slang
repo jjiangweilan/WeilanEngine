@@ -7,10 +7,9 @@ import WeilanEngine;
 struct Input
 {
     float4 texelSize; // xy: 1/width, 1/height; zw: width, height
-    float4 flags; // x: hasSSIL, y: hasRTGI, z: hasGI
+    float4 flags; // x: hasRTGI, y: hasGI
     float giIntensityScale;
 
-    Texture2D ssil;
     Texture2D rtgiTex;
     Texture2D giIrradianceTex;
     Texture2D albedoTex;
@@ -37,17 +36,11 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     if (input.flags.x > 0.5)
     {
-        float3 ssil = input.ssil.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
-        newColor += (ssil * albedo);
-    }
-
-    if (input.flags.y > 0.5)
-    {
         float3 rtgi = input.rtgiTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
         newColor += rtgi;
     }
 
-    if (input.flags.z > 0.5)
+    if (input.flags.y > 0.5)
     {
         float3 giIrradiance = input.giIrradianceTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
         float3 diffuseGI = giIrradiance * albedo * input.giIntensityScale;

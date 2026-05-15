@@ -14,7 +14,6 @@ LightingCombinePass::LightingCombinePass()
 
 void LightingCombinePass::Execute(
     Gfx::CommandBuffer* cmd,
-    const Gfx::ImageIdentifier* ssil,
     const Gfx::ImageIdentifier* rtgi,
     const Gfx::ImageIdentifier* giIrradianceTex,
     const Gfx::ImageIdentifier& albedoTex,
@@ -28,18 +27,6 @@ void LightingCombinePass::Execute(
     int height = renderingData.screenSize.y;
 
     auto albedoImg = GetGfxDriver()->GetImageFromRenderGraph(albedoTex);
-
-    int hasSSIL = 0;
-    if (ssil)
-    {
-        auto ssilImg = GetGfxDriver()->GetImageFromRenderGraph(*ssil);
-        mat.SetTexture("ssil", ssilImg);
-        hasSSIL = 1;
-    }
-    else
-    {
-        mat.SetTexture("ssil", albedoImg); // dummy
-    }
 
     int hasRTGI = 0;
     if (rtgi)
@@ -68,7 +55,7 @@ void LightingCombinePass::Execute(
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
 
     mat.SetVector("texelSize", glm::float4(1.0f / width, 1.0f / height, (float)width, (float)height));
-    mat.SetVector("flags", glm::float4(hasSSIL, hasRTGI, hasGI, 0.0f));
+    mat.SetVector("flags", glm::float4(hasRTGI, hasGI, 0.0f, 0.0f));
     mat.SetFloat(
         "giIntensityScale",
         renderingData.renderPipelineSettings->gi.intensityScale * 3.1415926f

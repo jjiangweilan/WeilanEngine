@@ -2,6 +2,7 @@
 #include "Engine/Core/Profiler/Profiler.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Module/Ocean/OceanComponent.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
@@ -222,8 +223,33 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     cmd->BindResource(0, perScene.GetGlobalResource());
 
-    // ssao pass
-    ssaoPass->Execute(cmd, hierarchyZBufferPass->GetOutputId(), downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
+    Gfx::ImageIdentifier ambientOcclusion = *EngineInternalResources::GetWhiteTexture().GetGfxImage();
+    if (setting->useSSIL)
+    {
+        ssaoPass->ResetDebugState();
+        if (setting->ssil.enabled)
+        {
+            ssilPass->Execute(cmd, mainColor, hierarchyZBufferPass->GetOutputId(), albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
+            ambientOcclusion = ssilPass->GetOutputId();
+        }
+        else
+        {
+            ssilPass->ResetDebugState();
+        }
+    }
+    else
+    {
+        ssilPass->ResetDebugState();
+        if (setting->ssao.enabled)
+        {
+            ssaoPass->Execute(cmd, hierarchyZBufferPass->GetOutputId(), downSampledDepthCopy, mainDepth, mainDepthDescription, setting, renderingData);
+            ambientOcclusion = ssaoPass->GetSSAOTex();
+        }
+        else
+        {
+            ssaoPass->ResetDebugState();
+        }
+    }
 
     // Contact Shadow (directional main light only) - BEFORE shading so future shaders can consume
     {
@@ -289,7 +315,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             maskGBuffer,
             &depthImageView,
             &shadowRenderer->GetShadowMap()->GetDefaultImageView(),
-            &ssaoPass->GetSSAOTex(),
+            &ambientOcclusion,
             &contactShadowPass->GetOutputId(),
             diffuseCube,
             specularCube,
@@ -306,15 +332,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->EndLabel(); // Shading
 
     // GI passes
-    const Gfx::ImageIdentifier* ssilOutput = nullptr;
     const Gfx::ImageIdentifier* rtgiOutput = nullptr;
     const Gfx::ImageIdentifier* giIrradiance = nullptr;
-
-    if (setting->ssil.enabled)
-    {
-        ssilPass->Execute(cmd, colorCopy, hierarchyZBufferPass->GetOutputId(), albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
-        ssilOutput = &ssilPass->GetOutputId();
-    }
 
     if (setting->rtgi.enabled)
     {
@@ -348,9 +367,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         giIrradiance = &giPass->GetGIOutput();
     }
 
-    if (ssilOutput || rtgiOutput || giIrradiance)
+    if (rtgiOutput || giIrradiance)
     {
-        lightingCombinePass->Execute(cmd, ssilOutput, rtgiOutput, giIrradiance, albedoGBuffer, mainColor, renderingData);
+        lightingCombinePass->Execute(cmd, rtgiOutput, giIrradiance, albedoGBuffer, mainColor, renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects

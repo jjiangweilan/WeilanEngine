@@ -14,6 +14,7 @@ public:
     bool fxaa = true;
     bool frustumCull = true;
     bool shadowFrustumCull = true;
+    bool useSSIL = false;
 
     enum class TonemapMode : uint32_t
     {

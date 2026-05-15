@@ -144,4 +144,10 @@ bool SSAO::DebugBlit(Gfx::ImageIdentifier& dst)
     return false;
 }
 
+void SSAO::ResetDebugState()
+{
+    debugFinalSSAO = false;
+    debugNormal = false;
+}
+
 } // namespace Rendering::Passes

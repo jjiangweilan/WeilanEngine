@@ -25,6 +25,7 @@ public:
     );
 
     Gfx::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
+    void ResetDebugState();
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:
