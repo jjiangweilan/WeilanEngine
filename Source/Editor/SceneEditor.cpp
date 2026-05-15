@@ -21,6 +21,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <limits>
 
 namespace Editor
 {
@@ -592,10 +593,79 @@ bool SceneEditor::Tick()
 
         bool anyItemHovered = ImGui::IsAnyItemHovered();
         auto selected = EditorState::GetMainSelectedObject();
+
+        // --- Rect selection: track drag start ---
+        if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused() && !toolConsumedInput &&
+            !anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) &&
+            !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
+        {
+            rectSelect.isActive = true;
+            rectSelect.hasDragged = false;
+            rectSelect.startMouse = mouseContentPos;
+            rectSelect.currentMouse = mouseContentPos;
+        }
+
+        if (rectSelect.isActive && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            rectSelect.currentMouse = mouseContentPos;
+            float dragDist = glm::length(rectSelect.currentMouse - rectSelect.startMouse);
+            if (dragDist > 4.0f)
+                rectSelect.hasDragged = true;
+        }
+
+        if (rectSelect.hasDragged)
+        {
+            glm::vec2 startUV = rectSelect.startMouse / glm::vec2{imageWidth, imageHeight};
+            glm::vec2 endUV = rectSelect.currentMouse / glm::vec2{imageWidth, imageHeight};
+
+            glm::vec2 rectScreenMin = glm::min(rectSelect.startMouse, rectSelect.currentMouse);
+            glm::vec2 rectScreenMax = glm::max(rectSelect.startMouse, rectSelect.currentMouse);
+
+            ImVec2 drawMin = ImVec2(sceneImageOrigin.x + rectScreenMin.x, sceneImageOrigin.y + rectScreenMin.y);
+            ImVec2 drawMax = ImVec2(sceneImageOrigin.x + rectScreenMax.x, sceneImageOrigin.y + rectScreenMax.y);
+
+            ImDrawList* drawList = ImGui::GetForegroundDrawList();
+            drawList->AddRectFilled(drawMin, drawMax, IM_COL32(60, 130, 240, 40));
+            drawList->AddRect(drawMin, drawMax, IM_COL32(60, 130, 240, 200), 0.0f, 0, 1.5f);
+        }
+
+        if (isMouseReleased && rectSelect.isActive)
+        {
+            if (rectSelect.hasDragged && scene && mainCam && imageWidth > 0 && imageHeight > 0)
+            {
+                glm::vec2 startUV = rectSelect.startMouse / glm::vec2{imageWidth, imageHeight};
+                glm::vec2 endUV = rectSelect.currentMouse / glm::vec2{imageWidth, imageHeight};
+
+                auto objectsInRect = CollectGameObjectsInRect(*scene, *mainCam, startUV, endUV, imageWidth, imageHeight);
+
+                bool shiftHeld = ImGui::IsKeyDown(ImGuiKey_LeftShift);
+                bool altHeld = isAltDown;
+
+                if (altHeld)
+                {
+                    for (auto* go : objectsInRect)
+                        EditorState::DeselectObject(go);
+                }
+                else if (shiftHeld)
+                {
+                    for (auto* go : objectsInRect)
+                        EditorState::SelectObject(go, true);
+                }
+                else
+                {
+                    EditorState::SelectObject(nullptr);
+                    for (auto* go : objectsInRect)
+                        EditorState::SelectObject(go, !objectsInRect.empty());
+                }
+            }
+            rectSelect.isActive = false;
+            rectSelect.hasDragged = false;
+        }
+
         if (!toolConsumedInput && !anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
         {
-            // pick a GameObject trough ray
-            if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
+            // pick a GameObject trough ray (only if not rect-selecting)
+            if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused() && !rectSelect.hasDragged)
             {
                 if (mainCam != nullptr)
                 {
@@ -1148,4 +1218,69 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
         cmd.EndRenderPass();
     }
 }
+
+std::vector<GameObject*> SceneEditor::CollectGameObjectsInRect(
+    Scene& scene, Camera& camera, glm::vec2 uvMin, glm::vec2 uvMax, float imageWidth, float imageHeight
+)
+{
+    std::vector<GameObject*> result;
+
+    float aspect = (imageWidth > 0 && imageHeight > 0) ? imageWidth / imageHeight : 1.0f;
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 proj = camera.GetAndUpdateProjectionMatrix(aspect);
+    glm::mat4 vp = proj * view;
+
+    glm::vec2 rectMin = glm::min(uvMin, uvMax);
+    glm::vec2 rectMax = glm::max(uvMin, uvMax);
+
+    scene.ForEachGameObject([&](GameObject* go)
+    {
+        auto mr = go->GetComponent<MeshRenderer>();
+        if (!mr || !go->IsActiveInScene())
+            return;
+
+        AABB aabb = mr->GetAABB();
+
+        glm::vec3 corners[] = {
+            {aabb.min.x, aabb.min.y, aabb.min.z},
+            {aabb.max.x, aabb.min.y, aabb.min.z},
+            {aabb.min.x, aabb.max.y, aabb.min.z},
+            {aabb.min.x, aabb.min.y, aabb.max.z},
+            {aabb.max.x, aabb.max.y, aabb.min.z},
+            {aabb.min.x, aabb.max.y, aabb.max.z},
+            {aabb.max.x, aabb.min.y, aabb.max.z},
+            {aabb.max.x, aabb.max.y, aabb.max.z},
+        };
+
+        glm::vec2 screenMin(std::numeric_limits<float>::max());
+        glm::vec2 screenMax(std::numeric_limits<float>::lowest());
+        bool anyInFront = false;
+
+        for (int i = 0; i < 8; ++i)
+        {
+            glm::vec4 clip = vp * glm::vec4(corners[i], 1.0f);
+            if (clip.w <= 0.0f)
+                continue;
+            anyInFront = true;
+
+            glm::vec3 ndc = glm::vec3(clip) / clip.w;
+            glm::vec2 screenUV = glm::vec2((ndc.x + 1.0f) * 0.5f, (1.0f - ndc.y) * 0.5f);
+
+            screenMin = glm::min(screenMin, screenUV);
+            screenMax = glm::max(screenMax, screenUV);
+        }
+
+        if (!anyInFront)
+            return;
+
+        if (screenMin.x <= rectMax.x && screenMax.x >= rectMin.x &&
+            screenMin.y <= rectMax.y && screenMax.y >= rectMin.y)
+        {
+            result.push_back(go);
+        }
+    });
+
+    return result;
+}
+
 } // namespace Editor

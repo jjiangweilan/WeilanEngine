@@ -135,6 +135,16 @@ private:
         }
     } mouseTrack, middleMouseTrack;
 
+    struct RectSelectContext
+    {
+        bool isActive = false;
+        bool hasDragged = false;
+        glm::vec2 startMouse{};
+        glm::vec2 currentMouse{};
+    } rectSelect;
+
+    std::vector<GameObject*> CollectGameObjectsInRect(Scene& scene, Camera& camera, glm::vec2 uvMin, glm::vec2 uvMax, float imageWidth, float imageHeight);
+
     int2 sceneImageOrigin{0, 0};
 
     bool firstFrame = true;
