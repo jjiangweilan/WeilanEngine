@@ -1,5 +1,6 @@
 #pragma once
 #include "Editor/SceneEditorTool.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include "Engine/Runtime/Object/Component/GrassSurface.hpp"
 #include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include <random>
@@ -13,12 +14,15 @@ class GrassSurfacePaintTool : public SceneEditorTool
 public:
     GrassSurfacePaintTool() = default;
 
+    void SetTargetGrassSurface(GrassSurface* gs);
+    GrassSurface* GetTargetGrassSurface() const { return targetGrassSurface.Get(); }
+    bool HasTarget() const { return targetGrassSurface != nullptr; }
+
     bool Tick(const SceneEditorToolContext& ctx) override;
     void OnDraw(Gfx::CommandBuffer& cmd) override;
     void OnActivate() override;
     void OnDeactivate() override;
 
-    // Brush settings (public so window can read/write them)
     float brushRadius = 1.0f;
     float spacing = 0.5f;
     int density = 1;
@@ -29,7 +33,6 @@ public:
 
     int GetPatchCount() const;
     std::string GetTargetName() const;
-    GrassSurface* GetTargetGrassSurface() const { return lastHitGrassSurface; }
     void ClampMeshIndex();
 
 private:
@@ -38,12 +41,11 @@ private:
     };
 
     bool isPainting = false;
-    bool wasMouseDown = false;
     GameObject* lastHitObject = nullptr;
-    GrassSurface* lastHitGrassSurface = nullptr;
     glm::vec3 lastHitPoint;
     glm::vec3 lastHitNormal;
 
+    ObjPtr<GrassSurface> targetGrassSurface;
     std::mt19937 rng{std::random_device{}()};
     std::vector<PendingSample> currentStrokeSamples;
 
@@ -52,7 +54,6 @@ private:
     void DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::vec3& center, const glm::vec3& normal,
                         float radius, const glm::vec4& color);
     void BuildONB(const glm::vec3& normal, glm::vec3& outTangent, glm::vec3& outBitangent);
-    GrassSurface* FindGrassSurfaceInChain(GameObject* go);
     bool GroundPointOnObject(const glm::vec3& point, const glm::vec3& normal, GameObject* obj, glm::vec3& outGrounded, glm::vec3& outGroundedNormal);
 };
 } // namespace Editor

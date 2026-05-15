@@ -3,10 +3,9 @@
 #include "Editor/PickObjectFromGameView.hpp"
 #include "Editor/SceneEditor.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <cmath>
@@ -14,15 +13,10 @@
 namespace Editor
 {
 
-GrassSurface* GrassSurfacePaintTool::FindGrassSurfaceInChain(GameObject* go)
+void GrassSurfacePaintTool::SetTargetGrassSurface(GrassSurface* gs)
 {
-    while (go)
-    {
-        if (auto gs = go->GetComponent<GrassSurface>())
-            return gs;
-        go = go->GetParent();
-    }
-    return nullptr;
+    targetGrassSurface = gs;
+    ClampMeshIndex();
 }
 
 bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
@@ -30,7 +24,6 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
     if (!ctx.sceneViewHovered)
     {
         lastHitObject = nullptr;
-        lastHitGrassSurface = nullptr;
         return false;
     }
 
@@ -47,27 +40,24 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
     if (!scene)
         return false;
 
+    GrassSurface* gs = targetGrassSurface.Get();
+    if (!gs)
+        return false;
+
     SurfaceHit hit = RaycastSceneSurface(ctx.worldRay, *scene);
     lastHitObject = hit.go;
-    GrassSurface* prevGrassSurface = lastHitGrassSurface;
-    lastHitGrassSurface = hit.go ? FindGrassSurfaceInChain(hit.go) : nullptr;
     lastHitPoint = hit.point;
     lastHitNormal = hit.normal;
 
-    if (lastHitGrassSurface != prevGrassSurface)
-    {
-        ClampMeshIndex();
-    }
-
     if (mouseDown || mouseClicked)
     {
-        if (mouseClicked && lastHitGrassSurface)
+        if (mouseClicked && lastHitObject)
         {
             isPainting = true;
             currentStrokeSamples.clear();
         }
 
-        if (isPainting && lastHitGrassSurface)
+        if (isPainting && lastHitObject)
         {
             if (eraseMode)
                 EraseStroke(hit);
@@ -87,7 +77,7 @@ bool GrassSurfacePaintTool::Tick(const SceneEditorToolContext& ctx)
 
 void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
 {
-    GrassSurface* gs = lastHitGrassSurface;
+    GrassSurface* gs = targetGrassSurface.Get();
     if (!gs)
         return;
     if (gs->grassPatchGroup.patchMeshes.empty())
@@ -123,7 +113,6 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
                 continue;
         }
 
-        // Reject if too close to existing patches
         bool tooClose = false;
         for (const auto& patch : gs->grassPatchGroup.patches)
         {
@@ -136,7 +125,6 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
         if (tooClose)
             continue;
 
-        // Reject if too close to other samples in this stroke
         for (const auto& s : currentStrokeSamples)
         {
             if (glm::distance(grounded, s.position) < minSpacing)
@@ -159,7 +147,7 @@ void GrassSurfacePaintTool::PaintStroke(const SurfaceHit& hit)
 
 void GrassSurfacePaintTool::EraseStroke(const SurfaceHit& hit)
 {
-    GrassSurface* gs = lastHitGrassSurface;
+    GrassSurface* gs = targetGrassSurface.Get();
     if (!gs)
         return;
 
@@ -186,7 +174,6 @@ bool GrassSurfacePaintTool::GroundPointOnObject(const glm::vec3& point, const gl
         outGroundedNormal = hitNormal;
         return true;
     }
-    // Fallback: just use the candidate point
     outGrounded = point;
     outGroundedNormal = normal;
     return true;
@@ -202,9 +189,9 @@ void GrassSurfacePaintTool::BuildONB(const glm::vec3& normal, glm::vec3& outTang
 void GrassSurfacePaintTool::OnDraw(Gfx::CommandBuffer& cmd)
 {
     if (!lastHitObject)
-        return; 
+        return;
 
-    bool paintable = lastHitGrassSurface != nullptr;
+    bool paintable = HasTarget();
     glm::vec4 color = paintable ? glm::vec4(0, 1, 0, 1) : glm::vec4(1, 0, 0, 1);
     DrawWireCircle(cmd, lastHitPoint, lastHitNormal, brushRadius, color);
 }
@@ -255,18 +242,25 @@ void GrassSurfacePaintTool::OnDeactivate()
 
 int GrassSurfacePaintTool::GetPatchCount() const
 {
-    if (lastHitGrassSurface)
-        return (int)lastHitGrassSurface->grassPatchGroup.patches.size();
+    if (auto* gs = targetGrassSurface.Get())
+        return (int)gs->grassPatchGroup.patches.size();
     return 0;
 }
 
 void GrassSurfacePaintTool::ClampMeshIndex()
 {
-    if (lastHitGrassSurface && !lastHitGrassSurface->grassPatchGroup.patchMeshes.empty())
+    if (auto* gs = targetGrassSurface.Get())
     {
-        int maxIndex = (int)lastHitGrassSurface->grassPatchGroup.patchMeshes.size() - 1;
-        if (meshIndex > maxIndex)
-            meshIndex = maxIndex;
+        if (!gs->grassPatchGroup.patchMeshes.empty())
+        {
+            int maxIndex = (int)gs->grassPatchGroup.patchMeshes.size() - 1;
+            if (meshIndex > maxIndex)
+                meshIndex = maxIndex;
+        }
+        else
+        {
+            meshIndex = 0;
+        }
     }
     else
     {
@@ -276,8 +270,8 @@ void GrassSurfacePaintTool::ClampMeshIndex()
 
 std::string GrassSurfacePaintTool::GetTargetName() const
 {
-    if (lastHitObject)
-        return lastHitObject->GetName();
+    if (auto* gs = targetGrassSurface.Get())
+        return gs->GetGameObject() ? gs->GetGameObject()->GetName() : gs->GetName();
     return "None";
 }
 

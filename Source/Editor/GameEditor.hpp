@@ -14,6 +14,7 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
+class GrassSurface;
 class WeilanEngine;
 namespace Editor
 {
@@ -48,6 +49,7 @@ public:
 
     EditorContext* GetEditorContext() { return editorContext.get(); }
     void SetActiveSceneEditorTool(SceneEditorTool* tool);
+    void OpenGrassSurfacePaintWindow(GrassSurface* gs);
 
 private:
     void EnableMultiViewport();

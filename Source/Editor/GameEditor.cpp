@@ -3,6 +3,8 @@
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Editor/Windows/GrassSurfacePaintWindow.hpp"
+#include "Editor/Tools/GrassSurfacePaintTool.hpp"
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Assert.hpp"
@@ -774,6 +776,36 @@ void GameEditor::SetActiveSceneEditorTool(SceneEditorTool* tool)
 {
     if (sceneEditor)
         sceneEditor->SetActiveTool(tool);
+}
+
+void GameEditor::OpenGrassSurfacePaintWindow(GrassSurface* gs)
+{
+    GrassSurfacePaintWindow* existing = nullptr;
+    for (auto& w : activeWindows)
+    {
+        existing = dynamic_cast<GrassSurfacePaintWindow*>(w.get());
+        if (existing)
+            break;
+    }
+
+    if (existing)
+    {
+        existing->SetTargetGrassSurface(gs);
+    }
+    else
+    {
+        auto w = std::unique_ptr<GrassSurfacePaintWindow>(new GrassSurfacePaintWindow());
+        w->SetTargetGrassSurface(gs);
+        w->OnOpen();
+        existing = w.get();
+        activeWindows.push_back(std::move(w));
+    }
+
+    if (auto* tool = existing->GetTool())
+    {
+        SetActiveSceneEditorTool(tool);
+        existing->SetToolActive(true);
+    }
 }
 
 void GameEditor::DrawInspectorWithUndo(Object* object, InspectorBase* inspector)

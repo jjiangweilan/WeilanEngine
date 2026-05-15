@@ -1,4 +1,5 @@
 #include "Editor/EditorState.hpp"
+#include "Editor/GameEditor.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/Object/Component/GrassSurface.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
@@ -14,6 +15,11 @@ public:
         GrassSurface* grassSurface = target;
         if (grassSurface == nullptr)
             return;
+
+        if (ImGui::Button("Open Paint Tool"))
+        {
+            editor.OpenGrassSurfacePaintWindow(grassSurface);
+        }
 
         auto& group = grassSurface->grassPatchGroup;
 
