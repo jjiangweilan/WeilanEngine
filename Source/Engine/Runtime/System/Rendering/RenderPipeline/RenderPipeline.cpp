@@ -323,7 +323,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             renderingData
         );
 
-        shadingPass->ExecuteGrassLighting(*cmd, albedoGBuffer);
+        shadingPass->ExecuteGrassLighting(*cmd, albedoGBuffer, ambientOcclusion);
 
         cmd->EndRenderPass();
 

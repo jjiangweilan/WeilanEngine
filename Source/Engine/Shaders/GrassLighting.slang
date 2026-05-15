@@ -26,6 +26,7 @@ ParameterBlock<PerScene> perScene;
 struct GrassLightingInput
 {
     Sampler2D albedoTex;
+    Sampler2D ambientOcclusion;
 }
 
 [Material]
@@ -57,5 +58,6 @@ VertexOutput VertexMain(uint id : SV_VertexID)
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float3 albedo = perMaterial.albedoTex.Sample(input.uv).xyz;
-    return float4(albedo, 1.0);
+    float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
+    return float4(albedo * ao, 1.0);
 }

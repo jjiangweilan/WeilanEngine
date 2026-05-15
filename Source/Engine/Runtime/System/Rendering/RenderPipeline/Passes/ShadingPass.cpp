@@ -85,13 +85,15 @@ void ShadingPass::Execute(
 
 void ShadingPass::ExecuteGrassLighting(
     Gfx::CommandBuffer& cmd,
-    const Gfx::ImageIdentifier& albedoGBuffer
+    const Gfx::ImageIdentifier& albedoGBuffer,
+    const Gfx::ImageIdentifier& ambientOcclusion
 )
 {
     auto grassLightingProgram = grassLightingShader->GetShaderProgram();
     int materialSet = grassLightingShader->GetSet(Gfx::DescriptorSetSemantics::Material);
 
     grassLightingResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
+    grassLightingResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusion);
     cmd.BindResource(materialSet, grassLightingResource.get());
     cmd.BindShaderProgram(grassLightingProgram, MakeStencilReadConfig(*grassLightingProgram->GetDefaultShaderConfig(), 2));
     cmd.Draw(6, 1, 0, 0);

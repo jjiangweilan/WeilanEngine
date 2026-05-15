@@ -32,7 +32,8 @@ public:
 
     void ExecuteGrassLighting(
         Gfx::CommandBuffer& cmd,
-        const Gfx::ImageIdentifier& albedoGBuffer
+        const Gfx::ImageIdentifier& albedoGBuffer,
+        const Gfx::ImageIdentifier& ambientOcclusion
     );
 
     void UploadGPUParameter(
