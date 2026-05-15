@@ -35,10 +35,9 @@ public:
         {
             ImGui::PushID(i);
             ObjPtr<Texture>& tex = (i == 0) ? group.config.grassShadowMask0 : group.config.grassShadowMask1;
-            std::string label = tex.Get() ? tex->GetName() : "Slot " + std::to_string(i) + ": <empty>";
-            ImGui::Text("%s", label.c_str());
-            Texture* droppedTex = nullptr;
-            if (EditorGUI::DropZone<Texture>("Drop Texture", droppedTex))
+            Texture* droppedTex = tex.Get();
+            auto editorName = fmt::format("AmbientMask {}", i);
+            if (EditorGUI::DropZone<Texture>(editorName.c_str(), droppedTex))
             {
                 tex = droppedTex;
             }
@@ -50,13 +49,12 @@ public:
         EditorGUI::SeparatorTextLabeled("Wind");
         {
             ObjPtr<Texture>& tex = group.config.windTex;
-            std::string label = tex.Get() ? tex->GetName() : "Wind: <empty>";
-            ImGui::Text("%s", label.c_str());
-            Texture* droppedTex = nullptr;
-            if (EditorGUI::DropZone<Texture>("Drop Wind Texture", droppedTex))
+            Texture* droppedTex = tex.Get();
+            if (EditorGUI::DropZone<Texture>("Wind Texture", droppedTex))
             {
                 tex = droppedTex;
             }
+            ImGui::DragFloat("Wind Scale", &group.config.windScale, 0.01f, 0.0f, 100.0f, "%.2f");
         }
 
         EditorGUI::SeparatorTextLabeled("Color Ramp");
@@ -94,7 +92,8 @@ public:
             {
                 group.patches.erase(
                     std::remove_if(
-                        group.patches.begin(), group.patches.end(),
+                        group.patches.begin(),
+                        group.patches.end(),
                         [i](const GrassPatch& patch)
                         {
                             return patch.meshIndex == i;

@@ -26,6 +26,7 @@ struct [[SerClass]] GrassConfig
     float4 grassMaskUVScaler = {1.0f, 1.0f, 1.0f, 1.0f};
     float hueShift_0 = 0.0f;
     float hueShift_1 = 0.0f;
+    float windScale = 1.0f;
 };
 
 struct [[SerClass]] GrassPatchGroup

@@ -37,6 +37,7 @@ void Serialize(Serializer* s, const GrassConfig* val)
     s->Serialize("grassMaskUVScaler", val->grassMaskUVScaler);
     s->Serialize("hueShift_0", val->hueShift_0);
     s->Serialize("hueShift_1", val->hueShift_1);
+    s->Serialize("windScale", val->windScale);
 }
 
 void Deserialize(Serializer* s, GrassConfig* val)
@@ -55,6 +56,7 @@ void Deserialize(Serializer* s, GrassConfig* val)
     s->Deserialize("grassMaskUVScaler", val->grassMaskUVScaler);
     s->Deserialize("hueShift_0", val->hueShift_0);
     s->Deserialize("hueShift_1", val->hueShift_1);
+    s->Deserialize("windScale", val->windScale);
 }
 
 

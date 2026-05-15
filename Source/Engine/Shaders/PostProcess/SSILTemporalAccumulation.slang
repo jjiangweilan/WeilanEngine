@@ -72,7 +72,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
 
     float2 uv = (float2(coord) + 0.5) * perMaterial.rtSize.zw;
-    float4 currentSsil = perMaterial.currentSsilTex.Load(int3(coord, 0));
+    float4 currentSsil = perMaterial.currentSsilTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0);
     float currentDepth = perMaterial.hierarchyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).x;
 
     if (currentDepth <= 0.0000001)
@@ -96,7 +96,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    float3 currentNormal = normalize(DecodeGBufferNormal(perMaterial.normalTex.Load(int3(coord, 0)).xyz));
+    float3 currentNormal = normalize(DecodeGBufferNormal(perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz));
     float3 historyNormal = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUv, 0).xyz));
     float3 currentPos = ReconstructWorldPos(uv, currentDepth);
     float3 historyPos = ReconstructPreviousWorldPos(prevUv, historyDepth);

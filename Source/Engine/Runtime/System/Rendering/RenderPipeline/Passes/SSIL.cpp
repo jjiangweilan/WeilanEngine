@@ -138,8 +138,8 @@ void SSIL::Execute(
 
     cmd->BeginLabel("SSIL", {0.1, 0.4, 0.6, 1.0});
 
-    int width = renderingData.screenSize.x / 2;
-    int height = renderingData.screenSize.y / 2;
+    int width = (int(renderingData.screenSize.x) + 1) / 2;
+    int height = (int(renderingData.screenSize.y) + 1) / 2;
 
     Gfx::RenderImageDescriptor desc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat);
     desc.SetRandomWrite(true);

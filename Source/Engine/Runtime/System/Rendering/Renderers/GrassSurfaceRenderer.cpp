@@ -90,6 +90,7 @@ void GrassSurfaceRenderer::Draw(
     grassParam.grassMaskUVScaler = group.config.grassMaskUVScaler;
     grassParam.hueShift_0 = group.config.hueShift_0;
     grassParam.hueShift_1 = group.config.hueShift_1;
+    grassParam.windScale = group.config.windScale;
     renderingData.pipelineAllocator->AllocateBuffer(grassParamBuffer, sizeof(GrassParam));
     grassParamBuffer.Write((void*)&grassParam, sizeof(GrassParam));
 

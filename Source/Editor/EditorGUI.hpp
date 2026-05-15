@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Core/Object.hpp"
 #include "Editor/EditorState.hpp"
 #include "Engine/Library/EnumFlags.hpp"
@@ -456,14 +457,47 @@ public:
     template <typename T>
     static bool DropZone(const char* label, T*& outObj, float height = 40.0f)
     {
-        DropZoneVisual(label, -1.0f, height);
-        Object* obj = nullptr;
-        if (DragDropTarget(typeid(T), obj))
+        if constexpr (std::is_same_v<T, Texture>)
         {
-            outObj = static_cast<T*>(obj);
-            return true;
+            if (outObj != nullptr)
+            {
+                auto objName = fmt::format("{}: {}", label, outObj->GetName());
+                ImGui::Text("%s", objName.c_str());
+                ImGui::Image(&outObj->GetGfxImage()->GetDefaultImageView(), {100, 100});
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                {
+                    EditorState::SelectObject(outObj);
+                }
+                auto regionMin = ImGui::GetItemRectMin();
+                auto regionMax = ImGui::GetItemRectMax();
+                Object* obj = nullptr;
+                if (DragDropTarget(typeid(T), obj, {regionMin, regionMax}))
+                {
+                    outObj = static_cast<T*>(obj);
+                    return true;
+                }
+                return false;
+            }
+            DropZoneVisual(label, -1.0f, height);
+            Object* obj = nullptr;
+            if (DragDropTarget(typeid(T), obj))
+            {
+                outObj = static_cast<T*>(obj);
+                return true;
+            }
+            return false;
         }
-        return false;
+        else
+        {
+            DropZoneVisual(label, -1.0f, height);
+            Object* obj = nullptr;
+            if (DragDropTarget(typeid(T), obj))
+            {
+                outObj = static_cast<T*>(obj);
+                return true;
+            }
+            return false;
+        }
     }
 
     static bool DropZone(const char* label, AssetPath& outPath, float height = 40.0f)

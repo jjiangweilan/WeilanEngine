@@ -106,14 +106,14 @@ Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInst
     scale = lerp(0.9, 1.15, scale);
 
     Varyings output;
+    float3 positionWS = input.position * pconst.scale * scale + instanceData.position;
+    positionWS.xz += params.windMask.SampleLevel(params._LinearRepeatSampler, (positionWS.xz + perScene.scene.time) / 8.0f, 0).xy * (1 - input.properties.y) * params.grassParam.windScale;
+
+    output.positionWS = positionWS;
     output.normalWS = normalize(input.normal);
     output.position = perScene.WorldToClipSpace(output.positionWS);
     output.colorSelection = int(input.properties.x) % 3;
 
-    float3 positionWS = input.position * pconst.scale * scale + instanceData.position;
-    positionWS.xz += params.windMask.SampleLevel(params._LinearRepeatSampler, positionWS.xz, 0).xy * input.properties.y * params.grassParam.windScale;
-
-    output.positionWS = positionWS;
     return output;
 }
 
