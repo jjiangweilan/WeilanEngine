@@ -16,6 +16,7 @@ struct [[SerClass]] GrassConfig
     float scale = 1.0f;
     ObjPtr<Texture> grassShadowMask0;
     ObjPtr<Texture> grassShadowMask1;
+    ObjPtr<Texture> windTex;
     float4 grassColorRamp_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
     float4 grassColorRamp_Top = {0.6f, 0.9f, 0.2f, 1.0f};
     float4 grassColorRamp2_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};

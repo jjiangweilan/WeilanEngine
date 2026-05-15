@@ -33,6 +33,7 @@ struct GrassParam
 
     float hueShift_0;
     float hueShift_1;
+    float windScale;
 };
 
 struct GrassParams
@@ -42,6 +43,7 @@ struct GrassParams
     Texture2D grassShadowMask0;
     Texture2D grassShadowMask1;
     Texture2D blueNoise;
+    Texture2D windMask;
     SamplerState _PointClampSampler;
     SamplerState _LinearClampSampler;
     SamplerState _LinearRepeatSampler;
@@ -68,7 +70,7 @@ struct Attributes
 {
     float3 position : POSITION;
     float3 normal : NORMAL;
-    float2 islandIndex : TEXCOORD1;
+    float2 properties : TEXCOORD1;
 };
 
 struct Varyings
@@ -104,10 +106,14 @@ Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInst
     scale = lerp(0.9, 1.15, scale);
 
     Varyings output;
-    output.positionWS = input.position * pconst.scale * scale + instanceData.position;
     output.normalWS = normalize(input.normal);
     output.position = perScene.WorldToClipSpace(output.positionWS);
-    output.colorSelection = int(input.islandIndex.x) % 3;
+    output.colorSelection = int(input.properties.x) % 3;
+
+    float3 positionWS = input.position * pconst.scale * scale + instanceData.position;
+    positionWS.xz += params.windMask.SampleLevel(params._LinearRepeatSampler, positionWS.xz, 0).xy * input.properties.y * params.grassParam.windScale;
+
+    output.positionWS = positionWS;
     return output;
 }
 

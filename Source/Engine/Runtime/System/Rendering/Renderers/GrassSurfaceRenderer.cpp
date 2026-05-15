@@ -122,6 +122,11 @@ void GrassSurfaceRenderer::Draw(
         paramsBindings.push_back(Gfx::DynamicBinding("grassShadowMask1", *image));
     }
     paramsBindings.push_back(Gfx::DynamicBinding("blueNoise", *renderingData.blueNoise.GetNoiseTexture()));
+    if (group.config.windTex != nullptr)
+    {
+        auto image = group.config.windTex->GetGfxImage();
+        paramsBindings.push_back(Gfx::DynamicBinding("windMask", *image));
+    }
 
     cmd.BindResource(paramsSetIndex, paramsBindings);
     cmd.BindShaderProgram(shaderProgram, config);

@@ -97,6 +97,48 @@ static ContextGather debugGatherContext;
 groupshared float3 g_sharedSamples[64];
 #endif
 
+float2 SSILFrameJitter(uint frameIndex)
+{
+    // Irrational increments avoid repeating the same blue-noise phase every frame.
+    return frac(float2(0.754877666f, 0.569840291f) * float(frameIndex + 1));
+}
+
+float2 SSILBlueNoise(uint2 pixelCoord, uint frameIndex)
+{
+    uint2 tileOffset = uint2(frameIndex * 47u, frameIndex * 17u);
+    float2 noise = perMaterial.blueNoise[(pixelCoord + tileOffset) % 128];
+    return frac(noise + SSILFrameJitter(frameIndex));
+}
+
+float SSILHash(uint2 pixelCoord, uint frameIndex, uint sliceIndex, uint sampleIndex, uint dimension)
+{
+    uint seed = pixelCoord.x * 0x9e3779b9u;
+    seed ^= pixelCoord.y * 0x85ebca6bu;
+    seed ^= frameIndex * 0xc2b2ae35u;
+    seed ^= sliceIndex * 0x27d4eb2fu;
+    seed ^= sampleIndex * 0x165667b1u;
+    seed ^= dimension * 0xd3a2646cu;
+    seed ^= seed >> 16;
+    seed *= 0x7feb352du;
+    seed ^= seed >> 15;
+    seed *= 0x846ca68bu;
+    seed ^= seed >> 16;
+    return float(seed & 0x00ffffffu) / 16777216.0f;
+}
+
+void BuildSurfaceBasis(float3 normalVS, float3 viewVS, out float3 tangentVS, out float3 binormalVS)
+{
+    float3 viewTangent = viewVS - normalVS * dot(viewVS, normalVS);
+    if (dot(viewTangent, viewTangent) < 1e-4f)
+    {
+        float3 fallback = abs(normalVS.y) < 0.999f ? float3(0.0f, 1.0f, 0.0f) : float3(1.0f, 0.0f, 0.0f);
+        viewTangent = fallback - normalVS * dot(fallback, normalVS);
+    }
+
+    tangentVS = normalize(viewTangent);
+    binormalVS = normalize(cross(normalVS, tangentVS));
+}
+
 float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 {
     SSILPassData passData = SSILPassData(uv);
@@ -118,15 +160,13 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     float ao = 0;
     float totalWeight = 0;
 
-    // use view axis aligned direction can enable the opportunity to use de-interaved texture sampling
     float3 tangentVS = float3(1,0,0);
     float3 binormaVS = float3(0,1,0);
-    // float3 upVS = normalVS;
-    // float3 tangentVS = normalize(cross(all(upVS == float3(1, 0, 0)) ? float3(0, 1, 0) : float3(1,0,0), upVS));
-    // float3 binormaVS = cross(upVS, tangentVS);
+    BuildSurfaceBasis(normalVS, viewVS, tangentVS, binormaVS);
 
-    float2 noise = perMaterial.blueNoise[uint2(screenPos) % 128];
-    float jitter = noise.x;
+    uint frameIndex = (uint)perScene.scene.frameIndex;
+    uint2 pixelCoord = uint2(screenPos);
+    float2 noise = SSILBlueNoise(pixelCoord, frameIndex);
 
 #if DEBUG_DRAW
     if (debug)
@@ -153,9 +193,11 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
         uint bits_i = 0;
 
 #if SSIL_USE_SHARED_SAMPLES
-        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + jitter  * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
+        float sliceJitter = frac(noise.x + SSILHash(pixelCoord, frameIndex, sliceIndex, subsliceIndex, 0u));
+        float phi = SSIL_PI * float(sliceIndex + 0.5 * subsliceIndex + sliceJitter * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
 #else
-        float phi = SSIL_PI * float(sliceIndex + jitter * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
+        float sliceJitter = frac(noise.x + SSILHash(pixelCoord, frameIndex, sliceIndex, 0u, 0u));
+        float phi = SSIL_PI * float(sliceIndex + sliceJitter * perMaterial.jitterScale) / SSIL_SLICE_COUNT;
 #endif
 
         float2 sampleDir = normalize(float2(cos(phi), -sin(phi)));
@@ -177,7 +219,8 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float sampleUvDirLenSq = dot(sampleUvDir, sampleUvDir);
                 if (sampleUvDirLenSq > 0.0)
                 {
-                    sampleUV += (noise.y * 2 - 1)
+                    float sampleJitter = frac(noise.y + SSILHash(pixelCoord, frameIndex, sliceIndex, (uint)sampleIndex, 1u));
+                    sampleUV += (sampleJitter * 2 - 1)
                         * sampleUvDir * rsqrt(sampleUvDirLenSq)
                         * perMaterial.rtSize.zw
                         * perMaterial.sampleJitterScale;

@@ -27,6 +27,7 @@ void Serialize(Serializer* s, const GrassConfig* val)
     s->Serialize("scale", val->scale);
     s->Serialize("grassShadowMask0", val->grassShadowMask0);
     s->Serialize("grassShadowMask1", val->grassShadowMask1);
+    s->Serialize("windTex", val->windTex);
     s->Serialize("grassColorRamp_Bottom", val->grassColorRamp_Bottom);
     s->Serialize("grassColorRamp_Top", val->grassColorRamp_Top);
     s->Serialize("grassColorRamp2_Bottom", val->grassColorRamp2_Bottom);
@@ -44,6 +45,7 @@ void Deserialize(Serializer* s, GrassConfig* val)
     s->Deserialize("scale", val->scale);
     s->Deserialize("grassShadowMask0", val->grassShadowMask0);
     s->Deserialize("grassShadowMask1", val->grassShadowMask1);
+    s->Deserialize("windTex", val->windTex);
     s->Deserialize("grassColorRamp_Bottom", val->grassColorRamp_Bottom);
     s->Deserialize("grassColorRamp_Top", val->grassColorRamp_Top);
     s->Deserialize("grassColorRamp2_Bottom", val->grassColorRamp2_Bottom);

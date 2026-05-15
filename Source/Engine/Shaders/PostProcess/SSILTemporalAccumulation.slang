@@ -109,12 +109,12 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    float4 neighborhoodMin;
-    float4 neighborhoodMax;
-    GetNeighborhoodMinMax(coord, neighborhoodMin, neighborhoodMax);
+    // float4 neighborhoodMin;
+    // float4 neighborhoodMax;
+    // GetNeighborhoodMinMax(coord, neighborhoodMin, neighborhoodMax);
 
     float4 historySsil = perMaterial.historySsilTex.SampleLevel(perMaterial.sampler_linear_clamp, prevUv, 0);
-    historySsil = clamp(historySsil, neighborhoodMin, neighborhoodMax);
+    // historySsil = clamp(historySsil, neighborhoodMin, neighborhoodMax);
 
     perMaterial.outSsilTex[coord] = lerp(currentSsil, historySsil, saturate(perMaterial.historyWeight));
 }

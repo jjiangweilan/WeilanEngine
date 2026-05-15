@@ -47,6 +47,18 @@ public:
         ImGui::DragFloat2("Mask 0 UV Scaler (XY)", &group.config.grassMaskUVScaler[0], 0.01f, 0.01f, 100.0f, "%.2f");
         ImGui::DragFloat2("Mask 1 UV Scaler (ZW)", &group.config.grassMaskUVScaler[2], 0.01f, 0.01f, 100.0f, "%.2f");
 
+        EditorGUI::SeparatorTextLabeled("Wind");
+        {
+            ObjPtr<Texture>& tex = group.config.windTex;
+            std::string label = tex.Get() ? tex->GetName() : "Wind: <empty>";
+            ImGui::Text("%s", label.c_str());
+            Texture* droppedTex = nullptr;
+            if (EditorGUI::DropZone<Texture>("Drop Wind Texture", droppedTex))
+            {
+                tex = droppedTex;
+            }
+        }
+
         EditorGUI::SeparatorTextLabeled("Color Ramp");
         ImGui::ColorEdit4("Ramp 1 Bottom", &group.config.grassColorRamp_Bottom[0]);
         ImGui::ColorEdit4("Ramp 1 Top", &group.config.grassColorRamp_Top[0]);
