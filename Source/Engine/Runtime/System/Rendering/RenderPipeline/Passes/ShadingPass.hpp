@@ -30,6 +30,11 @@ public:
         RenderingData& renderingData
     );
 
+    void ExecuteGrassLighting(
+        Gfx::CommandBuffer& cmd,
+        const Gfx::ImageIdentifier& albedoGBuffer
+    );
+
     void UploadGPUParameter(
         float4 shadowMapTexelSize,
         float shadowConstantBias,
@@ -47,6 +52,8 @@ private:
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
     std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
     ObjPtr<Shader> shadingShader;
+    ObjPtr<Shader> grassLightingShader;
+    std::unique_ptr<Gfx::ShaderResource> grassLightingResource;
     Texture* brdfPreIntegeral;
 };
 } // namespace Rendering::Passes

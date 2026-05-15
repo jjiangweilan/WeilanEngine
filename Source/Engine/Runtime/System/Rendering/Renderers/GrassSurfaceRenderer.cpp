@@ -9,23 +9,19 @@ GrassSurfaceRenderer::GrassSurfaceRenderer()
     grass = ShaderLibrary::GetShader(Shaders::Grass);
     paramsSetIndex = grass->GetSet("params");
     instanceBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer InstanceBuffer", PipelineGPUBufferUsage::Stoage);
-    lightingInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer LightingInput", PipelineGPUBufferUsage::Uniform);
+    grassParamBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("GrassSurfaceRenderer GrassParam", PipelineGPUBufferUsage::Uniform);
 }
 
 GrassSurfaceRenderer::~GrassSurfaceRenderer()
 {
-    PipelineGPUBufferAllocator::ReturnBuffer(lightingInputBuffer);
     PipelineGPUBufferAllocator::ReturnBuffer(instanceBuffer);
+    PipelineGPUBufferAllocator::ReturnBuffer(grassParamBuffer);
 }
 
 void GrassSurfaceRenderer::Draw(
     GrassSurface& grassSurface,
     Gfx::CommandBuffer& cmd,
-    const Rendering::RenderingData& renderingData,
-    Gfx::ImageView* shadowMap,
-    const Gfx::ImageIdentifier& contactShadowMap,
-    Gfx::ImageView* pointLightShadowMap,
-    const GPUParameter::DeferredPBRShadingInput& lightingInput
+    const Rendering::RenderingData& renderingData
 )
 {
     if (!grassSurface.IsActiveInScene())
@@ -85,7 +81,6 @@ void GrassSurfaceRenderer::Draw(
     instanceBuffer.Write(instances.data(), instances.size() * sizeof(GrassPatchInstanceData));
 
     GrassParam grassParam;
-    grassParam.input = lightingInput;
     grassParam.grassColorRamp_Bottom = group.config.grassColorRamp_Bottom;
     grassParam.grassColorRamp_Top = group.config.grassColorRamp_Top;
     grassParam.grassColorRamp2_Bottom = group.config.grassColorRamp2_Bottom;
@@ -95,11 +90,18 @@ void GrassSurfaceRenderer::Draw(
     grassParam.grassMaskUVScaler = group.config.grassMaskUVScaler;
     grassParam.hueShift_0 = group.config.hueShift_0;
     grassParam.hueShift_1 = group.config.hueShift_1;
-    renderingData.pipelineAllocator->AllocateBuffer(lightingInputBuffer, sizeof(GrassParam));
-    lightingInputBuffer.Write((void*)&grassParam, sizeof(GrassParam));
+    renderingData.pipelineAllocator->AllocateBuffer(grassParamBuffer, sizeof(GrassParam));
+    grassParamBuffer.Write((void*)&grassParam, sizeof(GrassParam));
 
     Gfx::ShaderProgram* shaderProgram = grass->GetShaderProgram();
     auto config = *shaderProgram->GetDefaultShaderConfig();
+    config.stencil.testEnable = true;
+    config.stencil.front.passOp = Gfx::StencilOp::Replace;
+    config.stencil.front.compareOp = Gfx::CompareOp::Always;
+    config.stencil.front.compareMask = 0xFF;
+    config.stencil.front.writeMask = 0xFF;
+    config.stencil.front.reference = 2;
+    config.stencil.back = config.stencil.front;
     if (renderingData.renderPipelineSettings->debugDraw.wireframe)
     {
         config.polygonMode = Gfx::PolygonMode::Line;
@@ -107,14 +109,8 @@ void GrassSurfaceRenderer::Draw(
 
     std::vector<Gfx::DynamicBinding> paramsBindings = {
         Gfx::DynamicBinding("instanceData", *instanceBuffer.GetBuffer()),
-        Gfx::DynamicBinding("params", *lightingInputBuffer.GetBuffer()),
-        Gfx::DynamicBinding("shadowMap", *shadowMap),
-        Gfx::DynamicBinding("contactShadowMap", contactShadowMap),
+        Gfx::DynamicBinding("params", *grassParamBuffer.GetBuffer()),
     };
-    if (pointLightShadowMap != nullptr)
-    {
-        paramsBindings.push_back(Gfx::DynamicBinding("pointLightShadowMap", *pointLightShadowMap));
-    }
     if (group.config.grassShadowMask0 != nullptr)
     {
         auto image = group.config.grassShadowMask0->GetGfxImage();

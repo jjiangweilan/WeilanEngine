@@ -3,7 +3,6 @@
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/Image.hpp"
 #include "Engine/Driver/GfxDriver/ImageView.hpp"
-#include "Engine/Runtime/System/Rendering/GPUParameter.hpp"
 #include "Engine/Runtime/System/Rendering/PipelineGPUBufferAllocator.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 #include "GrassSurfaceStructs.hpp"
@@ -17,11 +16,7 @@ public:
     void Draw(
         GrassSurface& grassSurface,
         Gfx::CommandBuffer& cmd,
-        const Rendering::RenderingData& renderingData,
-        Gfx::ImageView* shadowMap,
-        const Gfx::ImageIdentifier& contactShadowMap,
-        Gfx::ImageView* pointLightShadowMap,
-        const GPUParameter::DeferredPBRShadingInput& lightingInput
+        const Rendering::RenderingData& renderingData
     );
 
 private:
@@ -42,7 +37,6 @@ private:
 
     struct GrassParam
     {
-        GPUParameter::DeferredPBRShadingInput input;
         glm::float4 grassColorRamp_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
         glm::float4 grassColorRamp_Top = {0.6f, 0.9f, 0.2f, 1.0f};
         glm::float4 grassColorRamp2_Bottom = {0.1f, 0.3f, 0.05f, 1.0f};
@@ -52,12 +46,11 @@ private:
         glm::float4 grassMaskUVScaler = {1.0f, 1.0f, 1.0f, 1.0f};
         float hueShift_0 = 0.0f;
         float hueShift_1 = 0.0f;
-        uint32_t padding[2] = {};
     };
 
     ObjPtr<Shader> grass;
     PipelineGPUBuffer instanceBuffer;
-    PipelineGPUBuffer lightingInputBuffer;
+    PipelineGPUBuffer grassParamBuffer;
     std::vector<GrassPatchInstanceData> instances;
     std::vector<GrassPatchBatch> batches;
     int paramsSetIndex = 0;

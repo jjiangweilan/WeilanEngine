@@ -181,7 +181,7 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->transparentIndex = this->size();
 }
 
-void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride) const
+void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride) const
 {
     for (int i = from; i < to; ++i)
     {
@@ -189,18 +189,19 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
         auto shaderProgram = draw.material->GetShaderProgram();
         if (shaderProgram)
         {
-            // cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-            // cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
             if (draw.materialSet != -1 && draw.materialResource)
                 cmd.BindResource(draw.materialSet, draw.materialResource);
             if (draw.objectSet && draw.objectResource)
                 cmd.BindResource(draw.objectSet, draw.objectResource);
 
-            // Apply polygon mode override if specified
-            if (polygonModeOverride.has_value())
+            bool configModified = polygonModeOverride.has_value() || stencilOverride.has_value();
+            if (configModified)
             {
                 auto modifiedConfig = **draw.shaderConfig;
-                modifiedConfig.polygonMode = polygonModeOverride.value();
+                if (polygonModeOverride.has_value())
+                    modifiedConfig.polygonMode = polygonModeOverride.value();
+                if (stencilOverride.has_value())
+                    modifiedConfig.stencil = stencilOverride.value();
                 cmd.BindShaderProgram(shaderProgram, modifiedConfig);
             }
             else

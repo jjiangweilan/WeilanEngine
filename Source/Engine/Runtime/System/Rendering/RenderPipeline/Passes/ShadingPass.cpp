@@ -6,6 +6,24 @@
 
 namespace Rendering::Passes
 {
+static Gfx::PipelineConfig::PipelineConfig_t MakeStencilReadConfig(
+    const Gfx::PipelineConfig& baseConfig,
+    uint32_t reference
+)
+{
+    auto config = *baseConfig;
+    config.stencil.testEnable = true;
+    config.stencil.front.failOp = Gfx::StencilOp::Keep;
+    config.stencil.front.passOp = Gfx::StencilOp::Keep;
+    config.stencil.front.depthFailOp = Gfx::StencilOp::Keep;
+    config.stencil.front.compareOp = Gfx::CompareOp::Equal;
+    config.stencil.front.compareMask = 0xFF;
+    config.stencil.front.writeMask = 0;
+    config.stencil.front.reference = reference;
+    config.stencil.back = config.stencil.front;
+    return config;
+}
+
 ShadingPass::ShadingPass()
 {
     gpuResource = GetGfxDriver()->CreateShaderResource();
@@ -20,6 +38,9 @@ ShadingPass::ShadingPass()
     brdfPreIntegeral = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/BRDFPreintegral.ktx");
     gpuResource->SetImage("specularBRDFIntegrationMap", brdfPreIntegeral->GetGfxImage());
     shadingShader = ShaderLibrary::GetShader(Shaders::DeferredPBRShading);
+
+    grassLightingShader = ShaderLibrary::GetShader(Shaders::GrassLighting);
+    grassLightingResource = GetGfxDriver()->CreateShaderResource();
 }
 
 void ShadingPass::OnInit(RenderingData* renderingData)
@@ -58,7 +79,21 @@ void ShadingPass::Execute(
         gpuResource->SetImage("pointLightShadowMap"_shaderBinding, pointLightShadowMap);
 
     cmd.BindResource(1, gpuResource.get());
-    cmd.BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shadingShader, MakeStencilReadConfig(*shadingShader->GetDefaultShaderConfig(), 1));
+    cmd.Draw(6, 1, 0, 0);
+}
+
+void ShadingPass::ExecuteGrassLighting(
+    Gfx::CommandBuffer& cmd,
+    const Gfx::ImageIdentifier& albedoGBuffer
+)
+{
+    auto grassLightingProgram = grassLightingShader->GetShaderProgram();
+    int materialSet = grassLightingShader->GetSet(Gfx::DescriptorSetSemantics::Material);
+
+    grassLightingResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
+    cmd.BindResource(materialSet, grassLightingResource.get());
+    cmd.BindShaderProgram(grassLightingProgram, MakeStencilReadConfig(*grassLightingProgram->GetDefaultShaderConfig(), 2));
     cmd.Draw(6, 1, 0, 0);
 }
 

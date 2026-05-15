@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/RenderGraph.hpp"
+#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Module/VolumetricCloud/Cloud.hpp"
@@ -135,7 +136,7 @@ class RenderPipeline
     std::vector<GpuDrawExtra> allIndirectCmdsExtra;
 
     void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
-    void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt);
+    void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt);
 
     struct ExecutionState
     {

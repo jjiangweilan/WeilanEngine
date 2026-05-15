@@ -11,7 +11,7 @@ depth:
 stencil:
     testEnable: true
     writeMask: 0
-    reference: 0
+    reference: 1
     compareOp: equal
     compareMask: 0xFF
 #endif

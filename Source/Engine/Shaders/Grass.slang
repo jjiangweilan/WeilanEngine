@@ -2,7 +2,15 @@ import WeilanEngine;
 import Library.PerScene;
 import Lighting;
 import Library.CommonUtils;
-#include "DeferredPBRShadingInput.hlsl"
+
+#if CONFIG
+stencil:
+    testEnable: true
+    writeMask: 0xFF
+    reference: 2
+    passOp: replace
+    compareOp: always
+#endif
 
 struct GrassPatchInstanceData
 {
@@ -12,7 +20,6 @@ struct GrassPatchInstanceData
 
 struct GrassParam
 {
-    DeferredPBRShadingInput input;
     float4 grassColorRamp_Bottom;
     float4 grassColorRamp_Top;
 
@@ -32,17 +39,12 @@ struct GrassParams
 {
     GrassParam grassParam;
     StructuredBuffer<GrassPatchInstanceData> instanceData;
-    Texture2D shadowMap;
-    Texture2D contactShadowMap;
     Texture2D grassShadowMask0;
     Texture2D grassShadowMask1;
     Texture2D blueNoise;
-    TextureCube pointLightShadowMap;
     SamplerState _PointClampSampler;
     SamplerState _LinearClampSampler;
     SamplerState _LinearRepeatSampler;
-    SamplerComparisonState samplerShadow_clamp;
-    SamplerComparisonState samplerShadow;
 };
 
 struct PushConstant
@@ -77,6 +79,14 @@ struct Varyings
     int colorSelection;
 };
 
+struct FragmentOutput
+{
+    float4 color : SV_Target0;
+    float4 albedo : SV_Target1;
+    float4 normal : SV_Target2;
+    float4 property : SV_Target3;
+};
+
 float3 Overlay(float3 color0, float3 colro1, float factor)
 {
     float3 low = 2.0f * color0 * colro1;
@@ -103,19 +113,14 @@ Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInst
 
 float AdjustContrast(float value, float contrast)
 {
-    // value: grayscale value in [0, 1]
-    // contrast: 1.0 = unchanged
-    //           >1.0 = higher contrast
-    //           <1.0 = lower contrast
-
     return saturate((value - 0.5) * contrast + 0.5);
 }
 
 [shader("fragment")]
-float4 Fragment(Varyings input) : SV_Target
+FragmentOutput Fragment(Varyings input)
 {
     float3 pos = input.positionWS;
-    float mask0 = AdjustContrast(params.grassShadowMask0.Sample(params._LinearRepeatSampler, (pos.xz+ perScene.scene.time / 16) * params.grassParam.grassMaskUVScaler.xy).x, 2);
+    float mask0 = AdjustContrast(params.grassShadowMask0.Sample(params._LinearRepeatSampler, (pos.xz + perScene.scene.time / 16) * params.grassParam.grassMaskUVScaler.xy).x, 2);
     float mask1 = AdjustContrast(params.grassShadowMask1.Sample(params._LinearRepeatSampler, (pos.xz + perScene.scene.time / 8) * params.grassParam.grassMaskUVScaler.zw).x, 2);
 
     float3 color0 = 0;
@@ -136,12 +141,13 @@ float4 Fragment(Varyings input) : SV_Target
         color1 = params.grassParam.grassColorRamp3_Top.xyz;
     }
 
-    Light mainLight = perScene.GetMainLight();
-
     float3 maskedColor0 = lerp(color0, color1, mask0);
-    float3 maskedColor1 = lerp(color0, color1, mask1);
+    float3 albedo = maskedColor0;
 
-    float3 albedo = maskedColor0;// * mainLight.lightColor.xyz * mainLight.intensity * 0.1;//Overlay(color0, color1, 0.5);
-
-    return float4(albedo, 1.0f);
+    FragmentOutput output;
+    output.color = float4(0, 0, 0, 0);
+    output.albedo = float4(albedo, 1.0f);
+    output.normal = float4(EncodeGBufferNormal(normalize(input.normalWS)), 0);
+    output.property = float4(0, 0, 0, 0);
+    return output;
 }

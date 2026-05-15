@@ -164,6 +164,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // clear albedo to black
         // masks to 1 (mainly for ao)
+        // stencil to 0 (cleared with depth)
         Gfx::RenderAttachment gbufferAttachments[] = {
             {mainColor, Gfx::AttachmentLoadOperation::Clear},
             {albedoGBuffer, Gfx::AttachmentLoadOperation::Clear},
@@ -177,14 +178,31 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // draw
         std::optional<Gfx::PolygonMode> polygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
 
-        // GPU-driven indirect draw for GPU objects
+        // Stencil override: GBuffer objects write stencil bit 1
+        Gfx::PipelineConfig::PipelineConfig_t::Stencil gbufferStencil;
+        gbufferStencil.testEnable = true;
+        gbufferStencil.front.passOp = Gfx::StencilOp::Replace;
+        gbufferStencil.front.compareOp = Gfx::CompareOp::Always;
+        gbufferStencil.front.compareMask = 0xFF;
+        gbufferStencil.front.writeMask = 0xFF;
+        gbufferStencil.front.reference = 1;
+        gbufferStencil.back = gbufferStencil.front;
+        auto stencilOverride = std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil>(gbufferStencil);
 
+        // GPU-driven indirect draw for GPU objects
         cmd->BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
-        DrawGPUObjects(*cmd, polygonMode);
+        DrawGPUObjects(*cmd, polygonMode, stencilOverride);
 
         // Fallback: normal draw for non-GPU objects
-        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex, polygonMode);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex, polygonMode);
+        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex, polygonMode, stencilOverride);
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex, polygonMode, stencilOverride);
+
+        // Grass surfaces write stencil bit 2
+        cmd->BindResource(0, perScene.GetGlobalResource());
+        for (auto* grassSurface : scene.GetRenderingScene().GetGrassSurfaces())
+        {
+            grassSurfaceRenderer->Draw(*grassSurface, *cmd, renderingData);
+        }
 
         cmd->EndRenderPass();
     }
@@ -261,7 +279,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         Gfx::RenderAttachment lightingPassAttachments[] = {
             {mainColor, Gfx::AttachmentLoadOperation::Load},
-            {mainDepth, Gfx::AttachmentLoadOperation::Load}
+            {mainDepth, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store, Gfx::AttachmentLoadOperation::Load}
         };
         cmd->BeginRenderPass(lightingPassAttachments, lightingPassClearValues);
         shadingPass->Execute(
@@ -278,6 +296,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             pointLightShadowRenderer->GetShadowCubemapView(),
             renderingData
         );
+
+        shadingPass->ExecuteGrassLighting(*cmd, albedoGBuffer);
 
         cmd->EndRenderPass();
 
@@ -348,40 +368,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BindResource(0, perScene.GetGlobalResource());
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
-
-        int plShadowIdx = -1;
-        float plFarPlane = 0.0f;
-        float plDepthBias = 0.0f;
-        glm::vec3 plLightPos = {0, 0, 0};
-        if (renderingData.pointLightShadowIndex >= 0)
-        {
-            plShadowIdx = renderingData.pointLightShadowIndex;
-            plFarPlane = pointLightShadowRenderer->GetFarPlane();
-            plDepthBias = pointLightShadowRenderer->GetDepthBias();
-            plLightPos = pointLightShadowRenderer->GetLightPosition();
-        }
-
-        GPUParameter::DeferredPBRShadingInput grassLightingInput{
-            .shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize(),
-            .shadowConstantBias = setting->shadowMap.constantBias / 1000.0f,
-            .shadowNormalBias = setting->shadowMap.normalBias,
-            .pointLightShadowLightIndex = plShadowIdx,
-            .pointLightShadowFarPlane = plFarPlane,
-            .pointLightShadowLightPosAndBias = {plLightPos.x, plLightPos.y, plLightPos.z, plDepthBias}
-        };
-
-        for (auto* grassSurface : scene.GetRenderingScene().GetGrassSurfaces())
-        {
-            grassSurfaceRenderer->Draw(
-                *grassSurface,
-                *cmd,
-                renderingData,
-                &shadowRenderer->GetShadowMap()->GetDefaultImageView(),
-                contactShadowPass->GetOutputId(),
-                pointLightShadowRenderer->GetShadowCubemapView(),
-                grassLightingInput
-            );
-        }
 
         if (renderConfig.drawGraphics)
         {
@@ -912,7 +898,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     renderingData.gpuDrivenIndirectDrawCount = indirectDrawData.drawCount;
 }
 
-void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride)
+void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride)
 {
     auto* indirectCommandBuffer = renderingData.gpuDrivenIndirectBuffer;
     if (gpuObjectShaderGroups.empty() || !indirectCommandBuffer)
@@ -920,10 +906,14 @@ void RenderPipeline::DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::
 
     for (auto& group : gpuObjectShaderGroups)
     {
-        if (polygonModeOverride.has_value())
+        bool configModified = polygonModeOverride.has_value() || stencilOverride.has_value();
+        if (configModified)
         {
             auto modifiedConfig = **group.pipelineConfig;
-            modifiedConfig.polygonMode = polygonModeOverride.value();
+            if (polygonModeOverride.has_value())
+                modifiedConfig.polygonMode = polygonModeOverride.value();
+            if (stencilOverride.has_value())
+                modifiedConfig.stencil = stencilOverride.value();
             cmd.BindShaderProgram(group.shaderProgram, modifiedConfig);
         }
         else

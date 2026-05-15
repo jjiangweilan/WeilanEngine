@@ -19,6 +19,8 @@ import Lighting;
 // 0 or 1
 #define SSIL_USE_SHARED_SAMPLES 0
 
+#define SSIL_AO_ONLY 1
+
 #define SSIL_SHARED_SAMPLES_SUBSLICE_COUNT 2
 
 #if SSIL_USE_SHARED_SAMPLES
@@ -178,8 +180,8 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).x;
 #if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
-#endif
                 GroupMemoryBarrierWithGroupSync();
+#endif
 
                 if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
                     continue;
@@ -210,12 +212,14 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                     uint bits_j = (uint)pow(2, b) - 1 << a;
 
                     // GI
+#if SSIL_AO_ONLY == 0
                     float3 lighting = perMaterial.colorTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, 0).xyz;
                     float3 normal = GetNormalVS(sampleUV);
                     float3 l = normalize(frontVS.xyz - posVS);
                     float giWeight = countbits(bits_j & ~bits_i) / Nbits * dot(normal, l) * dot(normalVS, -l);
                     indirectLight = indirectLight + giWeight * lighting;
                     lightSamples += 1;
+#endif
 
                     // ao
                     bits_i = bits_i | bits_j;
@@ -240,7 +244,10 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
 
     float sliceCount = SSIL_SLICE_COUNT;
     ao /= sliceCount;
+#if SSIL_AO_ONLY == 0
     indirectLight /= sliceCount;
+#endif
+
 
 #if DEBUG_DRAW
     if (debug)
@@ -277,7 +284,11 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
     }
 #endif
 
+#if SSIL_AO_ONLY == 0
     return perMaterial.strength * max(float4(indirectLight, ao), 0);
+#else
+    return perMaterial.strength * max(float4(ao, ao, ao, ao), 0);
+#endif
 }
 
 [shader("compute")]
