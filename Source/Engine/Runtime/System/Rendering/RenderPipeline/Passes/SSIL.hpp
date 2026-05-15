@@ -1,7 +1,9 @@
 #pragma once
+#include "Engine/Driver/GfxDriver/Image.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelineSetting.hpp"
+#include <memory>
 
 namespace Rendering::Passes
 {
@@ -39,6 +41,7 @@ public:
         const Gfx::ImageIdentifier& hizTex,
         const Gfx::ImageIdentifier& albedoTex,
         const Gfx::ImageIdentifier& normalTex,
+        const Gfx::ImageIdentifier& motionVectorTex,
         const Gfx::ImageIdentifier& targetColor,
         RenderPipelineSetting* setting,
         RenderingData& renderingData
@@ -50,13 +53,23 @@ public:
     bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:
+    void EnsureHistoryBuffers(int width, int height);
+
     Shader* ssilShader;
+    Shader* temporalAccumulationShader;
     Shader* bilateralUpscale;
     Material mat;
+    Material temporalAccumulationMat;
     Gfx::ImageIdentifier ssilRaw = "SSIL_Raw";
+    Gfx::ImageIdentifier ssilUpscaled = "SSIL_Upscaled";
     Gfx::ImageIdentifier ssil = "SSIL_Output";
     Gfx::ImageIdentifier firstFilterPassOutput = "SSIL_Filter1";
     std::unique_ptr<BilateralFilterPass> firstFilterPass;
+
+    std::unique_ptr<Gfx::Image> historySsil;
+    std::unique_ptr<Gfx::Image> historyDepth;
+    std::unique_ptr<Gfx::Image> historyNormal;
+    glm::int2 historySize = {0, 0};
 
     Gfx::PipelineConfig combineConfig;
 

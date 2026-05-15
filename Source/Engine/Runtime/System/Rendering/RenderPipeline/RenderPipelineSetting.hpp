@@ -139,6 +139,10 @@ public:
         float2 debugPoint;
         float filter1DepthDiffSigma = 1.0f;
         float filter2DepthDiffSigma = 1.0f;
+        bool temporalAccumulation = true;
+        float temporalHistoryWeight = 0.9f;
+        float temporalDepthTolerance = 0.02f;
+        float temporalNormalThreshold = 0.9f;
 
         INLINE_DEFINE_SERIALIZABLE(
             SER(enabled),
@@ -152,7 +156,11 @@ public:
             SER(sampleJitterScale),
             SER(debugPoint),
             SER(filter1DepthDiffSigma),
-            SER(filter2DepthDiffSigma)
+            SER(filter2DepthDiffSigma),
+            SER(temporalAccumulation),
+            SER(temporalHistoryWeight),
+            SER(temporalDepthTolerance),
+            SER(temporalNormalThreshold)
         )
     } ssil;
 

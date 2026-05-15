@@ -62,6 +62,10 @@ SSIL::SSIL()
     ssilShader = ShaderLibrary::GetShader(Shaders::PostProcess_SSIL);
     mat.SetShader(ssilShader);
 
+    temporalAccumulationShader = ShaderLibrary::GetShader(Shaders::PostProcess_SSILTemporalAccumulation);
+    temporalAccumulationMat.SetShader(temporalAccumulationShader);
+    temporalAccumulationMat.SetName("SSIL_TemporalAccumulation_Material");
+
     Gfx::PipelineConfig::PipelineConfig_t config;
     config.color.blends.push_back({
         .blendEnable = true,
@@ -81,17 +85,52 @@ SSIL::SSIL()
     firstFilterPass->depthDiffSigma = 1.0f;
 }
 
+void SSIL::EnsureHistoryBuffers(int width, int height)
+{
+    if (historySize.x == width && historySize.y == height)
+        return;
+
+    historySize = {width, height};
+
+    auto usage = Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage |
+                 Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment;
+
+    historySsil = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat),
+        usage
+    );
+    historySsil->SetName("SSIL_History");
+    GetGfxDriver()->InitGfxImage(*historySsil, float4(0, 0, 0, 0));
+
+    historyDepth = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R32_SFloat),
+        usage
+    );
+    historyDepth->SetName("SSIL_HistoryDepth");
+    GetGfxDriver()->InitGfxImage(*historyDepth, float4(0, 0, 0, 0));
+
+    historyNormal = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::A2B10G10R10_UNorm),
+        usage
+    );
+    historyNormal->SetName("SSIL_HistoryNormal");
+    GetGfxDriver()->InitGfxImage(*historyNormal, float4(0, 0, 0, 0));
+}
+
 void SSIL::Execute(
     Gfx::CommandBuffer* cmd,
     const Gfx::ImageIdentifier& colorTex,
     const Gfx::ImageIdentifier& hizTex,
     const Gfx::ImageIdentifier& albedoTex,
     const Gfx::ImageIdentifier& normalTex,
+    const Gfx::ImageIdentifier& motionVectorTex,
     const Gfx::ImageIdentifier& targetColor,
     RenderPipelineSetting* setting,
     RenderingData& renderingData
 )
 {
+    (void)targetColor;
+
     if (!setting->ssil.enabled)
         return;
 
@@ -127,6 +166,7 @@ void SSIL::Execute(
     debugSSIL = setting->ssil.debug_ssilOutput;
 
     auto shaderProgram = mat.GetShaderProgram();
+    cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
     cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
@@ -134,16 +174,64 @@ void SSIL::Execute(
     desc.SetRandomWrite(true);
     desc.SetWidth(renderingData.screenSize.x);
     desc.SetHeight(renderingData.screenSize.y);
-    cmd->AllocateAttachment(ssil, desc);
+    cmd->AllocateAttachment(ssilUpscaled, desc);
     firstFilterPass->Execute(
         cmd,
         ssilRaw,
         {width, height},
         hizTex,
         hizTex,
-        ssil,
+        ssilUpscaled,
         1
     );
+
+    cmd->AllocateAttachment(ssil, desc);
+    if (!setting->ssil.temporalAccumulation)
+    {
+        cmd->Blit(ssilUpscaled, ssil);
+        cmd->EndLabel();
+        return;
+    }
+
+    EnsureHistoryBuffers(renderingData.screenSize.x, renderingData.screenSize.y);
+
+    cmd->BeginLabel("SSIL_TemporalAccumulation", {0.12, 0.42, 0.62, 1.0});
+
+    temporalAccumulationMat.SetTexture("currentSsilTex", GetGfxDriver()->GetImageFromRenderGraph(ssilUpscaled));
+    temporalAccumulationMat.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectorTex));
+    temporalAccumulationMat.SetTexture("hierarchyDepthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
+    temporalAccumulationMat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
+    temporalAccumulationMat.SetTexture("historySsilTex", historySsil.get());
+    temporalAccumulationMat.SetTexture("historyDepthTex", historyDepth.get());
+    temporalAccumulationMat.SetTexture("historyNormalTex", historyNormal.get());
+    temporalAccumulationMat.SetTexture("outSsilTex", GetGfxDriver()->GetImageFromRenderGraph(ssil));
+    temporalAccumulationMat.SetVector(
+        "rtSize",
+        glm::float4(
+            renderingData.screenSize.x,
+            renderingData.screenSize.y,
+            1.0f / renderingData.screenSize.x,
+            1.0f / renderingData.screenSize.y
+        )
+    );
+    temporalAccumulationMat.SetFloat("historyWeight", setting->ssil.temporalHistoryWeight);
+    temporalAccumulationMat.SetFloat("depthTolerance", setting->ssil.temporalDepthTolerance);
+    temporalAccumulationMat.SetFloat("normalThreshold", setting->ssil.temporalNormalThreshold);
+
+    auto* temporalProgram = temporalAccumulationMat.GetShaderProgram();
+    cmd->BindResource(0, renderingData.globalResource);
+    cmd->BindResource(
+        temporalAccumulationMat.GetSet(Gfx::DescriptorSetSemantics::Material),
+        temporalAccumulationMat.GetShaderResource()
+    );
+    cmd->BindShaderProgram(temporalProgram, temporalProgram->GetDefaultShaderConfig());
+    cmd->Dispatch((renderingData.screenSize.x + 7) / 8, (renderingData.screenSize.y + 7) / 8, 1);
+
+    cmd->EndLabel();
+
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(ssil)), Gfx::ImageIdentifier(*historySsil));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(hizTex)), Gfx::ImageIdentifier(*historyDepth));
+    cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(normalTex)), Gfx::ImageIdentifier(*historyNormal));
 
     cmd->EndLabel();
 }

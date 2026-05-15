@@ -229,7 +229,17 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         ssaoPass->ResetDebugState();
         if (setting->ssil.enabled)
         {
-            ssilPass->Execute(cmd, mainColor, hierarchyZBufferPass->GetOutputId(), albedoGBuffer, normalGBuffer, mainColor, setting.Get(), renderingData);
+            ssilPass->Execute(
+                cmd,
+                mainColor,
+                hierarchyZBufferPass->GetOutputId(),
+                albedoGBuffer,
+                normalGBuffer,
+                staticMotionVectorPass->GetOutputId(),
+                mainColor,
+                setting.Get(),
+                renderingData
+            );
             ambientOcclusion = ssilPass->GetOutputId();
         }
         else
