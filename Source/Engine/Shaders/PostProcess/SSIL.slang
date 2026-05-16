@@ -43,7 +43,8 @@ struct SSILParameter
 
     float4 fullResSize;
 
-    Texture2D<uint4> geometryTex;
+    Texture2D<uint2> geometryTex;
+    Texture2D<uint> geometryCoordOffsetTex;
     Texture2D colorTex;
     Texture2D albedoTex;
     Texture2D<float2> blueNoise;
@@ -60,14 +61,17 @@ ParameterBlock<SSILParameter> perMaterial;
 
 struct SSILPassData
 {
-    __init(float2 uv)
+__init(float2 uv)
     {
         uint2 pixelCoord = uint2(uv * perMaterial.rtSize.xy);
         uint2 halfPixel = min(pixelCoord, uint2(perMaterial.rtSize.xy) - 1);
-        uint4 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
+        uint2 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
         float depth = asfloat(packed.x);
         this.normalWS = UnpackNormalOctahedral16(packed.y);
-        float2 geometryUv = (float2(packed.zw) + 0.5) * perMaterial.fullResSize.zw;
+        uint offsetPacked = perMaterial.geometryCoordOffsetTex.Load(int3(halfPixel, 0)).x;
+        uint2 offset = uint2(offsetPacked & 1u, (offsetPacked >> 1u) & 1u);
+        uint2 fullCoord = halfPixel * 2 + offset;
+        float2 geometryUv = (float2(fullCoord) + 0.5) * perMaterial.fullResSize.zw;
         float4 posWS = mul(perScene.camera.invNDCToWorld, float4(geometryUv * 2 - 1, depth, 1.0));
         float4 posVS = mul(perScene.camera.invProjection, float4(geometryUv * 2 - 1, depth, 1.0));
 
@@ -87,7 +91,7 @@ float3 GetNormalVS(float2 uv)
 {
     uint2 pixelCoord = uint2(uv * perMaterial.rtSize.xy);
     uint2 halfPixel = min(pixelCoord, uint2(perMaterial.rtSize.xy) - 1);
-    uint4 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
+    uint2 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
     float3 normalWS = UnpackNormalOctahedral16(packed.y);
     return mul((float3x3)perScene.camera.view, normalWS);
 }
@@ -237,9 +241,12 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                     continue;
 
                 uint2 sampleHalfPixel = min(uint2(sampleUV * perMaterial.rtSize.xy), uint2(perMaterial.rtSize.xy) - 1);
-                uint4 samplePacked = perMaterial.geometryTex.Load(int3(sampleHalfPixel, 0));
+                uint2 samplePacked = perMaterial.geometryTex.Load(int3(sampleHalfPixel, 0));
                 float depth = asfloat(samplePacked.x);
-                float2 sampleGeometryUv = (float2(samplePacked.zw) + 0.5) * perMaterial.fullResSize.zw;
+                uint sampleOffsetPacked = perMaterial.geometryCoordOffsetTex.Load(int3(sampleHalfPixel, 0)).x;
+                uint2 sampleOffset = uint2(sampleOffsetPacked & 1u, (sampleOffsetPacked >> 1u) & 1u);
+                uint2 sampleFullCoord = sampleHalfPixel * 2 + sampleOffset;
+                float2 sampleGeometryUv = (float2(sampleFullCoord) + 0.5) * perMaterial.fullResSize.zw;
 #if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
                 GroupMemoryBarrierWithGroupSync();

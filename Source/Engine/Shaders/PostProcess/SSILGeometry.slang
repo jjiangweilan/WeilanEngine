@@ -14,8 +14,10 @@ struct SSILGeometryParameter
     Texture2D depthTex;        // full-res depth (mip 0)
     Texture2D<uint> smoothNormalTex; // full-res packed smooth normal
 
-    [format("rgba32ui")]
-    RWTexture2D<uint4> outGeometryTex;
+    [format("rg32ui")]
+    RWTexture2D<uint2> outGeometryTex;
+    [format("r8ui")]
+    RWTexture2D<uint> outCoordOffsetTex;
 
     SamplerState sampler_point_clamp;
 };
@@ -33,9 +35,8 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (halfPixel.x >= perMaterial.rtSize.x || halfPixel.y >= perMaterial.rtSize.y)
         return;
 
-    // Sample 2x2 block of full-res pixels and pick farthest depth (minimum with reversed Z)
     float bestDepth = 0.0;
-    uint2 bestFullResCoord = uint2(0, 0);
+    uint2 bestOffset = uint2(0, 0);
     bool valid = false;
 
     [unroll]
@@ -54,7 +55,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
                 if (!valid || d < bestDepth)
                 {
                     bestDepth = d;
-                    bestFullResCoord = fullResCoord;
+                    bestOffset = uint2(dx, dy);
                 }
                 valid = true;
             }
@@ -63,10 +64,13 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     if (!valid)
     {
-        perMaterial.outGeometryTex[halfPixel] = uint4(0, 0, 0, 0);
+        perMaterial.outGeometryTex[halfPixel] = uint2(0, 0);
+        perMaterial.outCoordOffsetTex[halfPixel] = 0;
         return;
     }
 
+    uint2 bestFullResCoord = halfPixel * 2 + bestOffset;
     uint packedNormal = perMaterial.smoothNormalTex.Load(int3(bestFullResCoord, 0)).x;
-    perMaterial.outGeometryTex[halfPixel] = uint4(asuint(bestDepth), packedNormal, bestFullResCoord.x, bestFullResCoord.y);
+    perMaterial.outGeometryTex[halfPixel] = uint2(asuint(bestDepth), packedNormal);
+    perMaterial.outCoordOffsetTex[halfPixel] = bestOffset.x | (bestOffset.y << 1);
 }

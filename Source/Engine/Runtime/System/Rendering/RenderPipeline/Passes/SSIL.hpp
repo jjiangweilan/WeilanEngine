@@ -20,6 +20,7 @@ public:
             const Gfx::ImageIdentifier& hizTex,
             const Gfx::ImageIdentifier& smoothNormalTex,
             const Gfx::ImageIdentifier& destination,
+            const Gfx::ImageIdentifier& coordOffsetDestination,
             glm::int2 halfResSize,
             glm::int2 fullResSize
         );
@@ -42,6 +43,7 @@ public:
             glm::int2 sourceTexSize,
             glm::int2 highResTexSize,
             const Gfx::ImageIdentifier& lowGeometryTex,
+            const Gfx::ImageIdentifier& lowGeometryCoordOffsetTex,
             const Gfx::ImageIdentifier& highDepth,
             const Gfx::ImageIdentifier& highSmoothNormal,
             const Gfx::ImageIdentifier& destination
@@ -84,6 +86,7 @@ private:
     Gfx::ImageIdentifier ssilUpscaled = "SSIL_Upscaled";
     Gfx::ImageIdentifier ssil = "SSIL_Output";
     Gfx::ImageIdentifier ssilGeometry = "SSIL_Geometry";
+    Gfx::ImageIdentifier ssilGeometryCoordOffset = "SSIL_GeometryCoordOffset";
     Gfx::ImageIdentifier ssilSmoothNormal = "SSIL_SmoothNormal";
     Gfx::ImageIdentifier firstFilterPassOutput = "SSIL_Filter1";
     std::unique_ptr<GeometryPass> geometryPass;

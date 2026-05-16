@@ -18,6 +18,7 @@ void SSIL::GeometryPass::Execute(
     const Gfx::ImageIdentifier& hizTex,
     const Gfx::ImageIdentifier& smoothNormalTex,
     const Gfx::ImageIdentifier& destination,
+    const Gfx::ImageIdentifier& coordOffsetDestination,
     glm::int2 halfResSize,
     glm::int2 fullResSize
 )
@@ -28,6 +29,7 @@ void SSIL::GeometryPass::Execute(
     mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(hizTex));
     mat.SetTexture("smoothNormalTex", GetGfxDriver()->GetImageFromRenderGraph(smoothNormalTex));
     mat.SetTexture("outGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(destination));
+    mat.SetTexture("outCoordOffsetTex", GetGfxDriver()->GetImageFromRenderGraph(coordOffsetDestination));
 
     mat.SetVector(
         "rtSize",
@@ -59,6 +61,7 @@ void SSIL::BilateralFilterPass::Execute(
     glm::int2 sourceTexSize,
     glm::int2 highResTexSize,
     const Gfx::ImageIdentifier& lowGeometryTex,
+    const Gfx::ImageIdentifier& lowGeometryCoordOffsetTex,
     const Gfx::ImageIdentifier& highDepth,
     const Gfx::ImageIdentifier& highSmoothNormal,
     const Gfx::ImageIdentifier& destination
@@ -69,6 +72,7 @@ void SSIL::BilateralFilterPass::Execute(
 
     mat.SetTexture("lowColor", GetGfxDriver()->GetImageFromRenderGraph(sourceTex));
     mat.SetTexture("lowGeometryTex", GetGfxDriver()->GetImageFromRenderGraph(lowGeometryTex));
+    mat.SetTexture("lowGeometryCoordOffsetTex", GetGfxDriver()->GetImageFromRenderGraph(lowGeometryCoordOffsetTex));
     mat.SetTexture("highDepth", GetGfxDriver()->GetImageFromRenderGraph(highDepth));
     mat.SetTexture("highSmoothNormal", GetGfxDriver()->GetImageFromRenderGraph(highSmoothNormal));
     mat.SetTexture("dst", GetGfxDriver()->GetImageFromRenderGraph(destination));
@@ -210,15 +214,20 @@ void SSIL::Execute(
 
     // 2. Generate half-res packed geometry
     {
-        Gfx::RenderImageDescriptor geometryDesc(width, height, Gfx::GfxFormat::R32G32B32A32_UInt);
+        Gfx::RenderImageDescriptor geometryDesc(width, height, Gfx::GfxFormat::R32G32_UInt);
         geometryDesc.SetRandomWrite(true);
         cmd->AllocateAttachment(ssilGeometry, geometryDesc);
+
+        Gfx::RenderImageDescriptor coordOffsetDesc(width, height, Gfx::GfxFormat::R8_UInt);
+        coordOffsetDesc.SetRandomWrite(true);
+        cmd->AllocateAttachment(ssilGeometryCoordOffset, coordOffsetDesc);
 
         geometryPass->Execute(
             cmd,
             hizTex,
             ssilSmoothNormal,
             ssilGeometry,
+            ssilGeometryCoordOffset,
             {width, height},
             {fullWidth, fullHeight}
         );
@@ -231,6 +240,7 @@ void SSIL::Execute(
         cmd->AllocateAttachment(ssilRaw, desc);
 
         mat.SetTexture("geometryTex", GetGfxDriver()->GetImageFromRenderGraph(ssilGeometry));
+        mat.SetTexture("geometryCoordOffsetTex", GetGfxDriver()->GetImageFromRenderGraph(ssilGeometryCoordOffset));
         mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
         mat.SetTexture("albedoTex", GetGfxDriver()->GetImageFromRenderGraph(albedoTex));
         mat.SetTexture("blueNoise", renderingData.blueNoise.GetNoiseTexture());
@@ -268,6 +278,7 @@ void SSIL::Execute(
             {width, height},
             {fullWidth, fullHeight},
             ssilGeometry,
+            ssilGeometryCoordOffset,
             hizTex,
             ssilSmoothNormal,
             ssilUpscaled
