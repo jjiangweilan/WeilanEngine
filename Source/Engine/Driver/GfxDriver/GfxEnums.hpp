@@ -113,6 +113,7 @@ enum class GfxFormat
     R16G16B16_SInt,
     R16G16B16_SFloat,
     R32_SFloat,
+    R32_UInt,
     R16_SFloat,
     R16_UNorm,
     D16_UNorm,

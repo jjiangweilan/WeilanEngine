@@ -10,6 +10,25 @@ namespace Rendering::Passes
 class SSIL : public RenderPipelinePass
 {
 public:
+    class GeometryPass
+    {
+    public:
+        GeometryPass();
+
+        void Execute(
+            Gfx::CommandBuffer* cmd,
+            const Gfx::ImageIdentifier& hizTex,
+            const Gfx::ImageIdentifier& smoothNormalTex,
+            const Gfx::ImageIdentifier& destination,
+            glm::int2 halfResSize,
+            glm::int2 fullResSize
+        );
+
+    private:
+        Material mat;
+        Shader* shader;
+    };
+
     class BilateralFilterPass
     {
     public:
@@ -21,11 +40,11 @@ public:
             Gfx::CommandBuffer* cmd,
             const Gfx::ImageIdentifier& sourceTex,
             glm::int2 sourceTexSize,
-            const Gfx::ImageIdentifier& lowDepth,
+            glm::int2 highResTexSize,
+            const Gfx::ImageIdentifier& lowGeometryTex,
             const Gfx::ImageIdentifier& highDepth,
-            const Gfx::ImageIdentifier& normalTex,
-            const Gfx::ImageIdentifier& destination,
-            int lowDepthMipLevel
+            const Gfx::ImageIdentifier& highSmoothNormal,
+            const Gfx::ImageIdentifier& destination
         );
 
     private:
@@ -41,7 +60,6 @@ public:
         const Gfx::ImageIdentifier& colorTex,
         const Gfx::ImageIdentifier& hizTex,
         const Gfx::ImageIdentifier& albedoTex,
-        const Gfx::ImageIdentifier& normalTex,
         const Gfx::ImageIdentifier& motionVectorTex,
         const Gfx::ImageIdentifier& targetColor,
         RenderPipelineSetting* setting,
@@ -57,18 +75,23 @@ private:
     void EnsureHistoryBuffers(int width, int height);
 
     Shader* ssilShader;
+    Shader* smoothNormalShader;
     Shader* temporalAccumulationShader;
     Material mat;
+    Material smoothNormalMat;
     Material temporalAccumulationMat;
     Gfx::ImageIdentifier ssilRaw = "SSIL_Raw";
     Gfx::ImageIdentifier ssilUpscaled = "SSIL_Upscaled";
     Gfx::ImageIdentifier ssil = "SSIL_Output";
+    Gfx::ImageIdentifier ssilGeometry = "SSIL_Geometry";
+    Gfx::ImageIdentifier ssilSmoothNormal = "SSIL_SmoothNormal";
     Gfx::ImageIdentifier firstFilterPassOutput = "SSIL_Filter1";
+    std::unique_ptr<GeometryPass> geometryPass;
     std::unique_ptr<BilateralFilterPass> firstFilterPass;
 
     std::unique_ptr<Gfx::Image> historySsil;
     std::unique_ptr<Gfx::Image> historyDepth;
-    std::unique_ptr<Gfx::Image> historyNormal;
+    std::unique_ptr<Gfx::Image> historySmoothNormal;
     glm::int2 historySize = {0, 0};
 
     Gfx::PipelineConfig combineConfig;

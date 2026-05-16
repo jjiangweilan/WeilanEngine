@@ -17,6 +17,8 @@
                          Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),     \
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
 Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
+                          Do(PostProcess_SSILGeometry, "PostProcess/SSILGeometry"),                               \
+                          Do(PostProcess_SSILSmoothNormal, "PostProcess/SSILSmoothNormal"),                         \
                           Do(PostProcess_SSILBilateralFilter, "PostProcess/SSILBilateralFilter"),               \
                           Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),   \
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \

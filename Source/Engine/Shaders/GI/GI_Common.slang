@@ -292,15 +292,12 @@ bool LoadProbeGeometry(
 
 uint PackProbeNormalOct16(float3 normalWS)
 {
-    float2 oct = EncodeOcta(normalize(normalWS));
-    uint2 encoded = uint2(round(saturate(oct) * 65535.0));
-    return encoded.x | (encoded.y << 16);
+    return PackNormalOctahedral16(normalWS);
 }
 
 float3 UnpackProbeNormalOct16(uint packedNormal)
 {
-    uint2 encoded = uint2(packedNormal & 0xffffu, packedNormal >> 16);
-    return DecodeOcta(float2(encoded) / 65535.0);
+    return UnpackNormalOctahedral16(packedNormal);
 }
 
 uint2 PackProbeGeometry(float depth, float3 normalWS)
@@ -551,7 +548,7 @@ SparseRaySample LoadStoredReservoirSample(
     float4 reservoirMeta = reservoirMetaTex.Load(int3(probeCoord, 0));
     sample.valid = true;
     sample.radiance = max(reservoirData.rgb, 0.0);
-    sample.rayDir = DecodeOcta(reservoirMeta.xy);
+    sample.rayDir = DecodeNormalOctahedral(reservoirMeta.xy);
     return sample;
 }
 
@@ -584,7 +581,7 @@ SparseRaySample LoadHistoryReservoirSample(
 
     sample.valid = true;
     sample.radiance = max(reservoirData.rgb, 0.0);
-    sample.rayDir = DecodeOcta(reservoirMeta.xy);
+    sample.rayDir = DecodeNormalOctahedral(reservoirMeta.xy);
     sample.sourceUv = sourceUv;
     sample.sourcePosition = ReconstructPreviousWorldPos(scene, sourceUv, sourceDepth);
     sample.sourceNormal = normalize(
@@ -611,7 +608,7 @@ void StoreReservoirSample(
 
     outReservoirDataTex[probeCoord] = float4(reservoir.sample.radiance, 1.0);
     outReservoirMetaTex[probeCoord] = float4(
-        EncodeOcta(normalize(reservoir.sample.rayDir)),
+        EncodeNormalOctahedral(normalize(reservoir.sample.rayDir)),
         reservoir.weightSum,
         saturate(accumRatio)
     );
@@ -704,29 +701,4 @@ bool EvaluateProbeDisocclusion(
     return historyPlaneDistance > probePlaneThreshold || dot(probeNormal, historyNormal) < 0.9;
 }
 
-float2 OctaSignNotZero(float2 value)
-{
-    return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
-}
-
-float2 EncodeOcta(float3 direction)
-{
-    direction /= max(abs(direction.x) + abs(direction.y) + abs(direction.z), 1e-6);
-    float2 oct = direction.xy;
-    if (direction.z < 0.0)
-    {
-        oct = (1.0 - abs(oct.yx)) * OctaSignNotZero(oct);
-    }
-    return oct * 0.5 + 0.5;
-}
-
-float3 DecodeOcta(float2 encoded)
-{
-    float2 oct = encoded * 2.0 - 1.0;
-    float3 direction = float3(oct.x, oct.y, 1.0 - abs(oct.x) - abs(oct.y));
-    if (direction.z < 0.0)
-    {
-        direction.xy = (1.0 - abs(direction.yx)) * OctaSignNotZero(direction.xy);
-    }
-    return normalize(direction);
-}
+// Octahedral encode/decode moved to Library.CommonUtils as EncodeNormalOctahedral/DecodeNormalOctahedral/PackNormalOctahedral16/UnpackNormalOctahedral16

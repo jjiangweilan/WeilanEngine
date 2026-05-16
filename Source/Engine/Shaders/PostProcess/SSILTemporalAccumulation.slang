@@ -1,7 +1,6 @@
 import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
-import Lighting;
 
 struct SSILTemporalAccumulationParameter
 {
@@ -14,10 +13,10 @@ struct SSILTemporalAccumulationParameter
     Texture2D<float4> currentSsilTex;
     Texture2D<float2> motionVectorTex;
     Texture2D hierarchyDepthTex;
-    Texture2D normalTex;
+    Texture2D<uint> currentSmoothNormalTex;
     Texture2D<float4> historySsilTex;
     Texture2D<float> historyDepthTex;
-    Texture2D historyNormalTex;
+    Texture2D<uint> historySmoothNormalTex;
 
     RWTexture2D<float4> outSsilTex;
 
@@ -96,8 +95,9 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    float3 currentNormal = normalize(DecodeGBufferNormal(perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz));
-    float3 historyNormal = normalize(DecodeGBufferNormal(perMaterial.historyNormalTex.SampleLevel(perMaterial.sampler_point_clamp, prevUv, 0).xyz));
+    float3 currentNormal = normalize(UnpackNormalOctahedral16(perMaterial.currentSmoothNormalTex.Load(int3(coord, 0)).x));
+    int2 historyCoord = int2(clamp(prevUv * perMaterial.rtSize.xy, float2(0, 0), perMaterial.rtSize.xy - 1));
+    float3 historyNormal = normalize(UnpackNormalOctahedral16(perMaterial.historySmoothNormalTex.Load(int3(historyCoord, 0)).x));
     float3 currentPos = ReconstructWorldPos(uv, currentDepth);
     float3 historyPos = ReconstructPreviousWorldPos(prevUv, historyDepth);
 
@@ -109,12 +109,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
         return;
     }
 
-    // float4 neighborhoodMin;
-    // float4 neighborhoodMax;
-    // GetNeighborhoodMinMax(coord, neighborhoodMin, neighborhoodMax);
-
     float4 historySsil = perMaterial.historySsilTex.SampleLevel(perMaterial.sampler_linear_clamp, prevUv, 0);
-    // historySsil = clamp(historySsil, neighborhoodMin, neighborhoodMax);
 
     perMaterial.outSsilTex[coord] = lerp(currentSsil, historySsil, saturate(perMaterial.historyWeight));
 }

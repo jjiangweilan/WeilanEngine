@@ -234,7 +234,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
                 mainColor,
                 hierarchyZBufferPass->GetOutputId(),
                 albedoGBuffer,
-                normalGBuffer,
                 staticMotionVectorPass->GetOutputId(),
                 mainColor,
                 setting.Get(),

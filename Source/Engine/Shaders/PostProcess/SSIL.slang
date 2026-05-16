@@ -6,12 +6,10 @@
 import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
-import Lighting;
 
 #define SSIL_PI 3.14159265359f
 #define SSIL_HALF_PI 1.57079632679f
 #define SSIL_TWO_PI 6.28318530718f
-#define SSIL_RAW_MIP 1
 
 // 0 or 1
 #define DEBUG_DRAW 0
@@ -43,8 +41,9 @@ struct SSILParameter
     float oneMeterPixelSize;
     float2 debugPoint;
 
-    Texture2D depthTex;
-    Texture2D normalTex;
+    float4 fullResSize;
+
+    Texture2D<uint4> geometryTex;
     Texture2D colorTex;
     Texture2D albedoTex;
     Texture2D<float2> blueNoise;
@@ -63,9 +62,14 @@ struct SSILPassData
 {
     __init(float2 uv)
     {
-        float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, SSIL_RAW_MIP).y;
-        float4 posVS = mul(perScene.camera.invProjection, float4(uv * 2 - 1, depth, 1.0));
-        float4 posWS = mul(perScene.camera.invNDCToWorld, float4(uv * 2 - 1, depth, 1.0));
+        uint2 pixelCoord = uint2(uv * perMaterial.rtSize.xy);
+        uint2 halfPixel = min(pixelCoord, uint2(perMaterial.rtSize.xy) - 1);
+        uint4 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
+        float depth = asfloat(packed.x);
+        this.normalWS = UnpackNormalOctahedral16(packed.y);
+        float2 geometryUv = (float2(packed.zw) + 0.5) * perMaterial.fullResSize.zw;
+        float4 posWS = mul(perScene.camera.invNDCToWorld, float4(geometryUv * 2 - 1, depth, 1.0));
+        float4 posVS = mul(perScene.camera.invProjection, float4(geometryUv * 2 - 1, depth, 1.0));
 
         this.positionWS = posWS.xyz / posWS.w;
         this.positionVS = posVS.xyz / posVS.w;
@@ -74,14 +78,17 @@ struct SSILPassData
 
     float3 positionWS;
     float3 positionVS;
+    float3 normalWS;
 
     float depth;
 };
 
 float3 GetNormalVS(float2 uv)
 {
-    float3 normalWS = perMaterial.normalTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).xyz;
-    normalWS = DecodeGBufferNormal(normalWS);
+    uint2 pixelCoord = uint2(uv * perMaterial.rtSize.xy);
+    uint2 halfPixel = min(pixelCoord, uint2(perMaterial.rtSize.xy) - 1);
+    uint4 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
+    float3 normalWS = UnpackNormalOctahedral16(packed.y);
     return mul((float3x3)perScene.camera.view, normalWS);
 }
 
@@ -229,7 +236,10 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 if (any(sampleUV > 1.0) || any(sampleUV < 0.0))
                     continue;
 
-                float depth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sampleUV, SSIL_RAW_MIP).y;
+                uint2 sampleHalfPixel = min(uint2(sampleUV * perMaterial.rtSize.xy), uint2(perMaterial.rtSize.xy) - 1);
+                uint4 samplePacked = perMaterial.geometryTex.Load(int3(sampleHalfPixel, 0));
+                float depth = asfloat(samplePacked.x);
+                float2 sampleGeometryUv = (float2(samplePacked.zw) + 0.5) * perMaterial.fullResSize.zw;
 #if SSIL_USE_SHARED_SAMPLES
                 g_sharedSamples[groupIndex] = float3(sampleUV, depth);
                 GroupMemoryBarrierWithGroupSync();
@@ -244,7 +254,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                     float depth = sharedSamples.z;
 #endif
 
-                    float4 frontVS = mul(perScene.camera.invProjection, float4(sampleUV * 2 - 1, depth, 1.0));
+                    float4 frontVS = mul(perScene.camera.invProjection, float4(sampleGeometryUv * 2 - 1, depth, 1.0));
                     frontVS.xyz /= frontVS.w;
 
                     float3 backVS = frontVS.xyz + posDirVS * perMaterial.thickness;

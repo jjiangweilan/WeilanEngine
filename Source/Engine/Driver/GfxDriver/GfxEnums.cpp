@@ -115,6 +115,8 @@ GfxFormat MapStringToGfxFormat(std::string_view name)
         return GfxFormat::R16G16B16_SInt;
     else if (name == "R16G16B16_SFloat")
         return GfxFormat::R16G16B16_SFloat;
+    else if (name == "R32_UInt")
+        return GfxFormat::R32_UInt;
     else if (name == "R8_UNorm")
         return GfxFormat::R8_UNorm;
 
@@ -175,6 +177,8 @@ const char* MapGfxFormatToString(GfxFormat format)
         return "R32G32B32A32_SFloat";
     else if (format == GfxFormat::R32_SFloat)
         return "R32_SFloat";
+    else if (format == GfxFormat::R32_UInt)
+        return "R32_UInt";
     else if (format == GfxFormat::D16_UNorm)
         return "D16_UNorm";
     else if (format == GfxFormat::D16_UNorm_S8_UInt)
@@ -247,6 +251,7 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
         case GfxFormat::R8G8_SRGB: return 2;
         case GfxFormat::R8_SRGB: return 1;
         case GfxFormat::R32_SFloat: return 4;
+        case GfxFormat::R32_UInt: return 4;
         case GfxFormat::R16_SFloat: return 2;
         case GfxFormat::R16_UNorm: return 2;
         case GfxFormat::R16G16_UNorm: return 4;

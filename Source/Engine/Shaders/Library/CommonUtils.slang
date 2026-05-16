@@ -267,6 +267,46 @@ T PerspectiveCorrectInterpolation<T : IFloat>(T attrA, T attrB, float depthA_VS,
     return attr;
 }
 
+float2 OctaSignNotZero(float2 value)
+{
+    return float2(value.x >= 0.0 ? 1.0 : -1.0, value.y >= 0.0 ? 1.0 : -1.0);
+}
+
+float2 EncodeNormalOctahedral(float3 direction)
+{
+    direction /= max(abs(direction.x) + abs(direction.y) + abs(direction.z), 1e-6);
+    float2 oct = direction.xy;
+    if (direction.z < 0.0)
+    {
+        oct = (1.0 - abs(oct.yx)) * OctaSignNotZero(oct);
+    }
+    return oct * 0.5 + 0.5;
+}
+
+float3 DecodeNormalOctahedral(float2 encoded)
+{
+    float2 oct = encoded * 2.0 - 1.0;
+    float3 direction = float3(oct.x, oct.y, 1.0 - abs(oct.x) - abs(oct.y));
+    if (direction.z < 0.0)
+    {
+        direction.xy = (1.0 - abs(direction.yx)) * OctaSignNotZero(direction.xy);
+    }
+    return normalize(direction);
+}
+
+uint PackNormalOctahedral16(float3 normalWS)
+{
+    float2 oct = EncodeNormalOctahedral(normalize(normalWS));
+    uint2 encoded = uint2(round(saturate(oct) * 65535.0));
+    return encoded.x | (encoded.y << 16);
+}
+
+float3 UnpackNormalOctahedral16(uint packedNormal)
+{
+    uint2 encoded = uint2(packedNormal & 0xffffu, packedNormal >> 16);
+    return DecodeNormalOctahedral(float2(encoded) / 65535.0);
+}
+
 // Mapping 1D index -> 2D (8x8 grid)
 uint2 MortonDecode8x8(uint i) {
     uint x = (i & 1u) | ((i & 4u) >> 1) | ((i & 16u) >> 2);
