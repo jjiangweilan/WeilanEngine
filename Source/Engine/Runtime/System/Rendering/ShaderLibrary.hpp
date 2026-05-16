@@ -16,8 +16,9 @@
                          Do(PostProcess_OutlineFullScreenPass, "PostProcess/Outline/OutlineFullScreenPass"), \
                          Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),     \
                          Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
-                         Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
-                         Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),   \
+Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
+                          Do(PostProcess_SSILBilateralFilter, "PostProcess/SSILBilateralFilter"),               \
+                          Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),   \
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \
                          Do(LightingCombine, "LightingCombine"),                                             \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \

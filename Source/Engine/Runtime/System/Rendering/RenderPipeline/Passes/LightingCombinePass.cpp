@@ -16,6 +16,7 @@ void LightingCombinePass::Execute(
     Gfx::CommandBuffer* cmd,
     const Gfx::ImageIdentifier* rtgi,
     const Gfx::ImageIdentifier* giIrradianceTex,
+    const Gfx::ImageIdentifier& ssaoTex,
     const Gfx::ImageIdentifier& albedoTex,
     const Gfx::ImageIdentifier& colorTex,
     RenderingData& renderingData
@@ -51,6 +52,7 @@ void LightingCombinePass::Execute(
         mat.SetTexture("giIrradianceTex", albedoImg); // dummy
     }
 
+    mat.SetTexture("ssaoTex", GetGfxDriver()->GetImageFromRenderGraph(ssaoTex));
     mat.SetTexture("albedoTex", albedoImg);
     mat.SetTexture("colorTex", GetGfxDriver()->GetImageFromRenderGraph(colorTex));
 

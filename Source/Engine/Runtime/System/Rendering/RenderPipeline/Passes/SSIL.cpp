@@ -8,7 +8,7 @@ namespace Rendering::Passes
 {
 SSIL::BilateralFilterPass::BilateralFilterPass()
 {
-    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::BilateralUpScale));
+    shader = ShaderLibrary::GetShader(ShaderLibrary::GetShaderName(Shaders::PostProcess_SSILBilateralFilter));
     mat.SetShader(shader);
     mat.SetName("SSIL_BilateralFilter_Material");
 }
@@ -19,6 +19,7 @@ void SSIL::BilateralFilterPass::Execute(
     glm::int2 sourceTexSize,
     const Gfx::ImageIdentifier& lowDepth,
     const Gfx::ImageIdentifier& highDepth,
+    const Gfx::ImageIdentifier& normalTex,
     const Gfx::ImageIdentifier& destination,
     int lowDepthMipLevel
 )
@@ -31,6 +32,7 @@ void SSIL::BilateralFilterPass::Execute(
     mat.SetTexture("lowColor", GetGfxDriver()->GetImageFromRenderGraph(sourceTex));
     mat.SetTexture("lowDepth", GetGfxDriver()->GetImageFromRenderGraph(lowDepth), Gfx::ImageViewOption(lowDepthMipLevel, 1, 0, 1, Gfx::ImageAspect::Color));
     mat.SetTexture("highDepth", GetGfxDriver()->GetImageFromRenderGraph(highDepth), Gfx::ImageViewOption(lowDepthMipLevel - 1, 1, 0, 1, Gfx::ImageAspect::Color));
+    mat.SetTexture("normalTex", GetGfxDriver()->GetImageFromRenderGraph(normalTex));
     mat.SetTexture("dst", GetGfxDriver()->GetImageFromRenderGraph(destination));
 
     mat.SetVector(
@@ -48,6 +50,7 @@ void SSIL::BilateralFilterPass::Execute(
     );
 
     mat.SetFloat("depthDiffSigma", depthDiffSigma);
+    mat.SetFloat("distanceScale", 0.5f);
 
     int dispatchX = (highResTexSize.x + 7) / 8;
     int dispatchY = (highResTexSize.y + 7) / 8;
@@ -181,6 +184,7 @@ void SSIL::Execute(
         {width, height},
         hizTex,
         hizTex,
+        normalTex,
         ssilUpscaled,
         1
     );

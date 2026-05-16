@@ -12,6 +12,7 @@ struct Input
 
     Texture2D rtgiTex;
     Texture2D giIrradianceTex;
+    Texture2D ssaoTex;
     Texture2D albedoTex;
     [format("rgba16f")]
     RWTexture2D<float4> colorTex;
@@ -43,7 +44,8 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (input.flags.y > 0.5)
     {
         float3 giIrradiance = input.giIrradianceTex.SampleLevel(input.sampler_linear_clamp, uv, 0).rgb;
-        float3 diffuseGI = giIrradiance * albedo * input.giIntensityScale;
+        float ssao = input.ssaoTex.SampleLevel(input.sampler_linear_clamp, uv, 0).r;
+        float3 diffuseGI = giIrradiance * albedo * input.giIntensityScale * ssao;
         newColor += diffuseGI;
     }
 

@@ -23,6 +23,7 @@ public:
             glm::int2 sourceTexSize,
             const Gfx::ImageIdentifier& lowDepth,
             const Gfx::ImageIdentifier& highDepth,
+            const Gfx::ImageIdentifier& normalTex,
             const Gfx::ImageIdentifier& destination,
             int lowDepthMipLevel
         );
@@ -57,7 +58,6 @@ private:
 
     Shader* ssilShader;
     Shader* temporalAccumulationShader;
-    Shader* bilateralUpscale;
     Material mat;
     Material temporalAccumulationMat;
     Gfx::ImageIdentifier ssilRaw = "SSIL_Raw";

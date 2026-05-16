@@ -379,7 +379,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     if (rtgiOutput || giIrradiance)
     {
-        lightingCombinePass->Execute(cmd, rtgiOutput, giIrradiance, albedoGBuffer, mainColor, renderingData);
+        lightingCombinePass->Execute(cmd, rtgiOutput, giIrradiance, ambientOcclusion, albedoGBuffer, mainColor, renderingData);
     }
 
     // TODO: copy mainColor and mainDepth for special effects

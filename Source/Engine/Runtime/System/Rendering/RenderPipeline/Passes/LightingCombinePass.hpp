@@ -14,6 +14,7 @@ public:
         Gfx::CommandBuffer* cmd,
         const Gfx::ImageIdentifier* rtgiOutput,
         const Gfx::ImageIdentifier* giIrradianceTex,
+        const Gfx::ImageIdentifier& ssaoTex,
         const Gfx::ImageIdentifier& albedoTex,
         const Gfx::ImageIdentifier& colorTex,
         RenderingData& renderingData

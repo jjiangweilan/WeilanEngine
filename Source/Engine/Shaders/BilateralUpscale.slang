@@ -20,7 +20,7 @@ void AccumulateBilateralWeight(
     inout float4 output,
     inout float totalWeights)
 {
-    float lowDepth = input.lowDepth.SampleLevel(input.sampler_point_clamp, lowResUv, 0).r;
+    float lowDepth = input.lowDepth.SampleLevel(input.sampler_point_clamp, lowResUv, 1).y;
     float4 lowColor = input.lowColor.SampleLevel(input.sampler_linear_clamp, lowResUv, 0);
     float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.camera.cameraZBufferParams);
 
