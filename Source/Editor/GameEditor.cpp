@@ -112,7 +112,7 @@ void GameEditor::SimulatePlayerView(bool enable)
 
     // adjust system window to current view size
     auto sceneImage = gameView->GetGameScreenImage();
-    float2 sceneImageSize = {1920, 1080};// sceneImage->GetDescription().GetSize();
+    float2 sceneImageSize = {512, 512};// sceneImage->GetDescription().GetSize();
     cacheSystemWindowSize = engine->GetSystemWindowSize();
 
     if (enable)

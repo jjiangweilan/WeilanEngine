@@ -143,7 +143,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
             else
             {
                 Light mainLight = perScene.GetMainLight();
-                rayContribution += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 15.0;
+                rayContribution += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * mainLight.intensity * 0.5;
                 break;
             }
         }

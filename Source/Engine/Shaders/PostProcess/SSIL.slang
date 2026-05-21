@@ -44,6 +44,7 @@ struct SSILParameter
     float4 fullResSize;
 
     Texture2D<uint2> geometryTex;
+    [format("r8ui")]
     Texture2D<uint> geometryCoordOffsetTex;
     Texture2D colorTex;
     Texture2D albedoTex;
@@ -68,7 +69,7 @@ __init(float2 uv)
         uint2 packed = perMaterial.geometryTex.Load(int3(halfPixel, 0));
         float depth = asfloat(packed.x);
         this.normalWS = UnpackNormalOctahedral16(packed.y);
-        uint offsetPacked = perMaterial.geometryCoordOffsetTex.Load(int3(halfPixel, 0)).x;
+        uint offsetPacked = uint(perMaterial.geometryCoordOffsetTex.Load(int3(halfPixel, 0)).x);
         uint2 offset = uint2(offsetPacked & 1u, (offsetPacked >> 1u) & 1u);
         uint2 fullCoord = halfPixel * 2 + offset;
         float2 geometryUv = (float2(fullCoord) + 0.5) * perMaterial.fullResSize.zw;
@@ -243,7 +244,7 @@ float4 SSIL(float2 uv, float2 screenPos, uint groupIndex, bool debug)
                 uint2 sampleHalfPixel = min(uint2(sampleUV * perMaterial.rtSize.xy), uint2(perMaterial.rtSize.xy) - 1);
                 uint2 samplePacked = perMaterial.geometryTex.Load(int3(sampleHalfPixel, 0));
                 float depth = asfloat(samplePacked.x);
-                uint sampleOffsetPacked = perMaterial.geometryCoordOffsetTex.Load(int3(sampleHalfPixel, 0)).x;
+                uint sampleOffsetPacked = uint(perMaterial.geometryCoordOffsetTex.Load(int3(sampleHalfPixel, 0)).x);
                 uint2 sampleOffset = uint2(sampleOffsetPacked & 1u, (sampleOffsetPacked >> 1u) & 1u);
                 uint2 sampleFullCoord = sampleHalfPixel * 2 + sampleOffset;
                 float2 sampleGeometryUv = (float2(sampleFullCoord) + 0.5) * perMaterial.fullResSize.zw;

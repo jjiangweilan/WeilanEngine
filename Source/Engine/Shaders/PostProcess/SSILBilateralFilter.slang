@@ -16,7 +16,8 @@ struct SSILBilateralFilterParameter
 
     Texture2D<float4> lowColor;
     Texture2D<uint2> lowGeometryTex;        // half-res packed geometry (SSILGeometry)
-    Texture2D<uint> lowGeometryCoordOffsetTex; // half-res coord offset
+    [format("r8ui")]
+    Texture2D<uint> lowGeometryCoordOffsetTex;       // half-res coord offset
     Texture2D highDepth;                     // full-res depth mip 0
     Texture2D<uint> highSmoothNormal;        // full-res packed smooth normal (SSILSmoothNormal)
 
@@ -85,7 +86,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
             // Decode half-res geometry for this sample
             uint2 sampleLowResCoord = uint2(clamp(int2(lowResPixel) + int2(x, y), int2(0, 0), int2(perMaterial.lowResTexSize.xy) - 1));
             uint2 samplePacked = perMaterial.lowGeometryTex.Load(int3(sampleLowResCoord, 0));
-            uint sampleOffsetPacked = perMaterial.lowGeometryCoordOffsetTex.Load(int3(sampleLowResCoord, 0)).x;
+            uint sampleOffsetPacked = uint(perMaterial.lowGeometryCoordOffsetTex.Load(int3(sampleLowResCoord, 0)).x);
             uint2 sampleOffset = uint2(sampleOffsetPacked & 1u, (sampleOffsetPacked >> 1u) & 1u);
             uint2 sampleFullCoord = sampleLowResCoord * 2 + sampleOffset;
             float sampleDepth = asfloat(samplePacked.x);
