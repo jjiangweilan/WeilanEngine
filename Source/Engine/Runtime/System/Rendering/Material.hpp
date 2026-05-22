@@ -9,6 +9,7 @@
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include <atomic>
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
@@ -118,6 +119,7 @@ public:
     uint32_t GetGpuMaterialOffset() { return Rendering::GPUDrivenManager::Instance().GetMaterialDescriptor(gpuMaterialHandle).dataAlloc.offset; }
     Rendering::GPUMaterialHandle GetGPUMaterialHandle() const { return gpuMaterialHandle; }
     bool IsGPUMaterialRegistered() const { return gpuMaterialHandle != Rendering::InvalidGPUHandle; }
+    bool HasPendingGPUMaterialUpload() const { return gpuMaterialUploadNeeded; }
     void RegisterGPUMaterial();
     void UnregisterGPUMaterial();
     void UpdateGPUMaterialData();
@@ -169,6 +171,7 @@ private:
 
     // GPU-Driven bindless
     Rendering::GPUMaterialHandle gpuMaterialHandle = Rendering::InvalidGPUHandle;
+    std::atomic_bool gpuMaterialUploadNeeded = false;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void WriteParameterDataToBuffer(
@@ -182,4 +185,6 @@ private:
     void SetTextureInternal(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
     );
+    Rendering::GpuMaterial BuildGPUMaterialData() const;
+    void MarkGPUMaterialUploadNeeded();
 };

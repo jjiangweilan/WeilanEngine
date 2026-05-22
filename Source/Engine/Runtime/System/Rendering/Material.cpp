@@ -4,6 +4,7 @@
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/MiddleLayer/FrameContext.hpp"
+#include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
@@ -58,6 +59,7 @@ void Material::Copy(const Material& src)
 
     uploadNeeded = true;
     needRequestNewShader = src.needRequestNewShader;
+    MarkGPUMaterialUploadNeeded();
 }
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
@@ -65,6 +67,7 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
     textureValues.erase(param);
     if (shaderResource != nullptr)
         shaderResource->Remove(param);
+    MarkGPUMaterialUploadNeeded();
     SetDirty();
 }
 
@@ -81,6 +84,7 @@ void Material::RawSetTexture(const std::string& param, const ObjPtr<Texture>& te
         return;
 
     textureValues[param] = texture;
+    MarkGPUMaterialUploadNeeded();
 }
 
 void Material::SetTexture(
@@ -113,6 +117,7 @@ void Material::SetTexture(
 
     SetDirty();
     SetTextureInternal(param, texture, imageViewOption);
+    MarkGPUMaterialUploadNeeded();
 }
 
 void Material::SetTextureInternal(
@@ -220,6 +225,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
         ubo.floats[member] = value;
         ubo.dirty = true;
         uploadNeeded = true;
+        MarkGPUMaterialUploadNeeded();
         SetDirty();
     }
 }
@@ -232,6 +238,7 @@ void Material::SetVector(const std::string& param, const std::string& member, co
         ubo.vectors[member] = value;
         ubo.dirty = true;
         uploadNeeded = true;
+        MarkGPUMaterialUploadNeeded();
         SetDirty();
     }
 }
@@ -621,11 +628,13 @@ int Material::GetSet(const std::string& name) const
 
 void Material::CopyProperties(Material& other)
 {
+    bool gpuMaterialDirty = false;
     if (ubo.floats != other.ubo.floats)
     {
         ubo.floats = other.ubo.floats;
         ubo.dirty = true;
         uploadNeeded = true;
+        gpuMaterialDirty = true;
     }
 
     if (ubo.vectors != other.ubo.vectors)
@@ -633,6 +642,7 @@ void Material::CopyProperties(Material& other)
         ubo.vectors = other.ubo.vectors;
         ubo.dirty = true;
         uploadNeeded = true;
+        gpuMaterialDirty = true;
     }
 
     if (ubo.matrices != other.ubo.matrices)
@@ -641,28 +651,44 @@ void Material::CopyProperties(Material& other)
         ubo.dirty = true;
         uploadNeeded = true;
     }
+
+    if (gpuMaterialDirty)
+        MarkGPUMaterialUploadNeeded();
 }
 
 void Material::SetTextureSamplerIndex(const std::string& bindingName, uint32_t samplerIndex)
 {
+    auto iter = textureSamplerIndices.find(bindingName);
+    if (iter != textureSamplerIndices.end() && iter->second == samplerIndex)
+        return;
+
     textureSamplerIndices[bindingName] = samplerIndex;
+    MarkGPUMaterialUploadNeeded();
 }
 
-void Material::RegisterGPUMaterial()
+Rendering::GpuMaterial Material::BuildGPUMaterialData() const
 {
-    if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
-        return;
-
-    auto* gpuDrivenManager = Rendering::GPUDrivenManager::TryGetInstance();
-    if (gpuDrivenManager == nullptr)
-        return;
-
     Rendering::GpuMaterial data{};
-    data.baseColorFactor = GetVector("", "baseColorFactor");
-    data.emissive = GetVector("", "emissive");
-    data.roughness = GetFloat("", "roughness");
-    data.metallic = GetFloat("", "metallic");
-    data.alphaCutoff = GetFloat("", "alphaCutoff");
+    auto getVector = [this](const std::string& name) -> glm::vec4
+    {
+        auto it = ubo.vectors.find(name);
+        if (it != ubo.vectors.end())
+            return it->second;
+        return glm::vec4(0);
+    };
+    auto getFloat = [this](const std::string& name) -> float
+    {
+        auto it = ubo.floats.find(name);
+        if (it != ubo.floats.end())
+            return it->second;
+        return 0.0f;
+    };
+
+    data.baseColorFactor = getVector("baseColorFactor");
+    data.emissive = getVector("emissive");
+    data.roughness = getFloat("roughness");
+    data.metallic = getFloat("metallic");
+    data.alphaCutoff = getFloat("alphaCutoff");
     data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
@@ -692,11 +718,28 @@ void Material::RegisterGPUMaterial()
     data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
     data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
 
-    gpuMaterialHandle = gpuDrivenManager->RegisterMaterial(data);
+    return data;
+}
+
+void Material::RegisterGPUMaterial()
+{
+    if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
+        return;
+
+    auto* gpuDrivenManager = Rendering::GPUDrivenManager::TryGetInstance();
+    if (gpuDrivenManager == nullptr)
+        return;
+
+    gpuMaterialHandle = gpuDrivenManager->RegisterMaterial(BuildGPUMaterialData());
+    gpuMaterialUploadNeeded = false;
+    MaterialUploadManager::Instance().RemovePendingUpload(this);
 }
 
 void Material::UnregisterGPUMaterial()
 {
+    MaterialUploadManager::Instance().RemovePendingUpload(this);
+    gpuMaterialUploadNeeded = false;
+
     if (gpuMaterialHandle == Rendering::InvalidGPUHandle)
         return;
 
@@ -717,40 +760,14 @@ void Material::UpdateGPUMaterialData()
     if (gpuDrivenManager == nullptr)
         return;
 
-    Rendering::GpuMaterial data{};
-    data.baseColorFactor = GetVector("", "baseColorFactor");
-    data.emissive = GetVector("", "emissive");
-    data.roughness = GetFloat("", "roughness");
-    data.metallic = GetFloat("", "metallic");
-    data.alphaCutoff = GetFloat("", "alphaCutoff");
-    data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
-    data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
-    data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
-    data.emissiveMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
-    data.shaderHash = 0;
+    gpuDrivenManager->UpdateMaterial(gpuMaterialHandle, BuildGPUMaterialData());
+    gpuMaterialUploadNeeded = false;
+    MaterialUploadManager::Instance().RemovePendingUpload(this);
+}
 
-    auto getTexAndSamplerIndex = [&](const std::string& name) -> glm::uvec2
-    {
-        auto it = textureValues.find(name);
-        if (it != textureValues.end() && it->second != nullptr)
-        {
-            auto handle = it->second->GetGPUTextureHandle();
-            if (handle != static_cast<Rendering::GPUTextureHandle>(-1))
-            {
-                uint32_t samplerIdx = 1; // default: Linear+Repeat
-                auto sit = textureSamplerIndices.find(name);
-                if (sit != textureSamplerIndices.end())
-                    samplerIdx = sit->second;
-                return glm::uvec2(static_cast<uint32_t>(handle), samplerIdx);
-            }
-        }
-        return glm::uvec2(Rendering::InvalidTextureIndex, 1);
-    };
-
-    data.baseColorTexIndex = getTexAndSamplerIndex("baseColorTex");
-    data.normalMapTexIndex = getTexAndSamplerIndex("normalMap");
-    data.metallicRoughnessTexIndex = getTexAndSamplerIndex("metallicRoughnessMap");
-    data.emissiveMapTexIndex = getTexAndSamplerIndex("emissiveMap");
-
-    gpuDrivenManager->UpdateMaterial(gpuMaterialHandle, data);
+void Material::MarkGPUMaterialUploadNeeded()
+{
+    gpuMaterialUploadNeeded = true;
+    if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
+        MaterialUploadManager::Instance().AddPendingUpload(this);
 }

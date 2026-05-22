@@ -10,6 +10,7 @@
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
 #if ENGINE_EDITOR
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -228,6 +229,8 @@ void WeilanEngine::EndFrame()
     event->Reset();
 
     assetDatabase->PollAsyncLoadingResults();
+
+    MaterialUploadManager::Instance().FlushPendingUploads();
 
     // submit anything in the active command and present the surface
     if (gfxDriver->EndFrame())
