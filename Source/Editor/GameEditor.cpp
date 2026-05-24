@@ -3,8 +3,8 @@
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
-#include "Editor/Windows/GrassSurfacePaintWindow.hpp"
 #include "Editor/Tools/GrassSurfacePaintTool.hpp"
+#include "Editor/Windows/GrassSurfacePaintWindow.hpp"
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Assert.hpp"
@@ -670,8 +670,7 @@ void GameEditor::GUIPass()
             {
                 undoManager.Undo();
             }
-            else if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Y) ||
-                     ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z))
+            else if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_Y) || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z))
             {
                 undoManager.Redo();
             }
