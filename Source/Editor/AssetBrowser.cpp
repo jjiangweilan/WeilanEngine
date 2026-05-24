@@ -968,8 +968,9 @@ void AssetBrowser::ShowChangeFileNameField()
             auto finalPath = dir / fileNameCache;
             finalPath.replace_extension(fileNameExtCache);
             AssetDatabase::Singleton()->Rename(changeFileNameTarget, AssetPath(finalPath));
+            ImGui::CloseCurrentPopup();
         }
-        if (ImGui::Selectable("Chancel") || ImGui::IsKeyPressed(ImGuiKey_Backspace))
+        if (ImGui::Selectable("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
         {
             ImGui::CloseCurrentPopup();
         }
