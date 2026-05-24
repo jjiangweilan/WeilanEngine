@@ -11,6 +11,42 @@
 
 namespace Gfx
 {
+static VkBufferUsageFlags MapTemporaryBufferUsage(TemporaryBufferUsage usage, bool hostVisible)
+{
+    VkBufferUsageFlags flags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    switch (usage)
+    {
+    case TemporaryBufferUsage::Uniform:
+        flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        break;
+    case TemporaryBufferUsage::Storage:
+        flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        break;
+    case TemporaryBufferUsage::Index:
+        flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        break;
+    case TemporaryBufferUsage::Indirect:
+        flags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+        break;
+    case TemporaryBufferUsage::AccelerationStructure:
+        flags |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
+                 VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        break;
+    case TemporaryBufferUsage::TransferSrc:
+        flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        flags &= ~VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        break;
+    }
+
+    if (hostVisible)
+    {
+        flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    return flags;
+}
 VKMemAllocator::VKMemAllocator(
     VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
 )
@@ -169,27 +205,38 @@ void VKMemAllocator::ScratchBuffer::Destroy()
 }
 
 VKMemAllocator::ScratchBuffer::AllocationHandle VKMemAllocator::ScratchBuffer::Allocate(
-    uint32_t size, uint32_t alignment, ScratchBufferUsage usage
+    uint64_t size, uint64_t alignment, TemporaryBufferUsage usage, bool hostVisible
 )
 {
+    ASSERT(size > 0);
+    ASSERT(alignment > 0);
+
     // Try to allocate from the current block first
     Block* selectedBlock = nullptr;
     AllocationHandle rtn{};
-    if (currentBlock && (currentBlock->usage == usage) &&
+    bool isSameFrame = currentBlock && currentBlock->frameIndex == currentFrameIndex;
+    bool blockReady = currentBlock &&
+                      (currentBlock->usage == usage) &&
+                      (currentBlock->hostVisible == hostVisible) &&
+                      (!currentBlock->inflight || isSameFrame);
+    if (blockReady &&
         Math::AlignMemory(currentBlock->offset, alignment) + size <= currentBlock->size)
     {
         selectedBlock = currentBlock;
     }
 
-    // Current block is full or usage mismatch, search for another non-inflight block with compatible usage
+    // Current block is full or usage mismatch, search for another block with compatible usage
     if (selectedBlock == nullptr)
     {
         for (auto& block : blocks)
         {
-            if (block.usage == usage && !block.inflight)
+            bool sameFrame = block.frameIndex == currentFrameIndex;
+            bool compatible = (block.usage == usage) && (block.hostVisible == hostVisible) &&
+                              (!block.inflight || sameFrame);
+            if (compatible)
             {
-                uint32_t offset = Math::AlignMemory(block.offset, alignment);
-                if (offset + size > block.size)
+                uint64_t alignedOffset = Math::AlignMemory(block.offset, alignment);
+                if (alignedOffset + size > block.size)
                     continue;
 
                 selectedBlock = &block;
@@ -201,24 +248,28 @@ VKMemAllocator::ScratchBuffer::AllocationHandle VKMemAllocator::ScratchBuffer::A
     // No suitable block found, create a new one
     if (selectedBlock == nullptr)
     {
-        uint32_t blockSize = std::max(size, 16u * 1024 * 1024);
-        Block& newBlock = CreateBlock(blockSize, usage);
+        uint64_t blockSize = std::max(size, static_cast<uint64_t>(16 * 1024 * 1024));
+        Block& newBlock = CreateBlock(blockSize, usage, hostVisible);
         selectedBlock = &newBlock;
     }
 
     // this should be always true
     if (selectedBlock != nullptr)
     {
-        uint32_t offset = Math::AlignMemory(selectedBlock->offset, alignment);
-        ASSERT(offset + size <= selectedBlock->size);
+        uint64_t alignedOffset = Math::AlignMemory(selectedBlock->offset, alignment);
+        ASSERT(alignedOffset + size <= selectedBlock->size);
 
         rtn.buffer = selectedBlock->buffer;
-        rtn.deviceAddress = selectedBlock->deviceAddress + offset;
-        rtn.mappedData = selectedBlock->mappedData ? (uint8_t*)selectedBlock->mappedData + offset : nullptr;
+        rtn.deviceAddress = selectedBlock->deviceAddress + alignedOffset;
+        rtn.mappedData = selectedBlock->mappedData ? static_cast<uint8_t*>(selectedBlock->mappedData) + alignedOffset : nullptr;
+        rtn.offset = alignedOffset;
+        rtn.size = size;
         rtn.block = selectedBlock;
 
-        selectedBlock->offset = offset + size;
+        selectedBlock->offset = alignedOffset + size;
+        selectedBlock->inflight = true;
         selectedBlock->frameIndex = currentFrameIndex;
+        selectedBlock->lifetime = 0;
 
         // cache the selected block
         currentBlock = selectedBlock;
@@ -231,16 +282,17 @@ void VKMemAllocator::ScratchBuffer::FrameFinished(int frameIndex)
 {
     for (auto& block : blocks)
     {
-        if (block.frameIndex <= frameIndex)
+        if (block.frameIndex <= frameIndex && block.inflight)
         {
             block.offset = 0;
             block.inflight = false;
+            block.lifetime = 0;
         }
     }
 
     for (auto it = blocks.begin(); it != blocks.end();)
     {
-        if (it->frameIndex <= frameIndex)
+        if (it->frameIndex <= frameIndex && !it->inflight)
         {
             if (++it->lifetime > 5)
             {
@@ -255,26 +307,27 @@ void VKMemAllocator::ScratchBuffer::FrameFinished(int frameIndex)
     }
 }
 
-VKMemAllocator::ScratchBuffer::Block& VKMemAllocator::ScratchBuffer::CreateBlock(uint32_t size, ScratchBufferUsage usage)
+VKMemAllocator::ScratchBuffer::Block& VKMemAllocator::ScratchBuffer::CreateBlock(uint64_t size, TemporaryBufferUsage usage, bool hostVisible)
 {
     Block block;
     block.size = size;
+    block.usage = usage;
+    block.hostVisible = hostVisible;
 
-    VkBufferUsageFlags blockUsage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlags blockUsage = MapTemporaryBufferUsage(usage, hostVisible);
+    block.bufferUsages = blockUsage;
+
     VmaAllocationCreateInfo allocCreateInfo = {};
     allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-    if (usage == ScratchBufferUsage::GPUScratchBuffer)
+    if (hostVisible)
     {
-        blockUsage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-    }
-    else if (usage == ScratchBufferUsage::HostVisibleScatchBuffer)
-    {
-        blockUsage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
         allocCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     }
-    block.bufferUsages = blockUsage;
+    else
+    {
+        allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    }
 
     VkBufferCreateInfo bufferCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     bufferCreateInfo.size = size;
@@ -293,7 +346,6 @@ VKMemAllocator::ScratchBuffer::Block& VKMemAllocator::ScratchBuffer::CreateBlock
     VkBufferDeviceAddressInfo addressInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
     addressInfo.buffer = block.buffer;
     block.deviceAddress = vkGetBufferDeviceAddress(device, &addressInfo);
-    block.usage = usage;
     block.lifetime = 0;
 
     blocks.push_back(block);

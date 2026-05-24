@@ -264,7 +264,7 @@ void Manager::BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHa
         return;
     }
 
-    auto instanceDataBuffer = allocator->AllocateScratchBuffer(sizeof(VkAccelerationStructureInstanceKHR) * instanceCount, 16, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::HostVisibleScatchBuffer);
+    auto instanceDataBuffer = allocator->AllocateScratchBuffer(sizeof(VkAccelerationStructureInstanceKHR) * instanceCount, 16, TemporaryBufferUsage::AccelerationStructure, true);
     void* mappedData = instanceDataBuffer.mappedData;
     auto* instanceData = static_cast<VkAccelerationStructureInstanceKHR*>(mappedData);
     for (uint32_t i = 0; i < instanceCount; ++i)
@@ -303,7 +303,7 @@ void Manager::BuildSceneCommandBufferImpl(VkCommandBuffer cmd, RayTracingSceneHa
     };
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &tlasBuildGeometryInfo, &instanceCount, &tlasBuildSizes);
 
-    auto scratchBufferHandle = allocator->AllocateScratchBuffer(tlasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::GPUScratchBuffer);
+    auto scratchBufferHandle = allocator->AllocateScratchBuffer(tlasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, TemporaryBufferUsage::AccelerationStructure, false);
     tlasBuildGeometryInfo.scratchData.deviceAddress = scratchBufferHandle.deviceAddress; // vkGetBufferDeviceAddress(device, &scratchAddrInfo);
 
     VkCommandBuffer commandBuffer = vkContext->currentFrameContext->cmd;
@@ -375,7 +375,7 @@ void Manager::CreateBLASCommandBufferImpl(VkCommandBuffer cmd, RayTracingMeshHan
 
     blasBuildGeometryInfo.dstAccelerationStructure = blasEntry.handle;
 
-    auto scratchBufferHandle = allocator->AllocateScratchBuffer(blasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, VKMemAllocator::ScratchBuffer::ScratchBufferUsage::GPUScratchBuffer);
+    auto scratchBufferHandle = allocator->AllocateScratchBuffer(blasBuildSizes.buildScratchSize, vkContext->gpu->asProps.minAccelerationStructureScratchOffsetAlignment, TemporaryBufferUsage::AccelerationStructure, false);
     blasBuildGeometryInfo.scratchData.deviceAddress = scratchBufferHandle.deviceAddress; // vkGetBufferDeviceAddress(device, &scratchAddrInfo);
 
     auto commandBuffer = vkContext->currentFrameContext->cmd;

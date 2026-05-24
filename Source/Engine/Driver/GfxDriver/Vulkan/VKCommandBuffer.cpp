@@ -42,7 +42,7 @@ void VKCommandBuffer::EndRenderPass()
     cmds.push_back(VKCmd{VKCmdType::EndRenderPass, cmd});
 }
 
-void VKCommandBuffer::DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
+void VKCommandBuffer::DrawIndirect(BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride)
 {
     VKDrawIndirectCmd cmd{};
 
@@ -54,7 +54,7 @@ void VKCommandBuffer::DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t 
     cmds.push_back(VKCmd{VKCmdType::DrawIndirect, cmd});
 }
 
-void VKCommandBuffer::DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
+void VKCommandBuffer::DrawIndexedIndirect(BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride)
 {
     VKDrawIndexedIndirectCmd cmd{};
 
@@ -120,6 +120,15 @@ void VKCommandBuffer::BindVertexBuffer(
 {
     ASSERT(vertexBufferBindings.size() <= 8);
 
+    for (int i = 0; i < vertexBufferBindings.size() && i < 8; ++i)
+    {
+        if (vertexBufferBindings[i].buffer.IsTemporary())
+        {
+            SPDLOG_ERROR("CommandBuffer::BindVertexBuffer: temporary vertex buffers are not supported yet");
+            return;
+        }
+    }
+
     VKBindVertexBufferCmd cmd{};
     for (int i = 0; i < vertexBufferBindings.size() && i < 8; ++i)
         cmd.vertexBufferBindings[i] = vertexBufferBindings[i];
@@ -129,11 +138,11 @@ void VKCommandBuffer::BindVertexBuffer(
     cmds.push_back(VKCmd{VKCmdType::BindVertexBuffer, cmd});
 }
 
-void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType)
+void VKCommandBuffer::BindIndexBuffer(BufferIdentifier buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType)
 {
     VKBindIndexBufferCmd cmd{};
 
-    cmd.buffer = static_cast<VKBuffer*>(buffer.Get());
+    cmd.buffer = buffer;
     cmd.offset = offset;
     cmd.indexType = indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
@@ -156,14 +165,14 @@ void VKCommandBuffer::SetViewport(const Viewport& viewport)
 }
 
 void VKCommandBuffer::CopyImageToBuffer(
-    RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
+    RefPtr<Gfx::Image> src, BufferIdentifier dst, std::span<BufferImageCopyRegion> regions
 )
 {
     ASSERT(regions.size() < 8);
     VKCopyImageToBufferCmd cmd{};
 
     cmd.src = static_cast<VKImage*>(src.Get());
-    cmd.dst = static_cast<VKBuffer*>(dst.Get());
+    cmd.dst = dst;
     for (int i = 0; i < regions.size() && i < 8; ++i)
         cmd.regions[i] = regions[i];
 
@@ -216,10 +225,10 @@ void VKCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint3
 
     cmds.push_back(VKCmd{VKCmdType::Dispatch, cmd});
 };
-void VKCommandBuffer::DispatchIndirect(Buffer* buffer, size_t bufferOffset)
+void VKCommandBuffer::DispatchIndirect(BufferIdentifier buffer, size_t bufferOffset)
 {
     VKDispatchIndirectCmd cmd{};
-    cmd.buffer = static_cast<VKBuffer*>(buffer);
+    cmd.buffer = buffer;
     cmd.bufferOffset = bufferOffset;
 
     cmds.push_back(VKCmd{VKCmdType::DispatchIndirect, cmd});
@@ -243,13 +252,13 @@ void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::s
 };
 
 void VKCommandBuffer::CopyBuffer(
-    RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
+    BufferIdentifier bSrc, BufferIdentifier bDst, std::span<BufferCopyRegion> copyRegions
 )
 {
     ASSERT(copyRegions.size() <= 8);
     VKCopyBufferCmd cmd{};
-    cmd.src = static_cast<VKBuffer*>(bSrc.Get());
-    cmd.dst = static_cast<VKBuffer*>(bDst.Get());
+    cmd.src = bSrc;
+    cmd.dst = bDst;
     cmd.copyRegionCount = copyRegions.size();
     for (int i = 0; i < copyRegions.size(); ++i)
     {
@@ -259,40 +268,31 @@ void VKCommandBuffer::CopyBuffer(
     cmds.push_back(VKCmd{VKCmdType::CopyBuffer, cmd});
 };
 void VKCommandBuffer::CopyBufferToImage(
-    RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
+    BufferIdentifier src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
 )
 {
-    ASSERT(regions.size() < 8);
+    ASSERT(regions.size() <= 8);
     VKCopyBufferToImageCmd cmd{};
-    cmd.src = static_cast<VKBuffer*>(src.Get());
+    cmd.src = src;
     cmd.dst = static_cast<VKImage*>(dst.Get());
-
-    int i = 0;
-    for (auto& r : regions)
-    {
-        VkBufferImageCopy region;
-        region.bufferOffset = r.bufferOffset;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);
-        region.imageSubresource.mipLevel = r.layers.mipLevel;
-        region.imageSubresource.baseArrayLayer = r.layers.baseArrayLayer;
-        region.imageSubresource.layerCount = r.layers.layerCount;
-        region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
-        region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
-
-        bool invalid = region.imageSubresource.mipLevel >= dst->GetDescription().mipLevels;
-        if (invalid)
-        {
-            spdlog::error("invalid CopyBufferToImage");
-        }
-        else
-        {
-            cmd.regions[i] = region;
-            i += 1;
-        }
-    }
     cmd.regionCount = regions.size();
+    for (int i = 0; i < regions.size() && i < 8; ++i)
+    {
+        auto& r = regions[i];
+        cmd.regions[i] = VkBufferImageCopy{
+            .bufferOffset = r.bufferOffset,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = VkImageSubresourceLayers{
+                .aspectMask = static_cast<VkImageAspectFlags>(r.layers.aspectMask),
+                .mipLevel = r.layers.mipLevel,
+                .baseArrayLayer = r.layers.baseArrayLayer,
+                .layerCount = r.layers.layerCount,
+            },
+            .imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z},
+            .imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth},
+        };
+    }
 
     cmds.push_back(VKCmd{VKCmdType::CopyBufferToImage, cmd});
 };
@@ -362,12 +362,12 @@ void VKCommandBuffer::SetTexture(
     cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
 }
 
-void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer)
+void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, BufferIdentifier buffer)
 {
     VKSetBufferCmd cmd{};
 
-    cmd.buffer = static_cast<VKBuffer*>(&buffer);
     cmd.handle = handle;
+    cmd.buffer = buffer;
     cmd.index = index;
 
     cmds.push_back(VKCmd{VKCmdType::SetBuffer, cmd});
@@ -524,12 +524,12 @@ void VKCommandBuffer::SetDepthBiasEnable(bool enable)
     cmds.push_back(VKCmd{VKCmdType::SetDepthBiasEnable, cmd});
 }
 
-std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset)
+std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(BufferIdentifier buffer, size_t size, size_t offset)
 {
     VKAsyncReadbackCmd cmd{};
 
     std::shared_ptr<AsyncReadbackHandle> handle = std::make_shared<AsyncReadbackHandle>();
-    cmd.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.buffer = buffer;
     cmd.size = size;
     cmd.offset = offset;
     readbacks.push_back(handle);
@@ -557,14 +557,49 @@ void VKCommandBuffer::ClearColorImage(Image* image, const ClearColor& color)
     cmds.push_back(VKCmd{VKCmdType::ClearColorImage, cmd});
 }
 
-void VKCommandBuffer::UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset)
+void VKCommandBuffer::UploadData(BufferIdentifier buffer, void* data, size_t dataSize, size_t offset)
 {
     VKUploadDataCmd cmd{};
-    cmd.dst = static_cast<VKBuffer*>(&buffer);
+    cmd.dst = buffer;
     cmd.dstOffset = offset;
     cmd.data.assign(static_cast<uint8_t*>(data), static_cast<uint8_t*>(data) + dataSize);
 
 cmds.push_back(VKCmd{VKCmdType::UploadData, cmd});
+}
+
+TemporaryBufferHandle VKCommandBuffer::AllocateBuffer(
+    size_t size,
+    TemporaryBufferUsage usage,
+    size_t alignment
+)
+{
+    if (usage == TemporaryBufferUsage::AccelerationStructure)
+    {
+        SPDLOG_ERROR("CommandBuffer temporary acceleration-structure buffers are not supported yet");
+        return {};
+    }
+
+    if (size == 0 || alignment == 0)
+    {
+        SPDLOG_ERROR("CommandBuffer::AllocateBuffer: size and alignment must be non-zero");
+        return {};
+    }
+
+    static std::atomic<uint64_t> nextId{1};
+
+    TemporaryBufferHandle handle{};
+    handle.id = nextId.fetch_add(1);
+    handle.size = size;
+    handle.usage = usage;
+
+    VKAllocateBufferCmd cmd{};
+    cmd.handle = handle;
+    cmd.size = size;
+    cmd.alignment = alignment;
+    cmd.usage = usage;
+
+    cmds.push_back(VKCmd{VKCmdType::AllocateBuffer, cmd});
+    return handle;
 }
 
 void VKCommandBuffer::BeginRenderPass(std::span<const RenderAttachment> images, std::span<ClearValue> clearValues)

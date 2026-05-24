@@ -13,6 +13,7 @@
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
 #include <array>
+#include <functional>
 
 namespace Gfx
 {
@@ -170,6 +171,56 @@ bool VKCommandBufferProcessor::TrackResource(
     return false;
 }
 
+bool VKCommandBufferProcessor::TrackResource(const VKBufferResourceRef& ref, VkPipelineStageFlags stages, VkAccessFlags access)
+{
+    if (ref.buffer == VK_NULL_HANDLE || ref.trackingId == 0)
+        return false;
+
+    ENGINE_SCOPED_PROFILE("TrackResource");
+
+    ResourceUsage usage{stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED};
+
+    if (ref.rawBuffer != nullptr)
+    {
+        return TrackResource(ref.rawBuffer, stages, access);
+    }
+
+    auto iter = tempResourceUsageTracks.find(ref.trackingId);
+    if (iter != tempResourceUsageTracks.end())
+    {
+        if (iter->second.currentFrameUsages.empty())
+        {
+            iter->second.currentFrameUsages.push_back(
+                {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+            );
+            return true;
+        }
+        else
+        {
+            auto& lastUsage = iter->second.currentFrameUsages.back();
+            if (usage != lastUsage)
+            {
+                iter->second.currentFrameUsages.push_back(
+                    {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+                );
+                return true;
+            }
+        }
+    }
+    else
+    {
+        auto& track = tempResourceUsageTracks[ref.trackingId];
+        track.type = ResourceType::Buffer;
+        track.res = ObjPtr<Buffer>(nullptr);
+        track.currentFrameUsages.push_back(
+            {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+        );
+        return true;
+    }
+
+    return false;
+}
+
 void VKCommandBufferProcessor::GoThroughRenderPass(
     int inflightIndex,
     std::vector<VKCmd>& exectedCmds,
@@ -280,13 +331,19 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
             boundVertexBufferCount = args.vertexBufferBindingCount;
             for (uint32_t i = 0; i < boundVertexBufferCount && i < boundVertexBuffers.size(); ++i)
             {
-                boundVertexBuffers[i] = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer);
+                if (args.vertexBufferBindings[i].buffer.type == BufferIdentifier::Type::RawBuffer)
+                    boundVertexBuffers[i] = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer.buffer);
+                else
+                    boundVertexBuffers[i] = nullptr;
             }
         }
         else if (cmd.type == VKCmdType::BindIndexBuffer)
         {
             auto& args = std::get<VKBindIndexBufferCmd>(cmd.args);
-            boundIndexBuffer = args.buffer;
+            if (args.buffer.type == BufferIdentifier::Type::RawBuffer)
+                boundIndexBuffer = static_cast<VKBuffer*>(args.buffer.buffer);
+            else
+                boundIndexBuffer = nullptr;
         }
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed || cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
@@ -306,16 +363,22 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
             if (cmd.type == VKCmdType::DrawIndirect)
             {
                 auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
-                auto buffer = static_cast<VKBuffer*>(args.buffer);
-                if (buffer && TrackResource(buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
-                    barrierCount += MakeBarrierForLastUsage(buffer, buffer->GetUUID());
+                if (args.buffer.type == BufferIdentifier::Type::RawBuffer)
+                {
+                    auto refBuf = ResolveTrackableBuffer(args.buffer, inflightIndex);
+                    if (TrackResource(refBuf, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                        barrierCount += MakeBarrierForLastUsage(refBuf);
+                }
             }
             else if (cmd.type == VKCmdType::DrawIndexedIndirect)
             {
                 auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
-                auto buffer = static_cast<VKBuffer*>(args.buffer);
-                if (buffer && TrackResource(buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
-                    barrierCount += MakeBarrierForLastUsage(buffer, buffer->GetUUID());
+                if (args.buffer.type == BufferIdentifier::Type::RawBuffer)
+                {
+                    auto refBuf = ResolveTrackableBuffer(args.buffer, inflightIndex);
+                    if (TrackResource(refBuf, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                        barrierCount += MakeBarrierForLastUsage(refBuf);
+                }
             }
 
             MakeBarrierForAllDynamicBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
@@ -338,7 +401,7 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
         {
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
-                {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
+                {ResourceType::Buffer, args.buffer, std::nullopt};
         }
         else if (visitIndex >= exectedCmds.size())
             break;
@@ -624,6 +687,93 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uui
     return barrierCount;
 }
 
+int VKCommandBufferProcessor::MakeBarrierForLastUsage(const VKBufferResourceRef& ref)
+{
+    if (ref.buffer == VK_NULL_HANDLE || ref.trackingId == 0)
+        return 0;
+
+    if (ref.rawBuffer != nullptr)
+    {
+        return MakeBarrierForLastUsage(ref.rawBuffer, ref.rawBuffer->GetUUID());
+    }
+
+    auto iter = tempResourceUsageTracks.find(ref.trackingId);
+    if (iter == tempResourceUsageTracks.end())
+        return 0;
+
+    auto& currentFrameUsages = iter->second.currentFrameUsages;
+    if (currentFrameUsages.empty())
+        return 0;
+
+    auto& currentUsage = currentFrameUsages.back();
+    int barrierCount = 0;
+
+    size_t usageIndex = currentFrameUsages.size() - 1;
+    size_t previousUsageIndex = 0;
+    std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
+
+    if (usageIndex == 0)
+    {
+        if (!iter->second.previousFrameUsages.empty())
+        {
+            usagesSource = &iter->second.previousFrameUsages;
+            previousUsageIndex = iter->second.previousFrameUsages.size() - 1;
+        }
+        else
+            return 0;
+    }
+    else
+        previousUsageIndex = usageIndex - 1;
+
+    VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    VkAccessFlags srcAccessMask = VK_ACCESS_NONE;
+
+    auto& preUsage = (*usagesSource)[previousUsageIndex];
+    if (HasWriteAccessMask(currentUsage.access))
+    {
+        if (HasWriteAccessMask(preUsage.access))
+        {
+            srcAccessMask |= preUsage.access;
+            srcStages |= preUsage.stages;
+        }
+        if (HasReadAccessMask(preUsage.access))
+        {
+            srcAccessMask |= preUsage.access;
+            srcStages |= preUsage.stages;
+        }
+    }
+
+    if (HasReadAccessMask(currentUsage.access))
+    {
+        if (HasWriteAccessMask(preUsage.access))
+        {
+            srcAccessMask |= preUsage.access;
+            srcStages |= preUsage.stages;
+        }
+    }
+
+    if (srcStages != VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT || srcAccessMask != VK_ACCESS_NONE)
+    {
+        Barrier barrier;
+        barrier.srcStageMask = srcStages;
+        barrier.dstStageMask = currentUsage.stages;
+        VkBufferMemoryBarrier bufferBarrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+        bufferBarrier.srcAccessMask = srcAccessMask;
+        bufferBarrier.dstAccessMask = currentUsage.access;
+        bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bufferBarrier.buffer = ref.buffer;
+        bufferBarrier.offset = ref.offset;
+        bufferBarrier.size = ref.size;
+        barrier.bufferMemoryBarrierIndex = bufferMemoryBarriers.size();
+        barriers.push_back(barrier);
+        bufferMemoryBarriers.push_back(bufferBarrier);
+        barrierCount += 1;
+    }
+
+    return barrierCount;
+}
+
 void VKCommandBufferProcessor::FlushBindResourceTrack() {}
 
 size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
@@ -681,6 +831,22 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         {
             auto& args = std::get<VKAsyncReadbackCmd>(cmd.args);
             asyncReadbacks.push_back(std::move(*args.handle));
+        }
+        else if (cmd.type == VKCmdType::AllocateBuffer)
+        {
+            auto& args = std::get<VKAllocateBufferCmd>(cmd.args);
+            bool hostVisible = (args.usage == TemporaryBufferUsage::TransferSrc);
+            auto handle = GetMemAllocator()->AllocateScratchBuffer(
+                args.size, args.alignment, args.usage, hostVisible
+            );
+            VKResolvedTemporaryBuffer resolved{
+                .buffer = handle.buffer,
+                .deviceAddress = handle.deviceAddress,
+                .mappedData = handle.mappedData,
+                .offset = handle.offset,
+                .size = handle.size,
+            };
+            temporaryBuffers[inflightIndex][args.handle.id] = resolved;
         }
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
@@ -769,11 +935,19 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKCopyBufferCmd>(cmd.args);
-            if (TrackResource(args.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
-                barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
+            if (args.src.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refSrc = ResolveTrackableBuffer(args.src, inflightIndex);
+                if (TrackResource(refSrc, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+                    barrierCount += MakeBarrierForLastUsage(refSrc);
+            }
 
-            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+            if (args.dst.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
+                if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                    barrierCount += MakeBarrierForLastUsage(refDst);
+            }
 
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
@@ -786,8 +960,12 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKUploadDataCmd>(cmd.args);
-            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+            if (args.dst.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
+                if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                    barrierCount += MakeBarrierForLastUsage(refDst);
+            }
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
         }
@@ -845,8 +1023,12 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
-            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+            if (args.dst.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
+                if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                    barrierCount += MakeBarrierForLastUsage(refDst);
+            }
 
             for (int i = 0; i < args.regionsCount; ++i)
             {
@@ -878,8 +1060,12 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            if (TrackResource(args.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
-                barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
+            if (args.src.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refSrc = ResolveTrackableBuffer(args.src, inflightIndex);
+                if (TrackResource(refSrc, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+                    barrierCount += MakeBarrierForLastUsage(refSrc);
+            }
 
             for (int i = 0; i < args.regionCount; ++i)
             {
@@ -948,7 +1134,7 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: set buffer");
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
-                {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
+                {ResourceType::Buffer, args.buffer, std::nullopt};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -971,8 +1157,12 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
-            if (args.buffer && TrackResource(args.buffer, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
-                args.barrierCount += MakeBarrierForLastUsage(args.buffer, args.buffer->GetUUID());
+            if (args.buffer.type == BufferIdentifier::Type::RawBuffer)
+            {
+                auto refBuf = ResolveTrackableBuffer(args.buffer, inflightIndex);
+                if (TrackResource(refBuf, VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT))
+                    args.barrierCount += MakeBarrierForLastUsage(refBuf);
+            }
             MakeBarrierForAllDynamicBindedSetUpdate(executedCmds, list, args.barrierCount);
             FlushAllBindedSetUpdate(inflightIndex, executedCmds, list, args.barrierCount);
         }
@@ -1062,7 +1252,7 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - DrawIndexed");
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inflightIndex);
                     auto& args = std::get<VKDrawIndexedCmd>(cmd.args);
                     vkCmdDrawIndexed(
                         vkcmd,
@@ -1080,7 +1270,7 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inflightIndex);
                     vkCmdDraw(vkcmd, args.vertexCount, args.instanceCount, args.firstVertex, args.firstInstance);
                     break;
                 }
@@ -1133,11 +1323,12 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inflightIndex);
+                    auto resolved = ResolveBuffer(args.buffer, inflightIndex);
                     vkCmdDrawIndirect(
                         vkcmd,
-                        static_cast<VKBuffer*>(args.buffer)->GetHandle(),
-                        args.offset,
+                        resolved.buffer,
+                        args.offset + resolved.offset,
                         args.drawCount,
                         args.stride
                     );
@@ -1149,11 +1340,12 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS, inflightIndex);
+                    auto resolved = ResolveBuffer(args.buffer, inflightIndex);
                     vkCmdDrawIndexedIndirect(
                         vkcmd,
-                        static_cast<VKBuffer*>(args.buffer)->GetHandle(),
-                        args.offset,
+                        resolved.buffer,
+                        args.offset + resolved.offset,
                         args.drawCount,
                         args.stride
                     );
@@ -1332,10 +1524,10 @@ void VKCommandBufferProcessor::Execute(
                     uint64_t vkOffsets[8];
                     for (uint32_t i = 0; i < args.vertexBufferBindingCount; ++i)
                     {
-                        VKBuffer* vkbuf = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer);
-                        exeState.vertexBufferBindings[i] = vkbuf;
-                        vkBuffers[i] = vkbuf->GetHandle();
-                        vkOffsets[i] = args.vertexBufferBindings[i].offset;
+                        auto resolved = ResolveBuffer(args.vertexBufferBindings[i].buffer, inflightIndex);
+                        exeState.vertexBufferBindings[i] = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer.buffer);
+                        vkBuffers[i] = resolved.buffer;
+                        vkOffsets[i] = args.vertexBufferBindings[i].offset + resolved.offset;
                     }
                     exeState.vertexBufferBindingCount = args.vertexBufferBindingCount;
 
@@ -1360,10 +1552,8 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindIndexBuffer");
                     auto& args = std::get<VKBindIndexBufferCmd>(cmd.args);
-                    VKBuffer* buffer = args.buffer;
-
-                    VkBuffer indexBuf = buffer->GetHandle();
-                    vkCmdBindIndexBuffer(vkcmd, indexBuf, args.offset, args.indexType);
+                    auto resolved = ResolveBuffer(args.buffer, inflightIndex);
+                    vkCmdBindIndexBuffer(vkcmd, resolved.buffer, args.offset + resolved.offset, args.indexType);
                     break;
                 }
             case VKCmdType::SetViewport:
@@ -1380,11 +1570,13 @@ void VKCommandBufferProcessor::Execute(
                     std::vector<VkBufferImageCopy> vkRegions;
                     auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
 
+                    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
+
                     for (int i = 0; i < args.regionsCount; ++i)
                     {
                         auto& r = args.regions[i];
                         VkBufferImageCopy region;
-                        region.bufferOffset = r.bufferOffset;
+                        region.bufferOffset = r.bufferOffset + resolvedDst.offset;
                         region.bufferRowLength = 0;
                         region.bufferImageHeight = 0;
                         region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);
@@ -1398,21 +1590,16 @@ void VKCommandBufferProcessor::Execute(
                     }
 
                     VKImage* srcImage = args.src;
-                    VKBuffer* dstBuffer = args.dst;
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    // {
-                    //     PutBarrier(vkcmd, b);
-                    // }
                     PutBarriers(vkcmd, barrierOffset, barrierCount);
 
                     vkCmdCopyImageToBuffer(
                         vkcmd,
                         srcImage->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        dstBuffer->GetHandle(),
+                        resolvedDst.buffer,
                         vkRegions.size(),
                         vkRegions.data()
                     );
@@ -1449,7 +1636,7 @@ void VKCommandBufferProcessor::Execute(
                     const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, pipeineBindingPoint);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint, inflightIndex);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1469,7 +1656,7 @@ void VKCommandBufferProcessor::Execute(
                     const auto pipeineBindingPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(inflightIndex, vkcmd, pipeineBindingPoint);
-                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint);
+                    UpdateDynamicDescriptorSetBinding(executedCmds, vkcmd, pipeineBindingPoint, inflightIndex);
 
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
@@ -1478,7 +1665,8 @@ void VKCommandBufferProcessor::Execute(
                     //     PutBarrier(vkcmd, b);
                     // }
                     PutBarriers(vkcmd, barrierOffset, barrierCount);
-                    vkCmdDispatchIndirect(vkcmd, args.buffer->GetHandle(), args.bufferOffset);
+                    auto resolved = ResolveBuffer(args.buffer, inflightIndex);
+                    vkCmdDispatchIndirect(vkcmd, resolved.buffer, args.bufferOffset + resolved.offset);
                     break;
                 }
             case VKCmdType::NextRenderPass:
@@ -1544,18 +1732,23 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKCopyBufferCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    // {
-                    //     PutBarrier(vkcmd, b);
-                    // }
                     PutBarriers(vkcmd, barrierOffset, barrierCount);
 
+                    auto resolvedSrc = ResolveBuffer(args.src, inflightIndex);
+                    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
+                    VkBufferCopy adjustedRegions[8];
+                    for (uint32_t i = 0; i < args.copyRegionCount; ++i)
+                    {
+                        adjustedRegions[i] = args.copyRegions[i];
+                        adjustedRegions[i].srcOffset += resolvedSrc.offset;
+                        adjustedRegions[i].dstOffset += resolvedDst.offset;
+                    }
                     vkCmdCopyBuffer(
                         vkcmd,
-                        args.src->GetHandle(),
-                        args.dst->GetHandle(),
+                        resolvedSrc.buffer,
+                        resolvedDst.buffer,
                         args.copyRegionCount,
-                        args.copyRegions
+                        adjustedRegions
                     );
                     break;
                 }
@@ -1563,20 +1756,20 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UploadData");
                     auto& args = std::get<VKUploadDataCmd>(cmd.args);
-                    // PlaceFullMemoryBarrier(vkcmd);
                     PutBarriers(vkcmd, args.barrierOffset, args.barrierCount);
 
                     auto stagingHandle = GetMemAllocator()->AllocateScratchBuffer(
                         static_cast<uint32_t>(args.data.size()),
                         4,
-                        VKMemAllocator::ScratchBuffer::ScratchBufferUsage::HostVisibleScatchBuffer
+                        TemporaryBufferUsage::TransferSrc,
+                        true
                     );
                     memcpy(stagingHandle.mappedData, args.data.data(), args.data.size());
 
-                    VkDeviceSize srcOffset = static_cast<uint8_t*>(stagingHandle.mappedData) -
-                                             static_cast<uint8_t*>(stagingHandle.block->mappedData);
-                    VkBufferCopy region{.srcOffset = srcOffset, .dstOffset = args.dstOffset, .size = args.data.size()};
-                    vkCmdCopyBuffer(vkcmd, stagingHandle.buffer, args.dst->GetHandle(), 1, &region);
+                    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
+                    VkDeviceSize srcOffset = stagingHandle.offset;
+                    VkBufferCopy region{.srcOffset = srcOffset, .dstOffset = args.dstOffset + resolvedDst.offset, .size = args.data.size()};
+                    vkCmdCopyBuffer(vkcmd, stagingHandle.buffer, resolvedDst.buffer, 1, &region);
                     break;
                 }
             case VKCmdType::CopyBufferToImage:
@@ -1585,18 +1778,22 @@ void VKCommandBufferProcessor::Execute(
                     auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
                     auto barrierOffset = args.barrierOffset;
                     auto barrierCount = args.barrierCount;
-                    // for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
-                    // {
-                    //     PutBarrier(vkcmd, b);
-                    // }
                     PutBarriers(vkcmd, barrierOffset, barrierCount);
+
+                    auto resolvedSrc = ResolveBuffer(args.src, inflightIndex);
+                    VkBufferImageCopy adjustedRegions[8];
+                    for (uint32_t i = 0; i < args.regionCount; ++i)
+                    {
+                        adjustedRegions[i] = args.regions[i];
+                        adjustedRegions[i].bufferOffset += resolvedSrc.offset;
+                    }
                     vkCmdCopyBufferToImage(
                         vkcmd,
-                        args.src->GetHandle(),
+                        resolvedSrc.buffer,
                         args.dst->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         args.regionCount,
-                        args.regions
+                        adjustedRegions
                     );
                     break;
                 }
@@ -1713,7 +1910,7 @@ void VKCommandBufferProcessor::Execute(
     VKContext::Instance()->resourceAllocator->Tick();
 }
 
-void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
+void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, int inflightIndex)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UpdateDynamicDescriptorSetBinding");
 
@@ -1726,7 +1923,7 @@ void VKCommandBufferProcessor::UpdateDynamicDescriptorSetBinding(std::vector<VKC
                 exeState.setResources[setIndex].dynamicBindingNeedUpdate = false;
 
                 VKDynamicBindResourceCmd& dynamicBindResourceCmd = std::get<VKDynamicBindResourceCmd>(cmds[exeState.setResources[setIndex].dynamicBindSetCmdIndex].args);
-                BindDynamicDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader);
+                BindDynamicDescriptorSet(cmd, bindPoint, dynamicBindResourceCmd, setIndex, exeState.bindedShader, inflightIndex);
             }
         }
     }
@@ -1975,6 +2172,8 @@ VKImage* VKCommandBufferProcessor::GetImage(const UUID& hash)
 VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount, VKRayTracing::Manager* rayTracingManager)
 {
     this->rayTracingManager = rayTracingManager;
+    temporaryBuffers.resize(inflightCount);
+    transientDescriptorSets.resize(inflightCount);
 
     Buffer::CreateInfo createInfo{
         .usages = BufferUsage::Storage | BufferUsage::Transfer_Dst,
@@ -2200,7 +2399,7 @@ void VKCommandBufferProcessor::BeginRenderPass(
 }
 
 void VKCommandBufferProcessor::BindDynamicDescriptorSet(
-    VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram
+    VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram, int inflightIndex
 )
 {
     dynamicBindingCache_writes.clear();
@@ -2212,6 +2411,7 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
     auto& shaderInfo = shaderProgram->GetShaderInfo();
     std::vector<VKWritableGPUResource> writableGPUResources{};
     auto sharedResource = VKContext::Instance()->sharedResource;
+    bool containsTemporaryBuffer = false;
 
     if (shaderInfo.descriptorSets.size() <= set)
         return;
@@ -2287,6 +2487,20 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
                             dynamicBindingCache_bufferInfos.push_back({});
                             VkDescriptorBufferInfo& bufferInfo = dynamicBindingCache_bufferInfos.back();
                             VKBuffer* bufferUsed = nullptr;
+
+                            if (binding != bindings.end() && binding->bufferIdentifier.IsTemporary())
+                            {
+                                auto resolved = ResolveBuffer(binding->bufferIdentifier, inflightIndex);
+                                if (resolved.buffer != VK_NULL_HANDLE)
+                                {
+                                    bufferInfo.buffer = resolved.buffer;
+                                    bufferInfo.offset = resolved.offset;
+                                    bufferInfo.range = resolved.size;
+                                    containsTemporaryBuffer = true;
+                                    break;
+                                }
+                            }
+
                             if (buffer == nullptr)
                             {
                                 if (b.descriptorType == DescriptorType::UniformBuffer)
@@ -2476,7 +2690,9 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
             }
         }
 
-        VkDescriptorSet finalSet = RequestDescriptorSet(dynamicBindingCache_writes, set, shaderProgram);
+        VkDescriptorSet finalSet = containsTemporaryBuffer
+            ? RequestTransientDescriptorSet(dynamicBindingCache_writes, set, shaderProgram, inflightIndex)
+            : RequestDescriptorSet(dynamicBindingCache_writes, set, shaderProgram);
         vkCmdBindDescriptorSets(
             cmd,
             bindPoint,
@@ -2492,9 +2708,9 @@ void VKCommandBufferProcessor::BindDynamicDescriptorSet(
 
 void VKCommandBufferProcessor::GetImageViewOrBufferOrAccelerationStructure(DynamicBinding& binding, VKImageView*& imageView, VKBuffer*& buffer, AccelerationStructureRef& asRef)
 {
-    if (binding.buffer != nullptr)
+    if (binding.bufferIdentifier.type == BufferIdentifier::Type::RawBuffer)
     {
-        buffer = static_cast<VKBuffer*>(binding.buffer);
+        buffer = static_cast<VKBuffer*>(binding.bufferIdentifier.buffer);
     }
     else if (binding.asRef.context != nullptr)
     {
@@ -2519,11 +2735,11 @@ void VKCommandBufferProcessor::GetImageViewOrBufferOrAccelerationStructure(Dynam
 std::vector<VKWritableGPUResource> VKCommandBufferProcessor::GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph)
 {
     auto& shaderInfo = shaderProgram->GetShaderInfo();
+    std::vector<VKWritableGPUResource> writableGPUResources{};
 
     if (shaderInfo.descriptorSets.size() <= set)
         return {};
 
-    std::vector<VKWritableGPUResource> writableGPUResources{};
     const auto& descriptorSet = shaderInfo.descriptorSets[set];
     auto& bindings = dynamicBindResourceCmd.bindings;
     for (const auto& b : descriptorSet.bindings)
@@ -2683,6 +2899,116 @@ VkDescriptorSet VKCommandBufferProcessor::RequestDescriptorSet(std::span<VkWrite
     }
 
     return finalSet;
+}
+
+VKResolvedBuffer VKCommandBufferProcessor::ResolveBuffer(BufferIdentifier identifier, int inflightIndex)
+{
+    VKResolvedBuffer resolved{};
+
+    if (identifier.type == BufferIdentifier::Type::RawBuffer)
+    {
+        auto* vkBuf = static_cast<VKBuffer*>(identifier.buffer);
+        if (!vkBuf)
+        {
+            SPDLOG_ERROR("VKCommandBufferProcessor::ResolveBuffer: RawBuffer identifier has null buffer");
+            return resolved;
+        }
+        resolved.buffer = vkBuf->GetHandle();
+        resolved.deviceAddress = vkBuf->GetVKShaderDeviceAddress();
+        resolved.mappedData = vkBuf->GetCPUVisibleAddress();
+        resolved.offset = 0;
+        resolved.size = vkBuf->GetSize();
+    }
+    else if (identifier.type == BufferIdentifier::Type::TemporaryBuffer)
+    {
+        auto& map = temporaryBuffers[inflightIndex];
+        auto it = map.find(identifier.temporaryBuffer.id);
+        if (it != map.end())
+        {
+            auto& tmp = it->second;
+            resolved.buffer = tmp.buffer;
+            resolved.deviceAddress = tmp.deviceAddress;
+            resolved.mappedData = tmp.mappedData;
+            resolved.offset = tmp.offset;
+            resolved.size = tmp.size;
+        }
+        else
+        {
+            SPDLOG_ERROR("VKCommandBufferProcessor::ResolveBuffer: TemporaryBuffer identifier not found for id={}", identifier.temporaryBuffer.id);
+            return resolved;
+        }
+    }
+    else if (identifier.type == BufferIdentifier::Type::None)
+    {
+        return resolved;
+    }
+
+    return resolved;
+}
+
+VKCommandBufferProcessor::VKBufferResourceRef VKCommandBufferProcessor::ResolveTrackableBuffer(BufferIdentifier identifier, int inflightIndex)
+{
+    VKBufferResourceRef ref{};
+
+    if (identifier.type == BufferIdentifier::Type::RawBuffer)
+    {
+        auto* vkBuf = static_cast<VKBuffer*>(identifier.buffer);
+        if (vkBuf)
+        {
+            ref.trackingId = static_cast<uint64_t>(std::hash<UUID>{}(vkBuf->GetUUID()));
+            ref.buffer = vkBuf->GetHandle();
+            ref.offset = 0;
+            ref.size = VK_WHOLE_SIZE;
+            ref.rawBuffer = vkBuf;
+        }
+    }
+    else if (identifier.type == BufferIdentifier::Type::TemporaryBuffer)
+    {
+        auto& map = temporaryBuffers[inflightIndex];
+        auto it = map.find(identifier.temporaryBuffer.id);
+        if (it != map.end())
+        {
+            auto& tmp = it->second;
+            ref.trackingId = identifier.temporaryBuffer.id | (static_cast<uint64_t>(1) << 63);
+            ref.buffer = tmp.buffer;
+            ref.offset = tmp.offset;
+            ref.size = tmp.size;
+        }
+    }
+
+    return ref;
+}
+
+void VKCommandBufferProcessor::FrameFinished(int inflightIndex)
+{
+    temporaryBuffers[inflightIndex].clear();
+    if (static_cast<int>(transientDescriptorSets.size()) > inflightIndex)
+    {
+        for (auto& descriptorSet : transientDescriptorSets[inflightIndex])
+        {
+            if (descriptorSet.pool != nullptr && descriptorSet.set != VK_NULL_HANDLE)
+                descriptorSet.pool->Deallocate(descriptorSet.set);
+        }
+        transientDescriptorSets[inflightIndex].clear();
+    }
+}
+
+VkDescriptorSet VKCommandBufferProcessor::RequestTransientDescriptorSet(
+    std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram, int inflightIndex
+)
+{
+    auto* pool = shaderProgram->GetDescriptorPool(set);
+    auto setHandle = pool->Allocate();
+
+    for (auto& w : writes)
+        w.dstSet = setHandle;
+
+    vkUpdateDescriptorSets(GetDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, VK_NULL_HANDLE);
+
+    if (static_cast<int>(transientDescriptorSets.size()) > inflightIndex)
+        transientDescriptorSets[inflightIndex].push_back({pool, setHandle});
+
+    return setHandle;
 }
 
 } // namespace Gfx

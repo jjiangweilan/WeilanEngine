@@ -1686,6 +1686,7 @@ void VKDriver::WaitForCurrentInflightCmd()
     {
         f();
     }
+    commandBufferProcessor->FrameFinished(currentInflightIndex);
     memAllocator->GPUFrameFinished(frameContexts[currentInflightIndex].frameIndex);
     frameContexts[currentInflightIndex].onCompleteCallbacks.clear();
 }

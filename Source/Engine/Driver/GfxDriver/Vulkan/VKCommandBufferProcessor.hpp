@@ -8,6 +8,24 @@
 
 namespace Gfx
 {
+
+struct VKResolvedTemporaryBuffer
+{
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VkDeviceAddress deviceAddress = 0;
+    void* mappedData = nullptr;
+    uint64_t offset = 0;
+    uint64_t size = 0;
+};
+
+struct VKResolvedBuffer
+{
+    VkBuffer buffer = VK_NULL_HANDLE;
+    VkDeviceAddress deviceAddress = 0;
+    void* mappedData = nullptr;
+    uint64_t offset = 0;
+    uint64_t size = 0;
+};
 struct RenderPassNode
 {
     int cmdBegin;
@@ -63,18 +81,40 @@ public:
     VKRenderPass* Request(RenderPass& renderPass);
     void ShaderReloaded();
 
+    void FrameFinished(int inflightIndex);
+
+    VKResolvedBuffer ResolveBuffer(BufferIdentifier identifier, int inflightIndex);
+
+    struct VKBufferResourceRef
+    {
+        uint64_t trackingId = 0;
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceSize offset = 0;
+        VkDeviceSize size = VK_WHOLE_SIZE;
+        VKBuffer* rawBuffer = nullptr;
+    };
+
+    VKBufferResourceRef ResolveTrackableBuffer(BufferIdentifier identifier, int inflightIndex);
+    bool TrackResource(const VKBufferResourceRef& ref, VkPipelineStageFlags stages, VkAccessFlags access);
+    int MakeBarrierForLastUsage(const VKBufferResourceRef& ref);
+
 private:
     friend class VKResourceAllocator;
     struct ShaderBinding
     {
         ResourceType type;
-        std::variant<ObjPtr<Image>, ObjPtr<Buffer>> res;
+        std::variant<ObjPtr<Image>, BufferIdentifier> res;
         std::optional<ImageViewOption> imageViewOption = std::nullopt;
         bool IsNull()
         {
             bool isNull = false;
             std::visit([&isNull](auto&& arg)
-                       { isNull = arg.Get() == nullptr; },
+                       {
+                if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, ObjPtr<Image>>)
+                    isNull = arg.Get() == nullptr;
+                else
+                    isNull = !arg.IsBuffer();
+                },
                        res);
             return isNull;
         }
@@ -110,6 +150,7 @@ private:
         PipelineConfig pendingShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         VKBuffer* vertexBufferBindings[8];
+        VkBuffer resolvedVertexBuffers[8];
         int vertexBufferBindingCount = 0;
         int subpassIndex = -1;
         VKRenderPass* renderPass;
@@ -127,8 +168,15 @@ private:
         ObjPtr<VKShaderProgram> shaderProgram;
     };
 
+    struct TransientDescriptorSetInfo
+    {
+        VKDescriptorPool* pool = nullptr;
+        VkDescriptorSet set = VK_NULL_HANDLE;
+    };
+
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
+    std::unordered_map<uint64_t, ResourceUsageTrack> tempResourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;
 
@@ -153,8 +201,13 @@ private:
     std::unordered_map<uint64_t, DescriptorSetCacheInfo> descriptorSetCache;
     VKRayTracing::Manager* rayTracingManager;
 
+    std::vector<std::unordered_map<uint64_t, VKResolvedTemporaryBuffer>> temporaryBuffers;
+    std::vector<std::vector<TransientDescriptorSetInfo>> transientDescriptorSets;
+
     VkDescriptorSet
     RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram);
+    VkDescriptorSet
+    RequestTransientDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram, int inflightIndex);
     void CreateRenderPassNode(int visitIndex);
     // scheduling
     void FlushAllBindedSetUpdate(
@@ -180,7 +233,7 @@ private:
         int& barrierCount,
         int& barrierOffset
     );
-    void BindDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram);
+    void BindDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram, int inflightIndex);
     std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
@@ -192,7 +245,7 @@ private:
     void TryBindShader(VkCommandBuffer cmd);
     void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
     void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
-    void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
+    void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, int inflightIndex);
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
     void PreExecute(int inflightIndex, VKFramePrepareData& framePrepare);

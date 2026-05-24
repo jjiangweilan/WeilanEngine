@@ -39,7 +39,7 @@ struct VKDrawIndexedCmd
 
 struct VKDrawIndirectCmd
 {
-    Gfx::Buffer* buffer;
+    BufferIdentifier buffer;
     size_t offset;
     uint32_t drawCount;
     uint32_t stride;
@@ -47,7 +47,7 @@ struct VKDrawIndirectCmd
 
 struct VKDrawIndexedIndirectCmd
 {
-    Gfx::Buffer* buffer;
+    BufferIdentifier buffer;
     size_t offset;
     uint32_t drawCount;
     uint32_t stride;
@@ -67,7 +67,6 @@ struct VKBeginRenderPassCmd
     VkClearValue clearValues[8];
     int clearValueCount;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -95,7 +94,6 @@ struct VKRGBeginRenderPassCmd
     VkClearValue clearValues[8];
     int clearValueCount;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -105,7 +103,6 @@ struct VKDynamicRenderPassCmd
     std::vector<RenderAttachment> imageIdentifiers;
     std::vector<ClearValue> clearValues;
 
-    // used in VKCommandBufferProcessor
     VKRenderPass* resolvedRenderPass;
     int barrierOffset;
     int barrierCount;
@@ -135,7 +132,7 @@ struct VKBindVertexBufferCmd
 
 struct VKBindIndexBufferCmd
 {
-    VKBuffer* buffer;
+    BufferIdentifier buffer;
     uint64_t offset;
     VkIndexType indexType;
 };
@@ -151,7 +148,7 @@ struct VKSetTextureCmd
 struct VKSetBufferCmd
 {
     ShaderBindingHandle handle;
-    VKBuffer* buffer;
+    BufferIdentifier buffer;
     int index;
 };
 
@@ -163,11 +160,10 @@ struct VKSetViewportCmd
 struct VKCopyImageToBufferCmd
 {
     VKImage* src;
-    VKBuffer* dst;
+    BufferIdentifier dst;
     BufferImageCopyRegion regions[8];
     int regionsCount;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -193,17 +189,15 @@ struct VKDispatchCmd
     uint32_t groupCountY;
     uint32_t groupCountZ;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
 
 struct VKDispatchIndirectCmd
 {
-    VKBuffer* buffer;
+    BufferIdentifier buffer;
     size_t bufferOffset;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -221,12 +215,11 @@ struct VKPushDescriptorCmd
 
 struct VKCopyBufferCmd
 {
-    VKBuffer* src;
-    VKBuffer* dst;
+    BufferIdentifier src;
+    BufferIdentifier dst;
     uint32_t copyRegionCount;
     VkBufferCopy copyRegions[8];
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -234,22 +227,20 @@ struct VKCopyBufferCmd
 struct VKUploadDataCmd
 {
     std::vector<uint8_t> data;
-    VKBuffer* dst;
+    BufferIdentifier dst;
     size_t dstOffset;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
 
 struct VKCopyBufferToImageCmd
 {
-    VKBuffer* src;
+    BufferIdentifier src;
     VKImage* dst;
     uint32_t regionCount;
     VkBufferImageCopy regions[8];
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -266,7 +257,6 @@ struct VKBlitCmd
     VKImage* to;
     BlitOp blitOp;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -275,7 +265,6 @@ struct VKPresentCmd
 {
     VKImage* image;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
 };
@@ -303,12 +292,10 @@ struct VKAllocateAttachmentCmd
 
 struct VKAsyncReadbackCmd
 {
-    Gfx::Buffer* buffer;
+    BufferIdentifier buffer;
     size_t size;
     size_t offset;
 
-    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to
-    // VKCommandBufferProcessor later
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
 
@@ -336,9 +323,16 @@ struct VKClearColorImageCmd
     Image* image;
     ClearColor clearValue;
 
-    // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
+};
+
+struct VKAllocateBufferCmd
+{
+    TemporaryBufferHandle handle;
+    uint64_t size = 0;
+    uint64_t alignment = 16;
+    TemporaryBufferUsage usage = TemporaryBufferUsage::Storage;
 };
 
 struct VKNoneCmd
@@ -387,6 +381,7 @@ enum class VKCmdType
     GraphicsBlit,
     ClearColorImage,
     UploadData,
+    AllocateBuffer,
 };
 
 struct VKCmd
@@ -433,7 +428,8 @@ struct VKCmd
         VKBuildTLASCmd,
         VKGraphicsBlitCmd,
         VKClearColorImageCmd,
-        VKUploadDataCmd>
+        VKUploadDataCmd,
+        VKAllocateBufferCmd>
         args;
 };
 
@@ -454,8 +450,12 @@ public:
     void DrawIndexed(
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
     ) override;
-    void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
-    void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
+    void DrawIndirect(
+        BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride
+    ) override;
+    void DrawIndexedIndirect(
+        BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride
+    ) override;
 
     void BeginRenderPass(std::span<const RenderAttachment> images, std::span<ClearValue> clearValues) override;
 
@@ -465,33 +465,32 @@ public:
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
     void GraphicsBlit(const ImageIdentifier& from, const ImageIdentifier& to) override;
-    // renderpass and framebuffer have to be compatible.
-    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
-    // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
     void BindResource(uint32_t set, const std::vector<DynamicBinding>& bindings) override;
     void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) override;
-    void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
+    void BindIndexBuffer(
+        BufferIdentifier buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType
+    ) override;
 
     void SetViewport(const Viewport& viewport) override;
     void CopyImageToBuffer(
-        RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
+        RefPtr<Gfx::Image> src, BufferIdentifier dst, std::span<BufferImageCopyRegion> regions
     ) override;
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(Buffer* buffer, size_t bufferOffset) override;
+    void DispatchIndirect(BufferIdentifier buffer, size_t bufferOffset) override;
     void NextRenderPass() override;
     void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) override;
 
     void CopyBuffer(
-        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
+        BufferIdentifier bSrc, BufferIdentifier bDst, std::span<BufferCopyRegion> copyRegions
     ) override;
     void CopyBufferToImage(
-        RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
+        BufferIdentifier src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
     ) override;
     void Begin() override {}
     void End() override {}
@@ -503,9 +502,16 @@ public:
     void SetTexture(
         ShaderBindingHandle handle, int index, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption
     ) override;
-    void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
+    void SetBuffer(ShaderBindingHandle handle, int index, BufferIdentifier buffer) override;
 
     void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) override;
+
+    TemporaryBufferHandle AllocateBuffer(
+        size_t size,
+        TemporaryBufferUsage usage,
+        size_t alignment = 16
+    ) override;
+
     void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void SetLineWidth(float lineWidth) override;
     void SetDepthBias(float constantFactor, float clamp, float slopeFactor) override;
@@ -513,9 +519,13 @@ public:
 
     void PresentImage(VKImage* image);
 
-    std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset) override;
+    std::shared_ptr<AsyncReadbackHandle> AsyncReadback(
+        BufferIdentifier buffer, size_t size, size_t offset
+    ) override;
 
-    void UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset = 0) override;
+    void UploadData(
+        BufferIdentifier buffer, void* data, size_t dataSize, size_t offset = 0
+    ) override;
 
     void BuildBLAS(RayTracingMeshHandle handle, std::span<VkAccelerationStructureGeometryKHR> geometries, std::span<uint32_t> maxPrimitiveCounts);
     void BuildTLAS(RayTracingSceneHandle handle, std::span<RayTracingInstanceHandle> instances);

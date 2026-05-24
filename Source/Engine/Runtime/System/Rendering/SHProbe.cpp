@@ -114,7 +114,7 @@ void SHProbe::UpdateProbe(Scene& scene, const SHProbeUpdateSettings& settings)
              {0, 0, 0},
              {cubeMapDesc.width, cubeMapDesc.height, 1}}
         };
-        cmd->CopyImageToBuffer(cubeMapImage, readbackBuffer, copyRegion);
+        cmd->CopyImageToBuffer(cubeMapImage, Gfx::BufferIdentifier(*readbackBuffer), copyRegion);
         GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
         cmd->Reset(true);
         scene.DestroyGameObject(cubeMapCam);

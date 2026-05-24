@@ -13,7 +13,7 @@ DescriptorBinding::DescriptorBinding(int dstBinding, ImageView* imageView)
       imageView(imageView),
       buffer(nullptr) {}
 
-DescriptorBinding::DescriptorBinding(int dstBinding, Buffer* buffer)
+DescriptorBinding::DescriptorBinding(int dstBinding, BufferIdentifier buffer)
     : dstBinding(dstBinding),
       dstArrayElement(0),
       descriptorCount(1),

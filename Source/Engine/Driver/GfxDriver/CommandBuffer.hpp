@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "BufferIdentifier.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
@@ -60,38 +61,38 @@ struct DescriptorBinding
     DescriptorBinding() = default;
     DescriptorBinding(int dstBinding, Image* image);
     DescriptorBinding(int dstBinding, ImageView* imageView);
-    DescriptorBinding(int dstBinding, Buffer* buffer);
+    DescriptorBinding(int dstBinding, BufferIdentifier buffer);
     int dstBinding;
     int dstArrayElement;
     int descriptorCount;
     ImageView* imageView;
-    Buffer* buffer;
+    BufferIdentifier buffer;
 };
 
 struct DynamicBinding
 {
-    DynamicBinding(std::string_view name, Gfx::Buffer& buffer)
-        : name(name), buffer(&buffer), imageIdentifier(), asRef()
+    DynamicBinding(std::string_view name, BufferIdentifier buffer)
+        : name(name), bufferIdentifier(buffer), imageIdentifier(), asRef()
     {}
 
     DynamicBinding(std::string_view name, Gfx::Image& image)
-        : name(name), buffer(nullptr), imageIdentifier(image), asRef()
+        : name(name), bufferIdentifier(), imageIdentifier(image), asRef()
     {}
 
     DynamicBinding(std::string_view name, Gfx::ImageView& imageView)
-        : name(name), buffer(nullptr), imageIdentifier(imageView), asRef()
+        : name(name), bufferIdentifier(), imageIdentifier(imageView), asRef()
     {}
 
     DynamicBinding(std::string_view name, const ImageIdentifier& id)
-        : name(name), buffer(nullptr), imageIdentifier(id), asRef()
+        : name(name), bufferIdentifier(), imageIdentifier(id), asRef()
     {}
 
     DynamicBinding(std::string_view name, RayTracingContext* rayTracingContext, RayTracingSceneHandle sceneHandle)
-        : name(name), buffer(nullptr), imageIdentifier(), asRef({rayTracingContext, sceneHandle})
+        : name(name), bufferIdentifier(), imageIdentifier(), asRef({rayTracingContext, sceneHandle})
     {}
 
     std::string name;
-    Gfx::Buffer* buffer;
+    BufferIdentifier bufferIdentifier;
     ImageIdentifier imageIdentifier;
     AccelerationStructureRef asRef;
 };
@@ -125,7 +126,9 @@ public:
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;
-    virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
+    virtual void BindIndexBuffer(
+        BufferIdentifier buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType
+    ) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) = 0;
 
     virtual void BeginRenderPass(std::span<const RenderAttachment> images, std::span<Gfx::ClearValue> clearValues) = 0;
@@ -137,8 +140,12 @@ public:
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
     ) = 0;
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
-    virtual void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
-    virtual void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
+    virtual void DrawIndirect(
+        BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride
+    ) = 0;
+    virtual void DrawIndexedIndirect(
+        BufferIdentifier buffer, size_t offset, uint32_t drawCount, uint32_t stride
+    ) = 0;
     virtual void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) = 0;
     virtual void GraphicsBlit(const Gfx::ImageIdentifier& from, const Gfx::ImageIdentifier& to) = 0;
 
@@ -150,13 +157,13 @@ public:
     virtual void SetDepthBias(float constantFactor, float clamp, float slopeFactor) = 0;
     virtual void SetDepthBiasEnable(bool enable) = 0;
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    virtual void DispatchIndirect(Buffer* buffer, size_t bufferOffset) = 0;
+    virtual void DispatchIndirect(BufferIdentifier buffer, size_t bufferOffset) = 0;
     virtual void CopyBuffer(
-        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
+        BufferIdentifier bSrc, BufferIdentifier bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;
     void CopyBuffer(
-        RefPtr<Gfx::Buffer> bDst,
-        RefPtr<Gfx::Buffer> bSrc,
+        BufferIdentifier bDst,
+        BufferIdentifier bSrc,
         uint64_t size,
         uint64_t dstOffset = 0,
         uint64_t srcOffset = 0
@@ -166,10 +173,10 @@ public:
         CopyBuffer(bSrc, bDst, r);
     }
     virtual void CopyImageToBuffer(
-        RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
+        RefPtr<Gfx::Image> src, BufferIdentifier dst, std::span<BufferImageCopyRegion> regions
     ) = 0;
     virtual void CopyBufferToImage(
-        RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
+        BufferIdentifier src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
     ) = 0;
     virtual void Begin() = 0;
     virtual void End() = 0;
@@ -188,13 +195,23 @@ public:
         Gfx::Image& image,
         std::optional<ImageViewOption> imageViewOption = std::nullopt
     ) = 0;
-    virtual void SetBuffer(ShaderBindingHandle name, int index, Gfx::Buffer& buffer) = 0;
+    virtual void SetBuffer(ShaderBindingHandle name, int index, BufferIdentifier buffer) = 0;
 
-    virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset = 0) = 0;
+    virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(
+        BufferIdentifier buffer, size_t size, size_t offset = 0
+    ) = 0;
 
-    virtual void UploadData(Gfx::Buffer& buffer, void* data, size_t dataSize, size_t offset = 0) = 0;
+    virtual void UploadData(
+        BufferIdentifier buffer, void* data, size_t dataSize, size_t offset = 0
+    ) = 0;
 
     virtual void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) = 0;
+
+    virtual TemporaryBufferHandle AllocateBuffer(
+        size_t size,
+        TemporaryBufferUsage usage,
+        size_t alignment = 16
+    ) = 0;
 
     [[deprecated("use RenderAttachment version instead")]]
     virtual void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
@@ -209,7 +226,6 @@ public:
         SetViewport(viewport);
     }
 
-    // note: currently to correctly setup global binding, this function should be called before BindShaderProgram
     void SetTexture(
         ShaderBindingHandle name, ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
     )
@@ -224,7 +240,7 @@ public:
         SetTexture(name, 0, image, imageViewOption);
     }
 
-    void SetBuffer(ShaderBindingHandle name, Gfx::Buffer& buffer) { SetBuffer(name, 0, buffer); }
+    void SetBuffer(ShaderBindingHandle name, BufferIdentifier buffer) { SetBuffer(name, 0, buffer); }
 
     void SetTexture(
         std::string_view name, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption = std::nullopt
@@ -240,6 +256,6 @@ public:
         SetTexture(ShaderBindingHandle(name), 0, id, imageViewOption);
     }
 
-    void SetBuffer(std::string_view name, Gfx::Buffer& buffer) { SetBuffer(ShaderBindingHandle(name), 0, buffer); }
+    void SetBuffer(std::string_view name, BufferIdentifier buffer) { SetBuffer(ShaderBindingHandle(name), 0, buffer); }
 };
 } // namespace Gfx

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Core/Ptr.hpp"
+#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/Vulkan/VKCommon.hpp"
 #include <functional>
 #include <list>
@@ -24,14 +25,6 @@ class VKMemAllocator
 public:
     class ScratchBuffer
     {
-    public:
-        enum class ScratchBufferUsage
-        {
-            None,
-            HostVisibleScatchBuffer,
-            GPUScratchBuffer
-        };
-
     private:
         struct Block
         {
@@ -45,10 +38,11 @@ public:
             VkDeviceAddress deviceAddress = 0;
             void* mappedData = nullptr;
 
-            ScratchBufferUsage usage = ScratchBufferUsage::None;
+            TemporaryBufferUsage usage = TemporaryBufferUsage::Storage;
+            bool hostVisible = false;
             VkBufferUsageFlags bufferUsages = 0;
-            uint32_t size = 0;
-            uint32_t offset = 0;
+            uint64_t size = 0;
+            uint64_t offset = 0;
         };
 
     public:
@@ -57,6 +51,8 @@ public:
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceAddress deviceAddress = 0;
             void* mappedData = nullptr;
+            uint64_t offset = 0;
+            uint64_t size = 0;
 
             Block* block = nullptr;
         };
@@ -67,7 +63,7 @@ public:
         int currentFrameIndex = 0;
 
         void Init(VmaAllocator allocator);
-        AllocationHandle Allocate(uint32_t size, uint32_t alignment, ScratchBufferUsage usage);
+        AllocationHandle Allocate(uint64_t size, uint64_t alignment, TemporaryBufferUsage usage, bool hostVisible);
 
         void NewFrame(int frameIndex)
         {
@@ -78,7 +74,7 @@ public:
         void Destroy();
 
     private:
-        Block& CreateBlock(uint32_t size, ScratchBufferUsage usage);
+        Block& CreateBlock(uint64_t size, TemporaryBufferUsage usage, bool hostVisible);
     };
 
     VKMemAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex);
@@ -125,9 +121,9 @@ public:
      * @param usage The intended usage of the scratch buffer.
      * @return A handle to the allocated scratch buffer.
      */
-    ScratchBuffer::AllocationHandle AllocateScratchBuffer(uint32_t size, uint32_t alignment, ScratchBuffer::ScratchBufferUsage usage)
+    ScratchBuffer::AllocationHandle AllocateScratchBuffer(uint64_t size, uint64_t alignment, TemporaryBufferUsage usage, bool hostVisible)
     {
-        auto allocation = scratchBuffer.Allocate(size, alignment, usage);
+        auto allocation = scratchBuffer.Allocate(size, alignment, usage, hostVisible);
         return allocation;
     }
 

@@ -43,7 +43,7 @@ void GenerateBRDFResponseTexture(const char* path)
          .extend = {static_cast<uint32_t>(imgDesc.width), static_cast<uint32_t>(imgDesc.height), 1}}
     };
     auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
-    cmd->CopyImageToBuffer(dst, readbackBuf, regions);
+    cmd->CopyImageToBuffer(dst, Gfx::BufferIdentifier(*readbackBuf), regions);
 
     GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
 

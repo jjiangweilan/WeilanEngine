@@ -47,7 +47,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
          {0, 0, 0},
          {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1}}
     };
-    cmd->CopyBufferToImage(sourceBuf, srcImage, srcCopy);
+    cmd->CopyBufferToImage(Gfx::BufferIdentifier(*sourceBuf), srcImage, srcCopy);
     cmd->SetTexture("_Src", *srcImage);
     cmd->SetTexture("_Dst", *dstCuebmap);
     glm::vec4 texelSize = {1.0f / irradianceMapSize, 1.0f / irradianceMapSize, irradianceMapSize, irradianceMapSize};
@@ -63,7 +63,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
          .offset = {0, 0, 0},
          .extend = {irradianceMapSize, irradianceMapSize, 1}}
     };
-    cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);
+    cmd->CopyImageToBuffer(dstCuebmap, Gfx::BufferIdentifier(*readbackBuf), regions);
 
     GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
 
@@ -113,7 +113,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
          {0, 0, 0},
          {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1}}
     };
-    cmd->CopyBufferToImage(sourceBuf, srcImage, srcCopy);
+    cmd->CopyBufferToImage(Gfx::BufferIdentifier(*sourceBuf), srcImage, srcCopy);
 
     cmd->SetTexture("_EnvMap", *srcImage);
 
@@ -158,7 +158,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         byteOffset += imgDesc.GetMipByteSize(mip);
         mipWidth *= 0.5;
         mipHeight *= 0.5;
-        cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);
+        cmd->CopyImageToBuffer(dstCuebmap, Gfx::BufferIdentifier(*readbackBuf), regions);
     }
 
     GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
