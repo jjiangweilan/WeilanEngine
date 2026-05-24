@@ -111,8 +111,8 @@ void GameEditor::SimulatePlayerView(bool enable)
     hideDevTool = enable;
 
     // adjust system window to current view size
-    auto sceneImage = gameView->GetGameScreenImage();
-    float2 sceneImageSize = {512, 512};// sceneImage->GetDescription().GetSize();
+    auto gameImage = gameView->GetGameScreenImage();
+    float2 sceneImageSize = gameImage->GetDescription().GetSize();
     cacheSystemWindowSize = engine->GetSystemWindowSize();
 
     if (enable)
@@ -233,6 +233,10 @@ GameEditor::~GameEditor()
         camJson["scale"] = {scale.x, scale.y, scale.z};
         editorState["editorCamera"] = camJson;
     }
+
+    auto gameViewResolution = gameView->GetGameScreenResolution();
+    editorState["gameView"]["resolution"] = {gameViewResolution.x, gameViewResolution.y};
+    editorState["gameView"]["resolutionSelectionIndex"] = gameView->GetGameScreenResolutionSelectionIndex();
 
     auto editorStatePath = engine->GetProjectPath() / "editorState.json";
     std::ofstream editorStateFile(editorStatePath);

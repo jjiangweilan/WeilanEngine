@@ -21,6 +21,8 @@ public:
     bool IsWindowFocused() { return isWindowFocused; };
     bool IsVisible() const { return visible; }
     bool Tick();
+    glm::ivec2 GetGameScreenResolution() const;
+    int GetGameScreenResolutionSelectionIndex() const { return resolutionSelectionIdx; }
 
     void Render(
         Gfx::CommandBuffer& cmd,
@@ -113,6 +115,7 @@ private:
 
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
+    int resolutionSelectionIdx = 0;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void ChangeGameScreenResolution(glm::ivec2 resolution);

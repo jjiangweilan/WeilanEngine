@@ -21,6 +21,28 @@
 
 namespace Editor
 {
+namespace
+{
+const int2 gameViewPredefinedResolutions[] = {{1920, 1080}, {2560, 1440}, {-1, -1}};
+const char* gameViewPredefinedResolutionText[] = {"1920x1080", "2560x1440", "Custom"};
+constexpr int gameViewResolutionSelectionCount = sizeof(gameViewPredefinedResolutionText) / sizeof(const char*);
+constexpr int gameViewCustomResolutionSelectionIdx = gameViewResolutionSelectionCount - 1;
+
+bool IsValidGameViewResolution(glm::ivec2 resolution)
+{
+    return resolution.x > 0 && resolution.y > 0;
+}
+
+int GetGameViewResolutionSelectionIndex(glm::ivec2 resolution)
+{
+    for (int i = 0; i < gameViewCustomResolutionSelectionIdx; i++)
+    {
+        if (resolution == gameViewPredefinedResolutions[i])
+            return i;
+    }
+    return gameViewCustomResolutionSelectionIdx;
+}
+} // namespace
 
 struct GameView::PlayTheGame
 {
@@ -107,7 +129,53 @@ void GameView::Init()
     outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
     outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
 
-    ChangeGameScreenResolution({1920, 1080});
+    glm::ivec2 resolution = gameViewPredefinedResolutions[0];
+    resolutionSelectionIdx = 0;
+
+    auto& editorState = GameEditor::instance->editorState;
+    if (editorState.contains("gameView") && editorState["gameView"].is_object())
+    {
+        auto& gameViewState = editorState["gameView"];
+        glm::ivec2 savedResolution = resolution;
+        bool hasSavedResolution = false;
+        if (gameViewState.contains("resolution") && gameViewState["resolution"].is_array() &&
+            gameViewState["resolution"].size() == 2 && gameViewState["resolution"][0].is_number_integer() &&
+            gameViewState["resolution"][1].is_number_integer())
+        {
+            savedResolution = {
+                gameViewState["resolution"][0].get<int>(),
+                gameViewState["resolution"][1].get<int>()
+            };
+            hasSavedResolution = IsValidGameViewResolution(savedResolution);
+        }
+
+        int savedSelectionIdx = resolutionSelectionIdx;
+        if (gameViewState.contains("resolutionSelectionIndex") &&
+            gameViewState["resolutionSelectionIndex"].is_number_integer())
+        {
+            savedSelectionIdx = gameViewState["resolutionSelectionIndex"].get<int>();
+        }
+        if (savedSelectionIdx >= 0 && savedSelectionIdx < gameViewResolutionSelectionCount)
+        {
+            resolutionSelectionIdx = savedSelectionIdx;
+            if (resolutionSelectionIdx == gameViewCustomResolutionSelectionIdx)
+            {
+                if (hasSavedResolution)
+                    resolution = savedResolution;
+            }
+            else
+            {
+                resolution = gameViewPredefinedResolutions[resolutionSelectionIdx];
+            }
+        }
+        else if (hasSavedResolution)
+        {
+            resolution = savedResolution;
+            resolutionSelectionIdx = GetGameViewResolutionSelectionIndex(resolution);
+        }
+    }
+
+    ChangeGameScreenResolution(resolution);
 }
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
@@ -204,12 +272,15 @@ bool GameView::Tick()
         }
 
         d.resolution = {width, height};
+        if (resolutionSelectionIdx != gameViewCustomResolutionSelectionIdx)
+            resolutionSelectionIdx = GetGameViewResolutionSelectionIndex(d.resolution);
     }
     else if (strcmp(menuSelected, "Auto Resize") == 0)
     {
         int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
         ChangeGameScreenResolution({width, height});
+        resolutionSelectionIdx = GetGameViewResolutionSelectionIndex({width, height});
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
@@ -239,29 +310,11 @@ bool GameView::Tick()
 
     if (ImGui::BeginPopup("Change Resolution"))
     {
-        int2 predefinedSolutions[] = {{1920, 1080}, {2560, 1440}, {-1, -1}};
-        const char* predefinedSolutionsText[] = {"1920x1080", "2560x1440", "Custom"};
-        const int totalSelectionCount = sizeof(predefinedSolutionsText) / sizeof(const char*);
-        static int resolutionSelectionIdx = totalSelectionCount - 1;
-
         if (ImGui::BeginTable("Resolution Table", 2))
         {
             ImGui::TableNextColumn();
             ImGui::Text("Resolutions");
             ImGui::TableNextColumn();
-            if (resolutionSelectionIdx != totalSelectionCount - 1)
-            {
-                for (; resolutionSelectionIdx < sizeof(predefinedSolutions) / sizeof(int2); resolutionSelectionIdx++)
-                {
-                    if (d.resolution == predefinedSolutions[resolutionSelectionIdx])
-                    {
-                        break;
-                    }
-                }
-                // fallback to custom
-                if (resolutionSelectionIdx == totalSelectionCount)
-                    resolutionSelectionIdx = totalSelectionCount - 1;
-            }
 
             // resolution selection
             {
@@ -269,13 +322,13 @@ bool GameView::Tick()
                 if (ImGui::Combo(
                         "##ResolutionCombo",
                         &resolutionSelectionIdx,
-                        predefinedSolutionsText,
-                        totalSelectionCount
+                        gameViewPredefinedResolutionText,
+                        gameViewResolutionSelectionCount
                     ))
                 {
-                    if (resolutionSelectionIdx + 1 != totalSelectionCount)
+                    if (resolutionSelectionIdx != gameViewCustomResolutionSelectionIdx)
                     {
-                        d.resolution = predefinedSolutions[resolutionSelectionIdx];
+                        d.resolution = gameViewPredefinedResolutions[resolutionSelectionIdx];
                         ChangeGameScreenResolution(d.resolution);
                     }
                 }
@@ -284,7 +337,7 @@ bool GameView::Tick()
             ImGui::EndTable();
         }
 
-        if (resolutionSelectionIdx + 1 == totalSelectionCount)
+        if (resolutionSelectionIdx == gameViewCustomResolutionSelectionIdx)
         {
             if (ImGui::BeginTable("Custom Resolution", 2))
             {
@@ -353,7 +406,23 @@ bool GameView::Tick()
 
 void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 {
-    if (resolution.x > 0 && resolution.y > 0)
+    if (IsValidGameViewResolution(resolution))
+    {
+        d.resolution = resolution;
         CreateRenderData(resolution.x, resolution.y);
+    }
+}
+
+glm::ivec2 GameView::GetGameScreenResolution() const
+{
+    if (sceneImage)
+    {
+        return {sceneImage->GetDescription().width, sceneImage->GetDescription().height};
+    }
+    if (IsValidGameViewResolution(d.resolution))
+    {
+        return d.resolution;
+    }
+    return gameViewPredefinedResolutions[0];
 }
 } // namespace Editor

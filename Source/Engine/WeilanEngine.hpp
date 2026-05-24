@@ -73,7 +73,7 @@ private:
     struct MainWindow
     {
         SDL_Window* handle;
-        Extent2D size = {1920, 1080};
+        Extent2D size = {512, 512};
     } mainWindow;
 
     bool keepLooping = true;
