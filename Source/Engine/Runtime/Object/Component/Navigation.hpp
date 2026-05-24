@@ -8,6 +8,7 @@ class Navigation : public Component
     DECLARE_COMPONENT(Navigation);
 
 public:
+    void OnAwake() override;
     void DebugDraw() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

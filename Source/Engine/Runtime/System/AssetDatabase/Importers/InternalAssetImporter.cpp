@@ -2,7 +2,7 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 
-DEFINE_ASSET_IMPORTER(InternalAssetImporter, "mat,scene,prefab,fgraph,renderPipeline")
+DEFINE_ASSET_IMPORTER(InternalAssetImporter, "mat,scene,prefab,fgraph,renderPipeline,nav")
 
 const std::vector<std::type_index>& InternalAssetImporter::GetImportTypes()
 {

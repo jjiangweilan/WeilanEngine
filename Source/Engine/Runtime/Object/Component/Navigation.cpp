@@ -12,11 +12,7 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
 
 void Navigation::DebugDraw()
 {
-    navSystem.Init(navData);
-    if (gameObject != nullptr)
-    {
-        navSystem.SetRelativePosition(gameObject->GetPosition());
-    }
+    navSystem.SetRelativePosition(gameObject->GetPosition());
     navSystem.Visualize();
 }
 
@@ -44,5 +40,9 @@ std::unique_ptr<Component> Navigation::Clone(GameObject& owner)
 void Navigation::SetNavData(ObjPtr<NavData> data)
 {
     navData = data;
+}
+
+void Navigation::OnAwake()
+{
     navSystem.Init(navData);
 }
