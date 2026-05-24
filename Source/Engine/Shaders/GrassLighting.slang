@@ -1,5 +1,9 @@
 import WeilanEngine;
+import Shadows;
+import Lighting;
 import Library.PerScene;
+
+#include "DeferredPBRShadingInput.hlsl"
 
 #if CONFIG
 depth:
@@ -25,8 +29,13 @@ ParameterBlock<PerScene> perScene;
 
 struct GrassLightingInput
 {
+    DeferredPBRShadingInput input;
     Sampler2D albedoTex;
+    Sampler2D normalTex;
+    Sampler2D depthTex;
     Sampler2D ambientOcclusion;
+    Texture2D shadowMap;
+    SamplerComparisonState samplerShadow_clamp;
 }
 
 [Material]
@@ -58,6 +67,21 @@ VertexOutput VertexMain(uint id : SV_VertexID)
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float3 albedo = perMaterial.albedoTex.Sample(input.uv).xyz;
+    float3 normalWS = normalize(DecodeGBufferNormal(perMaterial.normalTex.Sample(input.uv).xyz));
+    float depth = perMaterial.depthTex.Sample(input.uv).x;
+    float4 positionWS = mul(perScene.camera.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
+    positionWS /= positionWS.w;
+
+    float shadowAttenuation = GetShadowAttenuation(
+        positionWS.xyz,
+        normalWS,
+        perMaterial.input.shadowConstantBias,
+        perMaterial.input.shadowNormalBias,
+        perScene.camera,
+        perScene.mainLightShadow,
+        perMaterial.shadowMap,
+        perMaterial.samplerShadow_clamp);
+
     float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
-    return float4(albedo * ao, 1.0);
+    return float4(albedo * ao * shadowAttenuation, 1.0);
 }

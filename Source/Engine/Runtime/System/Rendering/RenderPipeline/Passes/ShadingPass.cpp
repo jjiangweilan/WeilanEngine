@@ -41,6 +41,7 @@ ShadingPass::ShadingPass()
 
     grassLightingShader = ShaderLibrary::GetShader(Shaders::GrassLighting);
     grassLightingResource = GetGfxDriver()->CreateShaderResource();
+    grassLightingResource->SetBuffer("perMaterial", perMaterialBuffer.get());
 }
 
 void ShadingPass::OnInit(RenderingData* renderingData)
@@ -86,6 +87,9 @@ void ShadingPass::Execute(
 void ShadingPass::ExecuteGrassLighting(
     Gfx::CommandBuffer& cmd,
     const Gfx::ImageIdentifier& albedoGBuffer,
+    const Gfx::ImageIdentifier& normalGBuffer,
+    Gfx::ImageView* depthImageView,
+    Gfx::ImageView* shadowMap,
     const Gfx::ImageIdentifier& ambientOcclusion
 )
 {
@@ -93,6 +97,9 @@ void ShadingPass::ExecuteGrassLighting(
     int materialSet = grassLightingShader->GetSet(Gfx::DescriptorSetSemantics::Material);
 
     grassLightingResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
+    grassLightingResource->SetImage("normalTex"_shaderBinding, normalGBuffer);
+    grassLightingResource->SetImage("depthTex"_shaderBinding, depthImageView);
+    grassLightingResource->SetImage("shadowMap"_shaderBinding, shadowMap);
     grassLightingResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusion);
     cmd.BindResource(materialSet, grassLightingResource.get());
     cmd.BindShaderProgram(grassLightingProgram, MakeStencilReadConfig(*grassLightingProgram->GetDefaultShaderConfig(), 2));

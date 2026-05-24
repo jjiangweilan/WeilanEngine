@@ -33,6 +33,9 @@ public:
     void ExecuteGrassLighting(
         Gfx::CommandBuffer& cmd,
         const Gfx::ImageIdentifier& albedoGBuffer,
+        const Gfx::ImageIdentifier& normalGBuffer,
+        Gfx::ImageView* depthImageView,
+        Gfx::ImageView* shadowMap,
         const Gfx::ImageIdentifier& ambientOcclusion
     );
 
