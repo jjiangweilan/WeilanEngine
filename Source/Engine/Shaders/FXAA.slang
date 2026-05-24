@@ -240,7 +240,7 @@ float4 FxaaPixelShader(
     float pixelOffsetSubpix = max(pixelOffsetGood, subpixH);
     if(!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;
     if( horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
-    return FxaaTexTop(tex, posM);
+    return float4(FxaaTexTop(tex, posM).xyz, rgbyM.w);
 }
 
 
