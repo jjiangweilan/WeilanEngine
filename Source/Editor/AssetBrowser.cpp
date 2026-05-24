@@ -2,6 +2,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/FileIcons.hpp"
@@ -432,6 +433,11 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
             {
                 auto renderPipelineSetting = std::make_unique<Rendering::RenderPipelineSetting>();
                 engine->assetDatabase->SaveAsset(std::move(renderPipelineSetting), path / "New RenderPipelineSetting");
+            }
+            if (ImGui::MenuItem("Nav Data"))
+            {
+                auto navData = std::make_unique<NavData>();
+                engine->assetDatabase->SaveAsset(std::move(navData), path / "New NavData");
             }
             ImGui::EndMenu();
         }

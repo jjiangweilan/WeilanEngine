@@ -1,15 +1,16 @@
 #include "InternalAssetLoader.hpp"
+#include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <fstream>
 #include <typeindex>
 
-DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,prefab,fgraph,renderPipeline")
+DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,prefab,fgraph,renderPipeline,nav")
 
 class Material;
 const std::vector<std::type_index>& InternalAssetLoader::GetImportTypes()
 {
-    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject)};
+    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject), typeid(NavData)};
     return types;
 }
 

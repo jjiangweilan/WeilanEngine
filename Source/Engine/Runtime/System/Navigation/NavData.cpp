@@ -1,0 +1,5 @@
+#include "NavData.hpp"
+
+DEFINE_ASSET(NavData, "AF102612-B343-45BB-B7BC-540B2EA2F713", "nav")
+
+DEFINE_SERIALIZATION(NavData, Asset, SER(grid))
