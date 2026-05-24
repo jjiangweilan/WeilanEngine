@@ -14,6 +14,7 @@
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -508,6 +509,11 @@ void GameEditor::MainMenuBar()
             {
                 auto renderPipelineSetting = std::make_unique<Rendering::RenderPipelineSetting>();
                 engine->assetDatabase->SaveAsset(std::move(renderPipelineSetting), "New RenderPipelineSetting");
+            }
+            if (ImGui::MenuItem("Nav Data"))
+            {
+                auto navData = std::make_unique<NavData>();
+                engine->assetDatabase->SaveAsset(std::move(navData), "New NavData");
             }
             ImGui::EndMenu();
         }
