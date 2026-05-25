@@ -17,7 +17,7 @@ void NavSystem::Visualize() const
 
     const NavGrid& grid = data->grid;
     const NavDataConfig& config = grid.config;
-    if (config.resolution <= 0.0f || config.width <= 0 || config.height <= 0)
+    if (config.resolution.x <= 0.0f || config.resolution.y <= 0.0f || config.width <= 0 || config.height <= 0)
     {
         return;
     }
@@ -28,15 +28,12 @@ void NavSystem::Visualize() const
         return;
     }
 
-    auto cellIndex = [width = config.width](int x, int y) { return y * width + x; };
+    auto cellIndex = [width = config.width](int x, int y)
+    { return y * width + x; };
     auto cellPosition = [&](int x, int y)
     {
         const NavCell& cell = grid.cells[cellIndex(x, y)];
-        return relativePosition + float3(
-            (static_cast<float>(x) + 0.5f) * config.resolution,
-            cell.height,
-            (static_cast<float>(y) + 0.5f) * config.resolution
-        );
+        return relativePosition + config.origin + float3((static_cast<float>(x) + 0.5f) * config.resolution.x, cell.height, (static_cast<float>(y) + 0.5f) * config.resolution.y);
     };
 
     constexpr float4 gridColor(0.1f, 1.0f, 0.2f, 1.0f);
@@ -58,4 +55,10 @@ void NavSystem::Visualize() const
         }
     }
     Graphics::DrawLines(lines);
+}
+
+uint64_t NavObjectHandle::GenerateHandleID()
+{
+    static uint64_t id = 0;
+    return id++;
 }

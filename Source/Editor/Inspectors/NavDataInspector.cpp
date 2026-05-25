@@ -2,8 +2,6 @@
 #include "Editor/Inspectors/InspectorRegistry.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 
-#include <algorithm>
-
 namespace Editor
 {
 class NavDataInspector : public Inspector<NavData>
@@ -27,19 +25,24 @@ public:
         bool configChanged = false;
 
         configChanged |= EditorGUI::Property("Resolution", config.resolution);
-        configChanged |= EditorGUI::Property("Width", config.width);
-        configChanged |= EditorGUI::Property("Height", config.height);
-
-        config.resolution = std::max(config.resolution, 0.001f);
-        config.width = std::max(config.width, 1);
-        config.height = std::max(config.height, 1);
 
         if (configChanged)
         {
+            config.resolution.x = std::max(config.resolution.x, 0.001f);
+            config.resolution.y = std::max(config.resolution.y, 0.001f);
             target->grid.config = config;
             target->grid.cells.clear();
             target->SetDirty();
         }
+
+        EditorGUI::TextFormatted("Width", "%d", target->grid.config.width);
+        EditorGUI::TextFormatted("Height", "%d", target->grid.config.height);
+        EditorGUI::TextFormatted("Origin", "%.3f, %.3f, %.3f",
+            target->grid.config.origin.x,
+            target->grid.config.origin.y,
+            target->grid.config.origin.z);
+
+        ImGui::Separator();
 
         if (ImGui::Button("Clear Baked Cells"))
         {

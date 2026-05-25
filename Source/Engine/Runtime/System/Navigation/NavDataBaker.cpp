@@ -1,6 +1,7 @@
 #include "NavDataBaker.hpp"
 
 #include "Engine/Core/JobSystem.hpp"
+#include "Engine/Runtime/System/Rendering/Structs.hpp"
 
 #include <glm/gtx/intersect.hpp>
 
@@ -10,13 +11,27 @@
 
 void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
 {
-    const NavDataConfig& config = navData.grid.config;
-
-    if (mesh == nullptr || config.resolution <= 0 || config.width <= 0 || config.height <= 0)
+    if (mesh == nullptr)
     {
         navData.grid.cells.clear();
         return;
     }
+
+    NavDataConfig& config = navData.grid.config;
+
+    const AABB& aabb = mesh->GetAABB();
+    const float extentX = aabb.max.x - aabb.min.x;
+    const float extentZ = aabb.max.z - aabb.min.z;
+
+    if (config.resolution.x <= 0 || config.resolution.y <= 0 || extentX <= 0 || extentZ <= 0)
+    {
+        navData.grid.cells.clear();
+        return;
+    }
+
+    config.width = static_cast<int>(std::ceil(extentX / config.resolution.x));
+    config.height = static_cast<int>(std::ceil(extentZ / config.resolution.y));
+    config.origin = float3(aabb.min.x, 0.0f, aabb.min.z);
 
     const int width = config.width;
     const int height = config.height;
@@ -26,8 +41,11 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
 
     auto cellIndex = [width](int x, int y) { return y * width + x; };
     const auto& submeshes = mesh->GetSubmeshes();
-    const float rayOriginY = mesh->GetAABB().max.y + 1.0f;
+    const float rayOriginY = aabb.max.y + 1.0f;
     const float3 rayDirection(0.0f, -1.0f, 0.0f);
+
+    const float originX = config.origin.x;
+    const float originZ = config.origin.z;
 
     std::vector<JobHandle> handles;
     handles.reserve(cellCount);
@@ -39,8 +57,8 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
             handles.push_back(JobSystem::Instance().Schedule(
                 [&, x, y]()
                 {
-                    const float rayX = (static_cast<float>(x) + 0.5f) * config.resolution;
-                    const float rayZ = (static_cast<float>(y) + 0.5f) * config.resolution;
+                    const float rayX = originX + (static_cast<float>(x) + 0.5f) * config.resolution.x;
+                    const float rayZ = originZ + (static_cast<float>(y) + 0.5f) * config.resolution.y;
                     const float3 rayOrigin(rayX, rayOriginY, rayZ);
 
                     bool hasHit = false;
@@ -110,19 +128,19 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
                     float4 edgeSlop(0.0f);
                     if (x > 0)
                     {
-                        edgeSlop.x = std::atan((navData.grid.cells[cellIndex(x - 1, y)].height - centerHeight) / config.resolution);
+                        edgeSlop.x = std::atan((navData.grid.cells[cellIndex(x - 1, y)].height - centerHeight) / config.resolution.x);
                     }
                     if (x + 1 < width)
                     {
-                        edgeSlop.y = std::atan((navData.grid.cells[cellIndex(x + 1, y)].height - centerHeight) / config.resolution);
+                        edgeSlop.y = std::atan((navData.grid.cells[cellIndex(x + 1, y)].height - centerHeight) / config.resolution.x);
                     }
                     if (y > 0)
                     {
-                        edgeSlop.z = std::atan((navData.grid.cells[cellIndex(x, y - 1)].height - centerHeight) / config.resolution);
+                        edgeSlop.z = std::atan((navData.grid.cells[cellIndex(x, y - 1)].height - centerHeight) / config.resolution.y);
                     }
                     if (y + 1 < height)
                     {
-                        edgeSlop.w = std::atan((navData.grid.cells[cellIndex(x, y + 1)].height - centerHeight) / config.resolution);
+                        edgeSlop.w = std::atan((navData.grid.cells[cellIndex(x, y + 1)].height - centerHeight) / config.resolution.y);
                     }
 
                     navData.grid.cells[index].edgeSlop = edgeSlop;

@@ -256,6 +256,11 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec2& v)
         v.x = jq[0];
         v.y = jq[1];
     }
+    else if (jq.is_number())
+    {
+        v.x = static_cast<float>(jq);
+        v.y = static_cast<float>(jq);
+    }
 }
 
 void JsonSerializer::Serialize(std::string_view name, const bool val)

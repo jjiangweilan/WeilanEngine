@@ -1,5 +1,239 @@
 #include "Geometry.hpp"
 #include <glm/gtx/intersect.hpp>
+#include <limits>
+
+namespace
+{
+constexpr float Epsilon = 1e-6f;
+
+glm::vec3 TransformPoint(const glm::mat4& transform, const glm::vec3& point)
+{
+    glm::vec4 transformed = transform * glm::vec4(point, 1.0f);
+    return glm::vec3(transformed / transformed.w);
+}
+
+glm::vec3 ClosestPointOnTriangle(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
+{
+    const glm::vec3 ab = b - a;
+    const glm::vec3 ac = c - a;
+    const glm::vec3 ap = point - a;
+    const float d1 = glm::dot(ab, ap);
+    const float d2 = glm::dot(ac, ap);
+    if (d1 <= 0.0f && d2 <= 0.0f)
+        return a;
+
+    const glm::vec3 bp = point - b;
+    const float d3 = glm::dot(ab, bp);
+    const float d4 = glm::dot(ac, bp);
+    if (d3 >= 0.0f && d4 <= d3)
+        return b;
+
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f)
+    {
+        const float v = d1 / (d1 - d3);
+        return a + v * ab;
+    }
+
+    const glm::vec3 cp = point - c;
+    const float d5 = glm::dot(ab, cp);
+    const float d6 = glm::dot(ac, cp);
+    if (d6 >= 0.0f && d5 <= d6)
+        return c;
+
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f)
+    {
+        const float w = d2 / (d2 - d6);
+        return a + w * ac;
+    }
+
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f)
+    {
+        const float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + w * (c - b);
+    }
+
+    const float denom = 1.0f / (va + vb + vc);
+    const float v = vb * denom;
+    const float w = vc * denom;
+    return a + ab * v + ac * w;
+}
+
+bool PointInTriangle(const glm::vec3& point, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& normal)
+{
+    return glm::dot(glm::cross(b - a, point - a), normal) >= -Epsilon &&
+           glm::dot(glm::cross(c - b, point - b), normal) >= -Epsilon &&
+           glm::dot(glm::cross(a - c, point - c), normal) >= -Epsilon;
+}
+
+bool RayVsSphere(const glm::vec3& origin, const glm::vec3& dir, const glm::vec3& center, float radius, float& distance)
+{
+    const glm::vec3 oc = origin - center;
+    const float b = glm::dot(oc, dir);
+    const float c = glm::dot(oc, oc) - radius * radius;
+    const float discriminant = b * b - c;
+    if (discriminant < 0.0f)
+        return false;
+
+    const float sqrtDiscriminant = glm::sqrt(discriminant);
+    float t = -b - sqrtDiscriminant;
+    if (t < 0.0f)
+        t = -b + sqrtDiscriminant;
+    if (t < 0.0f)
+        return false;
+
+    distance = t;
+    return true;
+}
+
+bool RayVsCapsule(const glm::vec3& origin, const glm::vec3& dir, const glm::vec3& a, const glm::vec3& b, float radius, float& distance)
+{
+    const glm::vec3 ba = b - a;
+    const float baba = glm::dot(ba, ba);
+    if (baba <= Epsilon)
+        return RayVsSphere(origin, dir, a, radius, distance);
+
+    const glm::vec3 oa = origin - a;
+    const float bard = glm::dot(ba, dir);
+    const float baoa = glm::dot(ba, oa);
+    const float rdoa = glm::dot(dir, oa);
+    const float oaoa = glm::dot(oa, oa);
+    const float radius2 = radius * radius;
+
+    const float A = baba - bard * bard;
+    const float B = baba * rdoa - baoa * bard;
+    const float C = baba * oaoa - baoa * baoa - radius2 * baba;
+
+    bool hit = false;
+    float best = std::numeric_limits<float>::max();
+
+    if (glm::abs(A) > Epsilon)
+    {
+        const float h = B * B - A * C;
+        if (h >= 0.0f)
+        {
+            const float t = (-B - glm::sqrt(h)) / A;
+            const float y = baoa + t * bard;
+            if (t >= 0.0f && y >= 0.0f && y <= baba)
+            {
+                hit = true;
+                best = t;
+            }
+        }
+    }
+
+    float capDistance = 0.0f;
+    if (RayVsSphere(origin, dir, a, radius, capDistance) && capDistance < best)
+    {
+        hit = true;
+        best = capDistance;
+    }
+    if (RayVsSphere(origin, dir, b, radius, capDistance) && capDistance < best)
+    {
+        hit = true;
+        best = capDistance;
+    }
+
+    if (!hit)
+        return false;
+
+    distance = best;
+    return true;
+}
+
+bool IsUniformScaleTransform(const glm::mat4& transform, float& scale)
+{
+    const glm::vec3 x(transform[0]);
+    const glm::vec3 y(transform[1]);
+    const glm::vec3 z(transform[2]);
+    const float sx = glm::length(x);
+    const float sy = glm::length(y);
+    const float sz = glm::length(z);
+    if (sx <= Epsilon || sy <= Epsilon || sz <= Epsilon)
+        return false;
+
+    const float maxScale = glm::max(sx, glm::max(sy, sz));
+    const float tolerance = maxScale * 1e-4f;
+    if (glm::abs(sx - sy) > tolerance || glm::abs(sx - sz) > tolerance)
+        return false;
+
+    if (glm::abs(glm::dot(x, y)) > sx * sy * 1e-4f || glm::abs(glm::dot(x, z)) > sx * sz * 1e-4f || glm::abs(glm::dot(y, z)) > sy * sz * 1e-4f)
+        return false;
+
+    scale = (sx + sy + sz) / 3.0f;
+    return true;
+}
+
+bool SphereVsTriangleSweep(
+    const Sphere& sphere,
+    const glm::vec3& dir,
+    const glm::vec3& p0,
+    const glm::vec3& p1,
+    const glm::vec3& p2,
+    float& distance
+)
+{
+    const glm::vec3 normalUnnormalized = glm::cross(p1 - p0, p2 - p0);
+    const float normalLength2 = glm::dot(normalUnnormalized, normalUnnormalized);
+    if (normalLength2 <= Epsilon * Epsilon)
+        return false;
+
+    const glm::vec3 normal = normalUnnormalized / glm::sqrt(normalLength2);
+    const glm::vec3 closest = ClosestPointOnTriangle(sphere.origin, p0, p1, p2);
+    if (glm::dot(sphere.origin - closest, sphere.origin - closest) <= sphere.radius * sphere.radius)
+    {
+        distance = 0.0f;
+        return true;
+    }
+
+    bool hit = false;
+    float best = std::numeric_limits<float>::max();
+    const float planeDistance = glm::dot(sphere.origin - p0, normal);
+    const float denom = glm::dot(dir, normal);
+    if (glm::abs(denom) > Epsilon)
+    {
+        for (float side : {-sphere.radius, sphere.radius})
+        {
+            const float t = (side - planeDistance) / denom;
+            if (t >= 0.0f && t < best)
+            {
+                const glm::vec3 centerAtHit = sphere.origin + dir * t;
+                const glm::vec3 contactPoint = centerAtHit - normal * side;
+                if (PointInTriangle(contactPoint, p0, p1, p2, normal))
+                {
+                    hit = true;
+                    best = t;
+                }
+            }
+        }
+    }
+
+    float edgeDistance = 0.0f;
+    if (RayVsCapsule(sphere.origin, dir, p0, p1, sphere.radius, edgeDistance) && edgeDistance < best)
+    {
+        hit = true;
+        best = edgeDistance;
+    }
+    if (RayVsCapsule(sphere.origin, dir, p1, p2, sphere.radius, edgeDistance) && edgeDistance < best)
+    {
+        hit = true;
+        best = edgeDistance;
+    }
+    if (RayVsCapsule(sphere.origin, dir, p2, p0, sphere.radius, edgeDistance) && edgeDistance < best)
+    {
+        hit = true;
+        best = edgeDistance;
+    }
+
+    if (!hit)
+        return false;
+
+    distance = best;
+    return true;
+}
+}
 
 Triangle Box::GetTriangle(int idx) const
 {
@@ -159,6 +393,82 @@ bool RayVsMesh(
         }
     }
     return false;
+}
+
+bool SphereVsMesh(const Sphere& sphere, const float3& dir, Submesh* mesh, glm::mat4 transform, float& distance)
+{
+    if (mesh == nullptr)
+        return false;
+
+    const float dirLength = glm::length(glm::vec3(dir));
+    if (dirLength <= Epsilon)
+        return false;
+
+    const auto& indices = mesh->GetIndices();
+    const auto& positions = mesh->GetPositions();
+    const int indexCount = mesh->GetIndexCount();
+    if (indexCount < 3)
+        return false;
+
+    float scale = 1.0f;
+    const bool useLocalSpace = IsUniformScaleTransform(transform, scale);
+    glm::mat4 invTransform(1.0f);
+    Sphere testSphere = sphere;
+    glm::vec3 testDir = glm::normalize(glm::vec3(dir));
+    float distanceScale = 1.0f;
+
+    if (useLocalSpace)
+    {
+        invTransform = glm::inverse(transform);
+        testSphere.origin = TransformPoint(invTransform, glm::vec3(sphere.origin));
+        testSphere.radius = sphere.radius / scale;
+        testDir = glm::normalize(glm::vec3(invTransform * glm::vec4(glm::vec3(dir), 0.0f)));
+        distanceScale = scale;
+
+        Ray localRay{testSphere.origin, testDir};
+        AABB expandedAabb = mesh->GetAABB();
+        expandedAabb.min -= glm::vec3(testSphere.radius);
+        expandedAabb.max += glm::vec3(testSphere.radius);
+        float aabbDistance = 0.0f;
+        if (!RayVsAABB(localRay, expandedAabb, aabbDistance))
+            return false;
+    }
+
+    bool hit = false;
+    float best = std::numeric_limits<float>::max();
+    for (int i = 0; i + 2 < indexCount; i += 3)
+    {
+        const uint32_t i0 = indices[i];
+        const uint32_t i1 = indices[i + 1];
+        const uint32_t i2 = indices[i + 2];
+        if (i0 >= positions.size() || i1 >= positions.size() || i2 >= positions.size())
+            continue;
+
+        glm::vec3 p0 = positions[i0];
+        glm::vec3 p1 = positions[i1];
+        glm::vec3 p2 = positions[i2];
+        if (!useLocalSpace)
+        {
+            p0 = TransformPoint(transform, p0);
+            p1 = TransformPoint(transform, p1);
+            p2 = TransformPoint(transform, p2);
+        }
+
+        float triangleDistance = 0.0f;
+        if (SphereVsTriangleSweep(testSphere, testDir, p0, p1, p2, triangleDistance) && triangleDistance < best)
+        {
+            hit = true;
+            best = triangleDistance;
+            if (best == 0.0f)
+                break;
+        }
+    }
+
+    if (!hit)
+        return false;
+
+    distance = best * distanceScale;
+    return true;
 }
 
 Frustum::Frustum(const glm::mat4& vp)

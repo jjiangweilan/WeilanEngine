@@ -4,14 +4,16 @@
 
 struct NavDataConfig
 {
-    float resolution = 0.25; // meter
+    float2 resolution = float2(0.25f); // meter
     int width = 256;
     int height = 256;
+    float3 origin = float3(0.0f);
 
     INLINE_DEFINE_SERIALIZABLE(
         SER(resolution),
         SER(width),
-        SER(height)
+        SER(height),
+        SER(origin)
     )
 };
 

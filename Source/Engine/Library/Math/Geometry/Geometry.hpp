@@ -143,12 +143,19 @@ struct Quad2D
     float2 max;
 };
 
+struct Sphere
+{
+    float3 origin;
+    float radius;
+};
+
 bool RayVsPlane(const Ray& ray, const Plane& plane, float& distance);
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);
 bool RayVsBox(const Ray& ray, const Box& quad, float& distance);
 bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance);
 bool RayVsMesh(const Ray& ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance);
-
+// Sweeps a world-space sphere infinitely along dir against mesh. distance is along normalize(dir) in world units.
+bool SphereVsMesh(const Sphere& sphere, const float3& dir, Submesh* mesh, glm::mat4 transform, float& distance);
 /**
  * @brief Checks for an intersection between a ray and a submesh, returning details of the intersected triangle.
  *

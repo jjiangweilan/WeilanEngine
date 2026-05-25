@@ -32,8 +32,10 @@ bool NavDataBakeWindow::Tick()
         if (navDataPtr != nullptr)
         {
             const NavDataConfig& config = navDataPtr->grid.config;
-            ImGui::Text("Resolution: %.3f", config.resolution);
+            ImGui::Text("Resolution: %.3f x %.3f", config.resolution.x, config.resolution.y);
             ImGui::Text("Grid: %d x %d", config.width, config.height);
+            ImGui::Text("Origin: %.3f, %.3f, %.3f",
+                config.origin.x, config.origin.y, config.origin.z);
             ImGui::Text("Cells: %zu", navDataPtr->grid.cells.size());
         }
         else
