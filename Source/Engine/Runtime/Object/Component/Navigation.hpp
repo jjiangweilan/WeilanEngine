@@ -9,6 +9,7 @@ class Navigation : public Component
 
 public:
     void OnAwake() override;
+    void OnDestroy() override;
     void DebugDraw() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

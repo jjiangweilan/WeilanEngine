@@ -395,7 +395,7 @@ bool RayVsMesh(
     return false;
 }
 
-bool SphereVsMesh(const Sphere& sphere, const float3& dir, Submesh* mesh, glm::mat4 transform, float& distance)
+bool SphereVsMesh(const Sphere& sphere, const float3& dir, const Submesh* mesh, glm::mat4 transform, float& distance)
 {
     if (mesh == nullptr)
         return false;

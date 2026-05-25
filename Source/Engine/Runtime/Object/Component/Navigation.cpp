@@ -45,4 +45,10 @@ void Navigation::SetNavData(ObjPtr<NavData> data)
 void Navigation::OnAwake()
 {
     navSystem.Init(navData);
+    NavSystem::SetGlobalInstance(&navSystem);
+}
+
+void Navigation::OnDestroy()
+{
+    NavSystem::ClearGlobalInstance(&navSystem);
 }

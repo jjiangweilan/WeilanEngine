@@ -27,6 +27,10 @@ public:
     ObjPtr<NavData> GetNavData() const { return navData; }
     void Visualize() const;
 
+    static NavSystem* GetGlobalInstance();
+    static void SetGlobalInstance(NavSystem* system);
+    static void ClearGlobalInstance(NavSystem* system);
+
     void Init(int2 size);
 
     NavObjectHandle AddNavObject(GameObject* gameObject);
@@ -39,6 +43,8 @@ private:
         GameObject* go;
         std::vector<MeshRenderer*> meshRenderers;
     };
+
+    void RebuildRuntimeOccupancy();
 
     std::unordered_map<NavObjectHandle::HandleID, RegisteredNavObject> registeredNavObjects;
     ObjPtr<NavData> navData;
