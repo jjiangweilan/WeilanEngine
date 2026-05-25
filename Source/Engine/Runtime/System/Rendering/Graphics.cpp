@@ -3,9 +3,29 @@
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+
+namespace
+{
+struct LineData
+{
+    glm::vec4 fromPos, toPos;
+    glm::vec4 color;
+};
+}
+
 void Graphics::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
-    GetSingleton().drawCmds.push_back(DrawLineCmd{from, to, color});
+    DrawLines(std::vector<Line>{{from, to, color}});
+}
+
+void Graphics::DrawLines(const std::vector<Line>& lines)
+{
+    if (lines.empty())
+    {
+        return;
+    }
+
+    GetSingleton().drawCmds.push_back(DrawLineCmd{lines});
 }
 
 void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
@@ -113,7 +133,7 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 using T = std::decay_t<decltype(draw)>;
                 if constexpr (std::is_same_v<T, DrawLineCmd>)
                 {
-                    DrawLineCommand(cmd, draw);
+                    DrawLinesCommand(cmd, draw);
                 }
                 else if constexpr (std::is_same_v<T, DrawMeshCmd>)
                 {
@@ -145,6 +165,24 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
     }
 }
 
+void Graphics::PrepareDraws(Gfx::CommandBuffer& cmd)
+{
+    for (auto& drawCmd : drawCmds)
+    {
+        std::visit(
+            [&cmd](auto&& draw)
+            {
+                using T = std::decay_t<decltype(draw)>;
+                if constexpr (std::is_same_v<T, DrawLineCmd>)
+                {
+                    PrepareDrawLines(cmd, draw);
+                }
+            },
+            drawCmd
+        );
+    }
+}
+
 void Graphics::ClearDraws()
 {
     drawCmds.clear();
@@ -152,6 +190,23 @@ void Graphics::ClearDraws()
     {
         events.clear();
     }
+}
+
+void Graphics::PrepareDrawLines(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
+{
+    std::vector<LineData> lines;
+    lines.reserve(drawLine.lines.size());
+    for (const Line& line : drawLine.lines)
+    {
+        lines.push_back({glm::vec4(line.from, 1.0f), glm::vec4(line.to, 1.0f), line.color});
+    }
+
+    drawLine.lineBuffer = cmd.AllocateBuffer(
+        sizeof(LineData) * lines.size(),
+        Gfx::TemporaryBufferUsage::Storage,
+        alignof(LineData)
+    );
+    cmd.UploadData(drawLine.lineBuffer, lines.data(), sizeof(LineData) * lines.size());
 }
 
 void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
@@ -176,21 +231,18 @@ void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
     }
 }
 
-void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
+void Graphics::DrawLinesCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
 {
-    struct
-    {
-        glm::vec4 fromPos, toPos;
-        glm::vec4 color;
-    } data;
-    data.fromPos = glm::vec4(drawLine.from, 1.0f);
-    data.toPos = glm::vec4(drawLine.to, 1.0f);
-    data.color = drawLine.color;
+    if (!drawLine.lineBuffer.IsValid())
+        return;
 
-    Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
-    cmd.SetPushConstant(lineShaderProgram, (void*)&data);
+    Shader& lineShader = EngineInternalResources::GetLineShader();
+    Gfx::ShaderProgram* lineShaderProgram = lineShader.GetShaderProgram();
+    int lineSet = lineShader.GetSet(Gfx::DescriptorSetSemantics::Material);
+
+    cmd.BindResource(lineSet, std::vector<Gfx::DynamicBinding>{Gfx::DynamicBinding("lineData", drawLine.lineBuffer)});
     cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
-    cmd.Draw(2, 1, 0, 0);
+    cmd.Draw(static_cast<uint32_t>(drawLine.lines.size() * 2), 1, 0, 0);
 }
 
 void Graphics::DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw) {}

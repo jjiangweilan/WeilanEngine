@@ -225,6 +225,7 @@ private:
         VkAccessFlags access
     );
     bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
+    int TrackUploadDataDestination(BufferIdentifier dst, int inflightIndex);
     void GoThroughRenderPass(
         int inflightIndex,
         std::vector<VKCmd>& exectedCmds,

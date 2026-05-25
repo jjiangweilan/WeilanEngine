@@ -399,6 +399,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             {mainDepth, Gfx::AttachmentLoadOperation::Load}
         };
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
+        if (renderConfig.drawGraphics)
+        {
+            Graphics::GetSingleton().PrepareDraws(*cmd);
+        }
         cmd->BeginRenderPass(forwardPassAttachments, clears);
         cmd->BindResource(0, perScene.GetGlobalResource());
 

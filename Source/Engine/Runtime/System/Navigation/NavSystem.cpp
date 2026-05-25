@@ -40,6 +40,8 @@ void NavSystem::Visualize() const
     };
 
     constexpr float4 gridColor(0.1f, 1.0f, 0.2f, 1.0f);
+    std::vector<Graphics::Line> lines;
+    lines.reserve((config.width - 1) * config.height + config.width * (config.height - 1));
     for (int y = 0; y < config.height; ++y)
     {
         for (int x = 0; x < config.width; ++x)
@@ -47,12 +49,13 @@ void NavSystem::Visualize() const
             const float3 center = cellPosition(x, y);
             if (x + 1 < config.width)
             {
-                Graphics::DrawLine(center, cellPosition(x + 1, y), gridColor);
+                lines.push_back({center, cellPosition(x + 1, y), gridColor});
             }
             if (y + 1 < config.height)
             {
-                Graphics::DrawLine(center, cellPosition(x, y + 1), gridColor);
+                lines.push_back({center, cellPosition(x, y + 1), gridColor});
             }
         }
     }
+    Graphics::DrawLines(lines);
 }

@@ -177,7 +177,7 @@ void* VKBuffer::GetCPUVisibleAddress()
 
 VkDeviceAddress VKBuffer::GetVKShaderDeviceAddress()
 {
-    if (deviceAddress == -1)
+    if (deviceAddress == -1 && (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
     {
         auto device = VKContext::Instance()->device;
         VkBufferDeviceAddressInfo info =

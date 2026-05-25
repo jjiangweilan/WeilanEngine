@@ -774,6 +774,15 @@ int VKCommandBufferProcessor::MakeBarrierForLastUsage(const VKBufferResourceRef&
     return barrierCount;
 }
 
+int VKCommandBufferProcessor::TrackUploadDataDestination(BufferIdentifier dst, int inflightIndex)
+{
+    auto refDst = ResolveTrackableBuffer(dst, inflightIndex);
+    if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+        return MakeBarrierForLastUsage(refDst);
+
+    return 0;
+}
+
 void VKCommandBufferProcessor::FlushBindResourceTrack() {}
 
 size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
@@ -835,9 +844,8 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         else if (cmd.type == VKCmdType::AllocateBuffer)
         {
             auto& args = std::get<VKAllocateBufferCmd>(cmd.args);
-            bool hostVisible = (args.usage == TemporaryBufferUsage::TransferSrc);
             auto handle = GetMemAllocator()->AllocateScratchBuffer(
-                args.size, args.alignment, args.usage, hostVisible
+                args.size, args.alignment, args.usage, false
             );
             VKResolvedTemporaryBuffer resolved{
                 .buffer = handle.buffer,
@@ -960,11 +968,9 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             auto& args = std::get<VKUploadDataCmd>(cmd.args);
-            if (args.dst.type == BufferIdentifier::Type::RawBuffer)
+            if (args.dst.IsBuffer())
             {
-                auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
-                if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                    barrierCount += MakeBarrierForLastUsage(refDst);
+                barrierCount += TrackUploadDataDestination(args.dst, inflightIndex);
             }
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
@@ -2101,7 +2107,7 @@ void VKCommandBufferProcessor::PutBarriers(VkCommandBuffer vkcmd, int barrierOff
     dependencyInfo.pBufferMemoryBarriers = bufferBarriers.data();
     dependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
     dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
-    dependencyInfo.memoryBarrierCount = memoryBarriers.size();
+    dependencyInfo.memoryBarrierCount = memoryBarrier2s.size();
     dependencyInfo.pMemoryBarriers = memoryBarrier2s.data();
 
     vkCmdPipelineBarrier2(vkcmd, &dependencyInfo);
