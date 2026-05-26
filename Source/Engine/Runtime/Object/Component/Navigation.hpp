@@ -20,7 +20,17 @@ public:
     NavSystem& GetNavSystem() { return navSystem; }
     const NavSystem& GetNavSystem() const { return navSystem; }
 
+    NavPathQuery& GetPathQuery() { return pathQuery; }
+    const NavPathQuery& GetPathQuery() const { return pathQuery; }
+    NavSteeringQuery& GetSteeringQuery() { return steeringQuery; }
+    const NavSteeringQuery& GetSteeringQuery() const { return steeringQuery; }
+
+    NavPathResult FindPath(const float3& startWorld, const float3& endWorld);
+    bool GetSteeringTarget(const std::vector<float3>& waypoints, const float3& currentPosition, float3& outTarget) const;
+
 private:
     ObjPtr<NavData> navData;
     NavSystem navSystem;
+    NavPathQuery pathQuery;
+    NavSteeringQuery steeringQuery;
 };
