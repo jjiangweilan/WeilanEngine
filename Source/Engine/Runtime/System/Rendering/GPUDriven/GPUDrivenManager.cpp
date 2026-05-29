@@ -154,25 +154,39 @@ void GPUDrivenManager::AllocateForMesh(GpuGeometryDescriptor& descriptor, const 
     descriptor.geometry.attributeOffset = descriptor.dataAlloc.offset + sizeOffset;
     memcpy(staging + sizeOffset, attributes, attributeSize);
 
-    uint32_t attributeStride = 0;
     descriptor.geometry.attributeFlags = 0;
-    VertexAttributes::Attribute attr;
-    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Normal, 0, attr))
+    descriptor.geometry.normalOffset = 0;
+    descriptor.geometry.tangentOffset = 0;
+    descriptor.geometry.uvOffset = 0;
+    descriptor.geometry.boneOffset = 0;
+
+    uint32_t attributeStride = 0;
+    for (const auto& attr : submesh.GetAttribute().GetDescription())
     {
-        // If the mesh doesn't have normals, we can compute them on the fly in the shader.
-        descriptor.geometry.attributeFlags |= GpuGeometry::GetNormalBit();
-        attributeStride += attr.size;
-    }
-    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Tangent, 0, attr))
-    {
-        // If the mesh doesn't have tangents, we can compute them on the fly in the shader.
-        descriptor.geometry.attributeFlags |= GpuGeometry::GetTangentBit();
-        attributeStride += attr.size;
-    }
-    if (submesh.GetAttribute().FindSemantics(VertexAttributeSemantics::Texcoord, 0, attr))
-    {
-        // If the mesh doesn't have UVs, we can use a default value in the shader.
-        descriptor.geometry.attributeFlags |= GpuGeometry::GetHasUVBit();
+        if (attr.semanticIndex == 0)
+        {
+            if (attr.semanticName == VertexAttributeSemantics::Normal)
+            {
+                descriptor.geometry.attributeFlags |= GpuGeometry::GetNormalBit();
+                descriptor.geometry.normalOffset = attributeStride;
+            }
+            else if (attr.semanticName == VertexAttributeSemantics::Tangent)
+            {
+                descriptor.geometry.attributeFlags |= GpuGeometry::GetTangentBit();
+                descriptor.geometry.tangentOffset = attributeStride;
+            }
+            else if (attr.semanticName == VertexAttributeSemantics::Texcoord)
+            {
+                descriptor.geometry.attributeFlags |= GpuGeometry::GetHasUVBit();
+                descriptor.geometry.uvOffset = attributeStride;
+            }
+            else if (attr.semanticName == VertexAttributeSemantics::Bone)
+            {
+                descriptor.geometry.attributeFlags |= GpuGeometry::GetBoneBit();
+                descriptor.geometry.boneOffset = attributeStride;
+            }
+        }
+
         attributeStride += attr.size;
     }
     descriptor.geometry.attributeStride = attributeStride;
@@ -266,7 +280,8 @@ void GPUDrivenManager::UploadObject(GpuObjectHandle handle)
 GpuObjectHandle GPUDrivenManager::RegisterObject(
     const float4x4& modell,
     const float4x4& invTspModel,
-    GpuRenderDataListHandle renderDataListHandle
+    GpuRenderDataListHandle renderDataListHandle,
+    uint32_t skeletonOffset
 )
 {
     std::lock_guard<std::mutex> lock(mutex);
@@ -274,7 +289,13 @@ GpuObjectHandle GPUDrivenManager::RegisterObject(
     GpuObjectHandle handle = objectDescriptors.AllocateRaw();
     auto& descriptor = objectDescriptors[handle];
     auto& renderDataList = renderDataListDescriptors[renderDataListHandle];
-    descriptor.gpuObject = GpuObject{modell, invTspModel, static_cast<uint32_t>(renderDataList.renderDataList.size()), static_cast<uint32_t>(renderDataList.dataAlloc.offset)};
+    descriptor.gpuObject = GpuObject{
+        modell,
+        invTspModel,
+        static_cast<uint32_t>(renderDataList.renderDataList.size()),
+        static_cast<uint32_t>(renderDataList.dataAlloc.offset),
+        skeletonOffset,
+    };
     descriptor.renderDataListHandle = renderDataListHandle;
     globalBufferAllocator.Allocate(sizeof(GpuObject), globalDataAlignment, descriptor.dataAlloc);
     UploadObject(handle);
@@ -295,6 +316,37 @@ void GPUDrivenManager::UnregisterObject(GpuObjectHandle handle)
     globalBufferAllocator.Free(objectDescriptors[handle].dataAlloc);
     objectDescriptors.FreeRaw(static_cast<int>(handle));
     gpuDrivenConfigDirty = true;
+}
+
+GpuSkinningDescriptor GPUDrivenManager::AllocateSkinningData(uint32_t size)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+
+    GpuSkinningDescriptor descriptor;
+    globalBufferAllocator.Allocate(size, globalDataAlignment, descriptor.dataAlloc);
+    return descriptor;
+}
+
+void GPUDrivenManager::UpdateSkinningData(const GpuSkinningDescriptor& descriptor, const void* data, uint32_t size)
+{
+    if (!descriptor.dataAlloc.IsValid())
+        return;
+
+    GetGfxDriver()->UploadBuffer(
+        *globalBuffer,
+        reinterpret_cast<uint8_t*>(const_cast<void*>(data)),
+        size,
+        descriptor.dataAlloc.offset
+    );
+}
+
+void GPUDrivenManager::FreeSkinningData(GpuSkinningDescriptor& descriptor)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!descriptor.dataAlloc.IsValid())
+        return;
+
+    globalBufferAllocator.Free(descriptor.dataAlloc);
 }
 
 // --- Descriptor set passthrough for scene buffers ---

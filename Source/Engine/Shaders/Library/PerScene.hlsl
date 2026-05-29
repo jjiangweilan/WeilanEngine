@@ -195,12 +195,15 @@ struct GpuGeometry
     uint attributeOffset;
     uint attributeStride;
     uint attributeFlags;
-    uint padding0;
-    uint padding1;
+    uint normalOffset;
+    uint tangentOffset;
+    uint uvOffset;
+    uint boneOffset;
 
     bool HasNormal() { return (attributeFlags & 0x1) != 0; }
     bool HasTangent() { return (attributeFlags & 0x2) != 0; }
     bool HasUV() { return (attributeFlags & 0x4) != 0; }
+    bool HasBone() { return (attributeFlags & 0x8) != 0; }
 };
 
 struct GpuRenderData
@@ -217,7 +220,7 @@ struct GpuObject
     float4x4 invTspModel;
     uint renderDataCount;
     uint pRenderDataOffset;
-    uint padding0;
+    uint skeletonOffset;
     uint padding1;
 };
 
@@ -229,6 +232,7 @@ struct ObjectEntity
     float3 GetNormal() {return normal;}
     float4 GetTangent() {return tangent;}
     float2 GetUV() {return uv;}
+    float4 GetBone() {return bone;}
 
     float4x4 modelMatrix;
     float4x4 invTspModelMatrix;
@@ -236,6 +240,7 @@ struct ObjectEntity
     float3 normal;
     float4 tangent;
     float2 uv;
+    float4 bone;
 
     __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint vertexIndex)
     {
@@ -257,20 +262,26 @@ struct ObjectEntity
         bool hasNormal = geometry.HasNormal();
         bool hasTangent = geometry.HasTangent();
         bool hasUV = geometry.HasUV();
+        bool hasBone = geometry.HasBone();
         if (hasNormal)
-            normal = perScene.LoadData<float3>(attributeOffset);
+            normal = perScene.LoadData<float3>(attributeOffset + geometry.normalOffset);
         else
             normal = float3(0,1,0);
 
         if (hasTangent)
-            tangent = perScene.LoadData<float4>(attributeOffset + (hasNormal ? 12 : 0));
+            tangent = perScene.LoadData<float4>(attributeOffset + geometry.tangentOffset);
         else
             tangent = float4(1,0,0,1);
 
         if (hasUV)
-            uv = perScene.LoadData<float2>(attributeOffset + (hasNormal ? 12 : 0) + (hasTangent ? 16 : 0));
+            uv = perScene.LoadData<float2>(attributeOffset + geometry.uvOffset);
         else
             uv = float2(0,0);
+
+        if (hasBone)
+            bone = perScene.LoadData<float4>(attributeOffset + geometry.boneOffset);
+        else
+            bone = float4(0,0,0,0);
     }
 
 };
@@ -331,7 +342,7 @@ struct ObjectTriangle
     float3 GetNormal(ParameterBlock<PerScene> perScene, uint vertexIndex)
     {
         if (geometry.HasNormal())
-            return perScene.LoadData<float3>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride);
+            return perScene.LoadData<float3>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + geometry.normalOffset);
         else
             return float3(0,0,1);
     }
@@ -339,7 +350,7 @@ struct ObjectTriangle
     float4 GetTangent(ParameterBlock<PerScene> perScene, uint vertexIndex)
     {
         if (geometry.HasTangent())
-            return perScene.LoadData<float4>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + (geometry.HasNormal() ? 12 : 0));
+            return perScene.LoadData<float4>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + geometry.tangentOffset);
         else
             return float4(1,0,0,1);
     }
@@ -347,7 +358,7 @@ struct ObjectTriangle
     float2 GetUV(ParameterBlock<PerScene> perScene, uint vertexIndex)
     {
         if (geometry.HasUV())
-            return perScene.LoadData<float2>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + (geometry.HasNormal() ? 12 : 0) + (geometry.HasTangent() ? 16 : 0));
+            return perScene.LoadData<float2>(geometry.attributeOffset + i[vertexIndex] * geometry.attributeStride + geometry.uvOffset);
         else
             return float2(0,0);
     }

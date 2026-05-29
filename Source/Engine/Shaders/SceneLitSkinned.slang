@@ -8,38 +8,43 @@ static extern const bool _BaseColorMap = false;
 static extern const bool _NormalMap = false;
 static extern const bool _EmissiveMap = false;
 static extern const bool _MetallicRoughnessMap = false;
+static extern const bool _GPUDriven = true;
 
-interface IVertexInput
+[MaterialUILayout]
+struct SceneLitSkinnedUI
 {
-    float3 GetPosition();
-    float3 GetNormal();
-    float4 GetTangent();
-    float2 GetUV();
-    float4 GetBone();
-}
+    [Color, Group("Surface")]
+    float3 baseColorFactor;
 
-struct SkinnedVertexInput : IVertexInput
-{
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float4 tangent : TANGENT;
-    float2 uv : TEXCOORD0;
-    float4 bone : BONE;
+    [Range(0, 1), Group("Surface")]
+    float roughness;
 
-    float3 GetPosition() {return position;}
-    float3 GetNormal() {return normal;}
-    float4 GetTangent() {return tangent;}
-    float2 GetUV() { return uv;}
-    float4 GetBone() { return bone;}
-}
+    [Range(0, 1), Group("Surface")]
+    float metallic;
 
-extern struct VertexInput : IVertexInput = SkinnedVertexInput;
+    [Range(0, 1), Group("Surface")]
+    float alphaCutoff;
+
+    [Color, Group("Emission")]
+    float3 emissive;
+
+    [Texture, Group("Textures")]
+    int baseColorTex;
+
+    [Texture, Group("Textures")]
+    int normalMap;
+
+    [Texture, Group("Textures")]
+    int metallicRoughnessMap;
+
+    [Texture, Group("Textures")]
+    int emissiveMap;
+};
 
 struct PushConstant
 {
-    float4x4 model;
-    float4x4 invTspModel;
-} 
+    uint firstGpuObjectOffset;
+};
 
 [vk_push_constant]
 PushConstant pconst;
@@ -52,33 +57,12 @@ struct VertexOutput
     float3 tangentWS;
     float3 bitangentWS;
     float2 uv;
+    nointerpolation uint objectOffset;
+    nointerpolation uint renderDataIndex;
 };
-
-struct PerMaterial
-{
-    float4 baseColorFactor;
-    float4 emissive;
-    float roughness;
-    float metallic;
-    float alphaCutoff;
-
-    Sampler2D baseColorTex;
-    Sampler2D normalMap;
-    Sampler2D metallicRoughnessMap;
-    Sampler2D emissiveMap;
-};
-
-struct PerObject
-{
-    ConstantBuffer<Skeleton> skeleton;
-}
 
 [Global]
 ParameterBlock<PerScene> perScene;
-[Material]
-ParameterBlock<PerMaterial> perMaterial;
-[Object]
-ParameterBlock<PerObject> perObject;
 
 struct FragmentOutput
 {
@@ -88,92 +72,120 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-VertexOutput SceneLitVertex(IVertexInput input)
+float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights)
 {
-    VertexOutput output;
-
-// calculate bone position
-    float4 boneWeights = input.GetBone();
-
     float4x4 skeletonMatrix = float4x4(0);
-    for(int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         float boneWeight = boneWeights[i];
         if (boneWeight != 0)
         {
             int boneIndex = int(boneWeight * 0.1);
             float weight = boneWeight - boneIndex * 10;
-            skeletonMatrix += perObject.skeleton.bones[boneIndex] * weight;
+            skeletonMatrix += perScene.LoadData<float4x4>(skeletonOffset, boneIndex) * weight;
         }
     }
 
-    float3 position = input.GetPosition();
-    float4 vertexPos = mul(skeletonMatrix, float4(position, 1));
-    float3 normal = input.GetNormal();
-    float4 tangent = input.GetTangent();
+    return skeletonMatrix;
+}
 
-    output.positionWS = vertexPos.xyz;//mul(pconst.model, float4(vertexPos.xyz, 1)).xyz;
+VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex)
+{
+    GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
+    GpuObject objData = perScene.LoadData<GpuObject>(drawExtra.objectOffset);
+    ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
+
+    float4x4 skeletonMatrix = objData.skeletonOffset != 0xFFFFFFFF
+        ? GetSkeletonMatrix(objData.skeletonOffset, entity.GetBone())
+        : entity.GetModelMatrix();
+
+    VertexOutput output;
+    float3 vertexPos = entity.GetPosition();
+    float3 normal = entity.GetNormal();
+    float4 tangent = entity.GetTangent();
+
+    // Skinning matrices are uploaded as world-space bone transforms, matching the legacy skinned path.
+    output.positionWS = mul(skeletonMatrix, float4(vertexPos, 1)).xyz;
 
     matrix<float,3,3> model33 = (float3x3)skeletonMatrix;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = input.GetUV();
+    output.uv = entity.GetUV();
+    output.objectOffset = drawExtra.objectOffset;
+    output.renderDataIndex = drawExtra.renderDataIndex;
 
     output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     return output;
 }
 
-
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint geometryOffset : SV_InstanceID)
 {
-    return SceneLitVertex(input);
+    return SceneLitVertex(vertexID, drawIndex);
 }
-
 
 FragmentOutput SceneLitFragment(VertexOutput input)
 {
     FragmentOutput output;
 
-    float4 baseColor = perMaterial.baseColorFactor;
-    if (_BaseColorMap)
+    float4 baseColor;
+    float metallic;
+    float roughness;
+    float3 normalSample;
+    float4 emission;
+
+    GpuObject objData = perScene.LoadData<GpuObject>(input.objectOffset);
+    GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, input.renderDataIndex);
+    GpuMaterial matData = perScene.LoadData<GpuMaterial>(renderData.materialOffset);
+
+    baseColor = matData.baseColorFactor;
+    if (matData.baseColorTexIndex.x != 0xFFFFFFFF)
     {
-        baseColor *= perMaterial.baseColorTex.Sample(input.uv);
+        baseColor *= perScene.globalTextures[matData.baseColorTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.baseColorTexIndex.y), input.uv);
     }
 
     if (_AlphaClip)
     {
-        if (baseColor.a < perMaterial.alphaCutoff)
+        if (baseColor.a < matData.alphaCutoff)
             discard;
     }
 
-    float metallic = perMaterial.metallic;
-    float roughness = perMaterial.roughness;
-    if (_MetallicRoughnessMap)
+    metallic = matData.metallic;
+    roughness = matData.roughness;
+    if (matData.metallicRoughnessTexIndex.x != 0xFFFFFFFF)
     {
-        float2 metallicRoughness = float2(roughness, metallic) * perMaterial.metallicRoughnessMap.Sample(input.uv).gb;
+        float2 metallicRoughness = float2(roughness, metallic) *
+            perScene.globalTextures[matData.metallicRoughnessTexIndex.x].Sample(
+                perScene.GetGlobalSampler(matData.metallicRoughnessTexIndex.y), input.uv).gb;
         metallic = metallicRoughness.y;
-        roughness = max(metallicRoughness.x, 0.01);
+        roughness = clamp(metallicRoughness.x, 0.01, 0.99f);
+    }
+    else
+        roughness = clamp(roughness, 0.01, 0.99f);
+
+    normalSample = float3(0, 0, 1);
+    if (matData.normalMapTexIndex.x != 0xFFFFFFFF)
+    {
+        normalSample = perScene.globalTextures[matData.normalMapTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.normalMapTexIndex.y), input.uv).xyz * 2 - 1;
     }
 
-    float3 normal = float3(0,0,1);
-    if (_NormalMap)
+    emission = float4(0, 0, 0, 0);
+    if (matData.emissiveMapTexIndex.x != 0xFFFFFFFF)
     {
-        normal = perMaterial.normalMap.Sample(input.uv).xyz * 2 - 1;
+        emission = perScene.globalTextures[matData.emissiveMapTexIndex.x].Sample(
+            perScene.GetGlobalSampler(matData.emissiveMapTexIndex.y), input.uv);
     }
+    emission *= matData.emissive;
+
     float3x3 TBN = transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS)));
 
-    float3 n = EncodeGBufferNormal(normalize(mul(TBN, normal)));
+    float3 n = EncodeGBufferNormal(normalize(mul(TBN, normalSample)));
 
-    float4 emission = 0;
-    if (_EmissiveMap)
-    {
-        emission = perMaterial.emissiveMap.Sample(input.uv);
-    }
-
-    output.color = float4(emission.xyz * perMaterial.emissive.xyz, 1.0f);
+    output.color = float4(emission.xyz, 1.0f);
     output.albedo = float4(baseColor.xyz, 1.0f);
     output.normal = float4(n, 1.0f);
     output.property = float4(metallic, roughness, 0, 1.0f);
@@ -186,27 +198,3 @@ FragmentOutput FragmentMain(VertexOutput input)
 {
     return SceneLitFragment(input);
 }
-
-// struct GIBakeOutput
-// {
-//     float4 albedo : SV_Target0;
-//     float4 normal : SV_Target1;
-// }
-// 
-// struct ProbeInfo
-// {
-//     float4 position;
-// };
-// 
-// [vk_binding(0,3)]
-// ParameterBlock<ProbeInfo> probeInfos;
-// 
-// [shader("fragment")]
-// GIBakeOutput GIMicroGBuffer(VertexInput input)
-// {
-//     GIBakeOutput output;
-//     output.albedo = float4(0);
-//     output.normal = float4(0);
-// 
-//     return output;
-// }

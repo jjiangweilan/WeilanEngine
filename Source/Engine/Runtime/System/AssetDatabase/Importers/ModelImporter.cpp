@@ -570,7 +570,6 @@ void ProcessMaterials(ModelImportContext& context)
             if (mesh->mMaterialIndex == materialIndex && mesh->HasBones())
             {
                 mat->SetShader(Shaders::SceneLitSkinned);
-                mat->EnableFeature("_Vertex_Skeleton");
                 break;
             }
         }

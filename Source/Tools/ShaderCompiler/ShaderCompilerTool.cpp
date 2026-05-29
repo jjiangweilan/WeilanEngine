@@ -94,9 +94,9 @@ public:
         // debug an optimized shader
         slang::CompilerOptionValue optimization{};
         optimization.kind = slang::CompilerOptionValueKind::Int;
-        // optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
-        //                                : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
-        optimization.intValue0 = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+        optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
+                                       : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+        // optimization.intValue0 = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
 
         slang::CompilerOptionEntry compileOptions[] = {
             {slang::CompilerOptionName::DebugInformation, debugLevel},
@@ -522,7 +522,8 @@ private:
             attrStr += "(";
             for (uint32_t i = 0; i < argCount; ++i)
             {
-                if (i > 0) attrStr += ", ";
+                if (i > 0)
+                    attrStr += ", ";
 
                 size_t stringLen = 0;
                 const char* stringVal = attribute->getArgumentValueString(i, &stringLen);
@@ -619,11 +620,12 @@ private:
     void CollectUISchema(slang::IComponentType* program, json& outPipelineInfo)
     {
         outPipelineInfo["uiPropertySchema"] = json::array();
-        if (!sourceModule) return;
+        if (!sourceModule)
+            return;
 
         // Try searching by name first as a fallback if attribute reflection fails
         // but we still want the attribute to be the primary way.
-        
+
         auto moduleReflection = sourceModule->getModuleReflection();
 
         for (auto child : moduleReflection->getChildren())
@@ -639,7 +641,7 @@ private:
                     if (type)
                     {
                         // Check for attribute by name directly on type
-                        if (type->findAttributeByName("MaterialUILayout") || 
+                        if (type->findAttributeByName("MaterialUILayout") ||
                             type->findAttributeByName("MaterialUILayoutAttribute") ||
                             std::string(child->getName()).find("UI") != std::string::npos) // Fallback to name containing "UI" for debug
                         {
@@ -1631,7 +1633,8 @@ int main(int argc, char* argv[])
     }
 
     int successCount = 0;
-    try {
+    try
+    {
         for (size_t i = 0; i < numPermutations; ++i)
         {
             std::vector<std::string> enabledFeatures;
@@ -1664,7 +1667,9 @@ int main(int argc, char* argv[])
                 successCount++;
             }
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cerr << "Exception during compilation: " << e.what() << std::endl;
     }
 

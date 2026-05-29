@@ -47,12 +47,15 @@ struct GpuGeometry
 
     uint32_t attributeStride;
     uint32_t attributeFlags;
-    uint32_t padding0;
-    uint32_t padding1;
+    uint32_t normalOffset;
+    uint32_t tangentOffset;
+    uint32_t uvOffset;
+    uint32_t boneOffset;
 
     static uint32_t GetNormalBit() { return 0x1; }
     static uint32_t GetTangentBit() { return 0x2; }
     static uint32_t GetHasUVBit() { return 0x4; }
+    static uint32_t GetBoneBit() { return 0x8; }
 };
 
 struct GpuRenderData
@@ -69,8 +72,13 @@ struct GpuObject
     float4x4 invTspModel;
     uint32_t renderDataCount;
     uint32_t pRenderDataOffset;
-    uint32_t padding0;
+    uint32_t skeletonOffset;
     uint32_t padding1;
+};
+
+struct GpuSkinningDescriptor
+{
+    VirtualTLSFAllocator::Allocation dataAlloc;
 };
 
 struct GpuMaterialDescriptor
@@ -155,10 +163,15 @@ public:
     GpuObjectHandle RegisterObject(
         const float4x4& modell,
         const float4x4& invTspModel,
-        GpuRenderDataListHandle renderDataListHandle
+        GpuRenderDataListHandle renderDataListHandle,
+        uint32_t skeletonOffset = InvalidTextureIndex
     );
     void UpdateObject(GpuObjectHandle handle, const GpuObject& data);
     void UnregisterObject(GpuObjectHandle handle);
+
+    GpuSkinningDescriptor AllocateSkinningData(uint32_t size);
+    void UpdateSkinningData(const GpuSkinningDescriptor& descriptor, const void* data, uint32_t size);
+    void FreeSkinningData(GpuSkinningDescriptor& descriptor);
 
     GpuRenderDataListHandle RegisterRenderDataList(const std::vector<GpuRenderData>& data);
     void UnregisterRenderDataList(GpuRenderDataListHandle handle);

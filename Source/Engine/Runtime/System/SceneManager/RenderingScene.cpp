@@ -76,6 +76,11 @@ void RenderingScene::Tick()
         m->UpdateSkinning();
     }
 
+    for (auto m : gpuObjectRenderers)
+    {
+        m->UpdateSkinning();
+    }
+
     if (rayTracingContext != nullptr && needsTLASRebuild && !rayTracingInstances.empty())
     {
         std::vector<Gfx::RayTracingInstanceHandle> handles;

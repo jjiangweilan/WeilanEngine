@@ -115,6 +115,7 @@ private:
     // GPU-Driven handles (one per submesh)
     Rendering::GpuRenderDataListHandle renderDataListHandle;
     Rendering::GpuObjectHandle gpuObjectHandle;
+    Rendering::GpuSkinningDescriptor gpuSkinningDescriptor;
     Rendering::GpuObjectDescriptor gpuObjectDescriptor;
     Rendering::GpuRenderDataListDescriptor gpuRenderDataListDescriptor;
     std::vector<Rendering::GpuGeometryDescriptor> gpuGeometries;
@@ -159,6 +160,9 @@ private:
     void UpdateGPUSceneObjectTransforms();
     void RefreshGPUSceneObjects();
     size_t GetSubmeshDrawSlotCount() const;
+    Skinning::GPUBoneTransforms BuildSkinningBoneTransforms() const;
+    void UpdateGPUDrivenSkinningData();
+    void FreeGPUDrivenSkinningData();
 
     void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);
 };
