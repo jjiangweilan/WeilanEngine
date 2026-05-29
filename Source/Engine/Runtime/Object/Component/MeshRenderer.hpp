@@ -121,7 +121,6 @@ private:
     std::vector<Rendering::GpuGeometryDescriptor> gpuGeometries;
     std::vector<ObjPtr<Material>> gpuRenderMaterials;
     bool gpuObjectRegistered = false;
-
     bool hasSkeleton = false;
     bool aabbBoundsNeedUpdate = true;
     bool aabbPositionNeedUpdate = true;
@@ -140,6 +139,8 @@ private:
 
         glm::vec3 rootMotionDelta;
     } skinning;
+    std::unique_ptr<Skinning::GPUBoneTransforms> gpuBoneTransformsBuffer = nullptr;
+    Skinning::GPUBoneTransforms& GetGpuBoneTransformsBuffer();
 
     void AddToBVHScene();
     void RemoveFromBVHScene();
@@ -160,7 +161,7 @@ private:
     void UpdateGPUSceneObjectTransforms();
     void RefreshGPUSceneObjects();
     size_t GetSubmeshDrawSlotCount() const;
-    Skinning::GPUBoneTransforms BuildSkinningBoneTransforms() const;
+    const Skinning::GPUBoneTransforms& BuildSkinningBoneTransforms();
     void UpdateGPUDrivenSkinningData();
     void FreeGPUDrivenSkinningData();
 

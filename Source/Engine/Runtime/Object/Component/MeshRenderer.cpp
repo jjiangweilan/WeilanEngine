@@ -255,7 +255,7 @@ void MeshRenderer::UpdateSkinning()
 {
     if (skinning.enabled)
     {
-        Skinning::GPUBoneTransforms boneTransforms = BuildSkinningBoneTransforms();
+        const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
 
         GetGfxDriver()
             ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
@@ -264,13 +264,14 @@ void MeshRenderer::UpdateSkinning()
     }
 }
 
-MeshRenderer::Skinning::GPUBoneTransforms MeshRenderer::BuildSkinningBoneTransforms() const
+const MeshRenderer::Skinning::GPUBoneTransforms& MeshRenderer::BuildSkinningBoneTransforms()
 {
-    Skinning::GPUBoneTransforms boneTransforms{};
+    Skinning::GPUBoneTransforms& boneTransforms = GetGpuBoneTransformsBuffer();
+    glm::mat4 inverseRendererWorld = glm::inverse(GetGameObject()->GetWorldMatrix());
     int maxBoneCount = skinning.bones.size();
     for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)
     {
-        boneTransforms.boneTrnasforms[bi] = skinning.bones[bi]->GetWorldMatrix() * skinning.tposeMatrix[bi];
+        boneTransforms.boneTrnasforms[bi] = inverseRendererWorld * skinning.bones[bi]->GetWorldMatrix() * skinning.tposeMatrix[bi];
     }
 
     return boneTransforms;
@@ -281,7 +282,7 @@ void MeshRenderer::UpdateGPUDrivenSkinningData()
     if (!gpuObjectRegistered || !skinning.enabled || !gpuSkinningDescriptor.dataAlloc.IsValid())
         return;
 
-    Skinning::GPUBoneTransforms boneTransforms = BuildSkinningBoneTransforms();
+    const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
     Rendering::GPUDrivenManager::Instance().UpdateSkinningData(
         gpuSkinningDescriptor,
         &boneTransforms,
@@ -378,6 +379,16 @@ void MeshRenderer::DisableSkinning()
         gpuResource = nullptr; // currently only used for skinning, so let's destroy this too
     }
 }
+
+MeshRenderer::Skinning::GPUBoneTransforms& MeshRenderer::GetGpuBoneTransformsBuffer()
+{
+    if (gpuBoneTransformsBuffer == nullptr)
+    {
+        gpuBoneTransformsBuffer = std::make_unique<Skinning::GPUBoneTransforms>();
+    }
+    return *gpuBoneTransformsBuffer;
+}
+
 bool MeshRenderer::IsSkinningEnabled()
 {
     return skinning.enabled;
@@ -564,7 +575,7 @@ void MeshRenderer::RegisterGPUSceneObjects()
         gpuSkinningDescriptor = gpuDriven.AllocateSkinningData(sizeof(Skinning::GPUBoneTransforms));
         if (gpuSkinningDescriptor.dataAlloc.IsValid())
         {
-            Skinning::GPUBoneTransforms boneTransforms = BuildSkinningBoneTransforms();
+            const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
             gpuDriven.UpdateSkinningData(gpuSkinningDescriptor, &boneTransforms, sizeof(Skinning::GPUBoneTransforms));
             skeletonOffset = static_cast<uint32_t>(gpuSkinningDescriptor.dataAlloc.offset);
         }

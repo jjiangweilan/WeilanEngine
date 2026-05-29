@@ -72,9 +72,10 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights)
+float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights, out bool hasWeight)
 {
     float4x4 skeletonMatrix = float4x4(0);
+    hasWeight = false;
     for (int i = 0; i < 4; ++i)
     {
         float boneWeight = boneWeights[i];
@@ -83,6 +84,11 @@ float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights)
             int boneIndex = int(boneWeight * 0.1);
             float weight = boneWeight - boneIndex * 10;
             skeletonMatrix += perScene.LoadData<float4x4>(skeletonOffset, boneIndex) * weight;
+
+            if (weight > 1e-4)
+            {
+                hasWeight = true;
+            }
         }
     }
 
@@ -95,19 +101,21 @@ VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex)
     GpuObject objData = perScene.LoadData<GpuObject>(drawExtra.objectOffset);
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
+    bool hasBoneWeight = false;
+    float4x4 modelMatrix = entity.GetModelMatrix();
     float4x4 skeletonMatrix = objData.skeletonOffset != 0xFFFFFFFF
-        ? GetSkeletonMatrix(objData.skeletonOffset, entity.GetBone())
-        : entity.GetModelMatrix();
+        ? GetSkeletonMatrix(objData.skeletonOffset, entity.GetBone(), hasBoneWeight)
+        : float4x4(1);
+    float4x4 skinnedModelMatrix = hasBoneWeight ? mul(modelMatrix, skeletonMatrix) : modelMatrix;
 
     VertexOutput output;
     float3 vertexPos = entity.GetPosition();
     float3 normal = entity.GetNormal();
     float4 tangent = entity.GetTangent();
 
-    // Skinning matrices are uploaded as world-space bone transforms, matching the legacy skinned path.
-    output.positionWS = mul(skeletonMatrix, float4(vertexPos, 1)).xyz;
+    output.positionWS = mul(skinnedModelMatrix, float4(vertexPos, 1)).xyz;
 
-    matrix<float,3,3> model33 = (float3x3)skeletonMatrix;
+    matrix<float,3,3> model33 = (float3x3)skinnedModelMatrix;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);

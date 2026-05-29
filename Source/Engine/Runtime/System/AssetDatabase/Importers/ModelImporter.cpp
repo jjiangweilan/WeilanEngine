@@ -25,7 +25,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 6;
+constexpr uint64_t ModelImporterVersion = 7;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {

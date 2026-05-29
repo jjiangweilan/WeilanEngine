@@ -246,7 +246,7 @@ private:
     std::mutex mutex;
 
     // Global buffer (512MB TLSF)
-    const uint8_t globalDataAlignment = 4;
+    const uint8_t globalDataAlignment = 16;
     uint32_t globalBufferSize = 512 * 1024 * 1024;
     VirtualTLSFAllocator globalBufferAllocator{globalBufferSize};
     std::unique_ptr<Gfx::Buffer> globalBuffer;

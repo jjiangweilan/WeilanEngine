@@ -57,7 +57,7 @@ VertexOutput VertexMain(VertexInput input)
         }
     }
 
-    float3 positionWS = float3(mul(skeletonMatrix, float4(input.position, 1.0)).xyz);
+    float3 positionWS = float3(mul(transform.model, mul(skeletonMatrix, float4(input.position, 1.0))).xyz);
 
     VertexOutput output;
     output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));

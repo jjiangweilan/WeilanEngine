@@ -197,16 +197,17 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                     {
                         auto& draw = shadowDrawList[drawIdx];
                         auto programUsed = program;
+                        auto ps = draw.GetPushConstant();
                         [[unlikely]]
                         if (draw.skinned)
                         {
                             programUsed = programSkinned;
+                            cmd.SetPushConstant(programUsed, (void*)&ps);
                             if (draw.objectResource)
                                 cmd.BindResource(2, draw.objectResource);
                         }
                         else
                         {
-                            auto ps = draw.GetPushConstant();
                             cmd.SetPushConstant(programUsed, (void*)&ps);
                         }
                         cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
