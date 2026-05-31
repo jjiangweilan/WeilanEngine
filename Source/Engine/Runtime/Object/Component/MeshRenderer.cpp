@@ -255,12 +255,13 @@ void MeshRenderer::UpdateSkinning()
 {
     if (skinning.enabled)
     {
+        if (IsActiveGPUObject())
+            return;
+
         const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
 
         GetGfxDriver()
             ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
-
-        UpdateGPUDrivenSkinningData();
     }
 }
 
@@ -275,29 +276,6 @@ const MeshRenderer::Skinning::GPUBoneTransforms& MeshRenderer::BuildSkinningBone
     }
 
     return boneTransforms;
-}
-
-void MeshRenderer::UpdateGPUDrivenSkinningData()
-{
-    if (!gpuObjectRegistered || !skinning.enabled || !gpuSkinningDescriptor.dataAlloc.IsValid())
-        return;
-
-    const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
-    Rendering::GPUDrivenManager::Instance().UpdateSkinningData(
-        gpuSkinningDescriptor,
-        &boneTransforms,
-        sizeof(Skinning::GPUBoneTransforms)
-    );
-}
-
-void MeshRenderer::FreeGPUDrivenSkinningData()
-{
-    if (!gpuSkinningDescriptor.dataAlloc.IsValid())
-        return;
-
-    auto* gpuDriven = Rendering::GPUDrivenManager::TryGetInstance();
-    if (gpuDriven != nullptr)
-        gpuDriven->FreeSkinningData(gpuSkinningDescriptor);
 }
 
 void MeshRenderer::ValidateSkinning()
@@ -374,11 +352,16 @@ void MeshRenderer::DisableSkinning()
     {
         wantsToEnableSkinning = false;
         skinning.enabled = false;
-        FreeGPUDrivenSkinningData();
         skinning.bonesBuffer = nullptr;
         skinning.bones.clear();
         skinning.tposeMatrix.clear();
         gpuResource = nullptr; // currently only used for skinning, so let's destroy this too
+
+        if (gpuObjectRegistered)
+        {
+            gpuObjectDescriptor.gpuObject.skeletonOffset = Rendering::InvalidTextureIndex;
+            UpdateGPUSceneObjectTransforms();
+        }
     }
 }
 
@@ -428,10 +411,15 @@ MeshRenderer::MotionState* MeshRenderer::FlushMotionState()
     if (!motionState)
         return nullptr;
 
-    const auto currentWorldMatrix = GetGameObject()->GetWorldMatrix();
-    motionState->previousFrameWorldMatrix = currentWorldMatrix;
-
     return motionState.get();
+}
+
+void MeshRenderer::CommitMotionState()
+{
+    if (!motionState)
+        return;
+
+    motionState->previousFrameWorldMatrix = GetGameObject()->GetWorldMatrix();
 }
 
 void MeshRenderer::CheckSkeleton()
@@ -587,19 +575,7 @@ void MeshRenderer::RegisterGPUSceneObjects()
 
     renderDataListHandle = gpuDriven.RegisterRenderDataList(renderDatas);
 
-    uint32_t skeletonOffset = Rendering::InvalidTextureIndex;
-    if (skinning.enabled)
-    {
-        gpuSkinningDescriptor = gpuDriven.AllocateSkinningData(sizeof(Skinning::GPUBoneTransforms));
-        if (gpuSkinningDescriptor.dataAlloc.IsValid())
-        {
-            const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
-            gpuDriven.UpdateSkinningData(gpuSkinningDescriptor, &boneTransforms, sizeof(Skinning::GPUBoneTransforms));
-            skeletonOffset = static_cast<uint32_t>(gpuSkinningDescriptor.dataAlloc.offset);
-        }
-    }
-
-    gpuObjectHandle = gpuDriven.RegisterObject(worldMatrix, invTspBase, renderDataListHandle, skeletonOffset);
+    gpuObjectHandle = gpuDriven.RegisterObject(worldMatrix, invTspBase, renderDataListHandle, Rendering::InvalidTextureIndex);
     gpuObjectDescriptor = gpuDriven.GetObjectDescriptor(gpuObjectHandle);
     gpuRenderDataListDescriptor = gpuDriven.GetRenderDataListDescriptor(renderDataListHandle);
     gpuObjectRegistered = true;
@@ -619,7 +595,6 @@ void MeshRenderer::UnregisterGPUSceneObjects()
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
     gpuDriven.UnregisterObject(gpuObjectHandle);
     gpuDriven.UnregisterRenderDataList(renderDataListHandle);
-    FreeGPUDrivenSkinningData();
     gpuGeometries.clear();
     gpuRenderMaterials.clear();
     gpuObjectRegistered = false;
@@ -643,10 +618,39 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
         .invTspModel = glm::mat4(glm::inverse(glm::transpose(glm::mat3(GetGameObject()->GetWorldMatrix())))),
         .renderDataCount = (uint32_t)renderDataListDescriptor.renderDataList.size(),
         .pRenderDataOffset = (uint32_t)renderDataListDescriptor.dataAlloc.offset,
-        .skeletonOffset = gpuSkinningDescriptor.dataAlloc.IsValid() ? static_cast<uint32_t>(gpuSkinningDescriptor.dataAlloc.offset) : Rendering::InvalidTextureIndex,
+        .skeletonOffset = gpuObjectDescriptor.gpuObject.skeletonOffset,
     };
 
     gpuDriven.UpdateObject(gpuObjectHandle, gpuObject);
+    gpuObjectDescriptor = gpuDriven.GetObjectDescriptor(gpuObjectHandle);
+}
+
+void MeshRenderer::UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd)
+{
+    if (!gpuObjectRegistered || !skinning.enabled)
+        return;
+
+    auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
+    const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
+    auto skinningAllocation = gpuDriven.UploadDynamicData(
+        cmd,
+        &boneTransforms,
+        sizeof(Skinning::GPUBoneTransforms),
+        16
+    );
+
+    const auto& renderDataListDescriptor = gpuDriven.GetRenderDataListDescriptor(renderDataListHandle);
+    auto worldMatrix = GetGameObject()->GetWorldMatrix();
+    Rendering::GpuObject gpuObject{
+        .model = worldMatrix,
+        .invTspModel = glm::mat4(glm::inverse(glm::transpose(glm::mat3(worldMatrix)))),
+        .renderDataCount = (uint32_t)renderDataListDescriptor.renderDataList.size(),
+        .pRenderDataOffset = (uint32_t)renderDataListDescriptor.dataAlloc.offset,
+        .skeletonOffset = skinningAllocation.IsValid() ? skinningAllocation.offset : Rendering::InvalidTextureIndex,
+    };
+
+    gpuDriven.UpdateObject(gpuObjectHandle, gpuObject);
+    gpuObjectDescriptor = gpuDriven.GetObjectDescriptor(gpuObjectHandle);
 }
 
 void MeshRenderer::RefreshGPUSceneObjects()

@@ -76,11 +76,6 @@ struct GpuObject
     uint32_t padding1;
 };
 
-struct GpuSkinningDescriptor
-{
-    VirtualTLSFAllocator::Allocation dataAlloc;
-};
-
 struct GpuMaterialDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
@@ -132,6 +127,14 @@ struct GpuDrawExtra
     uint32_t renderDataIndex;
 };
 
+struct GpuDynamicDataAllocation
+{
+    uint32_t offset = InvalidTextureIndex;
+    uint32_t size = 0;
+
+    bool IsValid() const { return offset != InvalidTextureIndex && size > 0; }
+};
+
 struct GpuGeometryDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
@@ -169,10 +172,6 @@ public:
     void UpdateObject(GpuObjectHandle handle, const GpuObject& data);
     void UnregisterObject(GpuObjectHandle handle);
 
-    GpuSkinningDescriptor AllocateSkinningData(uint32_t size);
-    void UpdateSkinningData(const GpuSkinningDescriptor& descriptor, const void* data, uint32_t size);
-    void FreeSkinningData(GpuSkinningDescriptor& descriptor);
-
     GpuRenderDataListHandle RegisterRenderDataList(const std::vector<GpuRenderData>& data);
     void UnregisterRenderDataList(GpuRenderDataListHandle handle);
 
@@ -203,6 +202,7 @@ public:
     }
 
     Gfx::Buffer* GetGlobalBuffer() { return globalBuffer.get(); }
+    Gfx::Buffer* GetGlobalDynamicBuffer() { return globalDynamicBuffer.get(); }
     Gfx::ShaderResource* GetGlobalDescriptorSet() { return globalDescriptorSet.get(); }
     Gfx::Buffer* GetGPUDrivenConfigBuffer() { return gpuDrivenConfigBuffer.get(); }
 
@@ -214,6 +214,12 @@ public:
 
     void SetObjectOffsetBuffer(Gfx::Buffer* buffer);
     void SetRTObjectOffsetBuffer(Gfx::Buffer* buffer);
+    GpuDynamicDataAllocation UploadDynamicData(
+        Gfx::CommandBuffer& cmd,
+        const void* data,
+        uint32_t size,
+        uint32_t alignment = 16
+    );
     IndirectDrawData UploadIndirectDrawData(
         Gfx::CommandBuffer& cmd,
         std::span<const DrawIndexedIndirectCommand> commands,
@@ -229,6 +235,8 @@ public:
 
     // Debug / introspection accessors
     uint32_t GetGlobalBufferSize() const { return globalBufferSize; }
+    uint32_t GetGlobalDynamicBufferSize() const { return globalDynamicBufferSize; }
+    uint32_t GetGlobalDynamicBufferOffset() const { return globalDynamicBufferOffset; }
     uint64_t GetIndirectArenaFrameIndex() const { return indirectArenaFrameIndex; }
     uint32_t GetIndirectCommandBufferCapacity() const { return indirectCommandBufferCapacity; }
     uint32_t GetIndirectCommandBufferOffset() const { return indirectCommandBufferOffset; }
@@ -250,6 +258,11 @@ private:
     VirtualTLSFAllocator globalBufferAllocator{globalBufferSize};
     std::unique_ptr<Gfx::Buffer> globalBuffer;
     uint64_t globalBufferShaderDeviceAddress = 0;
+
+    uint32_t globalDynamicBufferSize = 64 * 1024 * 1024;
+    std::unique_ptr<Gfx::Buffer> globalDynamicBuffer;
+    uint64_t globalDynamicBufferFrameIndex = 0;
+    uint32_t globalDynamicBufferOffset = 0;
 
     // Global descriptor set (set 0)
     std::unique_ptr<Gfx::ShaderResource> globalDescriptorSet;
@@ -275,6 +288,8 @@ private:
     uint32_t indirectCommandBufferCapacity = 0;
     uint32_t indirectCommandBufferOffset = 0;
 
+    void BeginGlobalDynamicBufferFrame();
+    bool EnsureGlobalDynamicBufferCapacity(uint32_t requiredSize);
     void BeginIndirectArenaFrame();
     bool EnsureIndirectCommandCapacity(uint32_t requiredSize);
 

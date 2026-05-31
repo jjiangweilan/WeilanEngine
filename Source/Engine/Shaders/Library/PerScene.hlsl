@@ -81,11 +81,13 @@ struct PerScene
     SamplerState globalSamplers[10];
 
     ByteAddressBuffer globalBuffer;
+    ByteAddressBuffer globalDynamicBuffer;
     StructuredBuffer<GpuDrawExtra> gpuObjectOffsets;
     StructuredBuffer<uint> rtObjectOffsets;
     Texture2D globalTextures[];
 
     ByteAddressBuffer GetGlobalBuffer() { return globalBuffer; }
+    ByteAddressBuffer GetGlobalDynamicBuffer() { return globalDynamicBuffer; }
 
     SamplerState GetGlobalSampler(uint index)
     {
@@ -100,6 +102,16 @@ struct PerScene
     T LoadData<T>(uint byteOffset, uint index)
     {
         return globalBuffer.Load<T>(byteOffset + index * sizeof(T));
+    }
+
+    T LoadDynamicData<T>(uint byteOffset)
+    {
+        return globalDynamicBuffer.Load<T>(byteOffset);
+    }
+
+    T LoadDynamicData<T>(uint byteOffset, uint index)
+    {
+        return globalDynamicBuffer.Load<T>(byteOffset + index * sizeof(T));
     }
 Light GetMainLight()
 {

@@ -11,6 +11,7 @@ depth:
 struct PushConstant
 {
     uint firstGpuObjectOffset;
+    uint firstPreviousModelByteOffset;
 };
 
 [vk_push_constant]
@@ -18,14 +19,6 @@ PushConstant pconst;
 
 [Global]
 ParameterBlock<PerScene> perScene;
-
-struct DynamicMotionVectorPassData
-{
-    StructuredBuffer<float4x4> dynamicMotionPreviousModels;
-};
-
-[Material]
-ParameterBlock<DynamicMotionVectorPassData> passData;
 
 struct VertexOutput
 {
@@ -41,7 +34,7 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     float4 currentWorld = mul(entity.GetModelMatrix(), float4(entity.GetPosition(), 1.0));
-    float4 previousWorld = mul(passData.dynamicMotionPreviousModels[drawIndex], float4(entity.GetPosition(), 1.0));
+    float4 previousWorld = mul(perScene.LoadDynamicData<float4x4>(pconst.firstPreviousModelByteOffset, drawIndex), float4(entity.GetPosition(), 1.0));
 
     VertexOutput output;
     output.currentClip = mul(perScene.camera.viewProjection, currentWorld);

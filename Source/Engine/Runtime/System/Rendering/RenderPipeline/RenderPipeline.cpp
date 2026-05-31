@@ -46,8 +46,7 @@ RenderPipeline::RenderPipeline()
     lightingCombinePass = AddRenderPipelinePass<Passes::LightingCombinePass>();
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
-    staticMotionVectorPass = AddRenderPipelinePass<Passes::StaticMotionVectorPass>();
-    dynamicMotionVectorPass = AddRenderPipelinePass<Passes::DynamicMotionVectorPass>();
+    motionVectorPass = AddRenderPipelinePass<Passes::MotionVectorPass>();
     hierarchyZBufferPass = AddRenderPipelinePass<Passes::HierarchyZBufferPass>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
@@ -210,16 +209,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel(); // GBuffer
 
-    staticMotionVectorPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
-    cmd->BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
-    dynamicMotionVectorPass->Execute(
+    motionVectorPass->Execute(
         *cmd,
-        staticMotionVectorPass->GetOutputId(),
         mainDepth,
-        perScene.GetGlobalResource(),
+        mainDepthDescription,
+        renderingData,
         renderingData.gpuDrivenIndirectBuffer,
         gpuObjectShaderGroups,
-        dynamicMotionPreviousModels
+        dynamicMotionPreviousModelsOffset
     );
     hierarchyZBufferPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
@@ -245,7 +242,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
                 mainColor,
                 hierarchyZBufferPass->GetOutputId(),
                 albedoGBuffer,
-                staticMotionVectorPass->GetOutputId(),
+                motionVectorPass->GetOutputId(),
                 mainColor,
                 setting.Get(),
                 renderingData
@@ -369,7 +366,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             hierarchyZBufferPass->GetOutputId(),
             albedoGBuffer,
             normalGBuffer,
-            staticMotionVectorPass->GetOutputId(),
+            motionVectorPass->GetOutputId(),
             setting.Get(),
             renderingData,
             scene.GetRenderingScene().GetRayTracingSceneHandle(),
@@ -385,7 +382,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             hierarchyZBufferPass->GetOutputId(),
             albedoGBuffer,
             normalGBuffer,
-            staticMotionVectorPass->GetOutputId(),
+            motionVectorPass->GetOutputId(),
             setting.Get(),
             renderingData,
             scene.GetRenderingScene().GetRayTracingSceneHandle(),
@@ -865,6 +862,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     allIndirectCmds.clear();
     allIndirectCmdsExtra.clear();
     dynamicMotionPreviousModels.clear();
+    dynamicMotionPreviousModelsOffset = InvalidTextureIndex;
     renderingData.gpuDrivenIndirectDrawCount = 0;
     renderingData.gpuDrivenIndirectBuffer = nullptr;
 
@@ -877,6 +875,8 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     {
         if (!renderer || !renderer->IsActiveInScene())
             continue;
+
+        renderer->UploadGPUDrivenFrameData(cmd);
 
         const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
         const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
@@ -911,6 +911,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     const Gfx::PipelineConfig* currentConfig = nullptr;
     size_t currentConfigHash = 0;
     uint32_t currentGroupStart = 0;
+    uint32_t currentPreviousModelStart = 0;
 
     // dispatching each draw into their group in a sequential stable way
     // dynamicMotionPreviousModels are accessed by positional corespondence, so be careful
@@ -923,7 +924,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
         {
             if (currentShader != nullptr && currentConfig != nullptr)
             {
-                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
+                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentPreviousModelStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
             }
 
             currentHasMotion = infoHasMotion;
@@ -931,6 +932,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             currentConfig = info.pipelineConfig;
             currentConfigHash = currentConfig != nullptr ? currentConfig->GetHash() : 0;
             currentGroupStart = static_cast<uint32_t>(i);
+            currentPreviousModelStart = static_cast<uint32_t>(dynamicMotionPreviousModels.size());
         }
 
         if (infoHasMotion)
@@ -945,10 +947,28 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     // Push the final group
     if (currentShader != nullptr)
     {
-        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
+        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentPreviousModelStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
     }
 
     auto& gpuDriven = GPUDrivenManager::Instance();
+    if (!dynamicMotionPreviousModels.empty())
+    {
+        auto previousModelsAllocation = gpuDriven.UploadDynamicData(
+            cmd,
+            dynamicMotionPreviousModels.data(),
+            static_cast<uint32_t>(dynamicMotionPreviousModels.size() * sizeof(float4x4)),
+            16
+        );
+        if (previousModelsAllocation.IsValid())
+            dynamicMotionPreviousModelsOffset = previousModelsAllocation.offset;
+    }
+
+    for (auto* renderer : gpuRenderers)
+    {
+        if (renderer && renderer->IsActiveInScene())
+            renderer->CommitMotionState();
+    }
+
     IndirectDrawData indirectDrawData = gpuDriven.UploadIndirectDrawData(cmd, allIndirectCmds, allIndirectCmdsExtra);
     if (indirectDrawData.commandBuffer == nullptr)
     {

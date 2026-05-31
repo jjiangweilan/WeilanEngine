@@ -83,7 +83,7 @@ float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights, out bool has
         {
             int boneIndex = int(boneWeight * 0.1);
             float weight = boneWeight - boneIndex * 10;
-            skeletonMatrix += perScene.LoadData<float4x4>(skeletonOffset, boneIndex) * weight;
+            skeletonMatrix += perScene.LoadDynamicData<float4x4>(skeletonOffset, boneIndex) * weight;
 
             if (weight > 1e-4)
             {

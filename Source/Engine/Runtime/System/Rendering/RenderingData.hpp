@@ -50,6 +50,7 @@ struct GPUObjectShaderGroup
     Gfx::ShaderProgram* shaderProgram = nullptr;
     const Gfx::PipelineConfig* pipelineConfig = nullptr;
     uint32_t firstDrawIndex = 0; // offset into indirectCommands
+    uint32_t firstPreviousModelIndex = 0;
     uint32_t drawCount = 0;
     bool hasMotion = false;
 };

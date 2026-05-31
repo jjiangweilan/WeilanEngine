@@ -10,6 +10,10 @@
 #include <functional>
 #include <memory>
 class RenderingScene;
+namespace Gfx
+{
+class CommandBuffer;
+}
 class MeshRenderer : public Component
 {
     DECLARE_OBJECT();
@@ -70,6 +74,7 @@ public:
     void EnableRayTracing(bool enabled);
     bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
     MotionState* FlushMotionState();
+    void CommitMotionState();
     bool HasMotionState() const { return motionState != nullptr; }
 
     // GPU-Driven rendering
@@ -101,6 +106,7 @@ public:
         static Rendering::GpuGeometryDescriptor g{};
         return g;
     }
+    void UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd);
 
 private:
     /***** Serialized Data ******/
@@ -122,7 +128,6 @@ private:
     // GPU-Driven handles (one per submesh)
     Rendering::GpuRenderDataListHandle renderDataListHandle;
     Rendering::GpuObjectHandle gpuObjectHandle;
-    Rendering::GpuSkinningDescriptor gpuSkinningDescriptor;
     Rendering::GpuObjectDescriptor gpuObjectDescriptor;
     Rendering::GpuRenderDataListDescriptor gpuRenderDataListDescriptor;
     std::vector<Rendering::GpuGeometryDescriptor> gpuGeometries;
@@ -170,8 +175,6 @@ private:
     void RefreshGPUSceneObjects();
     size_t GetSubmeshDrawSlotCount() const;
     const Skinning::GPUBoneTransforms& BuildSkinningBoneTransforms();
-    void UpdateGPUDrivenSkinningData();
-    void FreeGPUDrivenSkinningData();
     void EnableMotionState();
 
     void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);

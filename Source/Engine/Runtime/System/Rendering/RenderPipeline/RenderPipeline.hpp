@@ -18,11 +18,11 @@
 #include "Passes/CloudPass.hpp"
 #include "Passes/ColorGradingPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
-#include "Passes/DynamicMotionVectorPass.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/GI.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
 #include "Passes/LightingCombinePass.hpp"
+#include "Passes/MotionVectorPass.hpp"
 #include "Passes/PixelZoomPass.hpp"
 #include "Passes/RTGI.hpp"
 #include "Passes/SSAO.hpp"
@@ -30,7 +30,6 @@
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/Shader2HumanDebugPass.hpp"
 #include "Passes/ShadingPass.hpp"
-#include "Passes/StaticMotionVectorPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
@@ -110,8 +109,7 @@ class RenderPipeline
     Passes::LightingCombinePass* lightingCombinePass;
     Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;
-    Passes::StaticMotionVectorPass* staticMotionVectorPass;
-    Passes::DynamicMotionVectorPass* dynamicMotionVectorPass;
+    Passes::MotionVectorPass* motionVectorPass;
     Passes::HierarchyZBufferPass* hierarchyZBufferPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
@@ -148,6 +146,7 @@ class RenderPipeline
     std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
     std::vector<GpuDrawExtra> allIndirectCmdsExtra;
     std::vector<float4x4> dynamicMotionPreviousModels;
+    uint32_t dynamicMotionPreviousModelsOffset = InvalidTextureIndex;
 
     void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt);

@@ -18,10 +18,18 @@ GPUDrivenManager::GPUDrivenManager()
         true,
         "GPUDrivenGlobalBuffer"
     );
+    globalDynamicBuffer = GetGfxDriver()->CreateBuffer(
+        globalDynamicBufferSize,
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+        false,
+        false,
+        "GPUDrivenGlobalDynamicBuffer"
+    );
 
     // Create global descriptor set (set 0)
     globalDescriptorSet = GetGfxDriver()->CreateShaderResource();
     globalDescriptorSet->SetBuffer("globalBuffer", globalBuffer.get());
+    globalDescriptorSet->SetBuffer("globalDynamicBuffer", globalDynamicBuffer.get());
 
     // Create global sampler table matching PerScene.hlsl globalSamplers[10].
     // Layout: index = addressMode * 2 + filterMode
@@ -318,37 +326,6 @@ void GPUDrivenManager::UnregisterObject(GpuObjectHandle handle)
     gpuDrivenConfigDirty = true;
 }
 
-GpuSkinningDescriptor GPUDrivenManager::AllocateSkinningData(uint32_t size)
-{
-    std::lock_guard<std::mutex> lock(mutex);
-
-    GpuSkinningDescriptor descriptor;
-    globalBufferAllocator.Allocate(size, globalDataAlignment, descriptor.dataAlloc);
-    return descriptor;
-}
-
-void GPUDrivenManager::UpdateSkinningData(const GpuSkinningDescriptor& descriptor, const void* data, uint32_t size)
-{
-    if (!descriptor.dataAlloc.IsValid())
-        return;
-
-    GetGfxDriver()->UploadBuffer(
-        *globalBuffer,
-        reinterpret_cast<uint8_t*>(const_cast<void*>(data)),
-        size,
-        descriptor.dataAlloc.offset
-    );
-}
-
-void GPUDrivenManager::FreeSkinningData(GpuSkinningDescriptor& descriptor)
-{
-    std::lock_guard<std::mutex> lock(mutex);
-    if (!descriptor.dataAlloc.IsValid())
-        return;
-
-    globalBufferAllocator.Free(descriptor.dataAlloc);
-}
-
 // --- Descriptor set passthrough for scene buffers ---
 
 void GPUDrivenManager::SetObjectOffsetBuffer(Gfx::Buffer* buffer)
@@ -359,6 +336,78 @@ void GPUDrivenManager::SetObjectOffsetBuffer(Gfx::Buffer* buffer)
 void GPUDrivenManager::SetRTObjectOffsetBuffer(Gfx::Buffer* buffer)
 {
     globalDescriptorSet->SetBuffer("rtObjectOffsets", buffer);
+}
+
+void GPUDrivenManager::BeginGlobalDynamicBufferFrame()
+{
+    uint64_t frameIndex = GetGfxDriver()->GetFrameIndex();
+    if (globalDynamicBufferFrameIndex == frameIndex)
+        return;
+
+    globalDynamicBufferFrameIndex = frameIndex;
+    globalDynamicBufferOffset = 0;
+}
+
+bool GPUDrivenManager::EnsureGlobalDynamicBufferCapacity(uint32_t requiredSize)
+{
+    if (requiredSize <= globalDynamicBufferSize)
+        return true;
+
+    if (globalDynamicBufferOffset != 0)
+    {
+        SPDLOG_ERROR(
+            "GPUDriven dynamic buffer overflow: required {} bytes, capacity {} bytes. Increase capacity or reduce same-frame dynamic data.",
+            requiredSize,
+            globalDynamicBufferSize
+        );
+        return false;
+    }
+
+    uint32_t newCapacity = globalDynamicBufferSize == 0 ? 64 * 1024 * 1024 : globalDynamicBufferSize;
+    while (newCapacity < requiredSize)
+        newCapacity *= 2;
+
+    globalDynamicBuffer = GetGfxDriver()->CreateBuffer(
+        newCapacity,
+        Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst,
+        false,
+        false,
+        "GPUDrivenGlobalDynamicBuffer"
+    );
+    globalDynamicBufferSize = newCapacity;
+    globalDescriptorSet->SetBuffer("globalDynamicBuffer", globalDynamicBuffer.get());
+    return true;
+}
+
+GpuDynamicDataAllocation GPUDrivenManager::UploadDynamicData(
+    Gfx::CommandBuffer& cmd,
+    const void* data,
+    uint32_t size,
+    uint32_t alignment
+)
+{
+    BeginGlobalDynamicBufferFrame();
+
+    if (data == nullptr || size == 0)
+        return {};
+
+    if (alignment == 0)
+        alignment = 1;
+
+    uint32_t alignedOffset = ((globalDynamicBufferOffset + alignment - 1) / alignment) * alignment;
+    uint32_t requiredSize = alignedOffset + size;
+    if (!EnsureGlobalDynamicBufferCapacity(requiredSize))
+        return {};
+
+    cmd.UploadData(
+        *globalDynamicBuffer,
+        const_cast<void*>(data),
+        size,
+        alignedOffset
+    );
+
+    globalDynamicBufferOffset = requiredSize;
+    return {alignedOffset, size};
 }
 
 void GPUDrivenManager::BeginIndirectArenaFrame()
