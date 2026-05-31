@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 #define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),             \
-                         Do(SceneLitSkinned, "SceneLitSkinned"), Do(PlaneGrid, "PlaneGrid"),                 \
+                         Do(PlaneGrid, "PlaneGrid"),                                                          \
                          Do(ImGui, "ImGui"), Do(LineShader, "LineShader"),                                   \
                          Do(TriangleShader, "TriangleShader"),                                               \
                          Do(JoltDebugShader, "Specific/JoltDebugShader"),                                    \

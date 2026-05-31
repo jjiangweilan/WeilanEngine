@@ -7,6 +7,17 @@
 #include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 
+namespace
+{
+std::string ResolveShaderNameAlias(std::string_view shaderName)
+{
+    if (shaderName == "SceneLitSkinned")
+        return ShaderLibrary::GetShaderName(Shaders::SceneLit);
+
+    return std::string(shaderName);
+}
+} // namespace
+
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 TYPE_REFLECTION_MEMBER_VARIABLES(
     Material,
@@ -302,21 +313,22 @@ void Material::SetShader(Shader* shader)
 
 void Material::SetShader(std::string_view shaderName)
 {
-    if (shaderInUse == nullptr || this->shaderName != shaderName)
+    std::string resolvedShaderName = ResolveShaderNameAlias(shaderName);
+    if (shaderInUse == nullptr || this->shaderName != resolvedShaderName)
     {
-        auto shaderFeatures = &ShaderLibrary::QueryShaderFeatures(shaderName.data());
+        auto shaderFeatures = &ShaderLibrary::QueryShaderFeatures(resolvedShaderName.c_str());
 
         if (shaderFeatures)
         {
             auto perm = shaderFeatures->GetPermutation(enabledFeatures);
-            auto shader = ShaderLibrary::GetShader(shaderName.data(), perm);
+            auto shader = ShaderLibrary::GetShader(resolvedShaderName.c_str(), perm);
 
             if (shader == nullptr)
                 return;
 
             needRequestNewShader = false;
             this->shaderFeatures = shaderFeatures;
-            this->shaderName = shaderName;
+            this->shaderName = resolvedShaderName;
             SetShaderNoProtection(shader);
             SetDirty();
         }

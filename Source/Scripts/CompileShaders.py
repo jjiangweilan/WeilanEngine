@@ -519,7 +519,7 @@ def compile_shader(shader_path: Path) -> bool:
     return True
 
 
-def generate_manifest():
+def generate_manifest(shader_names: set[str]):
     """Generate the master shader manifest."""
     manifest = {
         "version": 1,
@@ -531,6 +531,8 @@ def generate_manifest():
         try:
             with open(meta_path, 'r') as f:
                 meta = json.load(f)
+            if meta["shaderName"] not in shader_names:
+                continue
             manifest["shaders"].append({
                 "name": meta["shaderName"],
                 "hash": meta["sourceHash"]
@@ -579,7 +581,7 @@ def main():
     success = sum(results) 
     
     # Generate manifest
-    generate_manifest()
+    generate_manifest(set(get_shader_name(shader) for shader in shaders))
     
     print(f"\nCompleted: {success}/{len(shaders)} shaders compiled successfully")
     

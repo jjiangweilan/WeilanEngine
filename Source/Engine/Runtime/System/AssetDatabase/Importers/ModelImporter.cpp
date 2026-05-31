@@ -564,16 +564,6 @@ void ProcessMaterials(ModelImportContext& context)
         mat->SetFloat("PBR", "metallic", metallic);
         mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
 
-        for (int meshIndex = 0; meshIndex < static_cast<int>(context.scene->mNumMeshes); ++meshIndex)
-        {
-            aiMesh* mesh = context.scene->mMeshes[meshIndex];
-            if (mesh->mMaterialIndex == materialIndex && mesh->HasBones())
-            {
-                mat->SetShader(Shaders::SceneLitSkinned);
-                break;
-            }
-        }
-
         auto shaderConfig = *mat->GetShader()->GetShaderProgram()->GetDefaultShaderConfig();
         shaderConfig.cullMode = twoSided ? Gfx::CullMode::None : Gfx::CullMode::Back;
         std::string alphaModel = alphaMode.C_Str();
@@ -700,11 +690,6 @@ GameObject* ProcessNode(ModelImportContext& context, aiNode* node, GameObject* p
         for (int m = 0; m < static_cast<int>(node->mNumMeshes); ++m)
         {
             aiMesh* mesh = context.scene->mMeshes[node->mMeshes[m]];
-            if (mesh->HasBones())
-            {
-                context.materials[mesh->mMaterialIndex]->SetShader(Shaders::SceneLitSkinned);
-                context.materials[mesh->mMaterialIndex]->EnableFeature("_Vertex_Skeleton");
-            }
             nodeMeshes.push_back(context.meshes[node->mMeshes[m]].get());
             nodeMaterials.push_back(context.materials[mesh->mMaterialIndex].get());
         }
