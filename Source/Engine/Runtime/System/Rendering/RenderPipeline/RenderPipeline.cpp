@@ -47,6 +47,7 @@ RenderPipeline::RenderPipeline()
     bloomPass = AddRenderPipelinePass<Passes::BloomPass>();
     depthDownSamplerPass = AddRenderPipelinePass<Passes::DepthDownSampler>();
     staticMotionVectorPass = AddRenderPipelinePass<Passes::StaticMotionVectorPass>();
+    dynamicMotionVectorPass = AddRenderPipelinePass<Passes::DynamicMotionVectorPass>();
     hierarchyZBufferPass = AddRenderPipelinePass<Passes::HierarchyZBufferPass>();
     skyboxPass = AddRenderPipelinePass<SkyboxPass>();
     contactShadowPass = AddRenderPipelinePass<ContactShadowPass>();
@@ -210,6 +211,16 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->EndLabel(); // GBuffer
 
     staticMotionVectorPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
+    cmd->BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
+    dynamicMotionVectorPass->Execute(
+        *cmd,
+        staticMotionVectorPass->GetOutputId(),
+        mainDepth,
+        perScene.GetGlobalResource(),
+        renderingData.gpuDrivenIndirectBuffer,
+        gpuObjectShaderGroups,
+        dynamicMotionPreviousModels
+    );
     hierarchyZBufferPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
     auto downSampledDepthCopyDesc = mainDepthDescription;
@@ -853,6 +864,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     flatDrawInfos.clear();
     allIndirectCmds.clear();
     allIndirectCmdsExtra.clear();
+    dynamicMotionPreviousModels.clear();
     renderingData.gpuDrivenIndirectDrawCount = 0;
     renderingData.gpuDrivenIndirectBuffer = nullptr;
 
@@ -868,6 +880,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
 
         const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
         const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
+        MeshRenderer::MotionState* motionState = renderer->FlushMotionState();
 
         for (size_t renderDataListIndex = 0; renderDataListIndex < gpuRenderDataListDescriptor.renderDataList.size(); ++renderDataListIndex)
         {
@@ -876,7 +889,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             {
                 auto geometryDescriptor = renderer->GetGpuGeometry(static_cast<int>(renderDataListIndex));
                 auto& config = mat->GetShaderConfig();
-                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
+                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
             }
         }
     }
@@ -886,28 +899,43 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
 
     // 2. Sort the flat array by ShaderProgram pointer to group them together
     std::sort(flatDrawInfos.begin(), flatDrawInfos.end(), [](const FlatDrawInfo& a, const FlatDrawInfo& b)
-              { return std::tie(a.shaderProgram, a.pipelineConfigHash) < std::tie(b.shaderProgram, b.pipelineConfigHash); });
+              { 
+                // prioritize motion objects
+                bool aHasMotion = a.motionState != nullptr;
+                bool bHasMotion = b.motionState != nullptr;
+                return std::tie(aHasMotion, a.shaderProgram, a.pipelineConfigHash) < std::tie(bHasMotion, b.shaderProgram, b.pipelineConfigHash); });
 
     // 3. Build the indirect command buffers and shader groups in a single pass
+    bool currentHasMotion = false;
     Gfx::ShaderProgram* currentShader = nullptr;
     const Gfx::PipelineConfig* currentConfig = nullptr;
     size_t currentConfigHash = 0;
     uint32_t currentGroupStart = 0;
 
+    // dispatching each draw into their group in a sequential stable way
+    // dynamicMotionPreviousModels are accessed by positional corespondence, so be careful
     for (size_t i = 0; i < flatDrawInfos.size(); ++i)
     {
         const auto& info = flatDrawInfos[i];
 
-        if (info.shaderProgram != currentShader || info.pipelineConfigHash != currentConfigHash)
+        bool infoHasMotion = info.motionState != nullptr;
+        if (info.shaderProgram != currentShader || info.pipelineConfigHash != currentConfigHash || infoHasMotion != currentHasMotion)
         {
             if (currentShader != nullptr && currentConfig != nullptr)
             {
-                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart)});
+                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
             }
+
+            currentHasMotion = infoHasMotion;
             currentShader = info.shaderProgram;
             currentConfig = info.pipelineConfig;
             currentConfigHash = currentConfig != nullptr ? currentConfig->GetHash() : 0;
             currentGroupStart = static_cast<uint32_t>(i);
+        }
+
+        if (infoHasMotion)
+        {
+            dynamicMotionPreviousModels.push_back(info.motionState->previousFrameWorldMatrix);
         }
 
         allIndirectCmds.push_back({.indexCount = info.indexCount, .instanceCount = 1, .firstIndex = info.firstIndex, .vertexOffset = 0, .firstInstance = 0});
@@ -917,7 +945,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     // Push the final group
     if (currentShader != nullptr)
     {
-        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart)});
+        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
     }
 
     auto& gpuDriven = GPUDrivenManager::Instance();

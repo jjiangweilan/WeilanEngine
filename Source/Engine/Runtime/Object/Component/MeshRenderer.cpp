@@ -361,6 +361,8 @@ void MeshRenderer::ValidateSkinning()
 
             GetGfxDriver()
                 ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
+
+            EnableMotionState();
             return;
         }
     }
@@ -400,6 +402,11 @@ void MeshRenderer::TransformChanged()
 {
     aabbPositionNeedUpdate = true;
 
+    if (IsSkinningEnabled())
+    {
+        EnableMotionState();
+    }
+
     if (isGPUObject && gpuObjectRegistered)
         UpdateGPUSceneObjectTransforms();
     else if (auto scene = GetScene())
@@ -414,6 +421,17 @@ void MeshRenderer::TransformChanged()
             scene->GetRenderingScene().UpdateRayTracingInstance(rayTracingInstance, GetGameObject()->GetWorldMatrix());
         }
     }
+}
+
+MeshRenderer::MotionState* MeshRenderer::FlushMotionState()
+{
+    if (!motionState)
+        return nullptr;
+
+    const auto currentWorldMatrix = GetGameObject()->GetWorldMatrix();
+    motionState->previousFrameWorldMatrix = currentWorldMatrix;
+
+    return motionState.get();
 }
 
 void MeshRenderer::CheckSkeleton()
@@ -640,4 +658,13 @@ void MeshRenderer::RefreshGPUSceneObjects()
         UnregisterGPUSceneObjects();
 
     RegisterGPUSceneObjects();
+}
+
+void MeshRenderer::EnableMotionState()
+{
+    if (!motionState)
+    {
+        motionState = std::make_unique<MotionState>();
+        motionState->previousFrameWorldMatrix = GetGameObject()->GetWorldMatrix();
+    }
 }

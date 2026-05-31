@@ -51,6 +51,7 @@ struct GPUObjectShaderGroup
     const Gfx::PipelineConfig* pipelineConfig = nullptr;
     uint32_t firstDrawIndex = 0; // offset into indirectCommands
     uint32_t drawCount = 0;
+    bool hasMotion = false;
 };
 
 struct RenderingData

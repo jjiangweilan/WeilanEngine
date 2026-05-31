@@ -18,6 +18,7 @@
 #include "Passes/CloudPass.hpp"
 #include "Passes/ColorGradingPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
+#include "Passes/DynamicMotionVectorPass.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/GI.hpp"
 #include "Passes/HierarchyZBufferPass.hpp"
@@ -110,6 +111,7 @@ class RenderPipeline
     Passes::BloomPass* bloomPass;
     Passes::DepthDownSampler* depthDownSamplerPass;
     Passes::StaticMotionVectorPass* staticMotionVectorPass;
+    Passes::DynamicMotionVectorPass* dynamicMotionVectorPass;
     Passes::HierarchyZBufferPass* hierarchyZBufferPass;
     SkyboxPass* skyboxPass;
     ContactShadowPass* contactShadowPass;
@@ -122,6 +124,7 @@ class RenderPipeline
     {
         Gfx::ShaderProgram* shaderProgram;
         const Gfx::PipelineConfig* pipelineConfig;
+        MeshRenderer::MotionState* motionState = nullptr;
         size_t pipelineConfigHash;
         uint32_t indexCount;
         uint32_t firstIndex;
@@ -129,11 +132,22 @@ class RenderPipeline
         uint32_t objectOffset;
     };
 
+    /**
+     * @class DynamicObjectData
+     * @brief data layout should match the data in GPU
+     *
+     */
+    struct DynamicObjectData
+    {
+        float4x4 previousWorldMatrix;
+    };
+
     std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
     std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
     std::vector<FlatDrawInfo> flatDrawInfos;
     std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
     std::vector<GpuDrawExtra> allIndirectCmdsExtra;
+    std::vector<float4x4> dynamicMotionPreviousModels;
 
     void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt);

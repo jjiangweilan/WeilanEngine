@@ -219,7 +219,6 @@ public:
         std::span<const DrawIndexedIndirectCommand> commands,
         std::span<const GpuDrawExtra> drawExtras
     );
-
     void Deinit();
 
     // Texture slot (bindless array element)

@@ -23,9 +23,10 @@ Do(PostProcess_SSIL, "PostProcess/SSIL"),                                       
                           Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),   \
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \
                          Do(LightingCombine, "LightingCombine"),                                             \
-                         Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
-                         Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
-                         Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                     \
+                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
+                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
+                          Do(PostProcess_DynamicMotionVector, "PostProcess/DynamicMotionVector"),             \
+                          Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                     \
                          Do(PostProcess_HierarchyZBuffer_Downsample, "HierarchyZBuffer_Downsample"),         \
                          Do(ShadowMapObject, "ShadowMapObject"),                                             \
                          Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                               \

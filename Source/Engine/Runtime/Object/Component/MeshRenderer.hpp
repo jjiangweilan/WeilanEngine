@@ -15,6 +15,11 @@ class MeshRenderer : public Component
     DECLARE_OBJECT();
 
 public:
+    struct MotionState
+    {
+        float4x4 previousFrameWorldMatrix = float4x4(1.0f);
+    };
+
     MeshRenderer();
     MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
     MeshRenderer(GameObject* owner);
@@ -64,6 +69,8 @@ public:
 
     void EnableRayTracing(bool enabled);
     bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
+    MotionState* FlushMotionState();
+    bool HasMotionState() const { return motionState != nullptr; }
 
     // GPU-Driven rendering
     void SetGPUObject(bool enabled);
@@ -124,6 +131,7 @@ private:
     bool hasSkeleton = false;
     bool aabbBoundsNeedUpdate = true;
     bool aabbPositionNeedUpdate = true;
+    std::unique_ptr<MotionState> motionState;
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
     struct Skinning
     {
@@ -164,6 +172,7 @@ private:
     const Skinning::GPUBoneTransforms& BuildSkinningBoneTransforms();
     void UpdateGPUDrivenSkinningData();
     void FreeGPUDrivenSkinningData();
+    void EnableMotionState();
 
     void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);
 };
