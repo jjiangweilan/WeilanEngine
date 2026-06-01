@@ -18,6 +18,22 @@ bool InspectorUndoInputEvent()
            ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
 }
 
+bool AcceptLuaScriptDropOnInspectorBackground(LuaScript*& script)
+{
+    script = nullptr;
+    if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem))
+        return false;
+
+    ImVec2 min = ImGui::GetWindowPos();
+    ImVec2 max = min + ImGui::GetWindowSize();
+    Object* droppedObject = nullptr;
+    if (!EditorGUI::DragDropTarget(typeid(LuaScript), droppedObject, {min, max}))
+        return false;
+
+    script = static_cast<LuaScript*>(droppedObject);
+    return script != nullptr;
+}
+
 } // namespace
 
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();
@@ -218,6 +234,14 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     if (!ImGui::IsPopupOpen("Component Context") && !popupTriggered)
     {
         contextComponent = nullptr;
+    }
+
+    LuaScript* droppedLuaScript = nullptr;
+    if (AcceptLuaScriptDropOnInspectorBackground(droppedLuaScript))
+    {
+        undoManager.TrackGameObject(target.Get());
+        GameScript* gameScript = target->AddComponent<GameScript>();
+        gameScript->SetScript(droppedLuaScript);
     }
 
     if (resetToPrefab)

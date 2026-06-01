@@ -934,12 +934,13 @@ private:
             if (payload && payload->IsDataType(PayloadType))
             {
                 DragDrop* dragDrop = (DragDrop*)payload->Data;
-                bool validType = true;
-                if (type != nullptr)
+                bool validObject = HasFlag(dragDrop->tags, DragDropTag::Object);
+                bool validType = validObject;
+                if (type != nullptr && validObject)
                 {
                     validType = *dragDrop->type == *type;
                 }
-                if (HasFlag(dragDrop->tags, DragDropTag::Object) && validType)
+                if (validObject && validType)
                 {
                     ImGui::AcceptDragDropPayload(PayloadType);
                     if (payload->IsDelivery())
