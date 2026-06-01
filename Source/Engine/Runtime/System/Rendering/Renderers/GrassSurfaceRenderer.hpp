@@ -18,6 +18,11 @@ public:
         Gfx::CommandBuffer& cmd,
         const Rendering::RenderingData& renderingData
     );
+    void DrawMotionVectors(
+        GrassSurface& grassSurface,
+        Gfx::CommandBuffer& cmd,
+        const Rendering::RenderingData& renderingData
+    );
 
 private:
     struct GrassPatchBatch
@@ -50,9 +55,14 @@ private:
     };
 
     ObjPtr<Shader> grass;
+    ObjPtr<Shader> grassMotionVector;
     PipelineGPUBuffer instanceBuffer;
     PipelineGPUBuffer grassParamBuffer;
     std::vector<GrassPatchInstanceData> instances;
     std::vector<GrassPatchBatch> batches;
     int paramsSetIndex = 0;
+    int motionVectorParamsSetIndex = 0;
+
+    bool PrepareDrawData(GrassSurface& grassSurface, const Rendering::RenderingData& renderingData);
+    void BindGrassParams(GrassPatchGroup& group, Gfx::CommandBuffer& cmd, int setIndex, const Rendering::RenderingData& renderingData);
 };

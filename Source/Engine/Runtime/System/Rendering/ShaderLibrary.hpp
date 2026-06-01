@@ -59,7 +59,7 @@ Do(PostProcess_SSIL, "PostProcess/SSIL"),                                       
                          Do(GI_Resolve, "GI/GI_Resolve"),                                                    \
                          Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                                 \
                          Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),                                     \
-                         Do(Grass, "Grass"), Do(GrassLighting, "GrassLighting"),
+                          Do(Grass, "Grass"), Do(Grass_MotionVector, "Grass_MotionVector"), Do(GrassLighting, "GrassLighting"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

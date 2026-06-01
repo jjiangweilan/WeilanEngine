@@ -458,6 +458,10 @@ void MeshRenderer::EnableRayTracing(bool enable)
 
 void MeshRenderer::InitializeForRayTracing()
 {
+    CheckSkeleton();
+    if (!isRayTracingEnabled || skinning.enabled || hasSkeleton)
+        return;
+
     auto scene = GetScene();
     if (scene == nullptr)
         return;

@@ -3,6 +3,8 @@ import Library.PerScene;
 import Lighting;
 import Library.CommonUtils;
 
+#include "Grass_Common.slang"
+
 #if CONFIG
 stencil:
     testEnable: true
@@ -12,51 +14,6 @@ stencil:
     compareOp: always
 #endif
 
-struct GrassPatchInstanceData
-{
-    float3 position;
-    float padding;
-};
-
-struct GrassParam
-{
-    float4 grassColorRamp_Bottom;
-    float4 grassColorRamp_Top;
-
-    float4 grassColorRamp2_Bottom;
-    float4 grassColorRamp2_Top;
-
-    float4 grassColorRamp3_Bottom;
-    float4 grassColorRamp3_Top;
-
-    float4 grassMaskUVScaler;
-
-    float hueShift_0;
-    float hueShift_1;
-    float windScale;
-};
-
-struct GrassParams
-{
-    GrassParam grassParam;
-    StructuredBuffer<GrassPatchInstanceData> instanceData;
-    Texture2D grassShadowMask0;
-    Texture2D grassShadowMask1;
-    Texture2D blueNoise;
-    Texture2D windMask;
-    SamplerState _PointClampSampler;
-    SamplerState _LinearClampSampler;
-    SamplerState _LinearRepeatSampler;
-};
-
-struct PushConstant
-{
-    float4 albedo;
-    uint instanceOffset;
-    float scale;
-    uint2 padding;
-};
-
 [Global]
 ParameterBlock<PerScene> perScene;
 
@@ -64,14 +21,7 @@ ParameterBlock<PerScene> perScene;
 ParameterBlock<GrassParams> params;
 
 [vk_push_constant]
-PushConstant pconst;
-
-struct Attributes
-{
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 properties : TEXCOORD1;
-};
+GrassPushConstant pconst;
 
 struct Varyings
 {
@@ -98,16 +48,12 @@ float3 Overlay(float3 color0, float3 colro1, float factor)
 }
 
 [shader("vertex")]
-Varyings Vertex(Attributes input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
+Varyings Vertex(GrassAttributes input, uint instanceID : SV_InstanceID, uint baseInstance : SV_StartInstanceLocation)
 {
     GrassPatchInstanceData instanceData = params.instanceData[baseInstance + instanceID];
 
-    float scale = params.blueNoise.SampleLevel(params._LinearRepeatSampler, instanceData.position.xy / 256, 0).x;
-    scale = lerp(0.9, 1.15, scale);
-
     Varyings output;
-    float3 positionWS = input.position * pconst.scale * scale + instanceData.position;
-    positionWS.xz += params.windMask.SampleLevel(params._LinearRepeatSampler, (positionWS.xz + perScene.scene.time) / 8.0f, 0).xy * (1 - input.properties.y) * params.grassParam.windScale;
+    float3 positionWS = GetGrassWorldPosition(input, instanceData, params, pconst, perScene.scene.time);
 
     output.positionWS = positionWS;
     output.normalWS = normalize(input.normal);

@@ -58,7 +58,7 @@ struct Scene
     float lightCount;
     float time;
     float frameIndex;
-    float _scenePad0;
+    float previousTime;
     Light lights[MAX_LIGHT_COUNT];
 };
 

@@ -10,6 +10,9 @@
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <span>
 
+class GrassSurface;
+class GrassSurfaceRenderer;
+
 namespace Rendering::Passes
 {
 class MotionVectorPass : public RenderPipelinePass
@@ -25,7 +28,9 @@ public:
         const RenderingData& renderingData,
         Gfx::Buffer* indirectCommandBuffer,
         std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-        uint32_t dynamicMotionDataOffset
+        uint32_t dynamicMotionDataOffset,
+        GrassSurfaceRenderer* grassSurfaceRenderer = nullptr,
+        std::span<GrassSurface*> grassSurfaces = {}
     );
 
     const Gfx::ImageIdentifier& GetOutputId() const { return motionVector; }
@@ -37,13 +42,15 @@ private:
         const Gfx::ImageIdentifier& depth,
         const Gfx::RenderImageDescriptor& depthDesc
     );
-    void DrawDynamicMotionVectors(
+    void DrawDynamicAndGrassMotionVectors(
         Gfx::CommandBuffer& cmd,
         const Gfx::ImageIdentifier& depth,
         const RenderingData& renderingData,
         Gfx::Buffer* indirectCommandBuffer,
         std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-        uint32_t dynamicMotionDataOffset
+        uint32_t dynamicMotionDataOffset,
+        GrassSurfaceRenderer* grassSurfaceRenderer,
+        std::span<GrassSurface*> grassSurfaces
     );
 
     Shader* staticShader = nullptr;

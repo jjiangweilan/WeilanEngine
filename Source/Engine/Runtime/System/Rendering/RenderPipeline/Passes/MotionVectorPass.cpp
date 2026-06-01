@@ -1,6 +1,7 @@
 #include "MotionVectorPass.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
+#include "Engine/Runtime/System/Rendering/Renderers/GrassSurfaceRenderer.hpp"
 
 namespace Rendering::Passes
 {
@@ -24,17 +25,21 @@ void MotionVectorPass::Execute(
     const RenderingData& renderingData,
     Gfx::Buffer* indirectCommandBuffer,
     std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-    uint32_t dynamicMotionDataOffset
+    uint32_t dynamicMotionDataOffset,
+    GrassSurfaceRenderer* grassSurfaceRenderer,
+    std::span<GrassSurface*> grassSurfaces
 )
 {
     DrawStaticMotionVectors(cmd, depth, depthDesc);
-    DrawDynamicMotionVectors(
+    DrawDynamicAndGrassMotionVectors(
         cmd,
         depth,
         renderingData,
         indirectCommandBuffer,
         gpuObjectShaderGroups,
-        dynamicMotionDataOffset
+        dynamicMotionDataOffset,
+        grassSurfaceRenderer,
+        grassSurfaces
     );
 
     if (renderingData.renderPipelineSettings)
@@ -72,53 +77,72 @@ void MotionVectorPass::DrawStaticMotionVectors(
     cmd.EndLabel();
 }
 
-void MotionVectorPass::DrawDynamicMotionVectors(
+void MotionVectorPass::DrawDynamicAndGrassMotionVectors(
     Gfx::CommandBuffer& cmd,
     const Gfx::ImageIdentifier& depth,
     const RenderingData& renderingData,
     Gfx::Buffer* indirectCommandBuffer,
     std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-    uint32_t dynamicMotionDataOffset
+    uint32_t dynamicMotionDataOffset,
+    GrassSurfaceRenderer* grassSurfaceRenderer,
+    std::span<GrassSurface*> grassSurfaces
 )
 {
-    if (dynamicMotionDataOffset == InvalidTextureIndex || !indirectCommandBuffer || gpuObjectShaderGroups.empty())
+    bool hasDynamic = dynamicMotionDataOffset != InvalidTextureIndex && indirectCommandBuffer && !gpuObjectShaderGroups.empty();
+    bool hasGrass = grassSurfaceRenderer != nullptr && !grassSurfaces.empty();
+
+    if (!hasDynamic && !hasGrass)
         return;
 
     cmd.BeginLabel("MotionVector Dynamic", {0.1f, 0.7f, 0.7f, 1.0f});
 
     Gfx::RenderAttachment attachments[] = {
         {motionVector, Gfx::AttachmentLoadOperation::Load},
-        {depth, Gfx::AttachmentLoadOperation::Load},
+        {depth, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store},
     };
     Gfx::ClearValue clears[] = {{0.0f, 0.0f, 0.0f, 0.0f}, {0, 0}};
     cmd.BeginRenderPass(attachments, clears);
 
-    cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
-
-    auto* shaderProgram = dynamicShader->GetShaderProgram();
     cmd.BindResource(dynamicShader->GetSet(Gfx::DescriptorSetSemantics::Global), renderingData.globalResource);
-    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
 
-    struct PushConstant
+    // GPU-driven dynamic motion vectors
+    if (hasDynamic)
     {
-        uint32_t firstGpuObjectOffset = 0;
-        uint32_t firstDynamicMotionDataByteOffset = 0;
-    } pconst;
+        cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
 
-    for (const auto& group : gpuObjectShaderGroups)
+        auto* shaderProgram = dynamicShader->GetShaderProgram();
+        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+
+        struct PushConstant
+        {
+            uint32_t firstGpuObjectOffset = 0;
+            uint32_t firstDynamicMotionDataByteOffset = 0;
+        } pconst;
+
+        for (const auto& group : gpuObjectShaderGroups)
+        {
+            if (!group.hasMotion)
+                continue;
+
+            pconst.firstGpuObjectOffset = group.firstDrawIndex;
+            pconst.firstDynamicMotionDataByteOffset = dynamicMotionDataOffset + group.firstDynamicMotionDataIndex * sizeof(GPUDynamicMotionData);
+            cmd.SetPushConstant(shaderProgram, &pconst);
+            cmd.DrawIndexedIndirect(
+                indirectCommandBuffer,
+                group.firstDrawIndex * sizeof(DrawIndexedIndirectCommand),
+                group.drawCount,
+                sizeof(DrawIndexedIndirectCommand)
+            );
+        }
+    }
+
+    // Grass motion vectors
+    if (hasGrass)
     {
-        if (!group.hasMotion)
-            continue;
-
-        pconst.firstGpuObjectOffset = group.firstDrawIndex;
-        pconst.firstDynamicMotionDataByteOffset = dynamicMotionDataOffset + group.firstDynamicMotionDataIndex * sizeof(GPUDynamicMotionData);
-        cmd.SetPushConstant(shaderProgram, &pconst);
-        cmd.DrawIndexedIndirect(
-            indirectCommandBuffer,
-            group.firstDrawIndex * sizeof(DrawIndexedIndirectCommand),
-            group.drawCount,
-            sizeof(DrawIndexedIndirectCommand)
-        );
+        for (auto* grassSurface : grassSurfaces)
+        {
+            grassSurfaceRenderer->DrawMotionVectors(*grassSurface, cmd, renderingData);
+        }
     }
 
     cmd.EndRenderPass();

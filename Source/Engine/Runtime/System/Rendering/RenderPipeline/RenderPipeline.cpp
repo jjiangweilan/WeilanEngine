@@ -216,7 +216,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         renderingData,
         renderingData.gpuDrivenIndirectBuffer,
         gpuObjectShaderGroups,
-        dynamicMotionDataOffset
+        dynamicMotionDataOffset,
+        grassSurfaceRenderer.get(),
+        scene.GetRenderingScene().GetGrassSurfaces()
     );
     hierarchyZBufferPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
@@ -694,6 +696,7 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
 
     // update scene parameters
     sceneParam.time = Time::TimeSinceLaunch();
+    sceneParam.previousTime = sceneParam.time - Time::DeltaTime();
     sceneParam.frameIndex = static_cast<float>(frameIndex++);
     {
         Light* mainLight = nullptr;
