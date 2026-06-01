@@ -253,12 +253,15 @@ struct ObjectEntity
     float4 tangent;
     float2 uv;
     float4 bone;
+    int skeletonOffset;
 
     __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint vertexIndex)
     {
         GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
         GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
         GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
+
+        skeletonOffset = objData.skeletonOffset;
 
         modelMatrix = objData.model;
         invTspModelMatrix = objData.invTspModel;

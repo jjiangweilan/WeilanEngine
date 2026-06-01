@@ -1,5 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
+import ObjectWorldPosition;
 
 #if CONFIG
 depth:
@@ -11,7 +12,7 @@ depth:
 struct PushConstant
 {
     uint firstGpuObjectOffset;
-    uint firstPreviousModelByteOffset;
+    uint firstDynamicMotionDataByteOffset;
 };
 
 [vk_push_constant]
@@ -19,6 +20,15 @@ PushConstant pconst;
 
 [Global]
 ParameterBlock<PerScene> perScene;
+
+struct GPUDynamicMotionData
+{
+    float4x4 previousWorldMatrix;
+    uint previousSkeletonOffset;
+    uint padding0;
+    uint padding1;
+    uint padding2;
+};
 
 struct VertexOutput
 {
@@ -32,13 +42,19 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
 {
     GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
+    GPUDynamicMotionData motionData = perScene.LoadDynamicData<GPUDynamicMotionData>(pconst.firstDynamicMotionDataByteOffset, drawIndex);
 
-    float4 currentWorld = mul(entity.GetModelMatrix(), float4(entity.GetPosition(), 1.0));
-    float4 previousWorld = mul(perScene.LoadDynamicData<float4x4>(pconst.firstPreviousModelByteOffset, drawIndex), float4(entity.GetPosition(), 1.0));
+    bool hasBoneWeight = false;
+    float4x4 modelMatrix = entity.GetModelMatrix();
+    float4x4 objectModelMatrix = GetObjectModelMatrix(perScene, modelMatrix, entity.skeletonOffset, entity.GetBone(), hasBoneWeight);
+
+    float3 currentWorld = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+
+    float3 previousWorld  = mul(GetObjectModelMatrix(perScene, motionData.previousWorldMatrix, motionData.previousSkeletonOffset, entity.GetBone(), hasBoneWeight), float4(entity.GetPosition(), 1.0)).xyz;
 
     VertexOutput output;
-    output.currentClip = mul(perScene.camera.viewProjection, currentWorld);
-    output.previousClip = mul(perScene.camera.previousViewProjection, previousWorld);
+    output.currentClip = mul(perScene.camera.viewProjection, float4(currentWorld, 1.0));
+    output.previousClip = mul(perScene.camera.previousViewProjection, float4(previousWorld, 1.0));
     output.position = output.currentClip;
     return output;
 }

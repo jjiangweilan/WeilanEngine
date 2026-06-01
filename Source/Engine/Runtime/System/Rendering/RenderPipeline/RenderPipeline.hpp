@@ -128,6 +128,7 @@ class RenderPipeline
         uint32_t firstIndex;
         uint32_t firstInstance;
         uint32_t objectOffset;
+        uint32_t previousSkeletonOffset = InvalidTextureIndex;
     };
 
     /**
@@ -135,18 +136,13 @@ class RenderPipeline
      * @brief data layout should match the data in GPU
      *
      */
-    struct DynamicObjectData
-    {
-        float4x4 previousWorldMatrix;
-    };
-
     std::vector<GPUObjectShaderGroup> gpuObjectShaderGroups;
     std::vector<uint32_t> gpuObjectOffsets; // flat objectID array for all groups
     std::vector<FlatDrawInfo> flatDrawInfos;
     std::vector<DrawIndexedIndirectCommand> allIndirectCmds;
     std::vector<GpuDrawExtra> allIndirectCmdsExtra;
-    std::vector<float4x4> dynamicMotionPreviousModels;
-    uint32_t dynamicMotionPreviousModelsOffset = InvalidTextureIndex;
+    std::vector<GPUDynamicMotionData> dynamicMotionDatas;
+    uint32_t dynamicMotionDataOffset = InvalidTextureIndex;
 
     void BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingScene& renderingScene);
     void DrawGPUObjects(Gfx::CommandBuffer& cmd, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt);

@@ -20,8 +20,8 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
         config.depth.boundTestEnable = depthJson.value("boundTestEnable", false);
         config.depth.minBounds = depthJson.value("minBounds", 0.0f);
         config.depth.maxBounds = depthJson.value("maxBounds", 1.0f);
-        config.depth.depthBias = depthJson.value("depthBias", 1.0f);
-        config.depth.depthSlopBias = depthJson.value("depthSlopBias", 1.0f);
+        config.depth.depthBias = depthJson.value("depthBias", 0.0f);
+        config.depth.depthSlopBias = depthJson.value("depthSlopBias", 0.0f);
     }
 
     // Stencil settings

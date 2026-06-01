@@ -258,19 +258,19 @@ void MeshRenderer::UpdateSkinning()
         if (IsActiveGPUObject())
             return;
 
-        const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
+        const GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
 
         GetGfxDriver()
-            ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
+            ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(GPUBoneTransforms));
     }
 }
 
-const MeshRenderer::Skinning::GPUBoneTransforms& MeshRenderer::BuildSkinningBoneTransforms()
+const MeshRenderer::GPUBoneTransforms& MeshRenderer::BuildSkinningBoneTransforms()
 {
-    Skinning::GPUBoneTransforms& boneTransforms = GetGpuBoneTransformsBuffer();
+    GPUBoneTransforms& boneTransforms = GetGpuBoneTransformsBuffer();
     glm::mat4 inverseRendererWorld = glm::inverse(GetGameObject()->GetWorldMatrix());
     int maxBoneCount = skinning.bones.size();
-    for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)
+    for (int bi = 0; bi < maxBoneCount && bi < MaxBoneSize; bi++)
     {
         boneTransforms.boneTrnasforms[bi] = inverseRendererWorld * skinning.bones[bi]->GetWorldMatrix() * skinning.tposeMatrix[bi];
     }
@@ -290,7 +290,7 @@ void MeshRenderer::ValidateSkinning()
             auto go = GetGameObject();
             auto skeleton = mesh->GetSkeleton();
 
-            if (skeleton.size() > Skinning::MaxBoneSize)
+            if (skeleton.size() > MaxBoneSize)
             {
                 spdlog::error("Exceeding maximum bone size");
                 return;
@@ -318,7 +318,7 @@ void MeshRenderer::ValidateSkinning()
 
             // cpu is ready, let's prepare gpu resources
             skinning.bonesBuffer = GetGfxDriver()->CreateBuffer(
-                sizeof(Skinning::GPUBoneTransforms),
+                sizeof(GPUBoneTransforms),
                 Gfx::BufferUsage::Uniform,
                 false,
                 false,
@@ -330,15 +330,15 @@ void MeshRenderer::ValidateSkinning()
             gpuResource = GetGfxDriver()->CreateShaderResource();
             gpuResource->SetBuffer("skeleton", skinning.bonesBuffer.get());
 
-            Skinning::GPUBoneTransforms boneTransforms;
+            GPUBoneTransforms boneTransforms;
             int maxBoneCount = skinning.bones.size();
-            for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)
+            for (int bi = 0; bi < maxBoneCount && bi < MaxBoneSize; bi++)
             {
                 boneTransforms.boneTrnasforms[bi] = glm::mat4(1.0f);
             }
 
             GetGfxDriver()
-                ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
+                ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(GPUBoneTransforms));
 
             EnableMotionState();
             return;
@@ -365,11 +365,11 @@ void MeshRenderer::DisableSkinning()
     }
 }
 
-MeshRenderer::Skinning::GPUBoneTransforms& MeshRenderer::GetGpuBoneTransformsBuffer()
+MeshRenderer::GPUBoneTransforms& MeshRenderer::GetGpuBoneTransformsBuffer()
 {
     if (gpuBoneTransformsBuffer == nullptr)
     {
-        gpuBoneTransformsBuffer = std::make_unique<Skinning::GPUBoneTransforms>();
+        gpuBoneTransformsBuffer = std::make_unique<GPUBoneTransforms>();
     }
     return *gpuBoneTransformsBuffer;
 }
@@ -420,6 +420,11 @@ void MeshRenderer::CommitMotionState()
         return;
 
     motionState->previousFrameWorldMatrix = GetGameObject()->GetWorldMatrix();
+    if (motionState->hasCurrentFrameBoneTransforms)
+    {
+        motionState->previousFrameBoneTransforms = motionState->currentFrameBoneTransforms;
+        motionState->hasPreviousFrameBoneTransforms = true;
+    }
 }
 
 void MeshRenderer::CheckSkeleton()
@@ -625,19 +630,38 @@ void MeshRenderer::UpdateGPUSceneObjectTransforms()
     gpuObjectDescriptor = gpuDriven.GetObjectDescriptor(gpuObjectHandle);
 }
 
-void MeshRenderer::UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd)
+uint32_t MeshRenderer::UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd)
 {
     if (!gpuObjectRegistered || !skinning.enabled)
-        return;
+        return Rendering::InvalidTextureIndex;
 
     auto& gpuDriven = Rendering::GPUDrivenManager::Instance();
-    const Skinning::GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
+    const GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
     auto skinningAllocation = gpuDriven.UploadDynamicData(
         cmd,
         &boneTransforms,
-        sizeof(Skinning::GPUBoneTransforms),
+        sizeof(GPUBoneTransforms),
         16
     );
+
+    uint32_t previousSkeletonOffset = Rendering::InvalidTextureIndex;
+    if (motionState)
+    {
+        motionState->currentFrameBoneTransforms = boneTransforms;
+        motionState->hasCurrentFrameBoneTransforms = true;
+
+        if (motionState->hasPreviousFrameBoneTransforms)
+        {
+            auto previousSkinningAllocation = gpuDriven.UploadDynamicData(
+                cmd,
+                &motionState->previousFrameBoneTransforms,
+                sizeof(GPUBoneTransforms),
+                16
+            );
+            if (previousSkinningAllocation.IsValid())
+                previousSkeletonOffset = previousSkinningAllocation.offset;
+        }
+    }
 
     const auto& renderDataListDescriptor = gpuDriven.GetRenderDataListDescriptor(renderDataListHandle);
     auto worldMatrix = GetGameObject()->GetWorldMatrix();
@@ -651,6 +675,7 @@ void MeshRenderer::UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd)
 
     gpuDriven.UpdateObject(gpuObjectHandle, gpuObject);
     gpuObjectDescriptor = gpuDriven.GetObjectDescriptor(gpuObjectHandle);
+    return previousSkeletonOffset;
 }
 
 void MeshRenderer::RefreshGPUSceneObjects()
@@ -670,5 +695,13 @@ void MeshRenderer::EnableMotionState()
     {
         motionState = std::make_unique<MotionState>();
         motionState->previousFrameWorldMatrix = GetGameObject()->GetWorldMatrix();
+        if (skinning.enabled)
+        {
+            const GPUBoneTransforms& boneTransforms = BuildSkinningBoneTransforms();
+            motionState->previousFrameBoneTransforms = boneTransforms;
+            motionState->currentFrameBoneTransforms = boneTransforms;
+            motionState->hasPreviousFrameBoneTransforms = true;
+            motionState->hasCurrentFrameBoneTransforms = true;
+        }
     }
 }

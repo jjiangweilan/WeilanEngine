@@ -25,7 +25,7 @@ public:
         const RenderingData& renderingData,
         Gfx::Buffer* indirectCommandBuffer,
         std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-        uint32_t previousFrameWorldMatricesOffset
+        uint32_t dynamicMotionDataOffset
     );
 
     const Gfx::ImageIdentifier& GetOutputId() const { return motionVector; }
@@ -43,7 +43,7 @@ private:
         const RenderingData& renderingData,
         Gfx::Buffer* indirectCommandBuffer,
         std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-        uint32_t previousFrameWorldMatricesOffset
+        uint32_t dynamicMotionDataOffset
     );
 
     Shader* staticShader = nullptr;

@@ -24,7 +24,7 @@ void MotionVectorPass::Execute(
     const RenderingData& renderingData,
     Gfx::Buffer* indirectCommandBuffer,
     std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-    uint32_t previousFrameWorldMatricesOffset
+    uint32_t dynamicMotionDataOffset
 )
 {
     DrawStaticMotionVectors(cmd, depth, depthDesc);
@@ -34,7 +34,7 @@ void MotionVectorPass::Execute(
         renderingData,
         indirectCommandBuffer,
         gpuObjectShaderGroups,
-        previousFrameWorldMatricesOffset
+        dynamicMotionDataOffset
     );
 
     if (renderingData.renderPipelineSettings)
@@ -78,10 +78,10 @@ void MotionVectorPass::DrawDynamicMotionVectors(
     const RenderingData& renderingData,
     Gfx::Buffer* indirectCommandBuffer,
     std::span<const GPUObjectShaderGroup> gpuObjectShaderGroups,
-    uint32_t previousFrameWorldMatricesOffset
+    uint32_t dynamicMotionDataOffset
 )
 {
-    if (previousFrameWorldMatricesOffset == InvalidTextureIndex || !indirectCommandBuffer || gpuObjectShaderGroups.empty())
+    if (dynamicMotionDataOffset == InvalidTextureIndex || !indirectCommandBuffer || gpuObjectShaderGroups.empty())
         return;
 
     cmd.BeginLabel("MotionVector Dynamic", {0.1f, 0.7f, 0.7f, 1.0f});
@@ -102,7 +102,7 @@ void MotionVectorPass::DrawDynamicMotionVectors(
     struct PushConstant
     {
         uint32_t firstGpuObjectOffset = 0;
-        uint32_t firstPreviousModelByteOffset = 0;
+        uint32_t firstDynamicMotionDataByteOffset = 0;
     } pconst;
 
     for (const auto& group : gpuObjectShaderGroups)
@@ -111,7 +111,7 @@ void MotionVectorPass::DrawDynamicMotionVectors(
             continue;
 
         pconst.firstGpuObjectOffset = group.firstDrawIndex;
-        pconst.firstPreviousModelByteOffset = previousFrameWorldMatricesOffset + group.firstPreviousModelIndex * sizeof(float4x4);
+        pconst.firstDynamicMotionDataByteOffset = dynamicMotionDataOffset + group.firstDynamicMotionDataIndex * sizeof(GPUDynamicMotionData);
         cmd.SetPushConstant(shaderProgram, &pconst);
         cmd.DrawIndexedIndirect(
             indirectCommandBuffer,

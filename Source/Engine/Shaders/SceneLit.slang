@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Library.PerScene;
 import Lighting;
+import ObjectWorldPosition;
 
 static extern const bool _AlphaClip = false;
 static extern const bool _BaseColorMap = false;
@@ -71,54 +72,28 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-float4x4 GetSkeletonMatrix(uint skeletonOffset, float4 boneWeights, out bool hasWeight)
-{
-    float4x4 skeletonMatrix = float4x4(0);
-    hasWeight = false;
-    for (int i = 0; i < 4; ++i)
-    {
-        float boneWeight = boneWeights[i];
-        if (boneWeight != 0)
-        {
-            int boneIndex = int(boneWeight * 0.1);
-            float weight = boneWeight - boneIndex * 10;
-            skeletonMatrix += perScene.LoadDynamicData<float4x4>(skeletonOffset, boneIndex) * weight;
-
-            if (weight > 1e-4)
-            {
-                hasWeight = true;
-            }
-        }
-    }
-
-    return skeletonMatrix;
-}
-
 VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex)
 {
     GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
-    GpuObject objData = perScene.LoadData<GpuObject>(drawExtra.objectOffset);
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     float4x4 modelMatrix = entity.GetModelMatrix();
     float4x4 invTspModelMatrix = entity.GetInvModelMatrix();
-    bool hasBoneWeight = false;
-    if (objData.skeletonOffset != 0xFFFFFFFF)
-    {
-        float4x4 skeletonMatrix = GetSkeletonMatrix(objData.skeletonOffset, entity.GetBone(), hasBoneWeight);
-        if (hasBoneWeight)
-            modelMatrix = mul(modelMatrix, skeletonMatrix);
-    }
 
     // calculation
-    VertexOutput output;
     float3 vertexPos = entity.GetPosition();
     float3 normal = entity.GetNormal();
     float4 tangent = entity.GetTangent();
 
-    output.positionWS = mul(modelMatrix, float4(vertexPos, 1)).xyz;
-
+    bool hasBoneWeight = false;
+    float4x4 objectModelMatrix = GetObjectModelMatrix(perScene, modelMatrix, entity.skeletonOffset, entity.GetBone(), hasBoneWeight);
+    float3 worldPosition = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+    float4 positionNDC = mul(perScene.camera.viewProjection, float4(worldPosition, 1));
     matrix<float,3,3> model33 = hasBoneWeight ? (float3x3)modelMatrix : (float3x3)invTspModelMatrix;
+
+    VertexOutput output = (VertexOutput)0;
+    output.position = positionNDC;
+    output.positionWS = worldPosition;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
@@ -126,7 +101,6 @@ VertexOutput SceneLitVertex(uint vertexIndex, uint drawIndex)
     output.objectOffset = drawExtra.objectOffset;
     output.renderDataIndex = drawExtra.renderDataIndex;
 
-    output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     return output;
 }

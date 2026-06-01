@@ -50,9 +50,18 @@ struct GPUObjectShaderGroup
     Gfx::ShaderProgram* shaderProgram = nullptr;
     const Gfx::PipelineConfig* pipelineConfig = nullptr;
     uint32_t firstDrawIndex = 0; // offset into indirectCommands
-    uint32_t firstPreviousModelIndex = 0;
+    uint32_t firstDynamicMotionDataIndex = 0;
     uint32_t drawCount = 0;
     bool hasMotion = false;
+};
+
+struct GPUDynamicMotionData
+{
+    glm::mat4 previousWorldMatrix = glm::mat4(1.0f);
+    uint32_t previousSkeletonOffset = 0xFFFFFFFF;
+    uint32_t padding0 = 0;
+    uint32_t padding1 = 0;
+    uint32_t padding2 = 0;
 };
 
 struct RenderingData

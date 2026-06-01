@@ -216,7 +216,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         renderingData,
         renderingData.gpuDrivenIndirectBuffer,
         gpuObjectShaderGroups,
-        dynamicMotionPreviousModelsOffset
+        dynamicMotionDataOffset
     );
     hierarchyZBufferPass->Execute(*cmd, mainDepth, mainDepthDescription, renderingData);
 
@@ -861,8 +861,8 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     flatDrawInfos.clear();
     allIndirectCmds.clear();
     allIndirectCmdsExtra.clear();
-    dynamicMotionPreviousModels.clear();
-    dynamicMotionPreviousModelsOffset = InvalidTextureIndex;
+    dynamicMotionDatas.clear();
+    dynamicMotionDataOffset = InvalidTextureIndex;
     renderingData.gpuDrivenIndirectDrawCount = 0;
     renderingData.gpuDrivenIndirectBuffer = nullptr;
 
@@ -876,7 +876,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
         if (!renderer || !renderer->IsActiveInScene())
             continue;
 
-        renderer->UploadGPUDrivenFrameData(cmd);
+        uint32_t previousSkeletonOffset = renderer->UploadGPUDrivenFrameData(cmd);
 
         const auto& gpuObjectDescriptor = renderer->GetGpuObjectDescriptor();
         const auto& gpuRenderDataListDescriptor = renderer->GetGpuRenderDataListDescriptor();
@@ -889,7 +889,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             {
                 auto geometryDescriptor = renderer->GetGpuGeometry(static_cast<int>(renderDataListIndex));
                 auto& config = mat->GetShaderConfig();
-                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset)});
+                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset), previousSkeletonOffset});
             }
         }
     }
@@ -911,10 +911,10 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     const Gfx::PipelineConfig* currentConfig = nullptr;
     size_t currentConfigHash = 0;
     uint32_t currentGroupStart = 0;
-    uint32_t currentPreviousModelStart = 0;
+    uint32_t currentDynamicMotionDataStart = 0;
 
     // dispatching each draw into their group in a sequential stable way
-    // dynamicMotionPreviousModels are accessed by positional corespondence, so be careful
+    // dynamicMotionDatas are accessed by positional corespondence, so be careful
     for (size_t i = 0; i < flatDrawInfos.size(); ++i)
     {
         const auto& info = flatDrawInfos[i];
@@ -924,7 +924,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
         {
             if (currentShader != nullptr && currentConfig != nullptr)
             {
-                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentPreviousModelStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
+                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
             }
 
             currentHasMotion = infoHasMotion;
@@ -932,12 +932,15 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             currentConfig = info.pipelineConfig;
             currentConfigHash = currentConfig != nullptr ? currentConfig->GetHash() : 0;
             currentGroupStart = static_cast<uint32_t>(i);
-            currentPreviousModelStart = static_cast<uint32_t>(dynamicMotionPreviousModels.size());
+            currentDynamicMotionDataStart = static_cast<uint32_t>(dynamicMotionDatas.size());
         }
 
         if (infoHasMotion)
         {
-            dynamicMotionPreviousModels.push_back(info.motionState->previousFrameWorldMatrix);
+            dynamicMotionDatas.push_back({
+                .previousWorldMatrix = info.motionState->previousFrameWorldMatrix,
+                .previousSkeletonOffset = info.previousSkeletonOffset,
+            });
         }
 
         allIndirectCmds.push_back({.indexCount = info.indexCount, .instanceCount = 1, .firstIndex = info.firstIndex, .vertexOffset = 0, .firstInstance = 0});
@@ -947,20 +950,20 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     // Push the final group
     if (currentShader != nullptr)
     {
-        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentPreviousModelStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
+        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
     }
 
     auto& gpuDriven = GPUDrivenManager::Instance();
-    if (!dynamicMotionPreviousModels.empty())
+    if (!dynamicMotionDatas.empty())
     {
-        auto previousModelsAllocation = gpuDriven.UploadDynamicData(
+        auto dynamicMotionDataAllocation = gpuDriven.UploadDynamicData(
             cmd,
-            dynamicMotionPreviousModels.data(),
-            static_cast<uint32_t>(dynamicMotionPreviousModels.size() * sizeof(float4x4)),
+            dynamicMotionDatas.data(),
+            static_cast<uint32_t>(dynamicMotionDatas.size() * sizeof(GPUDynamicMotionData)),
             16
         );
-        if (previousModelsAllocation.IsValid())
-            dynamicMotionPreviousModelsOffset = previousModelsAllocation.offset;
+        if (dynamicMotionDataAllocation.IsValid())
+            dynamicMotionDataOffset = dynamicMotionDataAllocation.offset;
     }
 
     for (auto* renderer : gpuRenderers)

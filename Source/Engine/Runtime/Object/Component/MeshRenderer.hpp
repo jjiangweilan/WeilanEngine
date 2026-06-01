@@ -7,6 +7,7 @@
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "Engine/Runtime/System/SceneManager/BVHScene.hpp"
+#include <array>
 #include <functional>
 #include <memory>
 class RenderingScene;
@@ -19,9 +20,19 @@ class MeshRenderer : public Component
     DECLARE_OBJECT();
 
 public:
+    static const int MaxBoneSize = 256;
+    struct GPUBoneTransforms
+    {
+        std::array<glm::mat4, MaxBoneSize> boneTrnasforms;
+    };
+
     struct MotionState
     {
         float4x4 previousFrameWorldMatrix = float4x4(1.0f);
+        GPUBoneTransforms previousFrameBoneTransforms{};
+        GPUBoneTransforms currentFrameBoneTransforms{};
+        bool hasPreviousFrameBoneTransforms = false;
+        bool hasCurrentFrameBoneTransforms = false;
     };
 
     MeshRenderer();
@@ -106,7 +117,7 @@ public:
         static Rendering::GpuGeometryDescriptor g{};
         return g;
     }
-    void UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd);
+    uint32_t UploadGPUDrivenFrameData(Gfx::CommandBuffer& cmd);
 
 private:
     /***** Serialized Data ******/
@@ -140,11 +151,6 @@ private:
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
     struct Skinning
     {
-        static const int MaxBoneSize = 256;
-        struct GPUBoneTransforms
-        {
-            std::array<glm::mat4, MaxBoneSize> boneTrnasforms;
-        };
         bool enabled = false;
         std::vector<GameObject*> bones = {};
         std::vector<glm::mat4> tposeMatrix = {}; // copy from mesh
@@ -152,8 +158,8 @@ private:
 
         glm::vec3 rootMotionDelta;
     } skinning;
-    std::unique_ptr<Skinning::GPUBoneTransforms> gpuBoneTransformsBuffer = nullptr;
-    Skinning::GPUBoneTransforms& GetGpuBoneTransformsBuffer();
+    std::unique_ptr<GPUBoneTransforms> gpuBoneTransformsBuffer = nullptr;
+    GPUBoneTransforms& GetGpuBoneTransformsBuffer();
 
     void AddToBVHScene();
     void RemoveFromBVHScene();
@@ -174,7 +180,7 @@ private:
     void UpdateGPUSceneObjectTransforms();
     void RefreshGPUSceneObjects();
     size_t GetSubmeshDrawSlotCount() const;
-    const Skinning::GPUBoneTransforms& BuildSkinningBoneTransforms();
+    const GPUBoneTransforms& BuildSkinningBoneTransforms();
     void EnableMotionState();
 
     void ApplyToGPUSceneObjects(std::function<void(const Rendering::GpuObject&, int)> action);
