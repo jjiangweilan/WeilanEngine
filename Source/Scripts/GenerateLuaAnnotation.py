@@ -54,12 +54,12 @@ def parse_signature(sig_comment):
     Returns {'ret': 'lua_type', 'params': [{'name': 'p1', 'type': 'lua_type'}, ...]}
     """
     if not sig_comment:
-        return {'ret': None, 'params': []}
+        return {}
     
     # Find the comment start
     comment_idx = sig_comment.find('//')
     if comment_idx == -1:
-        return {'ret': None, 'params': []}
+        return {}
         
     content = sig_comment[comment_idx+2:].strip()
     
@@ -71,7 +71,7 @@ def parse_signature(sig_comment):
     # Split into RetType and Params part
     match = re.match(r'(.+?)\((.*)\)', content)
     if not match:
-        return {'ret': None, 'params': []}
+        return {}
     
     ret_cpp = match.group(1).strip()
     params_content = match.group(2).strip()
@@ -242,7 +242,7 @@ def generate_lua(classes, enums):
             
             # Param annotations
             params_str = "..."
-            if m_sig and m_sig.get('params'):
+            if m_sig and 'params' in m_sig:
                 p_list = []
                 for p in m_sig['params']:
                     lines.append(f"---@param {p['name']} {p['type']}")

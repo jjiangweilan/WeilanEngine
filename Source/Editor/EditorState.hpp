@@ -14,6 +14,8 @@ class EditorState
 public:
     static void SelectObject(ObjPtr<Object> obj, bool multiSelect = false);
     static Object* GetMainSelectedObject();
+    static bool CanSelectPreviousObject();
+    static void SelectPreviousObject();
     static void DeselectObject(Object* obj);
     static std::vector<ObjPtr<Object>> GetSelectedObjects();
 
@@ -24,10 +26,13 @@ public:
     {
         GetGameLoop() = nullptr;
         StaticGetSelectedObjects() = {};
+        StaticGetSelectionHistory() = {};
         GetUndoManager().Clear();
     }
 
 private:
     static std::vector<ObjPtr<Object>>& StaticGetSelectedObjects();
+    static std::vector<ObjPtr<Object>>& StaticGetSelectionHistory();
+    static void PushSelectionHistory(ObjPtr<Object> obj);
 };
 } // namespace Editor

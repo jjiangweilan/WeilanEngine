@@ -19,6 +19,7 @@ class InspectorBase
 public:
     virtual ~InspectorBase() {};
     virtual void DrawInspector(GameEditor& editor) = 0;
+    virtual void DrawMenuBar(GameEditor& editor) {};
     virtual void OnEnable(Object& obj) = 0;
     virtual Object* GetTarget() = 0;
 };

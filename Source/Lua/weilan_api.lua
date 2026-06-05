@@ -283,19 +283,19 @@ function wl.Gamepad:GetAxis(idx) end
 wl.Input = {}
 
 ---@return wl.Gamepad
-function wl.Input.GetGamepad(...) end
+function wl.Input.GetGamepad() end
 ---@return number
-function wl.Input.GetMovementX(...) end
+function wl.Input.GetMovementX() end
 ---@return number
-function wl.Input.GetMovementY(...) end
+function wl.Input.GetMovementY() end
 ---@return boolean
-function wl.Input.IsInteractPressed(...) end
+function wl.Input.IsInteractPressed() end
 ---@return number
-function wl.Input.GetLookAroundX(...) end
+function wl.Input.GetLookAroundX() end
 ---@return number
-function wl.Input.GetLookAroundY(...) end
+function wl.Input.GetLookAroundY() end
 ---@return boolean
-function wl.Input.Jump(...) end
+function wl.Input.Jump() end
 
 ---@class wl.AnimationPlayer
 wl.AnimationPlayer = {}
@@ -303,7 +303,7 @@ wl.AnimationPlayer = {}
 ---@param animationName string
 ---@return boolean
 function wl.AnimationPlayer:SetClip(animationName) end
-function wl.AnimationPlayer:Play(...) end
+function wl.AnimationPlayer:Play() end
 
 ---@class wl.Boids
 wl.Boids = {}
@@ -313,7 +313,7 @@ wl.Boids = {}
 wl.PhysicsBody = {}
 
 ---@return wl.Float3
-function wl.PhysicsBody:GetLinearVelocity(...) end
+function wl.PhysicsBody:GetLinearVelocity() end
 ---@param force wl.vec3 &
 function wl.PhysicsBody:AddForce(force) end
 ---@param impulse wl.vec3 &
@@ -333,56 +333,58 @@ function wl.GameObject:GetComponentInHierarchy(className) end
 ---@param name any
 function wl.GameObject:SetName(name) end
 ---@return string
-function wl.GameObject:GetName(...) end
+function wl.GameObject:GetName() end
 ---@return wl.Scene*
-function wl.GameObject:GetScene(...) end
+function wl.GameObject:GetScene() end
 ---@return boolean
-function wl.GameObject:IsEnabled(...) end
+function wl.GameObject:IsEnabled() end
 ---@return boolean
-function wl.GameObject:IsActiveInScene(...) end
+function wl.GameObject:IsActiveInScene() end
 ---@param isEnabled boolean
 function wl.GameObject:SetEnable(isEnabled) end
 ---@return wl.Float3
-function wl.GameObject:GetPosition(...) end
+function wl.GameObject:GetPosition() end
 ---@return wl.Float3
-function wl.GameObject:GetLocalPosition(...) end
+function wl.GameObject:GetLocalPosition() end
 ---@param position any
 function wl.GameObject:SetPosition(position) end
 ---@param localPosition any
 function wl.GameObject:SetLocalPosition(localPosition) end
 ---@return wl.Quaternion
-function wl.GameObject:GetRotation(...) end
+function wl.GameObject:GetRotation() end
 ---@return wl.Quaternion
-function wl.GameObject:GetLocalRotation(...) end
+function wl.GameObject:GetLocalRotation() end
 ---@param rotation wl.quat &
 function wl.GameObject:SetRotation(rotation) end
 ---@param rotation wl.quat &
 function wl.GameObject:SetLocalRotation(rotation) end
 ---@return wl.Float3
-function wl.GameObject:GetEuluerAngles(...) end
+function wl.GameObject:GetEuluerAngles() end
 ---@param eulerAngles any
 function wl.GameObject:SetEulerAngles(eulerAngles) end
 ---@param to any
 function wl.GameObject:LookAt(to) end
 ---@return wl.Float3
-function wl.GameObject:GetScale(...) end
+function wl.GameObject:GetScale() end
 ---@return wl.Float3
-function wl.GameObject:GetLocalScale(...) end
+function wl.GameObject:GetLocalScale() end
 ---@param scale any
 function wl.GameObject:SetScale(scale) end
 ---@param scale any
 function wl.GameObject:SetLocalScale(scale) end
 ---@return wl.Float3
-function wl.GameObject:GetForward(...) end
+function wl.GameObject:GetForward() end
 ---@return wl.Float3
-function wl.GameObject:GetUp(...) end
+function wl.GameObject:GetUp() end
 ---@return wl.Float3
-function wl.GameObject:GetRight(...) end
+function wl.GameObject:GetRight() end
 ---@return wl.Mat4
-function wl.GameObject:GetWorldMatrix(...) end
+function wl.GameObject:GetWorldMatrix() end
 ---@param model any
 function wl.GameObject:SetWorldMatrix(model) end
-function wl.GameObject:GetComponent(...) end
+---@param className string
+---@return wl.Component
+function wl.GameObject:GetComponent(className) end
 
 ---@class wl.Prefab
 wl.Prefab = {}
@@ -392,7 +394,7 @@ wl.Prefab = {}
 wl.Scene = {}
 
 ---@return wl.GameObject
-function wl.Scene:CreateGameObject(...) end
+function wl.Scene:CreateGameObject() end
 ---@param prefab wl.Prefab
 ---@return wl.GameObject
 function wl.Scene:SpawnPrefab(prefab) end
@@ -402,13 +404,17 @@ function wl.Scene:DestroyGameObject(obj) end
 ---@class wl.GameScript
 wl.GameScript = {}
 
-function wl.GameScript:GetGameObject(...) end
-function wl.GameScript.New(...) end
+---@return wl.GameObject*
+function wl.GameScript:GetGameObject() end
+---@param className string
+---@return wl.GameScript
+function wl.GameScript.New(className) end
 
 ---@class wl.Time
 wl.Time = {}
 
-function wl.Time.DeltaTime(...) end
+---@return number
+function wl.Time.DeltaTime() end
 
 ---@class wl.Quaternion
 ---@field x number
@@ -431,7 +437,7 @@ function wl.Quaternion.FromEuler(euler) end
 ---@return wl.Quaternion
 function wl.Quaternion.AngleAxis(angle, axis) end
 ---@return wl.Quaternion
-function wl.Quaternion.Identity(...) end
+function wl.Quaternion.Identity() end
 ---@param a wl.Quaternion
 ---@param b wl.Quaternion
 ---@param t number
@@ -468,80 +474,176 @@ function wl.Quaternion.__eq(l, r) end
 function wl.Quaternion.__mul(l, r) end
 
 ---@class wl.Float2
----@field x any
----@field y any
+---@field x number
+---@field y number
 wl.Float2 = {}
 
-function wl.Float2.New(...) end
-function wl.Float2.Dot(...) end
-function wl.Float2.__eq(...) end
-function wl.Float2.__add(...) end
-function wl.Float2.__sub(...) end
-function wl.Float2.__div(...) end
-function wl.Float2.__mul(...) end
-function wl.Float2:GetX(...) end
-function wl.Float2:GetY(...) end
-function wl.Float2:SetX(...) end
-function wl.Float2:SetY(...) end
+---@param x number
+---@param y number
+---@return wl.Float2
+function wl.Float2.New(x, y) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return number
+function wl.Float2.Dot(l, r) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return boolean
+function wl.Float2.__eq(l, r) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return wl.Float2
+function wl.Float2.__add(l, r) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return wl.Float2
+function wl.Float2.__sub(l, r) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return wl.Float2
+function wl.Float2.__div(l, r) end
+---@param l wl.Float2
+---@param r wl.Float2
+---@return wl.Float2
+function wl.Float2.__mul(l, r) end
+---@return number
+function wl.Float2:GetX() end
+---@return number
+function wl.Float2:GetY() end
+---@param v number
+function wl.Float2:SetX(v) end
+---@param v number
+function wl.Float2:SetY(v) end
 
 ---@class wl.Float3
----@field x any
----@field y any
----@field z any
+---@field x number
+---@field y number
+---@field z number
 wl.Float3 = {}
 
-function wl.Float3.New(...) end
-function wl.Float3.Dot(...) end
-function wl.Float3.__eq(...) end
-function wl.Float3.__add(...) end
-function wl.Float3.__sub(...) end
-function wl.Float3.__div(...) end
-function wl.Float3.__mul(...) end
-function wl.Float3:GetX(...) end
-function wl.Float3:GetY(...) end
-function wl.Float3:GetZ(...) end
-function wl.Float3:SetX(...) end
-function wl.Float3:SetY(...) end
-function wl.Float3:SetZ(...) end
+---@param x number
+---@param y number
+---@param z number
+---@return wl.Float3
+function wl.Float3.New(x, y, z) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return number
+function wl.Float3.Dot(l, r) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return boolean
+function wl.Float3.__eq(l, r) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return wl.Float3
+function wl.Float3.__add(l, r) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return wl.Float3
+function wl.Float3.__sub(l, r) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return wl.Float3
+function wl.Float3.__div(l, r) end
+---@param l wl.Float3
+---@param r wl.Float3
+---@return wl.Float3
+function wl.Float3.__mul(l, r) end
+---@return number
+function wl.Float3:GetX() end
+---@return number
+function wl.Float3:GetY() end
+---@return number
+function wl.Float3:GetZ() end
+---@param v number
+function wl.Float3:SetX(v) end
+---@param v number
+function wl.Float3:SetY(v) end
+---@param v number
+function wl.Float3:SetZ(v) end
 
 ---@class wl.Float4
----@field x any
----@field y any
----@field z any
----@field w any
+---@field x number
+---@field y number
+---@field z number
+---@field w number
 wl.Float4 = {}
 
-function wl.Float4.New(...) end
-function wl.Float4.Dot(...) end
-function wl.Float4.__eq(...) end
-function wl.Float4.__add(...) end
-function wl.Float4.__sub(...) end
-function wl.Float4.__div(...) end
-function wl.Float4.__mul(...) end
-function wl.Float4:GetX(...) end
-function wl.Float4:GetY(...) end
-function wl.Float4:GetZ(...) end
-function wl.Float4:GetW(...) end
-function wl.Float4:SetX(...) end
-function wl.Float4:SetY(...) end
-function wl.Float4:SetZ(...) end
-function wl.Float4:SetW(...) end
+---@param x number
+---@param y number
+---@param z number
+---@param w number
+---@return wl.Float4
+function wl.Float4.New(x, y, z, w) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return number
+function wl.Float4.Dot(l, r) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return boolean
+function wl.Float4.__eq(l, r) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return wl.Float4
+function wl.Float4.__add(l, r) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return wl.Float4
+function wl.Float4.__sub(l, r) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return wl.Float4
+function wl.Float4.__div(l, r) end
+---@param l wl.Float4
+---@param r wl.Float4
+---@return wl.Float4
+function wl.Float4.__mul(l, r) end
+---@return number
+function wl.Float4:GetX() end
+---@return number
+function wl.Float4:GetY() end
+---@return number
+function wl.Float4:GetZ() end
+---@return number
+function wl.Float4:GetW() end
+---@param v number
+function wl.Float4:SetX(v) end
+---@param v number
+function wl.Float4:SetY(v) end
+---@param v number
+function wl.Float4:SetZ(v) end
+---@param v number
+function wl.Float4:SetW(v) end
 
 ---@class wl.Float3x3
 wl.Float3x3 = {}
 
-function wl.Float3x3.New(...) end
-function wl.Float3x3.__mul(...) end
-function wl.Float3x3.Inverse(...) end
-function wl.Float3x3.Transpose(...) end
-function wl.Float3x3:GetRow(...) end
-function wl.Float3x3:GetColumn(...) end
+---@return any
+function wl.Float3x3.New() end
+---@param l any
+---@param r any
+---@return any
+function wl.Float3x3.__mul(l, r) end
+---@param m any
+---@return any
+function wl.Float3x3.Inverse(m) end
+---@param m any
+---@return any
+function wl.Float3x3.Transpose(m) end
+---@param i number
+---@return wl.Float3
+function wl.Float3x3:GetRow(i) end
+---@param i number
+---@return wl.Float3
+function wl.Float3x3:GetColumn(i) end
 
 ---@class wl.Float4x4
 wl.Float4x4 = {}
 
 ---@return wl.Mat4
-function wl.Float4x4.New(...) end
+function wl.Float4x4.New() end
 ---@param l wl.Mat4
 ---@param r wl.Mat4
 ---@return wl.Mat4
@@ -564,24 +666,32 @@ function wl.Float4x4:GetColumn(m, i) end
 ---@class wl.Camera
 wl.Camera = {}
 
-function wl.Camera:LookAt(...) end
+---@param lookAtPos wl.Float3
+function wl.Camera:LookAt(lookAtPos) end
 
 ---@class wl.Light
 wl.Light = {}
 
-function wl.Light:GetIntensity(...) end
-function wl.Light:SetIntensity(...) end
+---@return number
+function wl.Light:GetIntensity() end
+---@param intensity number
+function wl.Light:SetIntensity(intensity) end
 
 ---@class wl.MeshRenderer
 wl.MeshRenderer = {}
 
-function wl.MeshRenderer:SetMaterial(...) end
+---@param material wl.Material*
+function wl.MeshRenderer:SetMaterial(material) end
 
 ---@class wl.ObjPtr
 wl.ObjPtr = {}
 
-function wl.ObjPtr.New(...) end
-function wl.ObjPtr.IsValid(...) end
+---@param typeName string
+---@return wl.ObjPtr
+function wl.ObjPtr.New(typeName) end
+---@param val wl.Object
+---@return boolean
+function wl.ObjPtr.IsValid(val) end
 
 ---@class wl.Texture
 wl.Texture = {}
@@ -590,11 +700,23 @@ wl.Texture = {}
 ---@class wl.Material
 wl.Material = {}
 
-function wl.Material:SetTexture(...) end
-function wl.Material:SetShader(...) end
-function wl.Material:GetTexture(...) end
-function wl.Material:GetShader(...) end
-function wl.Material:SetFloat(...) end
-function wl.Material:SetVector(...) end
-function wl.Material:SetName(...) end
-function wl.Material:GetName(...) end
+---@param param string
+---@param texture wl.Texture
+function wl.Material:SetTexture(param, texture) end
+---@param shaderName string
+function wl.Material:SetShader(shaderName) end
+---@param param string
+---@return wl.Texture*
+function wl.Material:GetTexture(param) end
+---@return wl.Shader
+function wl.Material:GetShader() end
+---@param name string
+---@param value number
+function wl.Material:SetFloat(name, value) end
+---@param name string
+---@param value wl.Float4
+function wl.Material:SetVector(name, value) end
+---@param name string
+function wl.Material:SetName(name) end
+---@return string
+function wl.Material:GetName() end

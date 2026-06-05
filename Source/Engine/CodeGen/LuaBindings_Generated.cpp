@@ -591,7 +591,7 @@ void BindGeneratedClasses(lua_State* L)
         .BindMemFn("GetRight", &GameObject::GetRight) // float3()
         .BindMemFn("GetWorldMatrix", &GameObject::GetWorldMatrix) // float4x4()
         .BindMemFn("SetWorldMatrix", &GameObject::SetWorldMatrix) // void(float4x4 & model)
-        .BindFn("GetComponent", &GameObject::LuaGetComponent)
+        .BindFn("GetComponent", &GameObject::LuaGetComponent) // ObjPtr<Component>(const char* className)
         .End();
 
     LuaBinder<Prefab> binder_Prefab(L);

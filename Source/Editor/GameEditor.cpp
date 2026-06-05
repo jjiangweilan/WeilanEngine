@@ -75,6 +75,22 @@ static bool InspectorManagesOwnUndo(Object* object)
     return dynamic_cast<GameObject*>(object) != nullptr;
 }
 
+static void DrawInspectorWindowMenuBar(GameEditor& editor, InspectorBase* inspector)
+{
+    if (!ImGui::BeginMenuBar())
+        return;
+
+    if (ImGui::MenuItem("Back", nullptr, false, EditorState::CanSelectPreviousObject()))
+    {
+        EditorState::SelectPreviousObject();
+    }
+
+    if (inspector != nullptr)
+        inspector->DrawMenuBar(editor);
+
+    ImGui::EndMenuBar();
+}
+
 static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
 {
     ASSERT(customFont == nullptr && "customFont not implemented");
@@ -848,14 +864,6 @@ void GameEditor::ShowInspectorWindow()
         static bool lockWindow;
         static ObjPtr<Object> primarySelected;
 
-        if (ImGui::Checkbox("Lock window", &lockWindow))
-        {
-            if (lockWindow)
-                primarySelected = EditorState::GetMainSelectedObject();
-            else
-                EditorState::SelectObject(primarySelected);
-        }
-
         auto selectedObject = EditorState::GetMainSelectedObject();
         if (selectedObject)
         {
@@ -871,12 +879,23 @@ void GameEditor::ShowInspectorWindow()
                     primaryInspector = InspectorRegistry::GetInspector(*primarySelected);
                     primaryInspector->OnEnable(*primarySelected);
                 }
-
-                if (primaryInspector)
-                {
-                    DrawInspectorWithUndo(primarySelected.Get(), primaryInspector);
-                }
             }
+        }
+
+        InspectorBase* primaryMenuInspector = (primarySelected && (lockWindow || selectedObject)) ? primaryInspector : nullptr;
+        DrawInspectorWindowMenuBar(*this, primaryMenuInspector);
+
+        if (ImGui::Checkbox("Lock window", &lockWindow))
+        {
+            if (lockWindow)
+                primarySelected = EditorState::GetMainSelectedObject();
+            else
+                EditorState::SelectObject(primarySelected);
+        }
+
+        if (primarySelected && (lockWindow || selectedObject) && primaryInspector)
+        {
+            DrawInspectorWithUndo(primarySelected.Get(), primaryInspector);
         }
 
         ImGui::End();
@@ -895,11 +914,13 @@ void GameEditor::ShowInspectorWindow()
                     secondaryInspector = InspectorRegistry::GetInspector(*selectedObject);
                     secondaryInspector->OnEnable(*selectedObject);
                 }
+            }
 
-                if (secondaryInspector)
-                {
-                    DrawInspectorWithUndo(selectedObject, secondaryInspector);
-                }
+            DrawInspectorWindowMenuBar(*this, selectedObject ? secondaryInspector : nullptr);
+
+            if (selectedObject && secondaryInspector)
+            {
+                DrawInspectorWithUndo(selectedObject, secondaryInspector);
             }
 
             ImGui::End();

@@ -39,7 +39,7 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript", false)
-            .BindStaticFn("New", [](lua_State* L){
+            .BindStaticFn("New", [](lua_State* L){ // GameScript(string className)
                     const char* className = luaL_checkstring(L, -1);
 
                     lua_newtable(L);
@@ -56,13 +56,13 @@ void LuaBindings::BindClasses(lua_State* L)
                     lua_pop(L, 1); // pop wl table
                     return 1;
                     })
-            .BindMemFn("GetGameObject", &GameScript::GetGameObject)
+            .BindMemFn("GetGameObject", &GameScript::GetGameObject) // GameObject*()
             .End();
 
         LuaBinder<Time> time(L);
         time
             .Begin("Time")
-            .BindStaticFn("DeltaTime", Time::DeltaTime)
+            .BindStaticFn("DeltaTime", Time::DeltaTime) // float()
             .End();
 
         LuaBinder<glm::quat> quat(L);
@@ -89,73 +89,73 @@ void LuaBindings::BindClasses(lua_State* L)
 
         LuaBinder<float2> vec2(L);
         vec2.Begin("Float2")
-            .BindStaticFn("New", [](float x, float y){ return glm::vec2{x,y}; })
-            .BindStaticFn("Dot", &glm::dot<2, float, glm::packed_highp>)
-            .BindStaticFn("__eq", [](const float2& l, const float2& r){return l == r;})
-            .BindStaticFn("__add", [](const float2& l, const float2& r){return l + r;})
-            .BindStaticFn("__sub", [](const float2& l, const float2& r){return l - r;})
-            .BindStaticFn("__div", [](const float2& l, const float2& r){return l / r;})
-            .BindStaticFn("__mul", [](const float2& l, const float2& r){return l * r;})
-            .BindProperty("x", &glm::vec2::x)
-            .BindProperty("y", &glm::vec2::y)
-            .BindFn("GetX", [](glm::vec2& val) {return val[0]; })
-            .BindFn("GetY", [](glm::vec2& val) {return val[1]; })
-            .BindFn("SetX", [](glm::vec2& val, float v) {val[0] = v; })
-            .BindFn("SetY", [](glm::vec2& val, float v) {val[1] = v; })
+            .BindStaticFn("New", [](float x, float y){ return glm::vec2{x,y}; }) // float2(float x, float y)
+            .BindStaticFn("Dot", &glm::dot<2, float, glm::packed_highp>) // float(float2 l, float2 r)
+            .BindStaticFn("__eq", [](const float2& l, const float2& r){return l == r;}) // bool(float2 l, float2 r)
+            .BindStaticFn("__add", [](const float2& l, const float2& r){return l + r;}) // float2(float2 l, float2 r)
+            .BindStaticFn("__sub", [](const float2& l, const float2& r){return l - r;}) // float2(float2 l, float2 r)
+            .BindStaticFn("__div", [](const float2& l, const float2& r){return l / r;}) // float2(float2 l, float2 r)
+            .BindStaticFn("__mul", [](const float2& l, const float2& r){return l * r;}) // float2(float2 l, float2 r)
+            .BindProperty("x", &glm::vec2::x) // float
+            .BindProperty("y", &glm::vec2::y) // float
+            .BindFn("GetX", [](glm::vec2& val) {return val[0]; }) // float()
+            .BindFn("GetY", [](glm::vec2& val) {return val[1]; }) // float()
+            .BindFn("SetX", [](glm::vec2& val, float v) {val[0] = v; }) // void(float v)
+            .BindFn("SetY", [](glm::vec2& val, float v) {val[1] = v; }) // void(float v)
             .End();
 
         LuaBinder<float3> vec3(L);
         vec3
             .Begin("Float3")
-            .BindStaticFn("New", [](float x, float y, float z){ return glm::vec3{x,y,z}; })
-            .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>)
-            .BindStaticFn("__eq", [](const float3& l, const float3& r){return l == r;})
-            .BindStaticFn("__add", [](const float3& l, const float3& r){return l + r;})
-            .BindStaticFn("__sub", [](const float3& l, const float3& r){return l - r;})
-            .BindStaticFn("__div", [](const float3& l, const float3& r){return l / r;})
-            .BindStaticFn("__mul", [](const float3& l, const float3& r){return l * r;})
-            .BindProperty("x", &glm::vec3::x)
-            .BindProperty("y", &glm::vec3::y)
-            .BindProperty("z", &glm::vec3::z)
-            .BindFn("GetX", [](glm::vec3& val) {return val[0]; })
-            .BindFn("GetY", [](glm::vec3& val) {return val[1]; })
-            .BindFn("GetZ", [](glm::vec3& val) {return val[2]; })
-            .BindFn("SetX", [](glm::vec3& val, float v) {val[0] = v; })
-            .BindFn("SetY", [](glm::vec3& val, float v) {val[1] = v; })
-            .BindFn("SetZ", [](glm::vec3& val, float v) {val[2] = v; })
+            .BindStaticFn("New", [](float x, float y, float z){ return glm::vec3{x,y,z}; }) // float3(float x, float y, float z)
+            .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>) // float(float3 l, float3 r)
+            .BindStaticFn("__eq", [](const float3& l, const float3& r){return l == r;}) // bool(float3 l, float3 r)
+            .BindStaticFn("__add", [](const float3& l, const float3& r){return l + r;}) // float3(float3 l, float3 r)
+            .BindStaticFn("__sub", [](const float3& l, const float3& r){return l - r;}) // float3(float3 l, float3 r)
+            .BindStaticFn("__div", [](const float3& l, const float3& r){return l / r;}) // float3(float3 l, float3 r)
+            .BindStaticFn("__mul", [](const float3& l, const float3& r){return l * r;}) // float3(float3 l, float3 r)
+            .BindProperty("x", &glm::vec3::x) // float
+            .BindProperty("y", &glm::vec3::y) // float
+            .BindProperty("z", &glm::vec3::z) // float
+            .BindFn("GetX", [](glm::vec3& val) {return val[0]; }) // float()
+            .BindFn("GetY", [](glm::vec3& val) {return val[1]; }) // float()
+            .BindFn("GetZ", [](glm::vec3& val) {return val[2]; }) // float()
+            .BindFn("SetX", [](glm::vec3& val, float v) {val[0] = v; }) // void(float v)
+            .BindFn("SetY", [](glm::vec3& val, float v) {val[1] = v; }) // void(float v)
+            .BindFn("SetZ", [](glm::vec3& val, float v) {val[2] = v; }) // void(float v)
             .End();
 
         LuaBinder<float4> vec4(L);
         vec4.Begin("Float4")
-            .BindStaticFn("New", [](float x, float y, float z, float w){ return glm::vec4{x,y,z,w}; })
-            .BindStaticFn("Dot", &glm::dot<4, float, glm::packed_highp>)
-            .BindStaticFn("__eq", [](const float4& l, const float4& r){return l == r;})
-            .BindStaticFn("__add", [](const float4& l, const float4& r){return l + r;})
-            .BindStaticFn("__sub", [](const float4& l, const float4& r){return l - r;})
-            .BindStaticFn("__div", [](const float4& l, const float4& r){return l / r;})
-            .BindStaticFn("__mul", [](const float4& l, const float4& r){return l * r;})
-            .BindProperty("x", &glm::vec4::x)
-            .BindProperty("y", &glm::vec4::y)
-            .BindProperty("z", &glm::vec4::z)
-            .BindProperty("w", &glm::vec4::w)
-            .BindFn("GetX", [](glm::vec4& val) {return val[0]; })
-            .BindFn("GetY", [](glm::vec4& val) {return val[1]; })
-            .BindFn("GetZ", [](glm::vec4& val) {return val[2]; })
-            .BindFn("GetW", [](glm::vec4& val) {return val[3]; })
-            .BindFn("SetX", [](glm::vec4& val, float v) {val[0] = v; })
-            .BindFn("SetY", [](glm::vec4& val, float v) {val[1] = v; })
-            .BindFn("SetZ", [](glm::vec4& val, float v) {val[2] = v; })
-            .BindFn("SetW", [](glm::vec4& val, float v) {val[3] = v; })
+            .BindStaticFn("New", [](float x, float y, float z, float w){ return glm::vec4{x,y,z,w}; }) // float4(float x, float y, float z, float w)
+            .BindStaticFn("Dot", &glm::dot<4, float, glm::packed_highp>) // float(float4 l, float4 r)
+            .BindStaticFn("__eq", [](const float4& l, const float4& r){return l == r;}) // bool(float4 l, float4 r)
+            .BindStaticFn("__add", [](const float4& l, const float4& r){return l + r;}) // float4(float4 l, float4 r)
+            .BindStaticFn("__sub", [](const float4& l, const float4& r){return l - r;}) // float4(float4 l, float4 r)
+            .BindStaticFn("__div", [](const float4& l, const float4& r){return l / r;}) // float4(float4 l, float4 r)
+            .BindStaticFn("__mul", [](const float4& l, const float4& r){return l * r;}) // float4(float4 l, float4 r)
+            .BindProperty("x", &glm::vec4::x) // float
+            .BindProperty("y", &glm::vec4::y) // float
+            .BindProperty("z", &glm::vec4::z) // float
+            .BindProperty("w", &glm::vec4::w) // float
+            .BindFn("GetX", [](glm::vec4& val) {return val[0]; }) // float()
+            .BindFn("GetY", [](glm::vec4& val) {return val[1]; }) // float()
+            .BindFn("GetZ", [](glm::vec4& val) {return val[2]; }) // float()
+            .BindFn("GetW", [](glm::vec4& val) {return val[3]; }) // float()
+            .BindFn("SetX", [](glm::vec4& val, float v) {val[0] = v; }) // void(float v)
+            .BindFn("SetY", [](glm::vec4& val, float v) {val[1] = v; }) // void(float v)
+            .BindFn("SetZ", [](glm::vec4& val, float v) {val[2] = v; }) // void(float v)
+            .BindFn("SetW", [](glm::vec4& val, float v) {val[3] = v; }) // void(float v)
             .End();
 
         LuaBinder<float3x3> mat3(L);
         mat3.Begin("Float3x3")
-            .BindStaticFn("New", []() { return glm::mat3(1.0f); })
-            .BindStaticFn("__mul", [](const float3x3& l, const float3x3& r) { return l * r; })
-            .BindStaticFn("Inverse", [](const float3x3& m) { return glm::inverse(m); })
-            .BindStaticFn("Transpose", [](const float3x3& m) { return glm::transpose(m); })
-            .BindFn("GetRow", [](float3x3& val, int i) { return glm::row(val, i); })
-            .BindFn("GetColumn", [](float3x3& val, int i) { return glm::column(val, i); })
+            .BindStaticFn("New", []() { return glm::mat3(1.0f); }) // float3x3()
+            .BindStaticFn("__mul", [](const float3x3& l, const float3x3& r) { return l * r; }) // float3x3(float3x3 l, float3x3 r)
+            .BindStaticFn("Inverse", [](const float3x3& m) { return glm::inverse(m); }) // float3x3(float3x3 m)
+            .BindStaticFn("Transpose", [](const float3x3& m) { return glm::transpose(m); }) // float3x3(float3x3 m)
+            .BindFn("GetRow", [](float3x3& val, int i) { return glm::row(val, i); }) // float3(int i)
+            .BindFn("GetColumn", [](float3x3& val, int i) { return glm::column(val, i); }) // float3(int i)
             .End();
 
         LuaBinder<float4x4> mat4(L);
@@ -173,27 +173,27 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<Camera> camera(L);
         camera
             .Begin("Camera")
-            .BindMemFn("LookAt", &Camera::LookAt)
+            .BindMemFn("LookAt", &Camera::LookAt) // void(float3 lookAtPos)
             .End();
 
         LuaBinder<Light> light(L);
         light
             .Begin("Light")
-            .BindMemFn("GetIntensity", &Light::GetIntensity)
-            .BindMemFn("SetIntensity", &Light::SetIntensity)
+            .BindMemFn("GetIntensity", &Light::GetIntensity) // float()
+            .BindMemFn("SetIntensity", &Light::SetIntensity) // void(float intensity)
             .End();
 
         LuaBinder<MeshRenderer> meshRenderer(L);
         meshRenderer
             .Begin("MeshRenderer")
-            .BindMemFn("SetMaterial", &MeshRenderer::SetMaterial)
+            .BindMemFn("SetMaterial", &MeshRenderer::SetMaterial) // void(Material* material)
             .End();
 
         // ObjPtr
         LuaBinder<ObjPtr<Object>> objPtr(L);
         objPtr
             .Begin("ObjPtr")
-            .BindStaticFn("New", [](lua_State* L) -> int { 
+            .BindStaticFn("New", [](lua_State* L) -> int { // ObjPtr(string typeName)
                     const char* typeName = luaL_checkstring(L, -1);
                     luaL_getmetatable(L, typeName);
                     if (lua_istable(L, -1))
@@ -212,7 +212,7 @@ void LuaBindings::BindClasses(lua_State* L)
                     }
                     return 1;
             })
-            .BindStaticFn("IsValid", [](ObjPtr<Object> val) { return val != nullptr; })
+            .BindStaticFn("IsValid", [](ObjPtr<Object> val) { return val != nullptr; }) // bool(ObjPtr<Object> val)
             .End();
 
         // Assets
@@ -223,14 +223,14 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<Material> material(L);
             material
             .Begin("Material")
-            .BindMemFn("SetTexture", &Material::SetTexture_Lua)
-            .BindMemFn("SetShader", &Material::SetShader_Lua)
-            .BindMemFn("GetTexture", &Material::GetTexture)
-            .BindMemFn("GetShader", &Material::GetShader)
-            .BindMemFn("SetFloat", static_cast<void (Material::*)(const std::string&, float)>(&Material::SetFloat))
-            .BindMemFn("SetVector", static_cast<void (Material::*)(const std::string&, const glm::vec4&)>(&Material::SetVector))
-            .BindMemFn("SetName", &Material::SetName_Lua)
-            .BindMemFn("GetName", &Material::GetName)
+            .BindMemFn("SetTexture", &Material::SetTexture_Lua) // void(std::string param, ObjPtr<Texture> texture)
+            .BindMemFn("SetShader", &Material::SetShader_Lua) // void(const char* shaderName)
+            .BindMemFn("GetTexture", &Material::GetTexture) // Texture*(std::string param)
+            .BindMemFn("GetShader", &Material::GetShader) // ObjPtr<Shader>()
+            .BindMemFn("SetFloat", static_cast<void (Material::*)(const std::string&, float)>(&Material::SetFloat)) // void(std::string name, float value)
+            .BindMemFn("SetVector", static_cast<void (Material::*)(const std::string&, const glm::vec4&)>(&Material::SetVector)) // void(std::string name, float4 value)
+            .BindMemFn("SetName", &Material::SetName_Lua) // void(const char* name)
+            .BindMemFn("GetName", &Material::GetName) // std::string()
             .End();
     // clang-format on
 

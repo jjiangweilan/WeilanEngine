@@ -3,6 +3,7 @@
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
+#include "Engine/Runtime/Object/Component/MissingComponent.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"
@@ -105,7 +106,8 @@ void GameObject::DebugDraw()
 {
     for (auto& comp : allComponents)
     {
-        comp->DebugDraw();
+        if (comp)
+            comp->DebugDraw();
     }
 }
 
@@ -179,6 +181,13 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
     s->Deserialize("components", components);
+    for (auto& component : components)
+    {
+        if (component == nullptr)
+        {
+            component = std::make_unique<MissingComponent>(this);
+        }
+    }
     s->Deserialize("prefab", prefab);
     s->Deserialize("wantsToBeEnabled", wantsToBeEnabled);
     // gameScene is set by Scene when it's deserializing
@@ -695,7 +704,10 @@ void GameObject::TransformChanged()
     transformChanged = true;
 
     for (auto& c : allComponents)
-        c->TransformChanged();
+    {
+        if (c)
+            c->TransformChanged();
+    }
 
     for (auto child : children)
     {
@@ -978,7 +990,8 @@ void GameObject::ApplyPrefabComponents()
         auto comps = prefab->GetGameObject()->GetComponents();
         for (auto comp : comps)
         {
-            prefabComponents.push_back(comp->Clone(*this));
+            if (comp)
+                prefabComponents.push_back(comp->Clone(*this));
         }
     }
 }

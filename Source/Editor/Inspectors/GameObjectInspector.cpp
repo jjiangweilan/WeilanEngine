@@ -38,22 +38,14 @@ bool AcceptLuaScriptDropOnInspectorBackground(LuaScript*& script)
 
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();
 
-void GameObjectInspector::PreventNegativeZero(float& val)
-{
-    if (val == -0.0f)
-        val = 0.0f;
-}
-
-void GameObjectInspector::DrawInspector(GameEditor& editor)
+void GameObjectInspector::DrawMenuBar(GameEditor& editor)
 {
     auto& undoManager = EditorState::GetUndoManager();
-
-    ImGui::BeginMenuBar();
-    // Create Component
 
     if (ImGui::BeginMenu("Create Component"))
     {
         auto componentNames = ObjectRegistry::GetComponentTypeNames();
+        std::erase(componentNames, "MissingComponent");
         std::sort(componentNames.begin(), componentNames.end(), [](auto& l, auto& r)
                   { return l < r; });
 
@@ -77,7 +69,17 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
         ImGui::EndMenu();
     }
-    ImGui::EndMenuBar();
+}
+
+void GameObjectInspector::PreventNegativeZero(float& val)
+{
+    if (val == -0.0f)
+        val = 0.0f;
+}
+
+void GameObjectInspector::DrawInspector(GameEditor& editor)
+{
+    auto& undoManager = EditorState::GetUndoManager();
 
     EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
 

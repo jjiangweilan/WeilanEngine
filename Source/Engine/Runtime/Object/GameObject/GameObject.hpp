@@ -202,7 +202,7 @@ public:
     void OnStart();
     void OnDestroy();
 
-    [[LuaRawFn("GetComponent")]]
+    [[LuaRawFn("GetComponent", "ObjPtr<Component>(const char* className)")]]
     static int LuaGetComponent(lua_State* L);
 
     void Copy(const GameObject& other, bool withComponent = true);

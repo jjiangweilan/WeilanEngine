@@ -243,14 +243,20 @@ def process_file(file_path):
                                             args_node = child
                                             break
 
+                                raw_sig = ""
                                 if args_node:
+                                    string_args = []
                                     for arg in args_node.children:
                                         if arg.type == 'string_literal':
-                                            bind_name = get_node_text(arg, code_bytes).strip('"')
-                                            break
-                                
+                                            string_args.append(get_node_text(arg, code_bytes).strip('"'))
+
+                                    if string_args:
+                                        bind_name = string_args[0]
+                                    if len(string_args) > 1:
+                                        raw_sig = f"// {string_args[1]}"
+                                 
                                 if func_name:
-                                    class_info['raw_methods'].append({'name': func_name, 'bind_name': bind_name})
+                                    class_info['raw_methods'].append({'name': func_name, 'bind_name': bind_name, 'sig': raw_sig})
 
                         # Properties (Member variables)
                         elif member.type == 'field_declaration':
@@ -403,7 +409,7 @@ def generate_bindings(source_dir, output_file):
                 out.append(f"        .BindStaticFn(\"{m['bind_name']}\", &{class_name}::{m['name']}) {m['sig']}")
 
             for m in cls['raw_methods']:
-                out.append(f"        .BindFn(\"{m['bind_name']}\", &{class_name}::{m['name']})")
+                out.append(f"        .BindFn(\"{m['bind_name']}\", &{class_name}::{m['name']}) {m['sig']}")
                 
             for p in cls['properties']:
                 out.append(f"        .BindProperty(\"{p['name']}\", &{class_name}::{p['name']}) {p['sig']}")

@@ -24,6 +24,7 @@ namespace Editor
 class GameObjectInspector : public Inspector<GameObject>
 {
 public:
+    void DrawMenuBar(GameEditor& editor) override;
     void DrawInspector(GameEditor& editor) override;
 
 private:
