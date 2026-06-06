@@ -34,6 +34,18 @@ bool AcceptLuaScriptDropOnInspectorBackground(LuaScript*& script)
     return script != nullptr;
 }
 
+const std::string& GetComponentInspectorName(Component& component)
+{
+    if (auto* gameScript = dynamic_cast<GameScript*>(&component); gameScript != nullptr)
+    {
+        const std::string& luaClassName = gameScript->GetLuaClassName();
+        if (!luaClassName.empty())
+            return luaClassName;
+    }
+
+    return component.GetName();
+}
+
 } // namespace
 
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();
@@ -174,8 +186,9 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                 contextComponent != nullptr &&
                 (contextComponent == co || EditorState::GetMainSelectedObject() == contextComponent);
             ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
-            bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
-            EditorGUI::DragDropSource(c.GetName().c_str(), &c);
+            const std::string& componentInspectorName = GetComponentInspectorName(c);
+            bool expandComponent = ImGui::TreeNodeEx(componentInspectorName.c_str(), treeNodeFlags);
+            EditorGUI::DragDropSource(componentInspectorName.c_str(), &c);
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
             {
                 if (!popupTriggered)
