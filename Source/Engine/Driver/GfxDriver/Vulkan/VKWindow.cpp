@@ -78,7 +78,7 @@ void VKWindow::SetSurfaceSizeImple(int width, int height)
     // VKWindow is created between VKDriver::BeginFrame and VKDriver::EndFrame, we need to request the image for
     // EndFrame
     activeIndex = 0;
-    vkAcquireNextImageKHR(
+    VkResult acquireResult = vkAcquireNextImageKHR(
         c->device,
         swapchain.handle,
         -1,
@@ -86,6 +86,14 @@ void VKWindow::SetSurfaceSizeImple(int width, int height)
         VK_NULL_HANDLE,
         &swapchainIndex
     );
-    swapchain.swapchainImage->SetActiveSwapChainImage(swapchainIndex);
+    swapchainImageAcquired = acquireResult == VK_SUCCESS || acquireResult == VK_SUBOPTIMAL_KHR;
+    if (swapchainImageAcquired)
+    {
+        swapchain.swapchainImage->SetActiveSwapChainImage(swapchainIndex);
+    }
+    else if (acquireResult != VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        spdlog::error("Failed to acquire extra window swapchain image: {}", static_cast<int>(acquireResult));
+    }
 }
 } // namespace Gfx

@@ -691,7 +691,6 @@ bool VKDriver::BeginFrame()
     auto cmd = frameContexts[currentInflightIndex].cmd;
     CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
 
-    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
     frameContexts[currentInflightIndex].frameIndex = frameCount - 1;
@@ -709,12 +708,26 @@ bool VKDriver::BeginFrame()
             VK_NULL_HANDLE,
             &frameContexts[currentInflightIndex].swapchainIndex
         );
+        if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            surface.QuerySurfaceProperties(gpu.handle);
+            swapchain.CreateOrOverrideSwapChain(surface, context->driverConfig.swapchainImageCount);
+            ENGINE_END_PROFILE
+            return false;
+        }
+        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR)
+        {
+            SPDLOG_ERROR("Failed to acquire swapchain image: {}", static_cast<int>(acquireResult));
+            ENGINE_END_PROFILE
+            return false;
+        }
         swapchain.swapchainImage->SetActiveSwapChainImage(frameContexts[currentInflightIndex].swapchainIndex);
         ENGINE_END_PROFILE
 
         for (auto& w : extraWindows)
         {
-            VkResult acquireResult = vkAcquireNextImageKHR(
+            w->swapchainImageAcquired = false;
+            VkResult extraAcquireResult = vkAcquireNextImageKHR(
                 device.handle,
                 w->swapchain.handle,
                 -1,
@@ -722,9 +735,25 @@ bool VKDriver::BeginFrame()
                 VK_NULL_HANDLE,
                 &w->swapchainIndex
             );
+            if (extraAcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
+            {
+                w->surface.QuerySurfaceProperties(gpu.handle);
+                w->swapchain.CreateOrOverrideSwapChain(w->surface, w->swapchainCount);
+                w->presentRequest.requested = false;
+                continue;
+            }
+            if (extraAcquireResult != VK_SUCCESS && extraAcquireResult != VK_SUBOPTIMAL_KHR)
+            {
+                SPDLOG_ERROR("Failed to acquire extra window swapchain image: {}", static_cast<int>(extraAcquireResult));
+                w->presentRequest.requested = false;
+                continue;
+            }
+            w->swapchainImageAcquired = true;
             w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
         }
     }
+
+    vkResetFences(device.handle, 1, &frameContexts[currentInflightIndex].cmdFence);
 
     return true;
 }
@@ -840,7 +869,7 @@ bool VKDriver::EndFrame()
         cmd2.PresentImage(swapchain.swapchainImage->GetImage(frameContexts[currentInflightIndex].swapchainIndex));
         for (auto& w : extraWindows)
         {
-            if (w->presentRequest.requested)
+            if (w->presentRequest.requested && w->swapchainImageAcquired)
             {
                 cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
             }
@@ -875,33 +904,38 @@ bool VKDriver::EndFrame()
     CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE // Vulkan End Command Buffer
 
-        int signalSemaphoreCount = 0;
+    int signalSemaphoreCount = 0;
     int waitSemaphoreCount = 0;
     VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     waitSemaphores[0] = transferSignalSemaphore;
-    if (needPresent)
-    {
-        waitSemaphores[1] = imageAcquireSemaphores[currentInflightIndex];
-        waitFlags[1] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-        signalSemaphores[1] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
-        signalSemaphoreCount++;
-        waitSemaphoreCount++;
-    }
+    waitSemaphoreCount++;
     signalSemaphores[0] = dataUploaderWaitSemaphore;
     signalSemaphoreCount++;
-    signalSemaphoreCount += extraWindows.size();
-    waitSemaphoreCount++;
-    waitSemaphores += extraWindows.size();
-
-    for (int i = 0; i < extraWindows.size(); ++i)
+    if (needPresent)
     {
-        waitFlags[i + 2] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        waitSemaphores[i + 2] = extraWindows[i]->imageAcquireSemaphores[extraWindows[i]->activeIndex];
-        signalSemaphores[i + 2] = extraWindows[i]->presentSemaphores[extraWindows[i]->activeIndex];
+        waitSemaphores[waitSemaphoreCount] = imageAcquireSemaphores[currentInflightIndex];
+        waitFlags[waitSemaphoreCount] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        waitSemaphoreCount++;
+
+        signalSemaphores[signalSemaphoreCount] = presentSemaphores[frameContexts[currentInflightIndex].swapchainIndex];
+        signalSemaphoreCount++;
+    }
+
+    for (int i = 0; needPresent && i < extraWindows.size(); ++i)
+    {
+        if (!extraWindows[i]->swapchainImageAcquired)
+        {
+            continue;
+        }
+        waitFlags[waitSemaphoreCount] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        waitSemaphores[waitSemaphoreCount] = extraWindows[i]->imageAcquireSemaphores[extraWindows[i]->activeIndex];
+        waitSemaphoreCount++;
+
+        signalSemaphores[signalSemaphoreCount] = extraWindows[i]->presentSemaphores[extraWindows[i]->activeIndex];
+        signalSemaphoreCount++;
     }
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.waitSemaphoreCount = waitSemaphoreCount;
@@ -938,7 +972,7 @@ bool VKDriver::EndFrame()
 
         for (auto& w : extraWindows)
         {
-            if (w->presentRequest.requested)
+            if (w->presentRequest.requested && w->swapchainImageAcquired)
             {
                 Present(
                     w->presentSemaphores[w->activeIndex],
@@ -947,8 +981,8 @@ bool VKDriver::EndFrame()
                     w->swapchain,
                     w->swapchain.swapchainImage->GetActiveIndex()
                 );
-                w->presentRequest.requested = false;
             }
+            w->presentRequest.requested = false;
         }
         ENGINE_END_PROFILE
     }
@@ -991,6 +1025,10 @@ bool VKDriver::Present(
     };
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
+    if (result == VK_SUCCESS)
+    {
+        return false;
+    }
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         surface.QuerySurfaceProperties(gpu.handle);
@@ -998,6 +1036,7 @@ bool VKDriver::Present(
         return true;
     }
 
+    SPDLOG_ERROR("Failed to present swapchain image: {}", static_cast<int>(result));
     return false;
 }
 

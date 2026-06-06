@@ -33,6 +33,7 @@ public:
     int swapchainCount;
     uint32_t swapchainIndex;
     uint32_t activeIndex;
+    bool swapchainImageAcquired = false;
     std::vector<VkSemaphore> imageAcquireSemaphores;
     std::vector<VkSemaphore> presentSemaphores;
 };
