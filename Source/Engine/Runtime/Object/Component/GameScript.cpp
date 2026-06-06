@@ -3,8 +3,6 @@
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
-#include "Engine/ThirdParty/lua/lauxlib.h"
-#include "Engine/ThirdParty/lua/lua.h"
 #include <cstring>
 #include <spdlog/spdlog.h>
 
@@ -402,7 +400,8 @@ void GameScript::LuaDeserialize(Serializer* s)
                     LuaUserDataPack<ObjPtr<Object>>* mm = (LuaUserDataPack<ObjPtr<Object>>*)m;
                     ObjPtr<Object> val;
                     s->Deserialize(key, val);
-                    if (lua_getfield(L, -1, "__name") == LUA_TSTRING)
+                    lua_getfield(L, -1, "__name");
+                    if (lua_isstring(L, -1))
                     {
                         const char* expectedClassName = lua_tostring(L, -1);
                         mm->Assign(expectedClassName, val);

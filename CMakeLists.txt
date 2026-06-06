@@ -153,6 +153,102 @@ set(SDL2_DISABLE_SDL2MAIN ON)
 set(SDL_TEST OFF)
 FetchContent_MakeAvailable(SDL2)
 
+FetchContent_Declare(LuaJIT
+    GIT_REPOSITORY https://github.com/LuaJIT/LuaJIT.git
+    GIT_TAG b925b3e3fc6771171602323b45fbe9fb8fc90369
+    GIT_PROGRESS TRUE
+    UPDATE_DISCONNECTED TRUE
+    ${LUAJIT_GIT_CONFIG_ARGS}
+)
+FetchContent_GetProperties(LuaJIT)
+if(NOT luajit_POPULATED)
+    FetchContent_Populate(LuaJIT)
+endif()
+
+if(WIN32)
+    set(LUAJIT_DLL_PATH "${luajit_SOURCE_DIR}/src/lua51.dll")
+    set(LUAJIT_IMPLIB_PATH "${luajit_SOURCE_DIR}/src/lua51.lib")
+    set(LUAJIT_EXE_PATH "${luajit_SOURCE_DIR}/src/luajit.exe")
+
+    add_custom_command(
+        OUTPUT "${LUAJIT_DLL_PATH}" "${LUAJIT_IMPLIB_PATH}" "${LUAJIT_EXE_PATH}"
+        COMMAND "${CMAKE_COMMAND}" -E chdir "${luajit_SOURCE_DIR}/src" cmd /C msvcbuild.bat lua52compat
+        COMMENT "Building LuaJIT DLL"
+        VERBATIM
+    )
+else()
+    message(FATAL_ERROR "LuaJIT DLL integration is currently implemented for Windows only")
+endif()
+
+add_custom_target(LuaJITBuild DEPENDS "${LUAJIT_DLL_PATH}" "${LUAJIT_IMPLIB_PATH}" "${LUAJIT_EXE_PATH}")
+add_library(LuaJIT::LuaJIT SHARED IMPORTED GLOBAL)
+set_target_properties(LuaJIT::LuaJIT PROPERTIES
+    IMPORTED_IMPLIB "${LUAJIT_IMPLIB_PATH}"
+    IMPORTED_LOCATION "${LUAJIT_DLL_PATH}"
+    INTERFACE_INCLUDE_DIRECTORIES "${luajit_SOURCE_DIR}/src"
+)
+add_dependencies(LuaJIT::LuaJIT LuaJITBuild)
+
+FetchContent_Declare(LuaRocks
+    GIT_REPOSITORY https://github.com/luarocks/luarocks.git
+    GIT_TAG v3.13.0
+    GIT_PROGRESS TRUE
+    GIT_SHALLOW TRUE
+    UPDATE_DISCONNECTED TRUE
+    ${LUAJIT_GIT_CONFIG_ARGS}
+)
+FetchContent_GetProperties(LuaRocks)
+if(NOT luarocks_POPULATED)
+    FetchContent_Populate(LuaRocks)
+endif()
+
+set(LUAROCKS_INSTALL_DIR "${CMAKE_BINARY_DIR}/luarocks")
+set(LUAROCKS_LUAJIT_LIB_DIR "${CMAKE_BINARY_DIR}/luajit-luarocks")
+set(LUAROCKS_BAT "${LUAROCKS_INSTALL_DIR}/luarocks.bat")
+set(LUAROCKS_CONFIG "${LUAROCKS_INSTALL_DIR}/config-5.1.lua")
+set(LUAROCKS_STAMP "${LUAROCKS_INSTALL_DIR}/.luarocks-installed")
+set(LUA_DEPENDENCIES_STAMP_DIR "${CMAKE_BINARY_DIR}/lua-dependencies/$<CONFIG>")
+set(LUA_DEPENDENCIES_STAMP "${LUA_DEPENDENCIES_STAMP_DIR}/.installed")
+set(LUA_ROCKS
+    luasocket
+)
+
+add_custom_command(
+    OUTPUT "${LUAROCKS_STAMP}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUAROCKS_LUAJIT_LIB_DIR}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${LUAJIT_IMPLIB_PATH}" "${LUAROCKS_LUAJIT_LIB_DIR}/lua51.lib"
+    COMMAND "${luarocks_SOURCE_DIR}/install.bat"
+        /P "${LUAROCKS_INSTALL_DIR}"
+        /SELFCONTAINED
+        /NOADMIN
+        /F
+        /Q
+        /LV 5.1
+        /BIN "${luajit_SOURCE_DIR}/src"
+        /INC "${luajit_SOURCE_DIR}/src"
+        /LIB "${LUAROCKS_LUAJIT_LIB_DIR}"
+    COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR "${LUAROCKS_LUAJIT_LIB_DIR}"
+    COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR_FILE lua51.lib
+    COMMAND "${CMAKE_COMMAND}" -E touch "${LUAROCKS_STAMP}"
+    DEPENDS LuaJITBuild
+    WORKING_DIRECTORY "${luarocks_SOURCE_DIR}"
+    COMMENT "Installing LuaRocks for LuaJIT"
+    VERBATIM
+)
+add_custom_target(LuaRocksInstall DEPENDS "${LUAROCKS_STAMP}")
+
+add_custom_command(
+    OUTPUT "${LUA_DEPENDENCIES_STAMP}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUA_DEPENDENCIES_STAMP_DIR}"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
+    COMMAND "${LUAROCKS_BAT}" --tree "$<TARGET_FILE_DIR:WeilanEngine>" install ${LUA_ROCKS}
+    COMMAND "${CMAKE_COMMAND}" -E touch "${LUA_DEPENDENCIES_STAMP}"
+    DEPENDS LuaRocksInstall
+    COMMENT "Installing Lua dependencies"
+    VERBATIM
+)
+add_custom_target(LuaDependencies DEPENDS "${LUA_DEPENDENCIES_STAMP}")
+
 FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG 11.1.3
@@ -400,6 +496,7 @@ target_link_libraries( WeilanEngine
     assimp
     meshoptimizer
     volk
+    LuaJIT::LuaJIT
 )
 
 if(ENABLE_MCP)
@@ -487,6 +584,7 @@ if (${EDITOR_ON})
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
     file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
     target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})
+    add_dependencies(WeilanEngineEditor LuaDependencies)
 endif()
 
 if (MSVC)
@@ -532,6 +630,7 @@ if (UNIT_TEST)
     if (${EDITOR_ON})
         target_compile_definitions(WeilanEngineTest PRIVATE ENGINE_EDITOR)
     endif()
+    add_dependencies(WeilanEngineTest LuaDependencies)
 
     include(GoogleTest)
     gtest_discover_tests(WeilanEngineTest)

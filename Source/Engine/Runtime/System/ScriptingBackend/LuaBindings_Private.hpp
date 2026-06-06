@@ -3,7 +3,7 @@
 #include "Engine/Library/Serialization/Serializable.hpp"
 #include "LuaBindings_Common.hpp"
 
-#include "Engine/ThirdParty/lua/lua.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaHeaders.hpp"
 #include <stdexcept>
 #include <typeindex>
 
@@ -18,7 +18,7 @@
 template <class T>
 T* GetLuaUserDataPackValue(lua_State* L, int idx)
 {
-    void* mem = lua_touserdata(L, 1);
+    void* mem = lua_touserdata(L, idx);
     LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
     if (type == LuaEngineUserDataType::RawPtr)
@@ -53,10 +53,12 @@ static int Lua_UserData_Index(lua_State* L)
     do // currentInspectingTable + 1
     {
         lua_pushstring(L, LuaEngineTableField::propertiesGet);
-        if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
+        lua_rawget(L, -2);
+        if (lua_istable(L, -1)) // + 2
         {
             lua_pushvalue(L, 2);                    // push the key
-            if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
+            lua_rawget(L, -2);
+            if (lua_isfunction(L, -1)) // + 3
             {
                 lua_pushvalue(L, 1); // 6
 
@@ -93,10 +95,12 @@ static int Lua_UserData_NewIndex(lua_State* L)
     do // currentInspectingTable + 1
     {
         lua_pushstring(L, LuaEngineTableField::propertiesSet);
-        if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
+        lua_rawget(L, -2);
+        if (lua_istable(L, -1)) // + 2
         {
             lua_pushvalue(L, 2);                    // push the key
-            if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
+            lua_rawget(L, -2);
+            if (lua_isfunction(L, -1)) // + 3
             {
                 lua_pushvalue(L, 1); // 6
                 lua_pushvalue(L, 3); // 7
@@ -208,6 +212,8 @@ public:
         this->name = name;
 
         luaL_newmetatable(L, name);
+        lua_pushstring(L, name);
+        lua_setfield(L, -2, "__name");
         LuaTypeRegistery::typeToName[typeid(T)] = name;
 
         lua_pushvalue(L, -1);

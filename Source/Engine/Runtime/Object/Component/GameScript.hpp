@@ -1,7 +1,7 @@
 #pragma once
 #include "Component.hpp"
 #include "Engine/Game/LuaScript.hpp"
-#include "Engine/ThirdParty/lua/lua.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaHeaders.hpp"
 
 // clang-format off
 #include <Jolt/Jolt.h>

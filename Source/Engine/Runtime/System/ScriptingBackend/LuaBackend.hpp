@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
-#include "Engine/ThirdParty/lua/lua.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaHeaders.hpp"
 
 class LuaBackend
 {
