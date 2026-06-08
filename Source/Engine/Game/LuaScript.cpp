@@ -1,6 +1,58 @@
 #include "LuaScript.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 
+#include <unordered_set>
+
+namespace
+{
+bool InheritsFromGameScript(lua_State* L, int classIndex)
+{
+    const int initialStackTop = lua_gettop(L);
+    if (classIndex < 0 && classIndex > LUA_REGISTRYINDEX)
+    {
+        classIndex = initialStackTop + classIndex + 1;
+    }
+
+    luaL_getmetatable(L, "GameScript");
+    if (!lua_istable(L, -1))
+    {
+        lua_settop(L, initialStackTop);
+        return false;
+    }
+
+    const int gameScriptMetatableIndex = lua_gettop(L);
+    lua_pushvalue(L, classIndex);
+
+    std::unordered_set<const void*> visitedClasses;
+    while (lua_istable(L, -1))
+    {
+        if (!visitedClasses.insert(lua_topointer(L, -1)).second)
+        {
+            break;
+        }
+
+        if (!lua_getmetatable(L, -1))
+        {
+            break;
+        }
+
+        if (lua_rawequal(L, -1, gameScriptMetatableIndex))
+        {
+            lua_settop(L, initialStackTop);
+            return true;
+        }
+
+        lua_pushliteral(L, "__index");
+        lua_rawget(L, -2);
+        lua_remove(L, -2);
+        lua_remove(L, -2);
+    }
+
+    lua_settop(L, initialStackTop);
+    return false;
+}
+}
+
 DEFINE_ASSET(LuaScript, "656C3158-FDAB-4EB3-AED4-CC4DFACA46F8", "lua")
 
 void LuaScript::LoadScript(const char* luaScriptPath)
@@ -41,19 +93,11 @@ void LuaScript::LoadScript(const char* luaScriptPath)
         return;
     }
 
-    // check if the script is a subclass of GameScript
-    // if not then return
-    if (lua_getmetatable(L, -1))
-    {                                       /* does it have a metatable? */
-        luaL_getmetatable(L, "GameScript"); /* get correct metatable */
-        if (!lua_rawequal(L, -1, -2))       /* not the same? */
-        {
-            wllua_popall();
-
-            spdlog::critical("Internal Lua Error: GameScript is not defined");
-            return; /* value is a userdata with wrong metatable */
-        }
-        lua_pop(L, 2); /* remove both metatables */
+    if (!InheritsFromGameScript(L, -1))
+    {
+        wllua_popall();
+        spdlog::critical("Lua Error: script does not inherit from GameScript");
+        return;
     }
 
     lua_pushstring(L, "New");
