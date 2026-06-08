@@ -529,9 +529,19 @@ void AssetBrowser::ShowAssetIconItem(
     float textWidth = iconMax.x - iconMin.x;
     ImVec2 labelPos = ImVec2(cursorPos.x, cursorPos.y + iconSize + 4);
     ImGui::SetCursorPos(labelPos);
-    ImGui::PushTextWrapPos(cursorPos.x + textWidth);
-    ImGui::Text("%s", filename.c_str());
-    ImGui::PopTextWrapPos();
+    constexpr float iconLabelFontSize = 14.0f;
+    constexpr float iconLabelHeight = 40.0f;
+    ImVec2 labelScreenPos = ImGui::GetCursorScreenPos();
+    ImGui::GetWindowDrawList()->AddText(
+        ImGui::GetFont(),
+        iconLabelFontSize,
+        labelScreenPos,
+        ImGui::GetColorU32(ImGuiCol_Text),
+        filename.c_str(),
+        nullptr,
+        textWidth
+    );
+    ImGui::Dummy(ImVec2(textWidth, iconLabelHeight));
 
     ImGui::EndGroup();
 
