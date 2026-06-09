@@ -499,6 +499,8 @@ bool SceneEditor::Tick()
         editorCamera->SetSpecularEnv(gameCamera->GetSpecularEnv().Get());
     }
 
+    const char* menuAction = "";
+    ImVec2 fovPopupPos;
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::BeginMenu("Debug Draw"))
@@ -516,12 +518,30 @@ bool SceneEditor::Tick()
             ImGui::EndMenu();
         }
         ImGui::MenuItem("Pixel Zoom", nullptr, &pixelZoomEnabled);
+        fovPopupPos = ImGui::GetCursorScreenPos();
+        fovPopupPos.y += ImGui::GetFrameHeight();
+        if (ImGui::MenuItem("Camera FoV"))
+        {
+            menuAction = "Camera FoV";
+        }
+        ImGui::EndMenuBar();
+    }
+
+    if (strcmp(menuAction, "Camera FoV") == 0)
+    {
+        ImGui::OpenPopup("Camera FoV");
+    }
+
+    if (ImGui::BeginPopup("Camera FoV"))
+    {
+        ImGui::SetWindowPos(fovPopupPos, ImGuiCond_Always);
         float fovDegrees = glm::degrees(editorCamera->GetFoV());
-        if (ImGui::DragFloat("Camera FoV", &fovDegrees, 0.1f, 1.0f, 179.0f))
+        ImGui::SetNextItemWidth(150.0f);
+        if (ImGui::SliderFloat("##FoVSlider", &fovDegrees, 1.0f, 179.0f, "%.1f"))
         {
             editorCamera->SetFoV(glm::radians(fovDegrees));
         }
-        ImGui::EndMenuBar();
+        ImGui::EndPopup();
     }
 
     // alway match window size

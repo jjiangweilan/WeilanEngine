@@ -319,47 +319,47 @@ function wl.PhysicsOverlapResult:GetBody(index) end
 ---@class wl.Physics
 wl.Physics = {}
 
----@param origin wl.vec3 &
----@param direction wl.vec3 &
+---@param origin any
+---@param direction any
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.RayCast(origin, direction, maxDistance) end
----@param origin wl.vec3 &
+---@param origin any
 ---@param radius number
----@param direction wl.vec3 &
+---@param direction any
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.SphereCast(origin, radius, direction, maxDistance) end
----@param origin wl.vec3 &
----@param halfExtents wl.vec3 &
+---@param origin any
+---@param halfExtents any
 ---@param rotation wl.quat &
----@param direction wl.vec3 &
+---@param direction any
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.BoxCast(origin, halfExtents, rotation, direction, maxDistance) end
----@param origin wl.vec3 &
+---@param origin any
 ---@param halfHeight number
 ---@param radius number
 ---@param rotation wl.quat &
----@param direction wl.vec3 &
+---@param direction any
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.CapsuleCast(origin, halfHeight, radius, rotation, direction, maxDistance) end
----@param center wl.vec3 &
+---@param center any
 ---@param radius number
 ---@return boolean
 function wl.Physics.CheckSphere(center, radius) end
----@param center wl.vec3 &
----@param halfExtents wl.vec3 &
+---@param center any
+---@param halfExtents any
 ---@param rotation wl.quat &
 ---@return boolean
 function wl.Physics.CheckBox(center, halfExtents, rotation) end
----@param center wl.vec3 &
+---@param center any
 ---@param radius number
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapSphere(center, radius) end
----@param center wl.vec3 &
----@param halfExtents wl.vec3 &
+---@param center any
+---@param halfExtents any
 ---@param rotation wl.quat &
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapBox(center, halfExtents, rotation) end

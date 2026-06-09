@@ -6,8 +6,8 @@
 struct [[LuaClass]] PhysicsHit
 {
     [[LuaProp]] bool hasHit = false;
-    [[LuaProp]] glm::vec3 point = {};
-    [[LuaProp]] glm::vec3 normal = {};
+    [[LuaProp]] float3 point = {};
+    [[LuaProp]] float3 normal = {};
     [[LuaProp]] float distance = 0.0f;
 
     [[LuaFn]] PhysicsBody* GetBody() const { return body; }
@@ -30,14 +30,14 @@ private:
 class [[LuaClass]] Physics
 {
 public:
-    [[LuaFn]] static PhysicsHit RayCast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
-    [[LuaFn]] static PhysicsHit SphereCast(const glm::vec3& origin, float radius, const glm::vec3& direction, float maxDistance);
-    [[LuaFn]] static PhysicsHit BoxCast(const glm::vec3& origin, const glm::vec3& halfExtents, const glm::quat& rotation, const glm::vec3& direction, float maxDistance);
-    [[LuaFn]] static PhysicsHit CapsuleCast(const glm::vec3& origin, float halfHeight, float radius, const glm::quat& rotation, const glm::vec3& direction, float maxDistance);
+    [[LuaFn]] static PhysicsHit RayCast(const float3& origin, const float3& direction, float maxDistance);
+    [[LuaFn]] static PhysicsHit SphereCast(const float3& origin, float radius, const float3& direction, float maxDistance);
+    [[LuaFn]] static PhysicsHit BoxCast(const float3& origin, const float3& halfExtents, const glm::quat& rotation, const float3& direction, float maxDistance);
+    [[LuaFn]] static PhysicsHit CapsuleCast(const float3& origin, float halfHeight, float radius, const glm::quat& rotation, const float3& direction, float maxDistance);
 
-    [[LuaFn]] static bool CheckSphere(const glm::vec3& center, float radius);
-    [[LuaFn]] static bool CheckBox(const glm::vec3& center, const glm::vec3& halfExtents, const glm::quat& rotation);
+    [[LuaFn]] static bool CheckSphere(const float3& center, float radius);
+    [[LuaFn]] static bool CheckBox(const float3& center, const float3& halfExtents, const glm::quat& rotation);
 
-    [[LuaFn]] static PhysicsOverlapResult OverlapSphere(const glm::vec3& center, float radius);
-    [[LuaFn]] static PhysicsOverlapResult OverlapBox(const glm::vec3& center, const glm::vec3& halfExtents, const glm::quat& rotation);
+    [[LuaFn]] static PhysicsOverlapResult OverlapSphere(const float3& center, float radius);
+    [[LuaFn]] static PhysicsOverlapResult OverlapBox(const float3& center, const float3& halfExtents, const glm::quat& rotation);
 };
