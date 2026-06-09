@@ -507,11 +507,14 @@ bool SceneEditor::Tick()
             ImGui::Checkbox("Game Object", &GetDebugOptions().drawGameObjectDebugDraw);
             ImGui::EndMenu();
         }
-        if (ImGui::MenuItem("Toggle Grid"))
+        if (ImGui::BeginMenu("View"))
         {
-            editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
+            ImGui::MenuItem("Show Gizmos", nullptr, &showGizmos);
+            ImGui::MenuItem("Toggle Grid", nullptr, &editorWorldSpaceGrid.show);
+            ImGui::MenuItem("Selection Outline", nullptr, &showSelectionOutline);
+            ImGui::MenuItem("Hover Highlight Outline", nullptr, &showHoverHighlightOutline);
+            ImGui::EndMenu();
         }
-        ImGui::MenuItem("Show Gizmos", nullptr, &showGizmos);
         ImGui::MenuItem("Pixel Zoom", nullptr, &pixelZoomEnabled);
         float fovDegrees = glm::degrees(editorCamera->GetFoV());
         if (ImGui::DragFloat("Camera FoV", &fovDegrees, 0.1f, 1.0f, 179.0f))
@@ -1220,16 +1223,19 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
     cmd.BeginRenderPass(outlineSrcPass, outlineSrcPassClears);
     for (auto& selected : selectedObjects)
     {
-        hasGameObjectSelected = true;
         GameObject* go = dynamic_cast<GameObject*>(selected.Get());
-        RenderObjectToOutlineRT(cmd, go, 0);
+        if (showSelectionOutline)
+        {
+            hasGameObjectSelected = true;
+            RenderObjectToOutlineRT(cmd, go, 0);
+        }
 
         // we don't want to highlight the same object twice
         if (go == hightedGameObject)
             hightedGameObject = nullptr;
     }
 
-    if (hightedGameObject)
+    if (showHoverHighlightOutline && hightedGameObject)
     {
         hasGameObjectSelected = true;
         RenderObjectToOutlineRT(cmd, hightedGameObject, 1);

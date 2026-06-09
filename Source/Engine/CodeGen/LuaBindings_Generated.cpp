@@ -3,6 +3,7 @@
 #include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"
 
 #include "Engine/Game/Input.hpp"
+#include "Engine/Runtime/Physics.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Boids.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
@@ -542,6 +543,33 @@ void BindGeneratedClasses(lua_State* L)
     lua_pushinteger(L, static_cast<int>(InputScancode::SDL_NUM_SCANCODES));
     lua_setfield(L, -2, "SDL_NUM_SCANCODES");
     lua_setfield(L, -2, "InputScancode");
+
+    LuaBinder<PhysicsHit> binder_PhysicsHit(L);
+    binder_PhysicsHit.Begin("PhysicsHit")
+        .BindMemFn("GetBody", &PhysicsHit::GetBody) // PhysicsBody*()
+        .BindProperty("hasHit", &PhysicsHit::hasHit) // bool
+        .BindProperty("point", &PhysicsHit::point) // glm::vec3
+        .BindProperty("normal", &PhysicsHit::normal) // glm::vec3
+        .BindProperty("distance", &PhysicsHit::distance) // float
+        .End();
+
+    LuaBinder<PhysicsOverlapResult> binder_PhysicsOverlapResult(L);
+    binder_PhysicsOverlapResult.Begin("PhysicsOverlapResult")
+        .BindMemFn("Count", &PhysicsOverlapResult::Count) // int()
+        .BindMemFn("GetBody", &PhysicsOverlapResult::GetBody) // PhysicsBody*(int index)
+        .End();
+
+    LuaBinder<Physics> binder_Physics(L);
+    binder_Physics.Begin("Physics")
+        .BindStaticFn("RayCast", &Physics::RayCast) // PhysicsHit(glm::vec3 & origin, glm::vec3 & direction, float maxDistance)
+        .BindStaticFn("SphereCast", &Physics::SphereCast) // PhysicsHit(glm::vec3 & origin, float radius, glm::vec3 & direction, float maxDistance)
+        .BindStaticFn("BoxCast", &Physics::BoxCast) // PhysicsHit(glm::vec3 & origin, glm::vec3 & halfExtents, glm::quat & rotation, glm::vec3 & direction, float maxDistance)
+        .BindStaticFn("CapsuleCast", &Physics::CapsuleCast) // PhysicsHit(glm::vec3 & origin, float halfHeight, float radius, glm::quat & rotation, glm::vec3 & direction, float maxDistance)
+        .BindStaticFn("CheckSphere", &Physics::CheckSphere) // bool(glm::vec3 & center, float radius)
+        .BindStaticFn("CheckBox", &Physics::CheckBox) // bool(glm::vec3 & center, glm::vec3 & halfExtents, glm::quat & rotation)
+        .BindStaticFn("OverlapSphere", &Physics::OverlapSphere) // PhysicsOverlapResult(glm::vec3 & center, float radius)
+        .BindStaticFn("OverlapBox", &Physics::OverlapBox) // PhysicsOverlapResult(glm::vec3 & center, glm::vec3 & halfExtents, glm::quat & rotation)
+        .End();
 
     LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
     binder_AnimationPlayer.Begin("AnimationPlayer")

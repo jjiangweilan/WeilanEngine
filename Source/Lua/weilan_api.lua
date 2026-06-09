@@ -297,6 +297,73 @@ function wl.Input.GetLookAroundY() end
 ---@return boolean
 function wl.Input.Jump() end
 
+---@class wl.PhysicsHit
+---@field hasHit boolean
+---@field point wl.Float3
+---@field normal wl.Float3
+---@field distance number
+wl.PhysicsHit = {}
+
+---@return wl.PhysicsBody*
+function wl.PhysicsHit:GetBody() end
+
+---@class wl.PhysicsOverlapResult
+wl.PhysicsOverlapResult = {}
+
+---@return number
+function wl.PhysicsOverlapResult:Count() end
+---@param index number
+---@return wl.PhysicsBody*
+function wl.PhysicsOverlapResult:GetBody(index) end
+
+---@class wl.Physics
+wl.Physics = {}
+
+---@param origin wl.vec3 &
+---@param direction wl.vec3 &
+---@param maxDistance number
+---@return wl.PhysicsHit
+function wl.Physics.RayCast(origin, direction, maxDistance) end
+---@param origin wl.vec3 &
+---@param radius number
+---@param direction wl.vec3 &
+---@param maxDistance number
+---@return wl.PhysicsHit
+function wl.Physics.SphereCast(origin, radius, direction, maxDistance) end
+---@param origin wl.vec3 &
+---@param halfExtents wl.vec3 &
+---@param rotation wl.quat &
+---@param direction wl.vec3 &
+---@param maxDistance number
+---@return wl.PhysicsHit
+function wl.Physics.BoxCast(origin, halfExtents, rotation, direction, maxDistance) end
+---@param origin wl.vec3 &
+---@param halfHeight number
+---@param radius number
+---@param rotation wl.quat &
+---@param direction wl.vec3 &
+---@param maxDistance number
+---@return wl.PhysicsHit
+function wl.Physics.CapsuleCast(origin, halfHeight, radius, rotation, direction, maxDistance) end
+---@param center wl.vec3 &
+---@param radius number
+---@return boolean
+function wl.Physics.CheckSphere(center, radius) end
+---@param center wl.vec3 &
+---@param halfExtents wl.vec3 &
+---@param rotation wl.quat &
+---@return boolean
+function wl.Physics.CheckBox(center, halfExtents, rotation) end
+---@param center wl.vec3 &
+---@param radius number
+---@return wl.PhysicsOverlapResult
+function wl.Physics.OverlapSphere(center, radius) end
+---@param center wl.vec3 &
+---@param halfExtents wl.vec3 &
+---@param rotation wl.quat &
+---@return wl.PhysicsOverlapResult
+function wl.Physics.OverlapBox(center, halfExtents, rotation) end
+
 ---@class wl.AnimationPlayer
 wl.AnimationPlayer = {}
 

@@ -56,6 +56,8 @@ private:
     bool isVisible = false;
     bool pixelZoomEnabled = false;
     bool showGizmos = true;
+    bool showSelectionOutline = true;
+    bool showHoverHighlightOutline = false;
     std::list<PendingDelete> pendingDeleteSceneImages;
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;
