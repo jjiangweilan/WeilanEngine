@@ -36,14 +36,18 @@ public:
     bool IsRootMotionEnabled() { return rootMotion; }
     float GetSpeed() const { return speed; }
     float GetBlendClipFactor() const { return blendClipFactor; }
+    bool IsPlaying() const { return isPlaying; }
+    float GetMainClipTimePassed() const { return mainClipTimePassed; }
+    float GetMainClipDurationInSeconds() const { return mainClipDurationInSeconds; }
+    float GetBlendClipTimePassed() const { return blendClipTimePassed; }
+    float GetBlendClipDurationInSeconds() const { return blendClipDurationInSeconds; }
     void SetAnimation(Animation* animation) { this->animation = animation; }
     Animation* GetAnimation() { return animation; }
     const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
     const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
     const glm::vec3& GetRootMotionDelta() const { return rootMotionDelta; }
-    [[LuaFn]]
-    void Play();
-    void Stop();
+    [[LuaFn]] void Play();
+    [[LuaFn]] void Stop();
     void TickAnimation();
 
 private:

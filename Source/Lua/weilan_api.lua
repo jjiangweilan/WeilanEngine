@@ -304,6 +304,7 @@ wl.AnimationPlayer = {}
 ---@return boolean
 function wl.AnimationPlayer:SetClip(animationName) end
 function wl.AnimationPlayer:Play() end
+function wl.AnimationPlayer:Stop() end
 
 ---@class wl.Boids
 wl.Boids = {}
@@ -407,8 +408,9 @@ wl.GameScript = {}
 ---@return wl.GameObject*
 function wl.GameScript:GetGameObject() end
 ---@param className string
+---@param parentClass any
 ---@return wl.GameScript
-function wl.GameScript.New(className) end
+function wl.GameScript.New(className, parentClass) end
 
 ---@class wl.Time
 wl.Time = {}
@@ -686,8 +688,9 @@ function wl.MeshRenderer:SetMaterial(material) end
 ---@class wl.ObjPtr
 wl.ObjPtr = {}
 
----@param typeName string
----@return wl.ObjPtr
+---@generic T
+---@param typeName `T`
+---@return T
 function wl.ObjPtr.New(typeName) end
 ---@param val wl.Object
 ---@return boolean

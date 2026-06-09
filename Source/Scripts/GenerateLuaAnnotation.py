@@ -35,6 +35,10 @@ def cpp_type_to_lua(cpp_type):
     if match:
         return f"wl.{match.group(1)}"
 
+    # Generic type variable (single uppercase letter like T, U)
+    if len(cpp_type) == 1 and cpp_type.isupper():
+        return cpp_type
+
     # Default to assuming it's a class we bound or 'any'
     # Remove namespace for simplicity if it looks like Engine::Object
     if "::" in cpp_type:
@@ -78,6 +82,10 @@ def parse_signature(sig_comment):
     
     ret_lua = cpp_type_to_lua(ret_cpp)
     
+    sig = {'ret': ret_lua}
+    if len(ret_cpp) == 1 and ret_cpp[0].isupper():
+        sig['generic'] = ret_cpp
+    
     params = []
     if params_content:
         # Split by comma, but careful about templates? For now assume simple types
@@ -95,7 +103,8 @@ def parse_signature(sig_comment):
                 # The generator produces "Type Name", but if name missing "Type arg"
                 pass 
                 
-    return {'ret': ret_lua, 'params': params}
+    sig['params'] = params
+    return sig
 
 def parse_file(file_path):
     if not os.path.exists(file_path):
@@ -239,13 +248,18 @@ def generate_lua(classes, enums):
             m_name = method['name']
             m_type = method['type']
             m_sig = method.get('sig', {})
+            generic_var = m_sig.get('generic')
+            
+            if generic_var:
+                lines.append(f"---@generic {generic_var}")
             
             # Param annotations
             params_str = "..."
             if m_sig and 'params' in m_sig:
                 p_list = []
                 for p in m_sig['params']:
-                    lines.append(f"---@param {p['name']} {p['type']}")
+                    param_type = f"`{generic_var}`" if generic_var and p['type'] == 'string' else p['type']
+                    lines.append(f"---@param {p['name']} {param_type}")
                     p_list.append(p['name'])
                 params_str = ", ".join(p_list)
             

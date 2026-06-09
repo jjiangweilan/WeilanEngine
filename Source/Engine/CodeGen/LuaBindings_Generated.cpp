@@ -547,6 +547,7 @@ void BindGeneratedClasses(lua_State* L)
     binder_AnimationPlayer.Begin("AnimationPlayer")
         .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
         .BindMemFn("Play", &AnimationPlayer::Play) // void()
+        .BindMemFn("Stop", &AnimationPlayer::Stop) // void()
         .End();
 
     LuaBinder<Boids> binder_Boids(L);

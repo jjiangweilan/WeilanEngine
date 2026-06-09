@@ -5,8 +5,6 @@ polygonMode : line
 depth :
     testEnable : True
     compareOp : greaterOrEqual
-    depthBias: 20
-    depthSlopBias: 20
 #endif
 
 struct Transform
@@ -41,7 +39,7 @@ VertexOutput VertexMain(VertexInput input)
     float3 positionWS = float3(mul(transform.model, float4(input.position, 1)).xyz);
     output.position = mul(perScene.camera.viewProjection, float4(positionWS, 1));
     // slightly push the line to the camera
-    output.position.z -= 0.0001;
+    output.position.z += 0.0001;
     output.color = input.color;
 
     return output;

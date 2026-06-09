@@ -39,8 +39,9 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript", false)
-            .BindStaticFn("New", [](lua_State* L){ // GameScript(string className)
-                    const char* className = luaL_checkstring(L, -1);
+            .BindStaticFn("New", [](lua_State* L){ // GameScript(string className, table? parentClass)
+                    const char* className = luaL_checkstring(L, 1);
+                    bool hasParent = lua_gettop(L) >= 2 && lua_istable(L, 2);
 
                     lua_newtable(L);
 
@@ -50,10 +51,20 @@ void LuaBindings::BindClasses(lua_State* L)
                     lua_pushvalue(L, -1);
                     lua_setfield(L, -2, "__index");
 
-                    lua_getglobal(L, "wl");
-                    lua_getfield(L, -1, "GameScript");
-                    lua_setmetatable(L, -3);
-                    lua_pop(L, 1); // pop wl table
+                    if (hasParent)
+                    {
+                        lua_newtable(L);
+                        lua_pushvalue(L, 2);
+                        lua_setfield(L, -2, "__index");
+                        lua_setmetatable(L, -2);
+                    }
+                    else
+                    {
+                        lua_getglobal(L, "wl");
+                        lua_getfield(L, -1, "GameScript");
+                        lua_setmetatable(L, -3);
+                        lua_pop(L, 1); // pop wl table
+                    }
                     return 1;
                     })
             .BindMemFn("GetGameObject", &GameScript::GetGameObject) // GameObject*()
@@ -193,7 +204,7 @@ void LuaBindings::BindClasses(lua_State* L)
         LuaBinder<ObjPtr<Object>> objPtr(L);
         objPtr
             .Begin("ObjPtr")
-            .BindStaticFn("New", [](lua_State* L) -> int { // ObjPtr(string typeName)
+            .BindStaticFn("New", [](lua_State* L) -> int { // T(string typeName)
                     const char* typeName = luaL_checkstring(L, -1);
                     luaL_getmetatable(L, typeName);
                     if (lua_istable(L, -1))
