@@ -34,6 +34,8 @@ public:
     void OnLoaded() override;
 
     void MoveGameObjectToRoot(GameObject* obj);
+    void MoveGameObjectToParentIndex(GameObject* obj, GameObject* parent, int index, bool keepWorldSpacePosition = true);
+    void MoveGameObjectToSiblingIndex(GameObject* obj, int index);
     void MoveRootGameObjectToIndex(GameObject* obj, int index);
     void RemoveGameObjectFromRoot(GameObject* obj);
     [[LuaFn]] ObjPtr<GameObject> SpawnPrefab(const ObjPtr<Prefab>& prefab);

@@ -6,6 +6,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
+#include <algorithm>
 
 namespace Editor
 {
@@ -28,6 +29,9 @@ static void BuildSceneTreeFlatList(Scene& scene, std::vector<GameObject*>& flatL
 
 static bool IsAncestorOf(GameObject* ancestor, GameObject* child)
 {
+    if (ancestor == nullptr || child == nullptr)
+        return false;
+
     GameObject* parent = child->GetParent();
     while (parent != ancestor && parent != nullptr)
     {
@@ -103,6 +107,30 @@ static std::vector<GameObject*> GetReparentUndoTargets(const std::vector<GameObj
     return targets;
 }
 
+static int GetSiblingIndex(Scene& scene, GameObject* gameObject)
+{
+    if (gameObject == nullptr)
+        return -1;
+
+    const auto& siblings = gameObject->GetParent() ? gameObject->GetParent()->GetChildren() : scene.GetRootObjects();
+    auto iter = std::find_if(siblings.begin(), siblings.end(), [gameObject](const ObjPtr<GameObject>& sibling)
+                             { return sibling.Get() == gameObject; });
+    return iter == siblings.end() ? -1 : static_cast<int>(std::distance(siblings.begin(), iter));
+}
+
+static void ReorderGameObjects(Scene& scene, const std::vector<GameObject*>& draggedGameObjects, GameObject* parent, int siblingIndex)
+{
+    int currentIndex = siblingIndex;
+    for (GameObject* gameObject : draggedGameObjects)
+    {
+        if (gameObject == nullptr || gameObject == parent || IsAncestorOf(gameObject, parent))
+            continue;
+
+        scene.MoveGameObjectToParentIndex(gameObject, parent, currentIndex);
+        ++currentIndex;
+    }
+}
+
 void GameEditor::ShowSceneTree(Scene& scene)
 {
     ENGINE_BEGIN_PROFILE("ShowSceneTree");
@@ -171,24 +199,6 @@ void GameEditor::ShowSceneTree(Scene& scene)
         }
     }
 
-    Object* moveToRoot = nullptr;
-    if (EditorGUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
-    {
-        std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(moveToRoot));
-        endEvents.Register([draggedGameObjects]()
-                           {
-            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
-                "Reparent GameObject",
-                GetReparentUndoTargets(draggedGameObjects),
-                [draggedGameObjects]()
-                {
-                    for (GameObject* gameObject : draggedGameObjects) {
-                        gameObject->SetParent(nullptr, true);
-                    }
-                }
-            ); });
-    }
-
     bool autoExpand = false;
     auto mainSelected = EditorState::GetMainSelectedObject();
     GameObject* selectedGameObject = dynamic_cast<GameObject*>(mainSelected);
@@ -213,6 +223,23 @@ void GameEditor::ShowSceneTree(Scene& scene)
     for (auto root : scene.GetRootObjects())
     {
         SceneTree(root, scene, lastSelectedGameObject.Get(), selects, autoExpand, lazyFlatList, flatList);
+    }
+
+    ImVec2 rootDropMin = ImGui::GetCursorScreenPos();
+    ImVec2 rootDropMax = ImVec2(windowMax.x, rootDropMin.y + ImGui::GetTextLineHeightWithSpacing());
+    Object* rootEndDropGO = nullptr;
+    if (EditorGUI::DragDropTarget(typeid(GameObject), rootEndDropGO, {rootDropMin, rootDropMax}))
+    {
+        std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(rootEndDropGO));
+        int targetIndex = static_cast<int>(scene.GetRootObjects().size());
+        endEvents.Register([&scene, draggedGameObjects, targetIndex]()
+                           {
+            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                "Reorder GameObject",
+                GetReparentUndoTargets(draggedGameObjects),
+                [&scene, draggedGameObjects, targetIndex]()
+                { ReorderGameObjects(scene, draggedGameObjects, nullptr, targetIndex); }
+            ); });
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -394,6 +421,8 @@ void GameEditor::SceneTree(
     if (hasPrefab)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{:p}", go->GetName(), (void*)go).c_str(), nodeFlags);
+    ImVec2 itemRectMin = ImGui::GetItemRectMin();
+    ImVec2 itemRectMax = ImGui::GetItemRectMax();
 
     bool itemHovered = ImGui::IsItemHovered();
     if (itemHovered)
@@ -407,8 +436,45 @@ void GameEditor::SceneTree(
     EditorGUI::DragDropSource(go->GetName().c_str(), go);
 
     bool acceptedGameObjectDrop = false;
-    Object* dropGO;
-    if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
+    Object* dropGO = nullptr;
+    float reorderDropZoneHeight = std::max(2.0f, (itemRectMax.y - itemRectMin.y) * 0.25f);
+    ImRect aboveDropRect(itemRectMin, ImVec2(itemRectMax.x, itemRectMin.y + reorderDropZoneHeight));
+    ImRect belowDropRect(ImVec2(itemRectMin.x, itemRectMax.y - reorderDropZoneHeight), itemRectMax);
+
+    auto registerReorderDrop = [&](int targetIndex)
+    {
+        std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(dropGO));
+        if (std::find(draggedGameObjects.begin(), draggedGameObjects.end(), go) != draggedGameObjects.end())
+            return;
+
+        GameObject* parent = go->GetParent();
+        endEvents.Register([&scene, draggedGameObjects, parent, targetIndex]()
+                           {
+            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                "Reorder GameObject",
+                GetReparentUndoTargets(draggedGameObjects),
+                [&scene, draggedGameObjects, parent, targetIndex]()
+                { ReorderGameObjects(scene, draggedGameObjects, parent, targetIndex); }
+            ); });
+    };
+
+    if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO, aboveDropRect))
+    {
+        acceptedGameObjectDrop = true;
+        int targetIndex = GetSiblingIndex(scene, go);
+        if (targetIndex >= 0)
+            registerReorderDrop(targetIndex);
+    }
+
+    if (!acceptedGameObjectDrop && EditorGUI::DragDropTarget(typeid(GameObject), dropGO, belowDropRect))
+    {
+        acceptedGameObjectDrop = true;
+        int targetIndex = GetSiblingIndex(scene, go);
+        if (targetIndex >= 0)
+            registerReorderDrop(targetIndex + 1);
+    }
+
+    if (!acceptedGameObjectDrop && EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
     {
         acceptedGameObjectDrop = true;
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(dropGO));

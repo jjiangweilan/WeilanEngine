@@ -1,6 +1,31 @@
 #include "Scene.hpp"
+#include <algorithm>
 #include <unordered_set>
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
+
+namespace
+{
+bool IsAncestorOf(GameObject* ancestor, GameObject* child)
+{
+    if (ancestor == nullptr || child == nullptr)
+        return false;
+
+    GameObject* parent = child->GetParent();
+    while (parent != ancestor && parent != nullptr)
+    {
+        parent = parent->GetParent();
+    }
+
+    return parent == ancestor;
+}
+
+int GetIndexInSiblings(GameObject* obj, const std::vector<ObjPtr<GameObject>>& siblings)
+{
+    auto iter = std::find_if(siblings.begin(), siblings.end(), [obj](const ObjPtr<GameObject>& current)
+                             { return current.Get() == obj; });
+    return iter == siblings.end() ? -1 : static_cast<int>(std::distance(siblings.begin(), iter));
+}
+} // namespace
 
 Scene::Scene() : Asset(), renderingScene(), bvhScene(this), physicsScene(this)
 {
@@ -88,6 +113,40 @@ void Scene::PrePhysicsTick()
 void Scene::MoveGameObjectToRoot(GameObject* obj)
 {
     roots.push_back(obj);
+}
+
+void Scene::MoveGameObjectToParentIndex(GameObject* obj, GameObject* parent, int index, bool keepWorldSpacePosition)
+{
+    if (obj == nullptr || obj == parent || IsAncestorOf(obj, parent))
+        return;
+
+    GameObject* oldParent = obj->GetParent();
+    if (oldParent == parent)
+    {
+        const auto& siblings = parent ? parent->GetChildren() : roots;
+        int oldIndex = GetIndexInSiblings(obj, siblings);
+        if (oldIndex >= 0 && oldIndex < index)
+            --index;
+    }
+    else
+    {
+        obj->SetParent(parent, keepWorldSpacePosition);
+        if (obj->GetParent() != parent)
+            return;
+    }
+
+    MoveGameObjectToSiblingIndex(obj, index);
+}
+
+void Scene::MoveGameObjectToSiblingIndex(GameObject* obj, int index)
+{
+    if (obj == nullptr)
+        return;
+
+    if (GameObject* parent = obj->GetParent())
+        parent->MoveChildToIndex(obj, index);
+    else
+        MoveRootGameObjectToIndex(obj, index);
 }
 
 void Scene::MoveRootGameObjectToIndex(GameObject* obj, int index)
