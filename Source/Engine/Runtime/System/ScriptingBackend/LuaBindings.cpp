@@ -3,6 +3,7 @@
 #include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/Component/Component.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/Component/Light.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
@@ -180,6 +181,13 @@ void LuaBindings::BindClasses(lua_State* L)
             .End();
 
         // Components
+
+        LuaBinder<Component> component(L);
+        component
+            .Begin("Component")
+            .BindMemFn("GetName", &Component::GetName) // string()
+            .BindMemFn("GetGameObject", &Component::GetGameObject) // GameObject*()
+            .End();
 
         LuaBinder<Camera> camera(L);
         camera

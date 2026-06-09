@@ -342,7 +342,7 @@ public:
                     else
                         return 0;
                 }
-                else // LuaEngineUserDataType::Value
+                else if constexpr (!std::is_abstract_v<T>) // LuaEngineUserDataType::Value
                 {
                     T* v = &(((LuaUserDataPack<T>*)mem)->val);
                     if constexpr (std::is_void_v<RawType>)
@@ -357,6 +357,10 @@ public:
 
                         return 1;
                     }
+                }
+                else
+                {
+                    return 0;
                 }
             };
         };
@@ -758,7 +762,7 @@ private:
                         else
                             return 0;
                     }
-                    else // LuaEngineUserDataType::Value
+                    else if constexpr (!std::is_abstract_v<T>) // LuaEngineUserDataType::Value
                     {
                         if constexpr (std::is_void_v<RawType>)
                         {
@@ -786,6 +790,10 @@ private:
 
                             return 1;
                         }
+                    }
+                    else
+                    {
+                        return 0;
                     }
                 }
                 catch (InvalidObjPtrError e)

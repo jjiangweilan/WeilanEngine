@@ -732,6 +732,15 @@ function wl.Float4x4:GetRow(m, i) end
 ---@return wl.Float4
 function wl.Float4x4:GetColumn(m, i) end
 
+---@class wl.Component
+wl.Component = {}
+
+---@return string
+function wl.Component:GetName() end
+
+---@return wl.GameObject*
+function wl.Component:GetGameObject() end
+
 ---@class wl.Camera
 wl.Camera = {}
 
