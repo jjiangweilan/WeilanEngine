@@ -2,6 +2,7 @@
 #include "Engine/Core/Time.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/MiddleLayer/DebugOptions.hpp"
+#include "Engine/Runtime/Physics.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <mutex>
@@ -155,6 +156,8 @@ void PhysicsScene::DebugDraw()
 
     physicsSystem.DrawBodies(drawSettings, JoltDebugRenderer::GetDebugRenderer().get(), &bodyDrawFilter);
     physicsSystem.DrawConstraints(JoltDebugRenderer::GetDebugRenderer().get());
+    Physics::DebugDrawQueries();
+    JoltDebugRenderer::FlushLines();
 }
 
 void PhysicsContactListener::OnContactAdded(

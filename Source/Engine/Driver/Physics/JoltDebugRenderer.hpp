@@ -4,6 +4,7 @@
 #include <Jolt/Renderer/DebugRenderer.h>
 // clang-format on
 //
+#include <vector>
 
 class Material;
 class Mesh;
@@ -49,8 +50,18 @@ public:
     static void Init();
     static void Deinit();
     static std::unique_ptr<JoltDebugRenderer>& GetDebugRenderer();
+    static void FlushLines();
 
 private:
+    struct DebugLine
+    {
+        JPH::RVec3 from;
+        JPH::RVec3 to;
+        JPH::Color color;
+    };
+
+    void FlushLineBatch();
+
     class BatchImpl : public JPH::RefTargetVirtual
     {
     public:
@@ -71,4 +82,6 @@ private:
     private:
         size_t refCount = 0;
     };
+
+    std::vector<DebugLine> lineBatch;
 };

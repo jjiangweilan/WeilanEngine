@@ -6,13 +6,17 @@
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 
+namespace
+{
+glm::vec4 ToGlmColor(JPH::ColorArg color)
+{
+    return {color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, color.a / 255.0f};
+}
+} // namespace
+
 void JoltDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
 {
-    Graphics::DrawLine(
-        {inFrom.GetX(), inFrom.GetY(), inFrom.GetZ()},
-        {inTo.GetX(), inTo.GetY(), inTo.GetZ()},
-        {1.0f, 1.0f, 1.0f, 0.8f}
-    );
+    lineBatch.push_back({inFrom, inTo, inColor});
 }
 
 void JoltDebugRenderer::DrawTriangle(
@@ -23,7 +27,7 @@ void JoltDebugRenderer::DrawTriangle(
         {inV1.GetX(), inV1.GetY(), inV1.GetZ()},
         {inV2.GetX(), inV2.GetY(), inV2.GetZ()},
         {inV3.GetX(), inV3.GetY(), inV3.GetZ()},
-        {1.0f, 1.0f, 1.0f, 0.8f}
+        ToGlmColor(inColor)
     );
 }
 
@@ -168,6 +172,31 @@ std::unique_ptr<JoltDebugRenderer>& JoltDebugRenderer::GetDebugRenderer()
 {
     static std::unique_ptr<JoltDebugRenderer> joltDebugRenderer;
     return joltDebugRenderer;
+}
+
+void JoltDebugRenderer::FlushLines()
+{
+    if (JoltDebugRenderer* renderer = GetDebugRenderer().get())
+        renderer->FlushLineBatch();
+}
+
+void JoltDebugRenderer::FlushLineBatch()
+{
+    std::vector<Graphics::Line> lines;
+    lines.reserve(lineBatch.size());
+    for (const DebugLine& line : lineBatch)
+    {
+        lines.push_back(
+            {
+                {line.from.GetX(), line.from.GetY(), line.from.GetZ()},
+                {line.to.GetX(), line.to.GetY(), line.to.GetZ()},
+                ToGlmColor(line.color)
+            }
+        );
+    }
+
+    Graphics::DrawLines(lines);
+    lineBatch.clear();
 }
 
 void JoltDebugRenderer::Init()

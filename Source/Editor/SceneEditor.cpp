@@ -506,6 +506,7 @@ bool SceneEditor::Tick()
         if (ImGui::BeginMenu("Debug Draw"))
         {
             ImGui::Checkbox("Physics", &GetDebugOptions().drawPhysicsColliders);
+            ImGui::Checkbox("Physics Queries", &GetDebugOptions().drawPhysicsQueries);
             ImGui::Checkbox("Game Object", &GetDebugOptions().drawGameObjectDebugDraw);
             ImGui::EndMenu();
         }

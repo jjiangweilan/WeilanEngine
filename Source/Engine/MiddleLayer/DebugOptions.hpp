@@ -3,6 +3,7 @@
 struct DebugOptions
 {
     bool drawPhysicsColliders = false;
+    bool drawPhysicsQueries = false;
     bool drawGameObjectDebugDraw = false;
 };
 

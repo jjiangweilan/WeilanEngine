@@ -40,4 +40,6 @@ public:
 
     [[LuaFn]] static PhysicsOverlapResult OverlapSphere(const float3& center, float radius);
     [[LuaFn]] static PhysicsOverlapResult OverlapBox(const float3& center, const float3& halfExtents, const glm::quat& rotation);
+
+    static void DebugDrawQueries();
 };
