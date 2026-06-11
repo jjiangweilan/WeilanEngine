@@ -4,6 +4,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include <filesystem>
 #include <functional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -47,7 +48,7 @@ private:
     // Change File Name //
     bool changeFileName = false;
     AssetPath changeFileNameTarget;
-    char fileNameCache[256];
+    std::string fileNameCache;
     std::filesystem::path fileNameExtCache;
     void ShowChangeFileNameField();
     void ActivateFileNameField(const AssetPath& path);

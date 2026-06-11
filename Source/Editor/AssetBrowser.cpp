@@ -965,12 +965,12 @@ void AssetBrowser::ShowChangeFileNameField()
         changeFileName = false;
         auto filename = changeFileNameTarget.ToFilesystemPath().filename().stem();
         auto ext = changeFileNameTarget.ToFilesystemPath().filename().extension();
-        strcpy(fileNameCache, filename.string().c_str());
+        fileNameCache = filename.string();
         fileNameExtCache = ext;
     }
     if (ImGui::BeginPopupModal("Change File Name"))
     {
-        ImGui::InputText("File Name: ", fileNameCache, 1024);
+        EditorGUI::InputText("File Name: ", fileNameCache);
 
         if (ImGui::Selectable("Confirm") || ImGui::IsKeyPressed(ImGuiKey_Enter))
         {

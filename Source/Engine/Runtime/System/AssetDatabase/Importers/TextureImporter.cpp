@@ -14,6 +14,8 @@
 #include <functional>
 #include <ktx.h>
 #include <ktxvulkan.h>
+#include <limits>
+#include <spdlog/spdlog.h>
 #include <string_view>
 
 namespace
@@ -51,6 +53,9 @@ void NewDeleter(uint8_t* p)
 using UniqueImagePtr = std::unique_ptr<uint8_t[], void (*)(uint8_t*)>;
 
 DEFINE_ASSET_IMPORTER(TextureImporter, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
+
+TextureImporter::TextureImporter() = default;
+TextureImporter::~TextureImporter() = default;
 
 const std::vector<std::type_index>& TextureImporter::GetImportTypes()
 {
@@ -122,167 +127,193 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         importedAssetPath = importDatabase->GetImportAssetPath(UUID().ToString()).replace_extension(AssetArtifacts::Extension(AssetArtifacts::Kind::Texture));
     }
 
-    std::fstream f;
-    f.open(absoluteAssetPath, std::ios::binary | std::ios_base::in);
-    if (f.good() && f.is_open())
+    std::ifstream f(absoluteAssetPath, std::ios::binary);
+    if (!f.good())
     {
-        if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
+        spdlog::error("failed to open texture source {}", absoluteAssetPath.string());
+        return {};
+    }
+
+    if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
+    {
+        std::error_code fileSizeError;
+        uintmax_t fileSize = std::filesystem::file_size(absoluteAssetPath, fileSizeError);
+        if (fileSizeError || fileSize == 0 || fileSize > static_cast<uintmax_t>(std::numeric_limits<int>::max()))
         {
-            size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
-            std::vector<char> fileData(fileSize);
-            f.read(fileData.data(), fileSize);
+            spdlog::error("invalid texture source size for {}", absoluteAssetPath.string());
+            return {};
+        }
 
-            uint8_t* data = (uint8_t*)fileData.data();
-            size_t byteSize = fileSize;
-            int width, height, channels, desiredChannels;
-            bool isCubemap = (convertToReflectanceCubemap || converToIrradianceCubemap || convertToCubemap);
-            int layers = isCubemap ? 6 : 1;
-            stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
-            if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
-                desiredChannels = 4;
-            // image information
-            bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
-            bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+        std::vector<char> fileData(static_cast<size_t>(fileSize));
+        f.read(fileData.data(), static_cast<std::streamsize>(fileSize));
+        if (!f)
+        {
+            spdlog::error("failed to read texture source {}", absoluteAssetPath.string());
+            return {};
+        }
 
-            if (!option.contains("linearFormat"))
-            {
-                linearFormat = IsLinearFormat(is16Bit, isHDR);
-            }
-            else
-                linearFormat = option.value("linearFormat", true);
+        uint8_t* data = reinterpret_cast<uint8_t*>(fileData.data());
+        int byteSize = static_cast<int>(fileSize);
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        int desiredChannels = 0;
+        bool isCubemap = (convertToReflectanceCubemap || converToIrradianceCubemap || convertToCubemap);
+        int layers = isCubemap ? 6 : 1;
+        if (stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels) == 0 || width <= 0 ||
+            height <= 0 || desiredChannels <= 0 || desiredChannels > 4)
+        {
+            spdlog::error(
+                "failed to inspect texture source {}: {}",
+                absoluteAssetPath.string(),
+                stbi_failure_reason() ? stbi_failure_reason() : "unknown stb error"
+            );
+            return {};
+        }
 
-            int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
+        if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
+            desiredChannels = 4;
 
-            UniqueImagePtr loaded(nullptr, StbiDeleter);
-            if (isHDR)
-            {
-                loaded.reset(
-                    (uint8_t*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels)
-                );
-            }
-            else if (is16Bit)
-            {
-                loaded.reset((uint8_t*)stbi_load_16_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels)
-                );
-            }
-            else
-            {
-                loaded.reset(stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels));
-            }
+        bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
+        bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
 
-            if (converToIrradianceCubemap)
-            {
-                uint8_t* output;
-                int cubemapSize = 1024;
-                Libs::Image::GenerateIrradianceCubemap((float*)loaded.get(), width, height, cubemapSize, output);
-                loaded = UniqueImagePtr(output, NewDeleter);
-                width = cubemapSize;
-                height = cubemapSize;
-            }
+        if (!option.contains("linearFormat"))
+        {
+            linearFormat = IsLinearFormat(is16Bit, isHDR);
+        }
+        else
+            linearFormat = option.value("linearFormat", true);
 
-            if (convertToCubemap)
-            {
-                uint8_t* output;
-                int cubemapSize = 1024;
-                Libs::Image::ConverToCubemap((float*)loaded.get(), width, height, cubemapSize, desiredChannels, output);
-                loaded = UniqueImagePtr(output, NewDeleter);
-                width = cubemapSize;
-                height = cubemapSize;
-            }
+        int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 
-            if (convertToReflectanceCubemap)
-            {
-                uint8_t* output;
-                int cubemapSize = 1024;
-                Libs::Image::GenerateReflectanceCubemap((float*)loaded.get(), width, height, cubemapSize, output, mipLevels);
-                loaded = UniqueImagePtr(output, NewDeleter);
-                width = cubemapSize;
-                height = cubemapSize;
-            }
-
-            if (generateMipmap)
-            {
-                size_t mippedDataByteSize = 0;
-                uint8_t* mippedData = nullptr;
-                if (isHDR)
-                {
-                    Libs::Image::GenerateBoxFilteredMipmap<float>(
-                        loaded.get(),
-                        width,
-                        height,
-                        layers,
-                        mipLevels,
-                        desiredChannels,
-                        mippedData,
-                        mippedDataByteSize
-                    );
-                    loaded = UniqueImagePtr(mippedData, NewDeleter);
-                }
-                else if (is16Bit)
-                {
-                    Libs::Image::GenerateBoxFilteredMipmap<uint16_t>(
-                        loaded.get(),
-                        width,
-                        height,
-                        layers,
-                        mipLevels,
-                        desiredChannels,
-                        mippedData,
-                        mippedDataByteSize
-                    );
-                    loaded = UniqueImagePtr(mippedData, NewDeleter);
-                }
-                else
-                {
-                    Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
-                        loaded.get(),
-                        width,
-                        height,
-                        layers,
-                        mipLevels,
-                        desiredChannels,
-                        mippedData,
-                        mippedDataByteSize
-                    );
-                    loaded = UniqueImagePtr(mippedData, NewDeleter);
-                }
-            }
-
-            auto filename = absoluteAssetPath.filename().string();
-            int bits = 8;
-            if (isHDR)
-                bits = 32;
-            if (is16Bit)
-                bits = 16;
-
-            Gfx::GfxFormat format = Gfx::GetGfxFormat(bits, desiredChannels, linearFormat);
-
-            //
-            // note: this "converToCube ? 1 : layers" prevents creating array of cubeMaps, but ktx separate the
-            // concept of face and layer, that's why I need to manually convert layer to face
-            Exporters::KtxExporter::Export(
-                (importDatabase->GetImportDatabaseRootPath() / std::filesystem::path(importedAssetPath.string())).string().c_str(),
-                loaded.get(),
-                width,
-                height,
-                1,
-                2,
-                isCubemap ? 1 : layers,
-                mipLevels,
-                false,
-                isCubemap,
-                format,
-                true
+        UniqueImagePtr loaded(nullptr, StbiDeleter);
+        if (isHDR)
+        {
+            loaded.reset(
+                reinterpret_cast<uint8_t*>(
+                    stbi_loadf_from_memory(data, byteSize, &width, &height, &channels, desiredChannels)
+                )
+            );
+        }
+        else if (is16Bit)
+        {
+            loaded.reset(
+                reinterpret_cast<uint8_t*>(
+                    stbi_load_16_from_memory(data, byteSize, &width, &height, &channels, desiredChannels)
+                )
             );
         }
         else
         {
-            std::ofstream outf;
-            outf.open(importDatabase->GetImportDatabaseRootPath() / importedAssetPath, std::ios::trunc | std::ios::out | std::ios::binary);
-            if (outf.good() && f.is_open())
+            loaded.reset(stbi_load_from_memory(data, byteSize, &width, &height, &channels, desiredChannels));
+        }
+
+        if (loaded == nullptr)
+        {
+            spdlog::error(
+                "failed to decode texture source {}: {}",
+                absoluteAssetPath.string(),
+                stbi_failure_reason() ? stbi_failure_reason() : "unknown stb error"
+            );
+            return {};
+        }
+
+        if (converToIrradianceCubemap)
+        {
+            uint8_t* output;
+            int cubemapSize = 1024;
+            Libs::Image::GenerateIrradianceCubemap((float*)loaded.get(), width, height, cubemapSize, output);
+            loaded = UniqueImagePtr(output, NewDeleter);
+            width = cubemapSize;
+            height = cubemapSize;
+        }
+
+        if (convertToCubemap)
+        {
+            uint8_t* output;
+            int cubemapSize = 1024;
+            Libs::Image::ConverToCubemap((float*)loaded.get(), width, height, cubemapSize, desiredChannels, output);
+            loaded = UniqueImagePtr(output, NewDeleter);
+            width = cubemapSize;
+            height = cubemapSize;
+        }
+
+        if (convertToReflectanceCubemap)
+        {
+            uint8_t* output;
+            int cubemapSize = 1024;
+            Libs::Image::GenerateReflectanceCubemap((float*)loaded.get(), width, height, cubemapSize, output, mipLevels);
+            loaded = UniqueImagePtr(output, NewDeleter);
+            width = cubemapSize;
+            height = cubemapSize;
+        }
+
+        if (generateMipmap)
+        {
+            size_t mippedDataByteSize = 0;
+            uint8_t* mippedData = nullptr;
+            if (isHDR)
             {
-                outf << f.rdbuf();
+                Libs::Image::GenerateBoxFilteredMipmap<float>(
+                    loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
+                );
             }
+            else if (is16Bit)
+            {
+                Libs::Image::GenerateBoxFilteredMipmap<uint16_t>(
+                    loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
+                );
+            }
+            else
+            {
+                Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
+                    loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
+                );
+            }
+            loaded = UniqueImagePtr(mippedData, NewDeleter);
+        }
+
+        int bits = 8;
+        if (isHDR)
+            bits = 32;
+        if (is16Bit)
+            bits = 16;
+
+        Gfx::GfxFormat format = Gfx::GetGfxFormat(bits, desiredChannels, linearFormat);
+
+        Exporters::KtxExporter::Export(
+            (importDatabase->GetImportDatabaseRootPath() / std::filesystem::path(importedAssetPath.string()))
+                .string()
+                .c_str(),
+            loaded.get(),
+            width,
+            height,
+            1,
+            2,
+            isCubemap ? 1 : layers,
+            mipLevels,
+            false,
+            isCubemap,
+            format,
+            true
+        );
+    }
+    else
+    {
+        std::ofstream outf(
+            importDatabase->GetImportDatabaseRootPath() / importedAssetPath,
+            std::ios::trunc | std::ios::out | std::ios::binary
+        );
+        if (!outf.good())
+        {
+            spdlog::error("failed to create imported texture artifact {}", importedAssetPath.string());
+            return {};
+        }
+        outf << f.rdbuf();
+        if (!outf.good())
+        {
+            spdlog::error("failed to copy texture artifact {}", importedAssetPath.string());
+            return {};
         }
     }
     option["linearFormat"] = linearFormat;

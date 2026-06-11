@@ -2,8 +2,13 @@
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Core/Time.hpp"
+#include <algorithm>
 
 DEFINE_COMPONENT(ParticleSystem, "78E33F89-76E6-4B90-831F-490EB6C9F8D1")
+
+ParticleSystem::ParticleSystem() : ParticleSystem(nullptr) {}
+ParticleSystem::ParticleSystem(GameObject* gameObject) : Component(gameObject) {}
+ParticleSystem::~ParticleSystem() = default;
 
 void ParticleSystem::OnAwake()
 {
@@ -12,6 +17,7 @@ void ParticleSystem::OnAwake()
         particleMesh = EngineInternalResources::GetModels().sphere;
     }
 
+    particleParameters = std::make_unique<Material>();
     particleParameters->SetShader(ShaderLibrary::GetShader(Shaders::Particle));
 
     UpdatePositionBuffer();
@@ -53,17 +59,23 @@ void ParticleSystem::Deserialize(Serializer* ser)
 
 void ParticleSystem::SetParticleCount(int count)
 {
-    this->particleCount = count;
+    particleCount = std::max(count, 1);
+
+    if (particleWorldMatrixBuffer == nullptr)
+    {
+        ResizeParticleStorage();
+        return;
+    }
 
     if (particleWorldMatrixBuffer->GetSize() < GetParticleBufferByteSize(particleCount))
-    {
         UpdatePositionBuffer();
-    }
+    else
+        ResizeParticleStorage();
 }
 
 size_t ParticleSystem::GetParticleBufferByteSize(int particleCount)
 {
-    return sizeof(GPUParticle) * particleCount;
+    return sizeof(GPUParticle) * static_cast<size_t>(particleCount);
 }
 
 void ParticleSystem::Tick()
@@ -137,9 +149,16 @@ void ParticleSystem::UpdatePositionBuffer()
         GetGfxDriver()->CreateBuffer(GetParticleBufferByteSize(particleCount), Gfx::BufferUsage::Storage, false, false);
 
     particleParameters->SetBuffer("worldMatrices", particleWorldMatrixBuffer.get());
+    ResizeParticleStorage();
+}
+
+void ParticleSystem::ResizeParticleStorage()
+{
+    size_t previousSize = particles.size();
     particles.resize(particleCount);
-    for (auto& p : particles)
+    for (size_t i = previousSize; i < particles.size(); ++i)
     {
+        Particle& p = particles[i];
         p.system = this;
         p.aliveFrames = -1;
     }

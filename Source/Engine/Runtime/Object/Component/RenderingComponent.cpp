@@ -4,10 +4,10 @@
 
 void RenderingComponentBase::AddToRenderingScene(uint32_t objectTypeID, RenderingObjectBase* self)
 {
-    renderingObjectID = GetScene()->GetRenderingScene().AddRenderingObject(objectTypeID, self);
+    GetScene()->GetRenderingScene().AddRenderingObject(objectTypeID, self);
 }
 
-void RenderingComponentBase::RemoveFromRenderingScene(uint32_t objectTypeID)
+void RenderingComponentBase::RemoveFromRenderingScene(uint32_t objectTypeID, RenderingObjectBase* self)
 {
-    GetScene()->GetRenderingScene().RemoveRenderingObject(objectTypeID, renderingObjectID);
+    GetScene()->GetRenderingScene().RemoveRenderingObject(objectTypeID, self);
 }

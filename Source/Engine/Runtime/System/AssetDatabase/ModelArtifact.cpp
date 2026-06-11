@@ -4,6 +4,7 @@
 #include <cstring>
 #include <fmt/format.h>
 #include <fstream>
+#include <limits>
 
 namespace ModelArtifact
 {
@@ -61,22 +62,83 @@ bool ReadBlob(const PodVector<uint8_t>& data, uint32_t expectedMagic, nlohmann::
         return false;
     }
 
-    const BlobHeader* blobHeader = reinterpret_cast<const BlobHeader*>(data.data());
-    if (blobHeader->magic != expectedMagic || blobHeader->version != BlobVersion)
+    BlobHeader blobHeader;
+    std::memcpy(&blobHeader, data.data(), sizeof(blobHeader));
+    if (blobHeader.magic != expectedMagic || blobHeader.version != BlobVersion)
     {
         return false;
     }
 
-    size_t headerOffset = sizeof(BlobHeader);
-    size_t payloadOffset = headerOffset + static_cast<size_t>(blobHeader->jsonSize);
-    if (payloadOffset > data.size())
+    constexpr size_t headerOffset = sizeof(BlobHeader);
+    if (blobHeader.jsonSize > data.size() - headerOffset)
     {
         return false;
     }
 
-    header = nlohmann::json::parse(data.data() + headerOffset, data.data() + payloadOffset);
+    size_t payloadOffset = headerOffset + static_cast<size_t>(blobHeader.jsonSize);
+    header = nlohmann::json::parse(data.data() + headerOffset, data.data() + payloadOffset, nullptr, false);
+    if (header.is_discarded() || !header.is_object())
+    {
+        return false;
+    }
+
     payload = data.data() + payloadOffset;
     payloadSize = data.size() - payloadOffset;
+    return true;
+}
+
+bool TryMultiply(size_t left, size_t right, size_t& result)
+{
+    if (left != 0 && right > std::numeric_limits<size_t>::max() / left)
+    {
+        return false;
+    }
+
+    result = left * right;
+    return true;
+}
+
+const uint8_t* ReadRange(const uint8_t* payload, size_t payloadSize, size_t offset, size_t size)
+{
+    if (offset > payloadSize || size > payloadSize - offset)
+    {
+        return nullptr;
+    }
+    return payload + offset;
+}
+
+bool ReadSize(const nlohmann::json& object, const char* key, size_t& value)
+{
+    auto iter = object.find(key);
+    if (iter == object.end())
+    {
+        return false;
+    }
+
+    uint64_t parsed = 0;
+    if (iter->is_number_unsigned())
+    {
+        parsed = iter->get<uint64_t>();
+    }
+    else if (iter->is_number_integer())
+    {
+        int64_t signedValue = iter->get<int64_t>();
+        if (signedValue < 0)
+        {
+            return false;
+        }
+        parsed = static_cast<uint64_t>(signedValue);
+    }
+    else
+    {
+        return false;
+    }
+
+    if (parsed > std::numeric_limits<size_t>::max())
+    {
+        return false;
+    }
+    value = static_cast<size_t>(parsed);
     return true;
 }
 
@@ -90,20 +152,21 @@ std::vector<float> Mat4ToVector(const glm::mat4& m)
     };
 }
 
-glm::mat4 VectorToMat4(const nlohmann::json& values)
+bool VectorToMat4(const nlohmann::json& values, glm::mat4& matrix)
 {
-    glm::mat4 m(1.0f);
-    if (values.is_array() && values.size() >= 16)
+    if (!values.is_array() || values.size() != 16)
     {
-        for (int c = 0; c < 4; ++c)
+        return false;
+    }
+
+    for (int c = 0; c < 4; ++c)
+    {
+        for (int r = 0; r < 4; ++r)
         {
-            for (int r = 0; r < 4; ++r)
-            {
-                m[c][r] = values[c * 4 + r].get<float>();
-            }
+            matrix[c][r] = values[c * 4 + r].get<float>();
         }
     }
-    return m;
+    return true;
 }
 
 struct PackedVec3Key
@@ -124,14 +187,14 @@ struct PackedQuatKey
 };
 
 template <class KeyType>
-const KeyType* ReadKeyRange(const uint8_t* payload, size_t payloadSize, size_t offset, size_t count)
+const uint8_t* ReadKeyRange(const uint8_t* payload, size_t payloadSize, size_t offset, size_t count)
 {
-    size_t size = count * sizeof(KeyType);
-    if (offset + size > payloadSize)
+    size_t size = 0;
+    if (!TryMultiply(count, sizeof(KeyType), size))
     {
         return nullptr;
     }
-    return reinterpret_cast<const KeyType*>(payload + offset);
+    return ReadRange(payload, payloadSize, offset, size);
 }
 } // namespace
 
@@ -199,73 +262,168 @@ std::unique_ptr<Mesh> ReadMeshBlob(const PodVector<uint8_t>& data)
         return nullptr;
     }
 
-    auto readRange = [&](size_t offset, size_t size) -> const uint8_t*
+    try
     {
-        if (offset + size > payloadSize)
+        size_t vertexCount = 0;
+        size_t indexCount = 0;
+        size_t positionsOffset = 0;
+        size_t positionsSize = 0;
+        size_t attributesOffset = 0;
+        size_t attributesSize = 0;
+        size_t indicesOffset = 0;
+        size_t indicesSize = 0;
+        if (!ReadSize(header, "vertexCount", vertexCount) ||
+            !ReadSize(header, "indexCount", indexCount) ||
+            !ReadSize(header, "positionsOffset", positionsOffset) ||
+            !ReadSize(header, "positionsSize", positionsSize) ||
+            !ReadSize(header, "attributesOffset", attributesOffset) ||
+            !ReadSize(header, "attributesSize", attributesSize) ||
+            !ReadSize(header, "indicesOffset", indicesOffset) ||
+            !ReadSize(header, "indicesSize", indicesSize))
         {
             return nullptr;
         }
-        return payload + offset;
-    };
 
-    size_t vertexCount = header.value("vertexCount", 0);
-    size_t indexCount = header.value("indexCount", 0);
-    size_t positionsSize = header.value("positionsSize", 0);
-    size_t attributesSize = header.value("attributesSize", 0);
-    size_t indicesSize = header.value("indicesSize", 0);
+        size_t expectedPositionsSize = 0;
+        size_t expectedIndicesSize = 0;
+        if (!TryMultiply(vertexCount, sizeof(glm::vec3), expectedPositionsSize) ||
+            !TryMultiply(indexCount, sizeof(uint32_t), expectedIndicesSize) ||
+            positionsSize != expectedPositionsSize ||
+            indicesSize != expectedIndicesSize)
+        {
+            return nullptr;
+        }
 
-    const uint8_t* positionBytes = readRange(header.value("positionsOffset", 0), positionsSize);
-    const uint8_t* attributeBytes = readRange(header.value("attributesOffset", 0), attributesSize);
-    const uint8_t* indexBytes = readRange(header.value("indicesOffset", 0), indicesSize);
-    if (positionBytes == nullptr || attributeBytes == nullptr || indexBytes == nullptr)
+        nlohmann::json attributeDescriptions = header.value("attributes", nlohmann::json::array());
+        if (!attributeDescriptions.is_array())
+        {
+            return nullptr;
+        }
+
+        size_t attributeStride = 0;
+        std::vector<VertexAttributes::Attribute> parsedAttributes;
+        for (const auto& attribute : attributeDescriptions)
+        {
+            size_t attributeSize = 0;
+            if (!attribute.is_object() || !ReadSize(attribute, "size", attributeSize) ||
+                attributeSize == 0 || attributeSize > std::numeric_limits<int>::max() ||
+                attributeStride > std::numeric_limits<size_t>::max() - attributeSize)
+            {
+                return nullptr;
+            }
+
+            const std::string name = attribute.at("name").get<std::string>();
+            const int64_t semantic = attribute.at("semantic").get<int64_t>();
+            const int64_t semanticIndex = attribute.at("semanticIndex").get<int64_t>();
+            if (semantic < 0 || semantic > static_cast<int64_t>(VertexAttributeSemantics::Bone) ||
+                semanticIndex < 0 || semanticIndex > std::numeric_limits<int>::max())
+            {
+                return nullptr;
+            }
+
+            parsedAttributes.push_back({
+                name,
+                static_cast<VertexAttributeSemantics>(semantic),
+                static_cast<int>(semanticIndex),
+                static_cast<int>(attributeSize),
+            });
+            attributeStride += attributeSize;
+        }
+
+        size_t expectedAttributesSize = 0;
+        if (!TryMultiply(vertexCount, attributeStride, expectedAttributesSize) ||
+            attributesSize != expectedAttributesSize)
+        {
+            return nullptr;
+        }
+
+        const uint8_t* positionBytes = ReadRange(payload, payloadSize, positionsOffset, positionsSize);
+        const uint8_t* attributeBytes = ReadRange(payload, payloadSize, attributesOffset, attributesSize);
+        const uint8_t* indexBytes = ReadRange(payload, payloadSize, indicesOffset, indicesSize);
+        if (positionBytes == nullptr || attributeBytes == nullptr || indexBytes == nullptr)
+        {
+            return nullptr;
+        }
+
+        auto aabbIter = header.find("aabb");
+        if (aabbIter == header.end() || !aabbIter->is_object())
+        {
+            return nullptr;
+        }
+        auto aabbMin = aabbIter->find("min");
+        auto aabbMax = aabbIter->find("max");
+        if (aabbMin == aabbIter->end() || aabbMax == aabbIter->end() ||
+            !aabbMin->is_array() || !aabbMax->is_array() ||
+            aabbMin->size() != 3 || aabbMax->size() != 3)
+        {
+            return nullptr;
+        }
+
+        std::vector<glm::vec3> positions(vertexCount);
+        if (positionsSize != 0)
+        {
+            std::memcpy(positions.data(), positionBytes, positionsSize);
+        }
+        std::vector<uint8_t> attributeData(attributesSize);
+        if (attributesSize != 0)
+        {
+            std::memcpy(attributeData.data(), attributeBytes, attributesSize);
+        }
+        std::vector<uint32_t> indices(indexCount);
+        if (indicesSize != 0)
+        {
+            std::memcpy(indices.data(), indexBytes, indicesSize);
+        }
+
+        VertexAttributes attributes;
+        for (const auto& attribute : parsedAttributes)
+        {
+            attributes.AddAttribute(attribute.name.c_str(), attribute.semanticName, attribute.semanticIndex, attribute.size);
+        }
+        attributes.SetData(std::move(attributeData));
+
+        Submesh submesh;
+        submesh.SetPositions(std::move(positions));
+        submesh.SetVertexAttribute(std::move(attributes));
+        submesh.SetIndices(std::move(indices));
+        AABB aabb;
+        aabb.min = {aabbMin->at(0).get<float>(), aabbMin->at(1).get<float>(), aabbMin->at(2).get<float>()};
+        aabb.max = {aabbMax->at(0).get<float>(), aabbMax->at(1).get<float>(), aabbMax->at(2).get<float>()};
+        submesh.SetAABB(aabb);
+
+        Skeleton skeleton;
+        auto skeletonIter = header.find("skeleton");
+        if (skeletonIter != header.end())
+        {
+            if (!skeletonIter->is_array())
+            {
+                return nullptr;
+            }
+            for (const auto& bone : *skeletonIter)
+            {
+                glm::mat4 offsetMatrix(1.0f);
+                if (!bone.is_object() || !VectorToMat4(bone.at("offsetMatrix"), offsetMatrix))
+                {
+                    return nullptr;
+                }
+                skeleton.push_back({bone.at("name").get<std::string>(), offsetMatrix});
+            }
+        }
+
+        submesh.Apply();
+
+        auto mesh = std::make_unique<Mesh>();
+        mesh->SetName(header.value("name", "Mesh"));
+        std::vector<Submesh> submeshes;
+        submeshes.push_back(std::move(submesh));
+        mesh->SetSubmeshes(std::move(submeshes));
+        mesh->SetSkeleton(std::move(skeleton));
+        return mesh;
+    }
+    catch (const nlohmann::json::exception&)
     {
         return nullptr;
     }
-
-    std::vector<glm::vec3> positions(vertexCount);
-    std::memcpy(positions.data(), positionBytes, positionsSize);
-    std::vector<uint8_t> attributeData(attributesSize);
-    std::memcpy(attributeData.data(), attributeBytes, attributesSize);
-    std::vector<uint32_t> indices(indexCount);
-    std::memcpy(indices.data(), indexBytes, indicesSize);
-
-    VertexAttributes attributes;
-    for (const auto& attribute : header.value("attributes", nlohmann::json::array()))
-    {
-        attributes.AddAttribute(
-            attribute.value("name", "").c_str(),
-            static_cast<VertexAttributeSemantics>(attribute.value("semantic", 0)),
-            attribute.value("semanticIndex", 0),
-            attribute.value("size", 0)
-        );
-    }
-    attributes.SetData(std::move(attributeData));
-
-    Submesh submesh;
-    submesh.SetPositions(std::move(positions));
-    submesh.SetVertexAttribute(std::move(attributes));
-    submesh.SetIndices(std::move(indices));
-    AABB aabb;
-    auto aabbMin = header["aabb"].value("min", nlohmann::json::array({0, 0, 0}));
-    auto aabbMax = header["aabb"].value("max", nlohmann::json::array({0, 0, 0}));
-    aabb.min = {aabbMin[0].get<float>(), aabbMin[1].get<float>(), aabbMin[2].get<float>()};
-    aabb.max = {aabbMax[0].get<float>(), aabbMax[1].get<float>(), aabbMax[2].get<float>()};
-    submesh.SetAABB(aabb);
-    submesh.Apply();
-
-    auto mesh = std::make_unique<Mesh>();
-    mesh->SetName(header.value("name", "Mesh"));
-    std::vector<Submesh> submeshes;
-    submeshes.push_back(std::move(submesh));
-    mesh->SetSubmeshes(std::move(submeshes));
-
-    Skeleton skeleton;
-    for (const auto& bone : header.value("skeleton", nlohmann::json::array()))
-    {
-        skeleton.push_back({bone.value("name", ""), VectorToMat4(bone["offsetMatrix"])});
-    }
-    mesh->SetSkeleton(std::move(skeleton));
-    return mesh;
 }
 
 bool WriteAnimationBlob(const std::filesystem::path& path, const Animation& animation)
@@ -325,57 +483,93 @@ std::unique_ptr<Animation> ReadAnimationBlob(const PodVector<uint8_t>& data)
         return nullptr;
     }
 
-    auto animation = std::make_unique<Animation>();
-    for (const auto& clipJson : header.value("clips", nlohmann::json::array()))
+    try
     {
-        std::vector<Animation::Channel> channels;
-        for (const auto& channelJson : clipJson.value("channels", nlohmann::json::array()))
+        nlohmann::json clips = header.value("clips", nlohmann::json::array());
+        if (!clips.is_array())
         {
-            Animation::Channel channel;
-            channel.nodeName = channelJson.value("nodeName", "");
-
-            size_t positionsCount = channelJson.value("positionsCount", 0);
-            auto positions = ReadKeyRange<PackedVec3Key>(payload, payloadSize, channelJson.value("positionsOffset", 0), positionsCount);
-            if (positions != nullptr)
-            {
-                for (size_t i = 0; i < positionsCount; ++i)
-                {
-                    channel.positions.push_back({positions[i].time, {positions[i].x, positions[i].y, positions[i].z}});
-                }
-            }
-
-            size_t rotationsCount = channelJson.value("rotationsCount", 0);
-            auto rotations = ReadKeyRange<PackedQuatKey>(payload, payloadSize, channelJson.value("rotationsOffset", 0), rotationsCount);
-            if (rotations != nullptr)
-            {
-                for (size_t i = 0; i < rotationsCount; ++i)
-                {
-                    channel.rotations.push_back({rotations[i].time, {rotations[i].w, rotations[i].x, rotations[i].y, rotations[i].z}});
-                }
-            }
-
-            size_t scalingsCount = channelJson.value("scalingsCount", 0);
-            auto scalings = ReadKeyRange<PackedVec3Key>(payload, payloadSize, channelJson.value("scalingsOffset", 0), scalingsCount);
-            if (scalings != nullptr)
-            {
-                for (size_t i = 0; i < scalingsCount; ++i)
-                {
-                    channel.scalings.push_back({scalings[i].time, {scalings[i].x, scalings[i].y, scalings[i].z}});
-                }
-            }
-
-            channels.push_back(std::move(channel));
+            return nullptr;
         }
 
-        animation->AddClip(
-            clipJson.value("name", "animation"),
-            clipJson.value("tickPerSecond", 0.0f),
-            clipJson.value("duration", 0.0f),
-            channels
-        );
-    }
+        auto animation = std::make_unique<Animation>();
+        for (const auto& clipJson : clips)
+        {
+            if (!clipJson.is_object())
+            {
+                return nullptr;
+            }
+            nlohmann::json channelDescriptions = clipJson.value("channels", nlohmann::json::array());
+            if (!channelDescriptions.is_array())
+            {
+                return nullptr;
+            }
 
-    return animation;
+            std::vector<Animation::Channel> channels;
+            for (const auto& channelJson : channelDescriptions)
+            {
+                size_t positionsOffset = 0;
+                size_t positionsCount = 0;
+                size_t rotationsOffset = 0;
+                size_t rotationsCount = 0;
+                size_t scalingsOffset = 0;
+                size_t scalingsCount = 0;
+                if (!channelJson.is_object() ||
+                    !ReadSize(channelJson, "positionsOffset", positionsOffset) ||
+                    !ReadSize(channelJson, "positionsCount", positionsCount) ||
+                    !ReadSize(channelJson, "rotationsOffset", rotationsOffset) ||
+                    !ReadSize(channelJson, "rotationsCount", rotationsCount) ||
+                    !ReadSize(channelJson, "scalingsOffset", scalingsOffset) ||
+                    !ReadSize(channelJson, "scalingsCount", scalingsCount))
+                {
+                    return nullptr;
+                }
+
+                const uint8_t* positions = ReadKeyRange<PackedVec3Key>(payload, payloadSize, positionsOffset, positionsCount);
+                const uint8_t* rotations = ReadKeyRange<PackedQuatKey>(payload, payloadSize, rotationsOffset, rotationsCount);
+                const uint8_t* scalings = ReadKeyRange<PackedVec3Key>(payload, payloadSize, scalingsOffset, scalingsCount);
+                if (positions == nullptr || rotations == nullptr || scalings == nullptr)
+                {
+                    return nullptr;
+                }
+
+                Animation::Channel channel;
+                channel.nodeName = channelJson.at("nodeName").get<std::string>();
+                for (size_t i = 0; i < positionsCount; ++i)
+                {
+                    PackedVec3Key key;
+                    std::memcpy(&key, positions + i * sizeof(key), sizeof(key));
+                    channel.positions.push_back({key.time, {key.x, key.y, key.z}});
+                }
+                for (size_t i = 0; i < rotationsCount; ++i)
+                {
+                    PackedQuatKey key;
+                    std::memcpy(&key, rotations + i * sizeof(key), sizeof(key));
+                    channel.rotations.push_back({key.time, {key.w, key.x, key.y, key.z}});
+                }
+                for (size_t i = 0; i < scalingsCount; ++i)
+                {
+                    PackedVec3Key key;
+                    std::memcpy(&key, scalings + i * sizeof(key), sizeof(key));
+                    channel.scalings.push_back({key.time, {key.x, key.y, key.z}});
+                }
+
+                channels.push_back(std::move(channel));
+            }
+
+            animation->AddClip(
+                clipJson.at("name").get<std::string>(),
+                clipJson.at("tickPerSecond").get<float>(),
+                clipJson.at("duration").get<float>(),
+                channels
+            );
+        }
+
+        return animation;
+    }
+    catch (const nlohmann::json::exception&)
+    {
+        return nullptr;
+    }
 }
 
 bool WriteModelGraph(

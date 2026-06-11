@@ -10,7 +10,7 @@ public:
         int particleCount = target->GetParticleCount();
         if (ImGui::InputInt("Particle Count", &particleCount))
         {
-            target->SetParticleCount(static_cast<int>(particleCount));
+            target->SetParticleCount(particleCount);
         }
     }
 

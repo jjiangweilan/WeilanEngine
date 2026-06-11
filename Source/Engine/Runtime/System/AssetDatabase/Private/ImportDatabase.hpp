@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Runtime/System/AssetDatabase/ArtifactTypes.hpp"
 #include "Engine/Library/PodVector.hpp"
 #include "Engine/Library/UUID.hpp"
@@ -30,18 +31,26 @@ public:
     };
 
     ImportDatabase() = default;
-    ~ImportDatabase();
+    WEILAN_ENGINE_API ~ImportDatabase();
 
-    void Init(const std::filesystem::path& importDatabaseRoot);
+    WEILAN_ENGINE_API void Init(const std::filesystem::path& importDatabaseRoot);
 
-    bool TryGetImportState(const std::string& assetUUID, ImportState& state) const;
-    void UpsertImportState(const std::string& assetUUID, const ImportState& state) const;
+    WEILAN_ENGINE_API bool TryGetImportState(const std::string& assetUUID, ImportState& state) const;
+    WEILAN_ENGINE_API void UpsertImportState(const std::string& assetUUID, const ImportState& state) const;
 
     bool TryGetArtifactPath(const std::string& assetUUID, std::string_view kind, std::filesystem::path& relativePath) const;
-    bool TryGetArtifactPath(const std::string& assetUUID, AssetArtifacts::Kind kind, std::filesystem::path& relativePath) const;
+    WEILAN_ENGINE_API bool TryGetArtifactPath(
+        const std::string& assetUUID,
+        AssetArtifacts::Kind kind,
+        std::filesystem::path& relativePath
+    ) const;
     bool TryGetArtifactPath(const UUID& artifactUUID, std::filesystem::path& relativePath) const;
     void ReplaceArtifact(const std::string& assetUUID, std::string_view kind, const std::filesystem::path& relativePath) const;
-    void ReplaceArtifact(const std::string& assetUUID, AssetArtifacts::Kind kind, const std::filesystem::path& relativePath) const;
+    WEILAN_ENGINE_API void ReplaceArtifact(
+        const std::string& assetUUID,
+        AssetArtifacts::Kind kind,
+        const std::filesystem::path& relativePath
+    ) const;
     void ReplaceArtifact(
         const UUID& sourceAssetUUID,
         const UUID& artifactUUID,
@@ -60,7 +69,7 @@ public:
         bool isMain,
         std::string_view locator = {}
     ) const;
-    std::vector<ArtifactRecord> ListArtifacts(const UUID& sourceAssetUUID) const;
+    WEILAN_ENGINE_API std::vector<ArtifactRecord> ListArtifacts(const UUID& sourceAssetUUID) const;
     std::vector<ArtifactRecord> ListArtifacts(const UUID& sourceAssetUUID, std::string_view kind) const;
     std::vector<ArtifactRecord> ListArtifacts(const UUID& sourceAssetUUID, AssetArtifacts::Kind kind) const;
     void DeleteAssetRows(const std::string& assetUUID) const;

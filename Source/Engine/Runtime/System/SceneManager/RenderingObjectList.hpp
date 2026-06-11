@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/WeilanEngineAPI.hpp"
 #include "RenderingObject.hpp"
 #include <cinttypes>
 #include <memory>
@@ -12,15 +13,14 @@ class RenderingObjectList
     std::vector<std::unique_ptr<std::vector<RenderingObjectBase*>>> renderingObjectsByEvent;
 
 public:
-    using ObjectIndex = uint32_t;
     using ObjectList = std::span<RenderingObjectBase*>;
 
-    RenderingObjectList();
-    ObjectIndex AddToList(uint32_t objectTypeID, RenderingObjectBase* object);
-    void RemoveFromList(uint32_t objectTypeID, ObjectIndex object);
-    void Clear();
-    ObjectList GetRenderingObjects(uint32_t typeID);
-    ObjectList GetRenderingObjectsByEvent(Rendering::RenderEvents event);
+    WEILAN_ENGINE_API RenderingObjectList();
+    WEILAN_ENGINE_API void AddToList(uint32_t objectTypeID, RenderingObjectBase* object);
+    WEILAN_ENGINE_API void RemoveFromList(uint32_t objectTypeID, RenderingObjectBase* object);
+    WEILAN_ENGINE_API void Clear();
+    WEILAN_ENGINE_API ObjectList GetRenderingObjects(uint32_t typeID);
+    WEILAN_ENGINE_API ObjectList GetRenderingObjectsByEvent(Rendering::RenderEvents event);
 
 private:
     void EnsureCapacity(uint32_t typeID);

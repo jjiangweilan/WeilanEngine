@@ -184,9 +184,14 @@ private:
 
 class ParticleSystem : public Component
 {
-    DECLARE_COMPONENT(ParticleSystem);
+    DECLARE_OBJECT();
 
 public:
+    WEILAN_ENGINE_API ParticleSystem();
+    WEILAN_ENGINE_API explicit ParticleSystem(GameObject* gameObject);
+    WEILAN_ENGINE_API ~ParticleSystem() override;
+    const std::string& GetName() const override;
+
     void OnEnable() override;
     void OnDisable() override;
 
@@ -211,7 +216,7 @@ public:
         particleModifiers.push_back(std::move(modifier));
     }
     void SetParticleMesh(Mesh* mesh) { this->particleMesh = mesh; }
-    void SetParticleCount(int count);
+    WEILAN_ENGINE_API void SetParticleCount(int count);
     Mesh* GetParticleMesh() { return this->particleMesh; }
     int GetParticleCount() { return this->particleCount; }
 
@@ -226,9 +231,10 @@ private:
     int particleCount = 1024;
     std::vector<Particle> particles;
     std::unique_ptr<Gfx::Buffer> particleWorldMatrixBuffer;
-    std::unique_ptr<Material> particleParameters = std::make_unique<Material>();
+    std::unique_ptr<Material> particleParameters;
     std::vector<std::unique_ptr<ParticleModifiers::Base>> particleModifiers;
     size_t GetParticleBufferByteSize(int particleCount);
+    void ResizeParticleStorage();
     void UpdatePositionBuffer();
 
     void OnParticleActivate(Particle& particle);

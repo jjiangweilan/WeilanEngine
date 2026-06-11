@@ -10,10 +10,7 @@ public:
 
 protected:
     void AddToRenderingScene(uint32_t objectTypeID, RenderingObjectBase* self);
-    void RemoveFromRenderingScene(uint32_t objectTypeID);
-
-private:
-    RenderingObjectList::ObjectIndex renderingObjectID = -1;
+    void RemoveFromRenderingScene(uint32_t objectTypeID, RenderingObjectBase* self);
 };
 
 template <class T>
@@ -32,7 +29,7 @@ public:
     void OnDisable() override
     {
         Component::OnDisable();
-        RemoveFromRenderingScene(RenderingObject<T>::renderObjectTypeID);
+        RemoveFromRenderingScene(RenderingObject<T>::renderObjectTypeID, this);
     }
 };
 

@@ -57,14 +57,14 @@ public:
         return renderingObjects.GetRenderingObjectsByEvent(event);
     }
 
-    RenderingObjectList::ObjectIndex AddRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)
+    void AddRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)
     {
-        return renderingObjects.AddToList(objectTypeID, object);
+        renderingObjects.AddToList(objectTypeID, object);
     }
 
-    void RemoveRenderingObject(uint32_t objectTypeID, RenderingObjectList::ObjectIndex index)
+    void RemoveRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)
     {
-        renderingObjects.RemoveFromList(objectTypeID, index);
+        renderingObjects.RemoveFromList(objectTypeID, object);
     }
 
     void SetSceneEnvironment(SceneEnvironment& sceneEnvironment)

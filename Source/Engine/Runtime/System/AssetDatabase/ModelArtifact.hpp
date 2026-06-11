@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/WeilanEngineAPI.hpp"
 #include "Engine/Library/PodVector.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
@@ -10,11 +11,11 @@
 
 namespace ModelArtifact
 {
-bool WriteMeshBlob(const std::filesystem::path& path, const Mesh& mesh);
-std::unique_ptr<Mesh> ReadMeshBlob(const PodVector<uint8_t>& data);
+WEILAN_ENGINE_API bool WriteMeshBlob(const std::filesystem::path& path, const Mesh& mesh);
+WEILAN_ENGINE_API std::unique_ptr<Mesh> ReadMeshBlob(const PodVector<uint8_t>& data);
 
-bool WriteAnimationBlob(const std::filesystem::path& path, const Animation& animation);
-std::unique_ptr<Animation> ReadAnimationBlob(const PodVector<uint8_t>& data);
+WEILAN_ENGINE_API bool WriteAnimationBlob(const std::filesystem::path& path, const Animation& animation);
+WEILAN_ENGINE_API std::unique_ptr<Animation> ReadAnimationBlob(const PodVector<uint8_t>& data);
 
 bool WriteModelGraph(
     const std::filesystem::path& path,

@@ -1,4 +1,5 @@
 #include "RenderingObjectList.hpp"
+#include <algorithm>
 
 RenderingObjectList::RenderingObjectList() : renderingObjectsByEvent()
 {
@@ -20,11 +21,10 @@ void RenderingObjectList::EnsureCapacity(uint32_t typeID)
     }
 }
 
-RenderingObjectList::ObjectIndex RenderingObjectList::AddToList(uint32_t objectTypeID, RenderingObjectBase* object)
+void RenderingObjectList::AddToList(uint32_t objectTypeID, RenderingObjectBase* object)
 {
     EnsureCapacity(objectTypeID);
 
-    uint32_t idx = renderingObjects[objectTypeID]->size();
     Rendering::RenderEvents renderEvent = object->GetRenderEvent();
 
     renderingObjects[objectTypeID]->push_back(object);
@@ -33,25 +33,29 @@ RenderingObjectList::ObjectIndex RenderingObjectList::AddToList(uint32_t objectT
         renderingObjectsByEvent[static_cast<int>(renderEvent)]->push_back(object);
     }
 
-    return idx;
 }
 
-void RenderingObjectList::RemoveFromList(uint32_t objectTypeID, ObjectIndex object)
+void RenderingObjectList::RemoveFromList(uint32_t objectTypeID, RenderingObjectBase* object)
 {
-    // no sanity check here, just trust the input
+    if (objectTypeID >= renderingObjects.size() || object == nullptr)
+        return;
 
-    RenderingObjectBase* back = renderingObjects[objectTypeID]->at(object);
-    Rendering::RenderEvents renderEvent = back->GetRenderEvent();
-
-    std::swap(renderingObjects[objectTypeID]->back(), renderingObjects[objectTypeID]->at(object));
-    renderingObjects[objectTypeID]->pop_back();
-
-    if (renderEvent != Rendering::RenderEvents::None)
+    auto removeObject = [object](std::vector<RenderingObjectBase*>& objects)
     {
-        std::swap(renderingObjectsByEvent[static_cast<int>(renderEvent)]->back(), renderingObjectsByEvent[static_cast<int>(renderEvent)]->at(object));
-        renderingObjectsByEvent[static_cast<int>(renderEvent)]->pop_back();
-    }
+        auto iter = std::find(objects.begin(), objects.end(), object);
+        if (iter == objects.end())
+            return;
 
+        std::swap(*iter, objects.back());
+        objects.pop_back();
+    };
+
+    removeObject(*renderingObjects[objectTypeID]);
+
+    for (auto& eventObjects : renderingObjectsByEvent)
+    {
+        removeObject(*eventObjects);
+    }
 }
 
 void RenderingObjectList::Clear()
