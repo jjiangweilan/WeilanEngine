@@ -11,3 +11,12 @@ static constexpr JPH::ObjectLayer Sensor = 3;
 static constexpr JPH::ObjectLayer NUM_LAYERS = 4;
 } // namespace PhysicsObjectLayer
 using PhysicsObjectLayer = JPH::ObjectLayer;
+
+enum class [[LuaEnum]] PhysicsLayerMask
+{
+    Static = 1 << PhysicsObjectLayers::Static,
+    Dynamic = 1 << PhysicsObjectLayers::Dynamic,
+    Sprite = 1 << PhysicsObjectLayers::Sprite,
+    Sensor = 1 << PhysicsObjectLayers::Sensor,
+    All = Static | Dynamic | Sprite | Sensor
+};

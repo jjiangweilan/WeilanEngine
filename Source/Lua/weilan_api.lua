@@ -276,6 +276,14 @@ wl.RootMotionTranslationMode = {}
 ---@field Full number
 wl.RootMotionRotationMode = {}
 
+---@class wl.PhysicsLayerMask
+---@field Static number
+---@field Dynamic number
+---@field Sprite number
+---@field Sensor number
+---@field All number
+wl.PhysicsLayerMask = {}
+
 ---@class wl.Gamepad
 wl.Gamepad = {}
 
@@ -370,6 +378,36 @@ function wl.Physics.BoxCast(origin, halfExtents, rotation, direction, maxDistanc
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.CapsuleCast(origin, halfHeight, radius, rotation, direction, maxDistance) end
+---@param origin wl.Float3
+---@param direction wl.Float3
+---@param maxDistance number
+---@param layerMask number
+---@return wl.PhysicsHit
+function wl.Physics.RayCastFiltered(origin, direction, maxDistance, layerMask) end
+---@param origin wl.Float3
+---@param radius number
+---@param direction wl.Float3
+---@param maxDistance number
+---@param layerMask number
+---@return wl.PhysicsHit
+function wl.Physics.SphereCastFiltered(origin, radius, direction, maxDistance, layerMask) end
+---@param origin wl.Float3
+---@param halfExtents wl.Float3
+---@param rotation wl.quat &
+---@param direction wl.Float3
+---@param maxDistance number
+---@param layerMask number
+---@return wl.PhysicsHit
+function wl.Physics.BoxCastFiltered(origin, halfExtents, rotation, direction, maxDistance, layerMask) end
+---@param origin wl.Float3
+---@param halfHeight number
+---@param radius number
+---@param rotation wl.quat &
+---@param direction wl.Float3
+---@param maxDistance number
+---@param layerMask number
+---@return wl.PhysicsHit
+function wl.Physics.CapsuleCastFiltered(origin, halfHeight, radius, rotation, direction, maxDistance, layerMask) end
 ---@param center wl.Float3
 ---@param radius number
 ---@return boolean
@@ -381,6 +419,17 @@ function wl.Physics.CheckSphere(center, radius) end
 function wl.Physics.CheckBox(center, halfExtents, rotation) end
 ---@param center wl.Float3
 ---@param radius number
+---@param layerMask number
+---@return boolean
+function wl.Physics.CheckSphereFiltered(center, radius, layerMask) end
+---@param center wl.Float3
+---@param halfExtents wl.Float3
+---@param rotation wl.quat &
+---@param layerMask number
+---@return boolean
+function wl.Physics.CheckBoxFiltered(center, halfExtents, rotation, layerMask) end
+---@param center wl.Float3
+---@param radius number
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapSphere(center, radius) end
 ---@param center wl.Float3
@@ -388,6 +437,17 @@ function wl.Physics.OverlapSphere(center, radius) end
 ---@param rotation wl.quat &
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapBox(center, halfExtents, rotation) end
+---@param center wl.Float3
+---@param radius number
+---@param layerMask number
+---@return wl.PhysicsOverlapResult
+function wl.Physics.OverlapSphereFiltered(center, radius, layerMask) end
+---@param center wl.Float3
+---@param halfExtents wl.Float3
+---@param rotation wl.quat &
+---@param layerMask number
+---@return wl.PhysicsOverlapResult
+function wl.Physics.OverlapBoxFiltered(center, halfExtents, rotation, layerMask) end
 
 ---@class wl.RootMotionDelta
 ---@field translation wl.Float3

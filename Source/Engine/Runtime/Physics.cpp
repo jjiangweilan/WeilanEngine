@@ -77,6 +77,43 @@ PhysicsQueryContext GetPhysicsQueryContext()
     return {&physicsScene, &physicsScene.GetPhysicsSystem()};
 }
 
+int GetDefaultLayerMask()
+{
+    return static_cast<int>(PhysicsLayerMask::All);
+}
+
+bool LayerMaskContains(int layerMask, JPH::ObjectLayer layer)
+{
+    return (layerMask & (1 << static_cast<int>(layer))) != 0;
+}
+
+bool LayerMaskContains(int layerMask, JPH::BroadPhaseLayer layer)
+{
+    return (layerMask & (1 << static_cast<int>(layer.GetValue()))) != 0;
+}
+
+class LayerMaskObjectFilter : public JPH::ObjectLayerFilter
+{
+public:
+    explicit LayerMaskObjectFilter(int layerMask) : layerMask(layerMask) {}
+
+    bool ShouldCollide(JPH::ObjectLayer layer) const override { return LayerMaskContains(layerMask, layer); }
+
+private:
+    int layerMask;
+};
+
+class LayerMaskBroadPhaseFilter : public JPH::BroadPhaseLayerFilter
+{
+public:
+    explicit LayerMaskBroadPhaseFilter(int layerMask) : layerMask(layerMask) {}
+
+    bool ShouldCollide(JPH::BroadPhaseLayer layer) const override { return LayerMaskContains(layerMask, layer); }
+
+private:
+    int layerMask;
+};
+
 JPH::Vec3 ToJoltVec3(const glm::vec3& v)
 {
     return {v.x, v.y, v.z};
@@ -139,7 +176,13 @@ PhysicsHit BuildShapeCastHit(PhysicsScene& scene, const JPH::RShapeCast& shapeCa
     return hit;
 }
 
-PhysicsHit CastShape(JPH::Shape& shape, const JPH::RMat44& transform, const glm::vec3& direction, float maxDistance)
+PhysicsHit CastShape(
+    JPH::Shape& shape,
+    const JPH::RMat44& transform,
+    const glm::vec3& direction,
+    float maxDistance,
+    int layerMask
+)
 {
     if (!IsValidCastInput(direction, maxDistance))
         return {};
@@ -158,14 +201,23 @@ PhysicsHit CastShape(JPH::Shape& shape, const JPH::RMat44& transform, const glm:
 
     JPH::ShapeCastSettings settings;
     JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> collector;
-    context.system->GetNarrowPhaseQuery().CastShape(shapeCast, settings, JPH::RVec3::sZero(), collector);
+    LayerMaskBroadPhaseFilter broadPhaseFilter(layerMask);
+    LayerMaskObjectFilter objectFilter(layerMask);
+    context.system->GetNarrowPhaseQuery().CastShape(
+        shapeCast,
+        settings,
+        JPH::RVec3::sZero(),
+        collector,
+        broadPhaseFilter,
+        objectFilter
+    );
     if (!collector.HadHit())
         return {};
 
     return BuildShapeCastHit(*context.scene, shapeCast, collector.mHit);
 }
 
-PhysicsOverlapResult CollideShape(JPH::Shape& shape, const JPH::RMat44& transform)
+PhysicsOverlapResult CollideShape(JPH::Shape& shape, const JPH::RMat44& transform, int layerMask)
 {
     PhysicsOverlapResult result;
 
@@ -175,13 +227,17 @@ PhysicsOverlapResult CollideShape(JPH::Shape& shape, const JPH::RMat44& transfor
 
     JPH::CollideShapeSettings settings;
     JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+    LayerMaskBroadPhaseFilter broadPhaseFilter(layerMask);
+    LayerMaskObjectFilter objectFilter(layerMask);
     context.system->GetNarrowPhaseQuery().CollideShape(
         &shape,
         JPH::Vec3::sReplicate(1.0f),
         transform,
         settings,
         JPH::RVec3::sZero(),
-        collector
+        collector,
+        broadPhaseFilter,
+        objectFilter
     );
 
     std::unordered_set<JPH::BodyID> addedBodies;
@@ -322,6 +378,11 @@ PhysicsBody* PhysicsOverlapResult::GetBody(int index) const
 
 PhysicsHit Physics::RayCast(const glm::vec3& origin, const glm::vec3& direction, float maxDistance)
 {
+    return RayCastFiltered(origin, direction, maxDistance, GetDefaultLayerMask());
+}
+
+PhysicsHit Physics::RayCastFiltered(const glm::vec3& origin, const glm::vec3& direction, float maxDistance, int layerMask)
+{
     if (!IsValidCastInput(direction, maxDistance))
         return {};
 
@@ -332,7 +393,9 @@ PhysicsHit Physics::RayCast(const glm::vec3& origin, const glm::vec3& direction,
     glm::vec3 normalizedDirection = glm::normalize(direction);
     JPH::RRayCast ray(ToJoltRVec3(origin), ToJoltVec3(normalizedDirection * maxDistance));
     JPH::RayCastResult result;
-    if (!context.system->GetNarrowPhaseQuery().CastRay(ray, result))
+    LayerMaskBroadPhaseFilter broadPhaseFilter(layerMask);
+    LayerMaskObjectFilter objectFilter(layerMask);
+    if (!context.system->GetNarrowPhaseQuery().CastRay(ray, result, broadPhaseFilter, objectFilter))
     {
         RecordRayDebugQuery(origin, origin + normalizedDirection * maxDistance, {});
         return {};
@@ -345,11 +408,28 @@ PhysicsHit Physics::RayCast(const glm::vec3& origin, const glm::vec3& direction,
 
 PhysicsHit Physics::SphereCast(const glm::vec3& origin, float radius, const glm::vec3& direction, float maxDistance)
 {
+    return SphereCastFiltered(origin, radius, direction, maxDistance, GetDefaultLayerMask());
+}
+
+PhysicsHit Physics::SphereCastFiltered(
+    const glm::vec3& origin,
+    float radius,
+    const glm::vec3& direction,
+    float maxDistance,
+    int layerMask
+)
+{
     if (radius <= 0.0f)
         return {};
 
     JPH::SphereShape shape(radius);
-    PhysicsHit hit = CastShape(shape, MakeTransform(origin, glm::quat(1.0f, 0.0f, 0.0f, 0.0f)), direction, maxDistance);
+    PhysicsHit hit = CastShape(
+        shape,
+        MakeTransform(origin, glm::quat(1.0f, 0.0f, 0.0f, 0.0f)),
+        direction,
+        maxDistance,
+        layerMask
+    );
     if (IsValidCastInput(direction, maxDistance))
         RecordSphereDebugQuery(origin, GetCastEnd(origin, direction, maxDistance), radius, hit);
     return hit;
@@ -357,11 +437,23 @@ PhysicsHit Physics::SphereCast(const glm::vec3& origin, float radius, const glm:
 
 PhysicsHit Physics::BoxCast(const glm::vec3& origin, const glm::vec3& halfExtents, const glm::quat& rotation, const glm::vec3& direction, float maxDistance)
 {
+    return BoxCastFiltered(origin, halfExtents, rotation, direction, maxDistance, GetDefaultLayerMask());
+}
+
+PhysicsHit Physics::BoxCastFiltered(
+    const glm::vec3& origin,
+    const glm::vec3& halfExtents,
+    const glm::quat& rotation,
+    const glm::vec3& direction,
+    float maxDistance,
+    int layerMask
+)
+{
     if (halfExtents.x <= 0.0f || halfExtents.y <= 0.0f || halfExtents.z <= 0.0f)
         return {};
 
     JPH::BoxShape shape(ToJoltVec3(halfExtents));
-    PhysicsHit hit = CastShape(shape, MakeTransform(origin, rotation), direction, maxDistance);
+    PhysicsHit hit = CastShape(shape, MakeTransform(origin, rotation), direction, maxDistance, layerMask);
     if (IsValidCastInput(direction, maxDistance))
         RecordBoxDebugQuery(origin, GetCastEnd(origin, direction, maxDistance), halfExtents, rotation, hit);
     return hit;
@@ -369,11 +461,24 @@ PhysicsHit Physics::BoxCast(const glm::vec3& origin, const glm::vec3& halfExtent
 
 PhysicsHit Physics::CapsuleCast(const glm::vec3& origin, float halfHeight, float radius, const glm::quat& rotation, const glm::vec3& direction, float maxDistance)
 {
+    return CapsuleCastFiltered(origin, halfHeight, radius, rotation, direction, maxDistance, GetDefaultLayerMask());
+}
+
+PhysicsHit Physics::CapsuleCastFiltered(
+    const glm::vec3& origin,
+    float halfHeight,
+    float radius,
+    const glm::quat& rotation,
+    const glm::vec3& direction,
+    float maxDistance,
+    int layerMask
+)
+{
     if (halfHeight <= 0.0f || radius <= 0.0f)
         return {};
 
     JPH::CapsuleShape shape(halfHeight, radius);
-    PhysicsHit hit = CastShape(shape, MakeTransform(origin, rotation), direction, maxDistance);
+    PhysicsHit hit = CastShape(shape, MakeTransform(origin, rotation), direction, maxDistance, layerMask);
     if (IsValidCastInput(direction, maxDistance))
         RecordCapsuleDebugQuery(origin, GetCastEnd(origin, direction, maxDistance), halfHeight, radius, rotation, hit);
     return hit;
@@ -381,44 +486,73 @@ PhysicsHit Physics::CapsuleCast(const glm::vec3& origin, float halfHeight, float
 
 bool Physics::CheckSphere(const glm::vec3& center, float radius)
 {
+    return CheckSphereFiltered(center, radius, GetDefaultLayerMask());
+}
+
+bool Physics::CheckSphereFiltered(const glm::vec3& center, float radius, int layerMask)
+{
     if (radius <= 0.0f)
         return false;
 
     JPH::SphereShape shape(radius);
-    bool hasHit = CollideShape(shape, MakeTransform(center, glm::quat(1.0f, 0.0f, 0.0f, 0.0f))).Count() > 0;
+    bool hasHit = CollideShape(shape, MakeTransform(center, glm::quat(1.0f, 0.0f, 0.0f, 0.0f)), layerMask).Count() > 0;
     RecordSphereDebugQuery(center, center, radius, PhysicsHit{.hasHit = hasHit});
     return hasHit;
 }
 
 bool Physics::CheckBox(const glm::vec3& center, const glm::vec3& halfExtents, const glm::quat& rotation)
 {
+    return CheckBoxFiltered(center, halfExtents, rotation, GetDefaultLayerMask());
+}
+
+bool Physics::CheckBoxFiltered(const glm::vec3& center, const glm::vec3& halfExtents, const glm::quat& rotation, int layerMask)
+{
     if (halfExtents.x <= 0.0f || halfExtents.y <= 0.0f || halfExtents.z <= 0.0f)
         return false;
 
     JPH::BoxShape shape(ToJoltVec3(halfExtents));
-    bool hasHit = CollideShape(shape, MakeTransform(center, rotation)).Count() > 0;
+    bool hasHit = CollideShape(shape, MakeTransform(center, rotation), layerMask).Count() > 0;
     RecordBoxDebugQuery(center, center, halfExtents, rotation, PhysicsHit{.hasHit = hasHit});
     return hasHit;
 }
 
 PhysicsOverlapResult Physics::OverlapSphere(const glm::vec3& center, float radius)
 {
+    return OverlapSphereFiltered(center, radius, GetDefaultLayerMask());
+}
+
+PhysicsOverlapResult Physics::OverlapSphereFiltered(const glm::vec3& center, float radius, int layerMask)
+{
     if (radius <= 0.0f)
         return {};
 
     JPH::SphereShape shape(radius);
-    PhysicsOverlapResult result = CollideShape(shape, MakeTransform(center, glm::quat(1.0f, 0.0f, 0.0f, 0.0f)));
+    PhysicsOverlapResult result = CollideShape(
+        shape,
+        MakeTransform(center, glm::quat(1.0f, 0.0f, 0.0f, 0.0f)),
+        layerMask
+    );
     RecordSphereDebugQuery(center, center, radius, PhysicsHit{.hasHit = result.Count() > 0});
     return result;
 }
 
 PhysicsOverlapResult Physics::OverlapBox(const glm::vec3& center, const glm::vec3& halfExtents, const glm::quat& rotation)
 {
+    return OverlapBoxFiltered(center, halfExtents, rotation, GetDefaultLayerMask());
+}
+
+PhysicsOverlapResult Physics::OverlapBoxFiltered(
+    const glm::vec3& center,
+    const glm::vec3& halfExtents,
+    const glm::quat& rotation,
+    int layerMask
+)
+{
     if (halfExtents.x <= 0.0f || halfExtents.y <= 0.0f || halfExtents.z <= 0.0f)
         return {};
 
     JPH::BoxShape shape(ToJoltVec3(halfExtents));
-    PhysicsOverlapResult result = CollideShape(shape, MakeTransform(center, rotation));
+    PhysicsOverlapResult result = CollideShape(shape, MakeTransform(center, rotation), layerMask);
     RecordBoxDebugQuery(center, center, halfExtents, rotation, PhysicsHit{.hasHit = result.Count() > 0});
     return result;
 }

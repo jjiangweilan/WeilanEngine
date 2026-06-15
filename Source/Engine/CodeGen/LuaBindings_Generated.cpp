@@ -10,6 +10,7 @@
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Engine/Runtime/System/SceneManager/PhysicsLayer.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
 void BindGeneratedClasses(lua_State* L)
@@ -572,10 +573,18 @@ void BindGeneratedClasses(lua_State* L)
         .BindStaticFn("SphereCast", &Physics::SphereCast) // PhysicsHit(float3 & origin, float radius, float3 & direction, float maxDistance)
         .BindStaticFn("BoxCast", &Physics::BoxCast) // PhysicsHit(float3 & origin, float3 & halfExtents, glm::quat & rotation, float3 & direction, float maxDistance)
         .BindStaticFn("CapsuleCast", &Physics::CapsuleCast) // PhysicsHit(float3 & origin, float halfHeight, float radius, glm::quat & rotation, float3 & direction, float maxDistance)
+        .BindStaticFn("RayCastFiltered", &Physics::RayCastFiltered) // PhysicsHit(float3 & origin, float3 & direction, float maxDistance, int layerMask)
+        .BindStaticFn("SphereCastFiltered", &Physics::SphereCastFiltered) // PhysicsHit(float3 & origin, float radius, float3 & direction, float maxDistance, int layerMask)
+        .BindStaticFn("BoxCastFiltered", &Physics::BoxCastFiltered) // PhysicsHit(float3 & origin, float3 & halfExtents, glm::quat & rotation, float3 & direction, float maxDistance, int layerMask)
+        .BindStaticFn("CapsuleCastFiltered", &Physics::CapsuleCastFiltered) // PhysicsHit(float3 & origin, float halfHeight, float radius, glm::quat & rotation, float3 & direction, float maxDistance, int layerMask)
         .BindStaticFn("CheckSphere", &Physics::CheckSphere) // bool(float3 & center, float radius)
         .BindStaticFn("CheckBox", &Physics::CheckBox) // bool(float3 & center, float3 & halfExtents, glm::quat & rotation)
+        .BindStaticFn("CheckSphereFiltered", &Physics::CheckSphereFiltered) // bool(float3 & center, float radius, int layerMask)
+        .BindStaticFn("CheckBoxFiltered", &Physics::CheckBoxFiltered) // bool(float3 & center, float3 & halfExtents, glm::quat & rotation, int layerMask)
         .BindStaticFn("OverlapSphere", &Physics::OverlapSphere) // PhysicsOverlapResult(float3 & center, float radius)
         .BindStaticFn("OverlapBox", &Physics::OverlapBox) // PhysicsOverlapResult(float3 & center, float3 & halfExtents, glm::quat & rotation)
+        .BindStaticFn("OverlapSphereFiltered", &Physics::OverlapSphereFiltered) // PhysicsOverlapResult(float3 & center, float radius, int layerMask)
+        .BindStaticFn("OverlapBoxFiltered", &Physics::OverlapBoxFiltered) // PhysicsOverlapResult(float3 & center, float3 & halfExtents, glm::quat & rotation, int layerMask)
         .End();
 
     LuaBinder<RootMotionDelta> binder_RootMotionDelta(L);
@@ -675,6 +684,20 @@ void BindGeneratedClasses(lua_State* L)
     LuaBinder<Prefab> binder_Prefab(L);
     binder_Prefab.Begin("Prefab")
         .End();
+
+    // Bind Enum PhysicsLayerMask
+    lua_newtable(L);
+    lua_pushinteger(L, static_cast<int>(PhysicsLayerMask::Static));
+    lua_setfield(L, -2, "Static");
+    lua_pushinteger(L, static_cast<int>(PhysicsLayerMask::Dynamic));
+    lua_setfield(L, -2, "Dynamic");
+    lua_pushinteger(L, static_cast<int>(PhysicsLayerMask::Sprite));
+    lua_setfield(L, -2, "Sprite");
+    lua_pushinteger(L, static_cast<int>(PhysicsLayerMask::Sensor));
+    lua_setfield(L, -2, "Sensor");
+    lua_pushinteger(L, static_cast<int>(PhysicsLayerMask::All));
+    lua_setfield(L, -2, "All");
+    lua_setfield(L, -2, "PhysicsLayerMask");
 
     LuaBinder<Scene> binder_Scene(L);
     binder_Scene.Begin("Scene")
