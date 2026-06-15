@@ -102,6 +102,14 @@ void Scene::Tick()
     }
 }
 
+void Scene::PrePhysicsAnimationTick()
+{
+    for (auto obj : roots)
+    {
+        PrePhysicsAnimationTickGameObject(obj);
+    }
+}
+
 void Scene::PrePhysicsTick()
 {
     for (auto obj : roots)
@@ -276,6 +284,19 @@ void Scene::TickGameObject(GameObject* obj)
     for (auto child : obj->GetChildren())
     {
         TickGameObject(child);
+    }
+}
+
+void Scene::PrePhysicsAnimationTickGameObject(GameObject* obj)
+{
+    if (obj->IsEnabled())
+    {
+        obj->PrePhysicsAnimationTick();
+
+        for (auto child : obj->GetChildren())
+        {
+            PrePhysicsAnimationTickGameObject(child);
+        }
     }
 }
 

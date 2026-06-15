@@ -125,6 +125,7 @@ void PhysicsScene::Tick()
     physicsUpdateDeltaAccumulation -= updateCount * PhysicsDeltaTime;
     while (updateCount > 0)
     {
+        scene->PrePhysicsAnimationTick();
         scene->PrePhysicsTick();
 
         physicsSystem.Update(PhysicsDeltaTime, CollisionSteps, &temp_allocator, &job_system);

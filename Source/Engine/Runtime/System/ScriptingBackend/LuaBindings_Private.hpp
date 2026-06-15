@@ -407,16 +407,17 @@ public:
                     );
                     return 0;
                 }
-                else if constexpr (std::tuple_size_v<std::tuple<Args...>> == 1)
+                else
                 {
-                    if constexpr (std::is_same_v<std::tuple_element_t<0, std::tuple<Args...>>, lua_State*> &&
-                                  std::is_integral_v<R>)
+                    if constexpr (std::tuple_size_v<std::tuple<Args...>> == 1)
                     {
-                        return f(L);
+                        if constexpr (std::is_same_v<std::tuple_element_t<0, std::tuple<Args...>>, lua_State*> &&
+                                      std::is_integral_v<R>)
+                        {
+                            return f(L);
+                        }
                     }
-                }
-                // else
-                {
+
                     R rtn = CallbackDispatch_StaticFunction<std::tuple<Args...>, R>(
                         L,
                         f,

@@ -3,6 +3,7 @@
 #include "Engine/Runtime/System/ScriptingBackend/LuaBindings_Private.hpp"
 
 #include "Engine/Game/Input.hpp"
+#include "Engine/MiddleLayer/EngineDebug.hpp"
 #include "Engine/Runtime/Physics.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Boids.hpp"
@@ -544,6 +545,12 @@ void BindGeneratedClasses(lua_State* L)
     lua_setfield(L, -2, "SDL_NUM_SCANCODES");
     lua_setfield(L, -2, "InputScancode");
 
+    LuaBinder<Debug> binder_Debug(L);
+    binder_Debug.Begin("Debug")
+        .BindStaticFn("DrawLine", &Debug::DrawLine) // void(float3 & from, float3 & to, float4 & color)
+        .BindStaticFn("DrawBox", &Debug::DrawBox) // void(float3 & center, float3 & halfExtents, float4 & color)
+        .End();
+
     LuaBinder<PhysicsHit> binder_PhysicsHit(L);
     binder_PhysicsHit.Begin("PhysicsHit")
         .BindMemFn("GetBody", &PhysicsHit::GetBody) // PhysicsBody*()
@@ -571,12 +578,54 @@ void BindGeneratedClasses(lua_State* L)
         .BindStaticFn("OverlapBox", &Physics::OverlapBox) // PhysicsOverlapResult(float3 & center, float3 & halfExtents, glm::quat & rotation)
         .End();
 
+    LuaBinder<RootMotionDelta> binder_RootMotionDelta(L);
+    binder_RootMotionDelta.Begin("RootMotionDelta")
+        .BindMemFn("IsEmpty", &RootMotionDelta::IsEmpty) // bool()
+        .BindProperty("translation", &RootMotionDelta::translation) // glm::vec3
+        .BindProperty("localTranslation", &RootMotionDelta::localTranslation) // glm::vec3
+        .BindProperty("rotation", &RootMotionDelta::rotation) // glm::quat
+        .BindProperty("localRotation", &RootMotionDelta::localRotation) // glm::quat
+        .BindProperty("duration", &RootMotionDelta::duration) // float
+        .BindProperty("hasTranslation", &RootMotionDelta::hasTranslation) // bool
+        .BindProperty("hasRotation", &RootMotionDelta::hasRotation) // bool
+        .End();
+
     LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
     binder_AnimationPlayer.Begin("AnimationPlayer")
         .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
+        .BindMemFn("SetRootMotionEnabled", &AnimationPlayer::Lua_SetRootMotionEnabled) // void(bool enabled)
+        .BindMemFn("SetRootMotionRoot", &AnimationPlayer::Lua_SetRootMotionRoot) // void(std::string rootName)
+        .BindMemFn("SetRootMotionTranslationMode", &AnimationPlayer::Lua_SetRootMotionTranslationMode) // void(int mode)
+        .BindMemFn("SetRootMotionRotationMode", &AnimationPlayer::Lua_SetRootMotionRotationMode) // void(int mode)
+        .BindMemFn("GetRootMotionTranslationMode", &AnimationPlayer::Lua_GetRootMotionTranslationMode) // int()
+        .BindMemFn("GetRootMotionRotationMode", &AnimationPlayer::Lua_GetRootMotionRotationMode) // int()
+        .BindMemFn("PeekRootMotionDelta", &AnimationPlayer::PeekRootMotionDelta) // RootMotionDelta()
+        .BindMemFn("ConsumeRootMotionDelta", &AnimationPlayer::ConsumeRootMotionDelta) // RootMotionDelta()
         .BindMemFn("Play", &AnimationPlayer::Play) // void()
         .BindMemFn("Stop", &AnimationPlayer::Stop) // void()
         .End();
+
+    // Bind Enum RootMotionTranslationMode
+    lua_newtable(L);
+    lua_pushinteger(L, static_cast<int>(RootMotionTranslationMode::None));
+    lua_setfield(L, -2, "None");
+    lua_pushinteger(L, static_cast<int>(RootMotionTranslationMode::Horizontal));
+    lua_setfield(L, -2, "Horizontal");
+    lua_pushinteger(L, static_cast<int>(RootMotionTranslationMode::Vertical));
+    lua_setfield(L, -2, "Vertical");
+    lua_pushinteger(L, static_cast<int>(RootMotionTranslationMode::Full));
+    lua_setfield(L, -2, "Full");
+    lua_setfield(L, -2, "RootMotionTranslationMode");
+
+    // Bind Enum RootMotionRotationMode
+    lua_newtable(L);
+    lua_pushinteger(L, static_cast<int>(RootMotionRotationMode::None));
+    lua_setfield(L, -2, "None");
+    lua_pushinteger(L, static_cast<int>(RootMotionRotationMode::Yaw));
+    lua_setfield(L, -2, "Yaw");
+    lua_pushinteger(L, static_cast<int>(RootMotionRotationMode::Full));
+    lua_setfield(L, -2, "Full");
+    lua_setfield(L, -2, "RootMotionRotationMode");
 
     LuaBinder<Boids> binder_Boids(L);
     binder_Boids.Begin("Boids")

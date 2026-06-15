@@ -277,8 +277,8 @@ void DrawDebugQuery(JoltDebugRenderer& renderer, const DebugSphereQuery& query)
     {
         renderer.DrawWireSphere(ToJoltRVec3(query.end), query.radius, JPH::Color(color, 100), 1);
         renderer.DrawArrow(ToJoltRVec3(query.start), ToJoltRVec3(query.end), color, 0.08f);
+        DrawHit(renderer, query.hit);
     }
-    DrawHit(renderer, query.hit);
 }
 
 void DrawDebugQuery(JoltDebugRenderer& renderer, const DebugBoxQuery& query)
@@ -290,8 +290,8 @@ void DrawDebugQuery(JoltDebugRenderer& renderer, const DebugBoxQuery& query)
     {
         renderer.DrawWireBox(MakeTransform(query.end, query.rotation), box, JPH::Color(color, 100));
         renderer.DrawArrow(ToJoltRVec3(query.start), ToJoltRVec3(query.end), color, 0.08f);
+        DrawHit(renderer, query.hit);
     }
-    DrawHit(renderer, query.hit);
 }
 
 void DrawDebugQuery(JoltDebugRenderer& renderer, const DebugCapsuleQuery& query)
@@ -302,8 +302,8 @@ void DrawDebugQuery(JoltDebugRenderer& renderer, const DebugCapsuleQuery& query)
     {
         renderer.DrawCapsule(MakeTransform(query.end, query.rotation), query.halfHeight, query.radius, JPH::Color(color, 100), JPH::DebugRenderer::ECastShadow::Off, JPH::DebugRenderer::EDrawMode::Wireframe);
         renderer.DrawArrow(ToJoltRVec3(query.start), ToJoltRVec3(query.end), color, 0.08f);
+        DrawHit(renderer, query.hit);
     }
-    DrawHit(renderer, query.hit);
 }
 } // namespace
 

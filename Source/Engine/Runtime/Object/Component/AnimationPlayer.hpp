@@ -3,6 +3,34 @@
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Runtime/System/Rendering/Animation.hpp"
 
+enum class [[LuaEnum]] RootMotionTranslationMode
+{
+    None = 0,
+    Horizontal = 1,
+    Vertical = 2,
+    Full = 3
+};
+
+enum class [[LuaEnum]] RootMotionRotationMode
+{
+    None = 0,
+    Yaw = 1,
+    Full = 2
+};
+
+struct [[LuaClass]] RootMotionDelta
+{
+    [[LuaProp]] glm::vec3 translation = glm::vec3(0.0f);
+    [[LuaProp]] glm::vec3 localTranslation = glm::vec3(0.0f);
+    [[LuaProp]] glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    [[LuaProp]] glm::quat localRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    [[LuaProp]] float duration = 0.0f;
+    [[LuaProp]] bool hasTranslation = false;
+    [[LuaProp]] bool hasRotation = false;
+
+    [[LuaFn]] bool IsEmpty() const { return !hasTranslation && !hasRotation; }
+};
+
 class [[LuaClass]] AnimationPlayer : public Component
 {
     DECLARE_OBJECT();
@@ -30,10 +58,33 @@ public:
     [[LuaFn]]
     bool SetClip(const std::string& animationName);
     void SetRootMotionEnabled(bool enabled) { this->rootMotion = enabled; }
+    void SetRootMotionRoot(std::string_view rootName);
+    void SetRootMotionTranslationMode(RootMotionTranslationMode mode) { rootMotionTranslationMode = mode; }
+    void SetRootMotionRotationMode(RootMotionRotationMode mode) { rootMotionRotationMode = mode; }
+    [[LuaNamedFn("SetRootMotionEnabled")]] void Lua_SetRootMotionEnabled(bool enabled) { SetRootMotionEnabled(enabled); }
+    [[LuaNamedFn("SetRootMotionRoot")]] void Lua_SetRootMotionRoot(std::string rootName) { SetRootMotionRoot(rootName); }
+    [[LuaNamedFn("SetRootMotionTranslationMode")]] void Lua_SetRootMotionTranslationMode(int mode)
+    {
+        SetRootMotionTranslationMode(static_cast<RootMotionTranslationMode>(mode));
+    }
+    [[LuaNamedFn("SetRootMotionRotationMode")]] void Lua_SetRootMotionRotationMode(int mode)
+    {
+        SetRootMotionRotationMode(static_cast<RootMotionRotationMode>(mode));
+    }
     void SetRoot(std::string_view rootName);
 
     const std::string& GetRootName() { return rootName; }
     bool IsRootMotionEnabled() { return rootMotion; }
+    RootMotionTranslationMode GetRootMotionTranslationMode() const { return rootMotionTranslationMode; }
+    RootMotionRotationMode GetRootMotionRotationMode() const { return rootMotionRotationMode; }
+    [[LuaNamedFn("GetRootMotionTranslationMode")]] int Lua_GetRootMotionTranslationMode() const
+    {
+        return static_cast<int>(rootMotionTranslationMode);
+    }
+    [[LuaNamedFn("GetRootMotionRotationMode")]] int Lua_GetRootMotionRotationMode() const
+    {
+        return static_cast<int>(rootMotionRotationMode);
+    }
     float GetSpeed() const { return speed; }
     float GetBlendClipFactor() const { return blendClipFactor; }
     bool IsPlaying() const { return isPlaying; }
@@ -45,10 +96,14 @@ public:
     Animation* GetAnimation() { return animation; }
     const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
     const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
-    const glm::vec3& GetRootMotionDelta() const { return rootMotionDelta; }
+    const RootMotionDelta& GetRootMotionDelta() const { return rootMotionDelta; }
+    [[LuaFn]] RootMotionDelta PeekRootMotionDelta() const { return rootMotionDelta; }
+    [[LuaFn]] RootMotionDelta ConsumeRootMotionDelta();
     [[LuaFn]] void Play();
     [[LuaFn]] void Stop();
     void TickAnimation();
+    void TickAnimation(float deltaTime);
+    void PrePhysicsAnimationTick() override;
 
 private:
     // ***** Serialized ****** //
@@ -73,12 +128,13 @@ private:
     float blendClipDurationInSeconds = 0;
     float blendClipFactor = 1.0f;
     bool rootMotion = false;
-    int animatedRootGOIndex;
+    int animatedRootGOIndex = -1;
+    RootMotionTranslationMode rootMotionTranslationMode = RootMotionTranslationMode::Horizontal;
+    RootMotionRotationMode rootMotionRotationMode = RootMotionRotationMode::None;
     std::string rootName = "";
     std::string initialActiveClip = "";
     std::string initialBlendClip = "";
-    glm::vec3 rootMotionPreviousPosition = glm::vec3(0);
-    glm::vec3 rootMotionDelta = glm::vec3(0);
+    RootMotionDelta rootMotionDelta;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }
@@ -87,8 +143,16 @@ private:
         float& timePassed,
         float& durationInSeconds,
         float tickPerSecond,
-        float blend
+        float deltaTime,
+        float blend,
+        bool stripRootMotion
     );
+    RootMotionDelta ExtractRootMotionDelta(const Animation::AnimationClip& clip, float fromTime, float deltaTime) const;
+    RootMotionDelta ExtractRootMotionDeltaSegment(const Animation::AnimationClip& clip, float fromTime, float toTime) const;
+    RootMotionDelta BlendRootMotionDelta(const RootMotionDelta& a, const RootMotionDelta& b, float blend) const;
+    void AccumulateRootMotionDelta(RootMotionDelta& target, const RootMotionDelta& delta) const;
+    void FinalizeRootMotionDelta(RootMotionDelta& delta) const;
+    void AdvanceClipTime(float& timePassed, float durationInSeconds, float deltaTime) const;
     bool SetClipInternal(
         const std::string& animationName,
         const Animation::AnimationClip*& clipToSet,
@@ -97,4 +161,5 @@ private:
     );
     bool IsBlendClipMatchWithMainClip();
     void EnableRootMotion();
+    bool HasValidRootMotionRoot() const { return rootMotion && animatedRootGOIndex >= 0; }
 };

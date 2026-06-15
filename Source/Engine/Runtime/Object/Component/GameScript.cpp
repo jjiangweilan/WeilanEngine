@@ -153,6 +153,11 @@ void GameScript::PrePhysicsTick()
     CallLua("PrePhysicsTick");
 }
 
+void GameScript::DebugDraw()
+{
+    CallLua("DebugDraw");
+}
+
 void GameScript::LuaOnStop()
 {
     const auto L = LuaBackend::L;

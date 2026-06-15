@@ -263,6 +263,19 @@ wl.GamepadButtons = {}
 ---@field SDL_NUM_SCANCODES number
 wl.InputScancode = {}
 
+---@class wl.RootMotionTranslationMode
+---@field None number
+---@field Horizontal number
+---@field Vertical number
+---@field Full number
+wl.RootMotionTranslationMode = {}
+
+---@class wl.RootMotionRotationMode
+---@field None number
+---@field Yaw number
+---@field Full number
+wl.RootMotionRotationMode = {}
+
 ---@class wl.Gamepad
 wl.Gamepad = {}
 
@@ -297,6 +310,18 @@ function wl.Input.GetLookAroundY() end
 ---@return boolean
 function wl.Input.Jump() end
 
+---@class wl.Debug
+wl.Debug = {}
+
+---@param from wl.Float3
+---@param to wl.Float3
+---@param color wl.Float4
+function wl.Debug.DrawLine(from, to, color) end
+---@param center wl.Float3
+---@param halfExtents wl.Float3
+---@param color wl.Float4
+function wl.Debug.DrawBox(center, halfExtents, color) end
+
 ---@class wl.PhysicsHit
 ---@field hasHit boolean
 ---@field point wl.Float3
@@ -319,50 +344,63 @@ function wl.PhysicsOverlapResult:GetBody(index) end
 ---@class wl.Physics
 wl.Physics = {}
 
----@param origin any
----@param direction any
+---@param origin wl.Float3
+---@param direction wl.Float3
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.RayCast(origin, direction, maxDistance) end
----@param origin any
+---@param origin wl.Float3
 ---@param radius number
----@param direction any
+---@param direction wl.Float3
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.SphereCast(origin, radius, direction, maxDistance) end
----@param origin any
----@param halfExtents any
+---@param origin wl.Float3
+---@param halfExtents wl.Float3
 ---@param rotation wl.quat &
----@param direction any
+---@param direction wl.Float3
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.BoxCast(origin, halfExtents, rotation, direction, maxDistance) end
----@param origin any
+---@param origin wl.Float3
 ---@param halfHeight number
 ---@param radius number
 ---@param rotation wl.quat &
----@param direction any
+---@param direction wl.Float3
 ---@param maxDistance number
 ---@return wl.PhysicsHit
 function wl.Physics.CapsuleCast(origin, halfHeight, radius, rotation, direction, maxDistance) end
----@param center any
+---@param center wl.Float3
 ---@param radius number
 ---@return boolean
 function wl.Physics.CheckSphere(center, radius) end
----@param center any
----@param halfExtents any
+---@param center wl.Float3
+---@param halfExtents wl.Float3
 ---@param rotation wl.quat &
 ---@return boolean
 function wl.Physics.CheckBox(center, halfExtents, rotation) end
----@param center any
+---@param center wl.Float3
 ---@param radius number
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapSphere(center, radius) end
----@param center any
----@param halfExtents any
+---@param center wl.Float3
+---@param halfExtents wl.Float3
 ---@param rotation wl.quat &
 ---@return wl.PhysicsOverlapResult
 function wl.Physics.OverlapBox(center, halfExtents, rotation) end
+
+---@class wl.RootMotionDelta
+---@field translation wl.Float3
+---@field localTranslation wl.Float3
+---@field rotation wl.Quaternion
+---@field localRotation wl.Quaternion
+---@field duration number
+---@field hasTranslation boolean
+---@field hasRotation boolean
+wl.RootMotionDelta = {}
+
+---@return boolean
+function wl.RootMotionDelta:IsEmpty() end
 
 ---@class wl.AnimationPlayer
 wl.AnimationPlayer = {}
@@ -370,6 +408,22 @@ wl.AnimationPlayer = {}
 ---@param animationName string
 ---@return boolean
 function wl.AnimationPlayer:SetClip(animationName) end
+---@param enabled boolean
+function wl.AnimationPlayer:SetRootMotionEnabled(enabled) end
+---@param rootName string
+function wl.AnimationPlayer:SetRootMotionRoot(rootName) end
+---@param mode number
+function wl.AnimationPlayer:SetRootMotionTranslationMode(mode) end
+---@param mode number
+function wl.AnimationPlayer:SetRootMotionRotationMode(mode) end
+---@return number
+function wl.AnimationPlayer:GetRootMotionTranslationMode() end
+---@return number
+function wl.AnimationPlayer:GetRootMotionRotationMode() end
+---@return wl.RootMotionDelta
+function wl.AnimationPlayer:PeekRootMotionDelta() end
+---@return wl.RootMotionDelta
+function wl.AnimationPlayer:ConsumeRootMotionDelta() end
 function wl.AnimationPlayer:Play() end
 function wl.AnimationPlayer:Stop() end
 
@@ -414,9 +468,9 @@ function wl.GameObject:SetEnable(isEnabled) end
 function wl.GameObject:GetPosition() end
 ---@return wl.Float3
 function wl.GameObject:GetLocalPosition() end
----@param position any
+---@param position wl.Float3
 function wl.GameObject:SetPosition(position) end
----@param localPosition any
+---@param localPosition wl.Float3
 function wl.GameObject:SetLocalPosition(localPosition) end
 ---@return wl.Quaternion
 function wl.GameObject:GetRotation() end
@@ -428,17 +482,17 @@ function wl.GameObject:SetRotation(rotation) end
 function wl.GameObject:SetLocalRotation(rotation) end
 ---@return wl.Float3
 function wl.GameObject:GetEuluerAngles() end
----@param eulerAngles any
+---@param eulerAngles wl.Float3
 function wl.GameObject:SetEulerAngles(eulerAngles) end
----@param to any
+---@param to wl.Float3
 function wl.GameObject:LookAt(to) end
 ---@return wl.Float3
 function wl.GameObject:GetScale() end
 ---@return wl.Float3
 function wl.GameObject:GetLocalScale() end
----@param scale any
+---@param scale wl.Float3
 function wl.GameObject:SetScale(scale) end
----@param scale any
+---@param scale wl.Float3
 function wl.GameObject:SetLocalScale(scale) end
 ---@return wl.Float3
 function wl.GameObject:GetForward() end
@@ -737,7 +791,6 @@ wl.Component = {}
 
 ---@return string
 function wl.Component:GetName() end
-
 ---@return wl.GameObject*
 function wl.Component:GetGameObject() end
 

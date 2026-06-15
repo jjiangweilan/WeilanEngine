@@ -30,6 +30,7 @@ public:
     const std::vector<ObjPtr<GameObject>>& GetRootObjects();
 
     void Tick();
+    void PrePhysicsAnimationTick();
     void PrePhysicsTick();
     void OnLoaded() override;
 
@@ -107,6 +108,7 @@ protected:
     Camera* camera = nullptr;
 
     void TickGameObject(GameObject* obj);
+    void PrePhysicsAnimationTickGameObject(GameObject* obj);
     void PrePhysicsTickGameObject(GameObject* obj);
     void DestroyGameObjectNestedCall(GameObject* obj);
 

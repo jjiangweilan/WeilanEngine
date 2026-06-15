@@ -25,6 +25,7 @@ public:
     void LuaOnStop();
     void Tick() override;
     void PrePhysicsTick() override;
+    void DebugDraw() override;
     void OnStart() override;
     void OnDestroy() override;
 

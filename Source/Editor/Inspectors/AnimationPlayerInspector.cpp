@@ -108,22 +108,38 @@ private:
 
         if (ImGui::InputText("Root", rootNameBuffer, sizeof(rootNameBuffer)))
         {
-            target->SetRoot(rootNameBuffer);
-            if (rootNameBuffer[0] != '\0')
-            {
-                target->SetRootMotionEnabled(true);
-            }
-            else
-            {
-                target->SetRootMotionEnabled(false);
-            }
+            target->SetRootMotionRoot(rootNameBuffer);
         }
+
+        const char* translationModeLabels[] = {"None", "Horizontal", "Vertical", "Full"};
+        int translationMode = static_cast<int>(target->GetRootMotionTranslationMode());
+        if (ImGui::Combo("Translation", &translationMode, translationModeLabels, IM_ARRAYSIZE(translationModeLabels)))
+            target->SetRootMotionTranslationMode(static_cast<RootMotionTranslationMode>(translationMode));
+
+        const char* rotationModeLabels[] = {"None", "Yaw", "Full"};
+        int rotationMode = static_cast<int>(target->GetRootMotionRotationMode());
+        if (ImGui::Combo("Rotation", &rotationMode, rotationModeLabels, IM_ARRAYSIZE(rotationModeLabels)))
+            target->SetRootMotionRotationMode(static_cast<RootMotionRotationMode>(rotationMode));
 
         ImGui::Text("Status: %s", target->IsRootMotionEnabled() ? "Enabled" : "Disabled");
         if (rootNameBuffer[0] == '\0')
         {
             ImGui::TextDisabled("Set a root GameObject name to enable root motion.");
         }
+
+        const RootMotionDelta& delta = target->GetRootMotionDelta();
+        ImGui::Text(
+            "Unconsumed Translation: %.3f, %.3f, %.3f",
+            delta.translation.x,
+            delta.translation.y,
+            delta.translation.z
+        );
+        ImGui::Text(
+            "Unconsumed Local Translation: %.3f, %.3f, %.3f",
+            delta.localTranslation.x,
+            delta.localTranslation.y,
+            delta.localTranslation.z
+        );
     }
 
     void DrawClipSection(Animation* anim)

@@ -111,6 +111,7 @@ public:
     [[LuaFn]] Scene* GetScene();
     void Tick();
     void IdleTick();
+    void PrePhysicsAnimationTick();
     void PrePhysicsTick();
     void DebugDraw();
 

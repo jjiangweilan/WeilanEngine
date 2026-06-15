@@ -18,6 +18,7 @@ public:
     virtual ~Component();
     virtual void Tick() {}
     virtual void IdleTick() {}
+    virtual void PrePhysicsAnimationTick() {}
     virtual void PrePhysicsTick() {};
     virtual void DebugDraw() {};
 

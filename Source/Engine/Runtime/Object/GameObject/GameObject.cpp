@@ -120,6 +120,15 @@ void GameObject::IdleTick()
     }
 }
 
+void GameObject::PrePhysicsAnimationTick()
+{
+    for (auto& comp : allComponents)
+    {
+        if (comp && comp->IsEnabled())
+            comp->PrePhysicsAnimationTick();
+    }
+}
+
 void GameObject::PrePhysicsTick()
 {
     for (auto& comp : allComponents)
