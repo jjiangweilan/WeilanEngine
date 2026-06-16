@@ -22,6 +22,23 @@ bool IsMetaFile(const std::filesystem::path& path)
 {
     return path.extension() == ".meta";
 }
+
+void ReimportFolderRecursively(const std::filesystem::path& folder)
+{
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(folder))
+    {
+        if (!entry.is_regular_file() || IsMetaFile(entry.path()))
+        {
+            continue;
+        }
+
+        AssetPath assetPath(entry.path());
+        if (AssetDatabase::Singleton()->CanImport(assetPath))
+        {
+            AssetDatabase::Singleton()->Reimport(assetPath);
+        }
+    }
+}
 } // namespace
 
 AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
@@ -183,6 +200,16 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                 if (ImGui::MenuItem("Create Folder"))
                 {
                     AssetDatabase::Singleton()->CreateFolderAtPath(entry.path());
+                }
+
+                if (ImGui::MenuItem("Reimport Folder"))
+                {
+                    endEvents.Register(
+                        [folder = entry.path()]()
+                        {
+                            ReimportFolderRecursively(folder);
+                        }
+                    );
                 }
 
                 if (ImGui::MenuItem("Delete Folder"))
@@ -630,6 +657,16 @@ void AssetBrowser::ShowAssetIconItem(
             if (ImGui::MenuItem("Create Folder"))
             {
                 AssetDatabase::Singleton()->CreateFolderAtPath(entry.path());
+            }
+
+            if (ImGui::MenuItem("Reimport Folder"))
+            {
+                endEvents.Register(
+                    [folder = entry.path()]()
+                    {
+                        ReimportFolderRecursively(folder);
+                    }
+                );
             }
 
             if (ImGui::MenuItem("Delete Folder"))

@@ -442,12 +442,17 @@ Asset* AssetDatabase::LoadAsset(const AssetPath& path, bool forceReload)
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
     bool loadNeeded = asset == nullptr || forceReload;
-    bool isReload = asset == nullptr;
 
     // no import and load process taken, this asset is ready to be used
     if (!loadNeeded)
     {
         return asset;
+    }
+
+    if (forceReload && asset != nullptr)
+    {
+        assetData->UnloadAsset();
+        asset = nullptr;
     }
 
     loader->Load();
