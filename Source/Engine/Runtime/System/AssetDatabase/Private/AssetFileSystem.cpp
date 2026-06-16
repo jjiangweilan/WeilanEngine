@@ -17,7 +17,6 @@ void AssetFileSystem::Init(const std::filesystem::path& projectRoot)
 {
     this->projectRoot = projectRoot;
     this->assetDirectory = projectRoot / "Assets";
-    this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
 }
 
 Asset* AssetFileSystem::Add(AssetData* assetData)

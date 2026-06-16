@@ -16,7 +16,6 @@ class AssetDatabase
     static AssetDatabase*& SingletonReference();
     AbsolutePath projectRoot;
     AbsolutePath assetDirectory;
-    AbsolutePath assetDatabaseDirectory;
 
     ImportDatabase importDatabase;
     AssetFileSystem assetFileSystem;
@@ -38,7 +37,6 @@ public:
     const AbsolutePath& GetAssetDirectory() const;
     const std::vector<AssetData*>& GetInternalAssets() const;
     const AbsolutePath& GetProjectRoot() const;
-    const AbsolutePath& GetProjectAssetDatabaseDirectory() const;
     const std::vector<std::unique_ptr<AssetData>>& GetAssetData();
 
     void ReloadScripts();

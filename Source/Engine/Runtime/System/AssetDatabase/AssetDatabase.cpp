@@ -50,7 +50,6 @@ void AssetDatabase::Init(const AbsolutePath& projectRoot)
     EngineConfig::SetProjectRoot(projectRoot);
     this->projectRoot = projectRoot;
     this->assetDirectory = projectRoot / "Assets";
-    this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
 
     assetFileSystem.Init(projectRoot);
     importDatabase.Init(projectRoot / "ImportDatabase");
@@ -59,11 +58,6 @@ void AssetDatabase::Init(const AbsolutePath& projectRoot)
     if (!std::filesystem::exists(assetDirectory))
     {
         std::filesystem::create_directory(assetDirectory);
-    }
-
-    if (!std::filesystem::exists(assetDatabaseDirectory))
-    {
-        std::filesystem::create_directory(assetDatabaseDirectory);
     }
 
     if (!std::filesystem::exists(projectRoot / "ImportDatabase"))
@@ -710,11 +704,6 @@ const std::vector<AssetData*>& AssetDatabase::GetInternalAssets() const
 const AbsolutePath& AssetDatabase::GetProjectRoot() const
 {
     return projectRoot;
-}
-
-const AbsolutePath& AssetDatabase::GetProjectAssetDatabaseDirectory() const
-{
-    return assetDatabaseDirectory;
 }
 
 AssetData* AssetDatabase::AddAssetData(std::unique_ptr<AssetData>&& newAssetData)

@@ -12,7 +12,6 @@ class AssetFileSystem
 
     std::filesystem::path projectRoot;
     std::filesystem::path assetDirectory;
-    std::filesystem::path assetDatabaseDirectory;
 
 public:
     void Init(const std::filesystem::path& projectRoot);
@@ -36,5 +35,4 @@ private:
 
     const std::filesystem::path& GetAssetDirectory() const { return assetDirectory; }
     const std::filesystem::path& GetProjectRoot() const { return projectRoot; }
-    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const { return assetDatabaseDirectory; }
 };
