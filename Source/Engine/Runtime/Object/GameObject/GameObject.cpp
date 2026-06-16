@@ -916,10 +916,10 @@ void GameObject::LookAt(const float3& to)
         up = float3(1, 0, 0);
     }
 
-    float3 right = glm::normalize(glm::cross(forward, up));
-    up = glm::cross(right, forward);
+    float3 right = glm::normalize(glm::cross(up, forward));
+    up = glm::cross(forward, right);
 
-    float3x3 rotationMatrix = float3x3(right, up, -forward);
+    float3x3 rotationMatrix = float3x3(right, up, forward);
     glm::quat newRotation = glm::quat_cast(rotationMatrix);
 
     SetRotation(newRotation);

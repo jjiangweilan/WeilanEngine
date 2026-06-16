@@ -14,6 +14,7 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     AnimationPlayer,
     TYPE_REFLECTION_MEM(AnimationPlayer, animation),
     TYPE_REFLECTION_MEM(AnimationPlayer, speed),
+    TYPE_REFLECTION_MEM(AnimationPlayer, autoPlay),
     TYPE_REFLECTION_MEM(AnimationPlayer, rootName)
 );
 
@@ -476,6 +477,7 @@ void AnimationPlayer::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("animation", animation);
     s->Serialize("speed", speed);
+    s->Serialize("autoPlay", autoPlay);
     s->Serialize("rootName", rootName);
     s->Serialize("rootMotionTranslationMode", static_cast<int32_t>(rootMotionTranslationMode));
     s->Serialize("rootMotionRotationMode", static_cast<int32_t>(rootMotionRotationMode));
@@ -487,6 +489,7 @@ void AnimationPlayer::Deserialize(Serializer* s)
     Component::Deserialize(s);
     s->Deserialize("animation", animation);
     s->Deserialize("speed", speed);
+    s->Deserialize("autoPlay", autoPlay);
     s->Deserialize("rootName", rootName);
     int32_t translationMode = static_cast<int32_t>(rootMotionTranslationMode);
     int32_t rotationMode = static_cast<int32_t>(rootMotionRotationMode);
@@ -635,7 +638,7 @@ void AnimationPlayer::OnStart()
         EnableRootMotion();
     }
 
-    if (!initialActiveClip.empty())
+    if (autoPlay && !initialActiveClip.empty())
     {
         Play();
     }

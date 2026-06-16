@@ -53,6 +53,7 @@ public:
 
 public:
     void SetSpeed(float speed) { this->speed = speed; }
+    void SetAutoPlay(bool autoPlay) { this->autoPlay = autoPlay; }
     void SetBlendClipFactor(float blendClipFactor) { this->blendClipFactor = blendClipFactor; }
     bool SetBlendClip(const std::string& animationName);
     [[LuaFn]]
@@ -86,6 +87,7 @@ public:
         return static_cast<int>(rootMotionRotationMode);
     }
     float GetSpeed() const { return speed; }
+    bool IsAutoPlay() const { return autoPlay; }
     float GetBlendClipFactor() const { return blendClipFactor; }
     bool IsPlaying() const { return isPlaying; }
     float GetMainClipTimePassed() const { return mainClipTimePassed; }
@@ -109,6 +111,7 @@ private:
     // ***** Serialized ****** //
     ObjPtr<Animation> animation = nullptr;
     float speed = 1.0f;
+    bool autoPlay = true;
 
     // ***** Runtime ******//
     bool isPlaying = false;
@@ -137,7 +140,17 @@ private:
     RootMotionDelta rootMotionDelta;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
-    void Copy(const AnimationPlayer& other) { animation = other.animation; }
+    void Copy(const AnimationPlayer& other)
+    {
+        animation = other.animation;
+        speed = other.speed;
+        autoPlay = other.autoPlay;
+        rootName = other.rootName;
+        initialActiveClip = other.initialActiveClip;
+        initialBlendClip = other.initialBlendClip;
+        rootMotionTranslationMode = other.rootMotionTranslationMode;
+        rootMotionRotationMode = other.rootMotionRotationMode;
+    }
     void UpdateAnimatedGameObject(
         const Animation::AnimationClip& mainClip,
         float& timePassed,

@@ -76,6 +76,12 @@ private:
             target->SetSpeed(speed);
         }
 
+        bool autoPlay = target->IsAutoPlay();
+        if (ImGui::Checkbox("Auto Play", &autoPlay))
+        {
+            target->SetAutoPlay(autoPlay);
+        }
+
         const Animation::AnimationClip* activeClip = target->GetActiveClip();
         ImGui::Text("Status: %s", target->IsPlaying() ? "Playing" : "Stopped");
         ImGui::Text("Active Clip: %s", activeClip != nullptr ? activeClip->name.c_str() : "None");

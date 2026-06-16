@@ -49,7 +49,8 @@ public:
     void SetName(std::string_view name) override
     {
         Asset::SetName(name);
-        image->SetName(name);
+        if (image)
+            image->SetName(name);
     }
     Gfx::Image* GetGfxImage()
     {

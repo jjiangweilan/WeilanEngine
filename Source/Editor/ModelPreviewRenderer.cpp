@@ -253,7 +253,7 @@ void ModelPreviewRenderer::SetupPreviewScene(Scene& scene, Model& model, Preview
     if (entry.light != nullptr)
     {
         glm::vec3 lightDirection = glm::normalize(glm::vec3(-0.6f, -0.8f, -0.4f));
-        entry.light->LookAt(lightDirection);
+        entry.light->LookAt(-lightDirection);
     }
 }
 
@@ -273,7 +273,7 @@ void ModelPreviewRenderer::SetupPreviewScene(Scene& scene, Prefab& prefab, Previ
     if (entry.light != nullptr)
     {
         glm::vec3 lightDirection = glm::normalize(glm::vec3(-0.6f, -0.8f, -0.4f));
-        entry.light->LookAt(lightDirection);
+        entry.light->LookAt(-lightDirection);
     }
 }
 
@@ -314,7 +314,7 @@ void ModelPreviewRenderer::FocusCamera(Camera& camera, Scene& scene)
     glm::vec3 previewDirection = glm::normalize(glm::vec3(0.55f, 0.35f, 0.75f));
     GameObject* cameraGO = camera.GetGameObject();
     cameraGO->SetPosition(center + previewDirection);
-    cameraGO->LookAt(center - cameraGO->GetPosition());
+    camera.LookAt(center);
 
     glm::vec3 minAABBV = {
         std::numeric_limits<float>::max(),
