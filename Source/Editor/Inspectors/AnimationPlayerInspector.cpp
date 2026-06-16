@@ -20,7 +20,7 @@ public:
 
     void DrawInspector(GameEditor& editor) override
     {
-        Animation* anim = target->GetAnimation();
+        AnimationSet* anim = target->GetAnimationSet();
 
         DrawAnimationSection(anim);
         DrawPlaybackSection(anim);
@@ -46,27 +46,27 @@ private:
         rootNameBuffer[copySize] = '\0';
     }
 
-    void DrawAnimationSection(Animation*& anim)
+    void DrawAnimationSection(AnimationSet*& anim)
     {
-        EditorGUI::SeparatorTextLabeled("Animation");
-        if (EditorGUI::ObjectField("Animation", anim))
+        EditorGUI::SeparatorTextLabeled("Animation Set");
+        if (EditorGUI::ObjectField("Animation Set", anim))
         {
             target->Stop();
-            target->SetAnimation(anim);
+            target->SetAnimationSet(anim);
             SyncRootNameBuffer();
         }
 
         if (anim == nullptr)
         {
-            ImGui::TextDisabled("Drop an Animation asset here to configure clips.");
+            ImGui::TextDisabled("Drop an AnimationSet asset here to configure clips.");
             return;
         }
 
-        const auto& clips = anim->GetAnimationClips();
+        const auto& clips = anim->GetClips();
         EditorGUI::TextFormatted("Clips", "%zu", clips.size());
     }
 
-    void DrawPlaybackSection(Animation* anim)
+    void DrawPlaybackSection(AnimationSet* anim)
     {
         EditorGUI::SeparatorTextLabeled("Playback");
 
@@ -82,9 +82,9 @@ private:
             target->SetAutoPlay(autoPlay);
         }
 
-        const Animation::AnimationClip* activeClip = target->GetActiveClip();
+        const AnimationClip* activeClip = target->GetActiveClip();
         ImGui::Text("Status: %s", target->IsPlaying() ? "Playing" : "Stopped");
-        ImGui::Text("Active Clip: %s", activeClip != nullptr ? activeClip->name.c_str() : "None");
+        ImGui::Text("Active Clip: %s", activeClip != nullptr ? activeClip->GetName().c_str() : "None");
 
         float duration = target->GetMainClipDurationInSeconds();
         if (activeClip != nullptr && duration > 0.0f)
@@ -148,20 +148,20 @@ private:
         );
     }
 
-    void DrawClipSection(Animation* anim)
+    void DrawClipSection(AnimationSet* anim)
     {
         EditorGUI::SeparatorTextLabeled("Clips");
 
         if (anim == nullptr)
         {
-            ImGui::TextDisabled("No animation assigned.");
+            ImGui::TextDisabled("No animation set assigned.");
             return;
         }
 
-        const auto& clips = anim->GetAnimationClips();
+        const auto& clips = anim->GetClips();
         if (clips.empty())
         {
-            ImGui::TextDisabled("Animation has no clips.");
+            ImGui::TextDisabled("AnimationSet has no clips.");
             return;
         }
 
@@ -185,7 +185,9 @@ private:
         int id = 0;
         for (const auto& clipPair : clips)
         {
-            const Animation::AnimationClip* clip = clipPair.second.get();
+            const AnimationClip* clip = clipPair;
+            if (clip == nullptr)
+                continue;
             bool active = target->GetActiveClip() == clip;
             bool blend = target->GetBlendClip() == clip;
 
@@ -195,7 +197,7 @@ private:
             ImGui::TableSetColumnIndex(0);
             if (active || blend)
                 ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(active ? ImGuiCol_Header : ImGuiCol_HeaderHovered));
-            ImGui::TextUnformatted(clip->name.c_str());
+            ImGui::TextUnformatted(clip->GetName().c_str());
 
             ImGui::TableSetColumnIndex(1);
             ImGui::Text("%.2fs", GetClipDurationSeconds(*clip));
@@ -213,7 +215,7 @@ private:
             if (active)
                 ImGui::BeginDisabled();
             if (ImGui::SmallButton("Set Active"))
-                target->SetClip(clip->name);
+                target->SetClip(clip->GetName());
             if (active)
                 ImGui::EndDisabled();
 
@@ -221,7 +223,7 @@ private:
             if (blend)
                 ImGui::BeginDisabled();
             if (ImGui::SmallButton("Set Blend"))
-                target->SetBlendClip(clip->name);
+                target->SetBlendClip(clip->GetName());
             if (blend)
                 ImGui::EndDisabled();
 
@@ -231,7 +233,7 @@ private:
         ImGui::EndTable();
     }
 
-    float GetClipDurationSeconds(const Animation::AnimationClip& clip) const
+    float GetClipDurationSeconds(const AnimationClip& clip) const
     {
         if (clip.tickPerSecond <= 0.0f)
             return 0.0f;

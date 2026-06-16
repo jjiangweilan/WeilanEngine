@@ -9,7 +9,7 @@
 namespace
 {
 constexpr uint32_t MeshMagic = 0x4D534842;
-constexpr uint32_t AnimationMagic = 0x414E494D;
+constexpr uint32_t AnimationClipMagic = 0x41434C50;
 
 struct BlobHeader
 {
@@ -130,20 +130,19 @@ TEST(ModelArtifactTest, RejectsOverflowingAnimationKeyCount)
         {"scalingsOffset", 0},
         {"scalingsCount", 0},
     };
-    nlohmann::json clip = {
+    nlohmann::json header = {
         {"name", "clip"},
         {"tickPerSecond", 1.0f},
         {"duration", 1.0f},
         {"channels", nlohmann::json::array({channel})},
     };
-    nlohmann::json header = {{"clips", nlohmann::json::array({clip})}};
-    auto blob = MakeBlob(AnimationMagic, header.dump());
+    auto blob = MakeBlob(AnimationClipMagic, header.dump());
 
-    EXPECT_EQ(ModelArtifact::ReadAnimationBlob(blob), nullptr);
+    EXPECT_EQ(ModelArtifact::ReadAnimationClipBlob(blob), nullptr);
 }
 
-TEST(ModelArtifactTest, RejectsInvalidAnimationJson)
+TEST(ModelArtifactTest, RejectsInvalidAnimationClipJson)
 {
-    auto blob = MakeBlob(AnimationMagic, "[]");
-    EXPECT_EQ(ModelArtifact::ReadAnimationBlob(blob), nullptr);
+    auto blob = MakeBlob(AnimationClipMagic, "[]");
+    EXPECT_EQ(ModelArtifact::ReadAnimationClipBlob(blob), nullptr);
 }

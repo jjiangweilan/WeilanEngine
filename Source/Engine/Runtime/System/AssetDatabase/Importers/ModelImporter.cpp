@@ -25,7 +25,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 7;
+constexpr uint64_t ModelImporterVersion = 8;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
@@ -193,7 +193,8 @@ struct ModelImportContext
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> embeddedTextures;
     std::vector<std::unique_ptr<Material>> materials;
-    std::vector<std::unique_ptr<Animation>> animations;
+    std::vector<std::unique_ptr<AnimationClip>> animationClips;
+    std::vector<std::unique_ptr<AnimationSet>> animationSets;
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<ObjPtr<GameObject>> roots;
     std::vector<ImportDatabase::ArtifactRecord> artifacts;
@@ -616,60 +617,89 @@ void ProcessMaterials(ModelImportContext& context)
 
 void ProcessAnimations(ModelImportContext& context)
 {
+    if (context.scene->mNumAnimations == 0)
+    {
+        return;
+    }
+
+    auto animationSet = std::make_unique<AnimationSet>();
+    std::string animationSetName = context.absoluteAssetPath->stem().string();
+    if (animationSetName.empty())
+    {
+        animationSetName = "animations";
+    }
+    animationSet->SetName(animationSetName);
+
     for (size_t i = 0; i < context.scene->mNumAnimations; i++)
     {
-        aiAnimation* clip = context.scene->mAnimations[i];
-        std::string animationName = clip->mName.C_Str();
-        if (animationName.empty())
+        aiAnimation* aiClip = context.scene->mAnimations[i];
+        std::string clipName = aiClip->mName.C_Str();
+        if (clipName.empty())
         {
-            animationName = "animation_" + std::to_string(i);
+            clipName = "animation_" + std::to_string(i);
         }
 
-        std::vector<Animation::Channel> channels;
-        for (size_t ni = 0; ni < clip->mNumChannels; ni++)
+        std::vector<AnimationClip::Channel> channels;
+        for (size_t ni = 0; ni < aiClip->mNumChannels; ni++)
         {
-            auto node = context.scene->mRootNode->FindNode(clip->mChannels[ni]->mNodeName);
+            auto node = context.scene->mRootNode->FindNode(aiClip->mChannels[ni]->mNodeName);
             if (node == nullptr)
             {
                 continue;
             }
 
-            Animation::Channel channel;
-            channel.nodeName = clip->mChannels[ni]->mNodeName.C_Str();
-            for (size_t ri = 0; ri < clip->mChannels[ni]->mNumPositionKeys; ri++)
+            AnimationClip::Channel channel;
+            channel.nodeName = aiClip->mChannels[ni]->mNodeName.C_Str();
+            for (size_t ri = 0; ri < aiClip->mChannels[ni]->mNumPositionKeys; ri++)
             {
-                auto& v = clip->mChannels[ni]->mPositionKeys[ri];
+                auto& v = aiClip->mChannels[ni]->mPositionKeys[ri];
                 channel.positions.emplace_back(v.mTime, glm::vec3(v.mValue.x, v.mValue.y, v.mValue.z));
             }
-            for (size_t ri = 0; ri < clip->mChannels[ni]->mNumRotationKeys; ri++)
+            for (size_t ri = 0; ri < aiClip->mChannels[ni]->mNumRotationKeys; ri++)
             {
-                auto& v = clip->mChannels[ni]->mRotationKeys[ri];
+                auto& v = aiClip->mChannels[ni]->mRotationKeys[ri];
                 channel.rotations.emplace_back(v.mTime, glm::quat(v.mValue.w, v.mValue.x, v.mValue.y, v.mValue.z));
             }
-            for (size_t ri = 0; ri < clip->mChannels[ni]->mNumScalingKeys; ri++)
+            for (size_t ri = 0; ri < aiClip->mChannels[ni]->mNumScalingKeys; ri++)
             {
-                auto& v = clip->mChannels[ni]->mScalingKeys[ri];
+                auto& v = aiClip->mChannels[ni]->mScalingKeys[ri];
                 channel.scalings.emplace_back(v.mTime, glm::vec3(v.mValue.x, v.mValue.y, v.mValue.z));
             }
             channels.push_back(std::move(channel));
         }
 
-        auto animation = std::make_unique<Animation>();
-        animation->SetName(animationName);
-        animation->AddClip(animationName, static_cast<float>(clip->mTicksPerSecond), static_cast<float>(clip->mDuration), channels);
+        auto clip = std::make_unique<AnimationClip>();
+        clip->SetName(clipName);
+        clip->tickPerSecond = static_cast<float>(aiClip->mTicksPerSecond);
+        clip->duration = static_cast<float>(aiClip->mDuration);
+        clip->channels = std::move(channels);
 
         UUID artifactUUID = context.GetSubAssetUUID(
-            animation->GetName(),
-            Animation::StaticGetTypeName(),
-            AssetArtifacts::Kind::Animation,
-            animationName
+            clip->GetName(),
+            AnimationClip::StaticGetTypeName(),
+            AssetArtifacts::Kind::AnimationClip,
+            clipName
         );
-        animation->SetUUID(artifactUUID);
-        auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Animation);
-        ModelArtifact::WriteAnimationBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *animation);
-        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Animation)), animationName, relativePath, false, fmt::format("animation/{}", animationName)});
-        context.animations.push_back(std::move(animation));
+        clip->SetUUID(artifactUUID);
+        animationSet->AddClip(clip.get());
+
+        auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::AnimationClip);
+        ModelArtifact::WriteAnimationClipBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *clip);
+        context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::AnimationClip)), clipName, relativePath, false, fmt::format("animationClip/{}", clipName)});
+        context.animationClips.push_back(std::move(clip));
     }
+
+    UUID artifactUUID = context.GetSubAssetUUID(
+        animationSet->GetName(),
+        AnimationSet::StaticGetTypeName(),
+        AssetArtifacts::Kind::AnimationSet,
+        "main"
+    );
+    animationSet->SetUUID(artifactUUID);
+    auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::AnimationSet);
+    ModelArtifact::WriteAnimationSetBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *animationSet);
+    context.artifacts.push_back({artifactUUID, context.sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::AnimationSet)), animationSet->GetName(), relativePath, false, "animationSet/main"});
+    context.animationSets.push_back(std::move(animationSet));
 }
 
 GameObject* ProcessNode(ModelImportContext& context, aiNode* node, GameObject* parent)
@@ -715,10 +745,15 @@ void ProcessModelGraph(ModelImportContext& context)
     GameObject* root = ProcessNode(context, context.scene->mRootNode, nullptr);
     context.roots.push_back(root);
 
-    for (auto& animation : context.animations)
+    for (auto& animationSet : context.animationSets)
     {
         auto animationPlayer = root->AddComponent<AnimationPlayer>();
-        animationPlayer->SetAnimation(animation.get());
+        animationPlayer->SetAnimationSet(animationSet.get());
+        const auto& clips = animationSet->GetClips();
+        if (!clips.empty() && clips.front())
+        {
+            animationPlayer->SetClip(clips.front()->GetName());
+        }
     }
 
     UUID artifactUUID = context.sourceAssetUUID;

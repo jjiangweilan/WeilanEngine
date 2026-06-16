@@ -109,13 +109,13 @@ public:
         }
         ImGui::Unindent();
 
-        EditorGUI::SeparatorTextLabeled("Animations");
+        EditorGUI::SeparatorTextLabeled("Animation Sets");
         ImGui::Indent();
-        for (auto& animation : target->GetAnimations())
+        for (auto& animationSet : target->GetAnimationSets())
         {
-            Animation* anim = animation.get();
+            AnimationSet* anim = animationSet.get();
 
-            const char* animName = "NoName Animation";
+            const char* animName = "NoName AnimationSet";
             if (!anim->GetName().empty())
             {
                 animName = anim->GetName().c_str();
@@ -125,6 +125,25 @@ public:
                 EditorState::SelectObject(anim);
             }
             EditorGUI::DragDropSource(anim->GetName().c_str(), anim);
+        }
+        ImGui::Unindent();
+
+        EditorGUI::SeparatorTextLabeled("Animation Clips");
+        ImGui::Indent();
+        for (auto& animationClip : target->GetAnimationClips())
+        {
+            AnimationClip* clip = animationClip.get();
+
+            const char* clipName = "NoName AnimationClip";
+            if (!clip->GetName().empty())
+            {
+                clipName = clip->GetName().c_str();
+            }
+            if (ImGui::Button(clipName))
+            {
+                EditorState::SelectObject(clip);
+            }
+            EditorGUI::DragDropSource(clip->GetName().c_str(), clip);
         }
         ImGui::Unindent();
     }

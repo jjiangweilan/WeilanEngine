@@ -22,7 +22,8 @@ void ModelLoader::Load()
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
-    std::vector<std::unique_ptr<Animation>> animations;
+    std::vector<std::unique_ptr<AnimationClip>> animationClips;
+    std::vector<std::unique_ptr<AnimationSet>> animationSets;
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<ObjPtr<GameObject>> roots;
 
@@ -55,17 +56,36 @@ void ModelLoader::Load()
         meshes.push_back(std::move(mesh));
     }
 
-    for (const auto& record : importDatabase->ListArtifacts(sourceAssetUUID, AssetArtifacts::Kind::Animation))
+    for (const auto& record : importDatabase->ListArtifacts(sourceAssetUUID, AssetArtifacts::Kind::AnimationClip))
     {
-        auto animation = ModelArtifact::ReadAnimationBlob(importDatabase->ReadArtifactFile(record.relativePath));
-        if (animation == nullptr)
+        auto clip = ModelArtifact::ReadAnimationClipBlob(importDatabase->ReadArtifactFile(record.relativePath));
+        if (clip == nullptr)
         {
             continue;
         }
 
-        animation->SetUUID(record.artifactUUID);
-        animation->SetName(record.name);
-        animations.push_back(std::move(animation));
+        clip->SetUUID(record.artifactUUID);
+        if (!record.name.empty())
+        {
+            clip->SetName(record.name);
+        }
+        animationClips.push_back(std::move(clip));
+    }
+
+    for (const auto& record : importDatabase->ListArtifacts(sourceAssetUUID, AssetArtifacts::Kind::AnimationSet))
+    {
+        auto animationSet = ModelArtifact::ReadAnimationSetBlob(importDatabase->ReadArtifactFile(record.relativePath));
+        if (animationSet == nullptr)
+        {
+            continue;
+        }
+
+        animationSet->SetUUID(record.artifactUUID);
+        if (!record.name.empty())
+        {
+            animationSet->SetName(record.name);
+        }
+        animationSets.push_back(std::move(animationSet));
     }
 
     for (const auto& record : importDatabase->ListArtifacts(sourceAssetUUID, AssetArtifacts::Kind::Material))
@@ -116,7 +136,8 @@ void ModelLoader::Load()
         std::move(meshes),
         std::move(textures),
         std::move(materials),
-        std::move(animations)
+        std::move(animationClips),
+        std::move(animationSets)
     );
 
     asset = std::move(model);

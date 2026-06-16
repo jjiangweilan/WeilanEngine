@@ -3,7 +3,6 @@
 #include "Component.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
-#include "Engine/Runtime/System/Rendering/Animation.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 #include "Engine/Runtime/System/SceneManager/BVHScene.hpp"

@@ -13,7 +13,8 @@ enum class Kind
     Mesh,
     Texture,
     Material,
-    Animation,
+    AnimationClip,
+    AnimationSet,
 };
 
 struct Type
@@ -27,7 +28,8 @@ inline constexpr Type Model{Kind::Model, "model", ".model"};
 inline constexpr Type Mesh{Kind::Mesh, "mesh", ".meshblob"};
 inline constexpr Type Texture{Kind::Texture, "texture", ".ktx"};
 inline constexpr Type Material{Kind::Material, "material", ".matblob"};
-inline constexpr Type Animation{Kind::Animation, "animation", ".animblob"};
+inline constexpr Type AnimationClip{Kind::AnimationClip, "animationClip", ".animclipblob"};
+inline constexpr Type AnimationSet{Kind::AnimationSet, "animationSet", ".animsetblob"};
 
 inline constexpr Type GetType(Kind kind)
 {
@@ -37,7 +39,8 @@ inline constexpr Type GetType(Kind kind)
         case Kind::Mesh: return Mesh;
         case Kind::Texture: return Texture;
         case Kind::Material: return Material;
-        case Kind::Animation: return Animation;
+        case Kind::AnimationClip: return AnimationClip;
+        case Kind::AnimationSet: return AnimationSet;
     }
 
     return Model;
@@ -63,8 +66,10 @@ inline std::optional<Kind> FromString(std::string_view name)
         return Kind::Texture;
     if (name == Material.name)
         return Kind::Material;
-    if (name == Animation.name)
-        return Kind::Animation;
+    if (name == AnimationClip.name)
+        return Kind::AnimationClip;
+    if (name == AnimationSet.name)
+        return Kind::AnimationSet;
 
     return std::nullopt;
 }

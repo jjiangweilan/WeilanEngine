@@ -12,7 +12,7 @@ DEFINE_OBJECT(Component, AnimationPlayer, "F1093426-DC3A-45F6-9C3B-B7CFA098285A"
 
 TYPE_REFLECTION_MEMBER_VARIABLES(
     AnimationPlayer,
-    TYPE_REFLECTION_MEM(AnimationPlayer, animation),
+    TYPE_REFLECTION_MEM(AnimationPlayer, animationSet),
     TYPE_REFLECTION_MEM(AnimationPlayer, speed),
     TYPE_REFLECTION_MEM(AnimationPlayer, autoPlay),
     TYPE_REFLECTION_MEM(AnimationPlayer, rootName)
@@ -32,7 +32,7 @@ glm::quat NormalizeSafe(const glm::quat& q)
     return glm::normalize(q);
 }
 
-glm::vec3 SamplePosition(const Animation::Channel& channel, float currentTime)
+glm::vec3 SamplePosition(const AnimationClip::Channel& channel, float currentTime)
 {
     if (channel.positions.empty())
         return glm::vec3(0.0f);
@@ -59,7 +59,7 @@ glm::vec3 SamplePosition(const Animation::Channel& channel, float currentTime)
     return position;
 }
 
-glm::quat SampleRotation(const Animation::Channel& channel, float currentTime)
+glm::quat SampleRotation(const AnimationClip::Channel& channel, float currentTime)
 {
     if (channel.rotations.empty())
         return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -86,7 +86,7 @@ glm::quat SampleRotation(const Animation::Channel& channel, float currentTime)
     return NormalizeSafe(rotation);
 }
 
-glm::vec3 SampleScale(const Animation::Channel& channel, float currentTime)
+glm::vec3 SampleScale(const AnimationClip::Channel& channel, float currentTime)
 {
     if (channel.scalings.empty())
         return glm::vec3(1.0f);
@@ -157,7 +157,7 @@ const std::string& AnimationPlayer::GetName() const
 }
 
 void AnimationPlayer::UpdateAnimatedGameObject(
-    const Animation::AnimationClip& mainClip,
+    const AnimationClip& mainClip,
     float& timePassed,
     float& durationInSeconds,
     float tickPerSecond,
@@ -267,7 +267,7 @@ void AnimationPlayer::TickAnimation(float deltaTime)
 }
 
 RootMotionDelta AnimationPlayer::ExtractRootMotionDelta(
-    const Animation::AnimationClip& clip,
+    const AnimationClip& clip,
     float fromTime,
     float deltaTime
 ) const
@@ -313,7 +313,7 @@ RootMotionDelta AnimationPlayer::ExtractRootMotionDelta(
 }
 
 RootMotionDelta AnimationPlayer::ExtractRootMotionDeltaSegment(
-    const Animation::AnimationClip& clip,
+    const AnimationClip& clip,
     float fromTime,
     float toTime
 ) const
@@ -322,7 +322,7 @@ RootMotionDelta AnimationPlayer::ExtractRootMotionDeltaSegment(
     if (!HasValidRootMotionRoot() || animatedRootGOIndex >= clip.channels.size())
         return delta;
 
-    const Animation::Channel& channel = clip.channels[animatedRootGOIndex];
+    const AnimationClip::Channel& channel = clip.channels[animatedRootGOIndex];
     float fromTick = fromTime * clip.tickPerSecond;
     float toTick = toTime * clip.tickPerSecond;
 
@@ -430,7 +430,7 @@ bool AnimationPlayer::SetClip(const std::string& animationName)
     return success;
 }
 
-bool AnimationPlayer::SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target)
+bool AnimationPlayer::SetupAnimatedObjects(const AnimationClip& clipUsed, GameObject* target)
 {
     animatedObjects.resize(clipUsed.channels.size());
 
@@ -475,7 +475,7 @@ void AnimationPlayer::PrePhysicsAnimationTick()
 void AnimationPlayer::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
-    s->Serialize("animation", animation);
+    s->Serialize("animationSet", animationSet);
     s->Serialize("speed", speed);
     s->Serialize("autoPlay", autoPlay);
     s->Serialize("rootName", rootName);
@@ -487,7 +487,7 @@ void AnimationPlayer::Serialize(Serializer* s) const
 void AnimationPlayer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize("animation", animation);
+    s->Deserialize("animationSet", animationSet);
     s->Deserialize("speed", speed);
     s->Deserialize("autoPlay", autoPlay);
     s->Deserialize("rootName", rootName);
@@ -528,19 +528,19 @@ bool AnimationPlayer::SetBlendClip(const std::string& animationName)
 
 bool AnimationPlayer::SetClipInternal(
     const std::string& animationName,
-    const Animation::AnimationClip*& clipToSet,
+    const AnimationClip*& clipToSet,
     float& timePassed,
     float& durationInSeconds
 )
 {
-    if (animation == nullptr)
+    if (animationSet == nullptr)
         return false;
 
     isPlaying = false;
-    auto iter = animation->GetAnimationClips().find(animationName);
-    if (iter != animation->GetAnimationClips().end())
+    AnimationClip* clip = animationSet->FindClip(animationName);
+    if (clip != nullptr)
     {
-        clipToSet = iter->second.get();
+        clipToSet = clip;
 
         timePassed = 0;
         durationInSeconds = clipToSet->duration / clipToSet->tickPerSecond;

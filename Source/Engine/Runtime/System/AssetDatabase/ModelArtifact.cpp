@@ -11,7 +11,7 @@ namespace ModelArtifact
 namespace
 {
 constexpr uint32_t MeshMagic = 0x4D534842;      // MSHB
-constexpr uint32_t AnimationMagic = 0x414E494D; // ANIM
+constexpr uint32_t AnimationClipMagic = 0x41434C50; // ACLP
 constexpr uint32_t BlobVersion = 1;
 
 struct BlobHeader
@@ -426,150 +426,150 @@ std::unique_ptr<Mesh> ReadMeshBlob(const PodVector<uint8_t>& data)
     }
 }
 
-bool WriteAnimationBlob(const std::filesystem::path& path, const Animation& animation)
+bool WriteAnimationClipBlob(const std::filesystem::path& path, const AnimationClip& clip)
 {
     nlohmann::json header;
     std::vector<uint8_t> payload;
-    for (const auto& [clipName, clipPtr] : const_cast<Animation&>(animation).GetAnimationClips())
+    header["name"] = clip.GetName();
+    header["tickPerSecond"] = clip.tickPerSecond;
+    header["duration"] = clip.duration;
+
+    for (const auto& channel : clip.channels)
     {
-        const auto& clip = *clipPtr;
-        nlohmann::json clipJson;
-        clipJson["name"] = clip.name;
-        clipJson["tickPerSecond"] = clip.tickPerSecond;
-        clipJson["duration"] = clip.duration;
+        nlohmann::json channelJson;
+        channelJson["nodeName"] = channel.nodeName;
 
-        for (const auto& channel : clip.channels)
+        channelJson["positionsOffset"] = payload.size();
+        channelJson["positionsCount"] = channel.positions.size();
+        for (const auto& key : channel.positions)
         {
-            nlohmann::json channelJson;
-            channelJson["nodeName"] = channel.nodeName;
-
-            channelJson["positionsOffset"] = payload.size();
-            channelJson["positionsCount"] = channel.positions.size();
-            for (const auto& key : channel.positions)
-            {
-                AppendBytes(payload, PackedVec3Key{key.time, key.val.x, key.val.y, key.val.z});
-            }
-
-            channelJson["rotationsOffset"] = payload.size();
-            channelJson["rotationsCount"] = channel.rotations.size();
-            for (const auto& key : channel.rotations)
-            {
-                AppendBytes(payload, PackedQuatKey{key.time, key.val.w, key.val.x, key.val.y, key.val.z});
-            }
-
-            channelJson["scalingsOffset"] = payload.size();
-            channelJson["scalingsCount"] = channel.scalings.size();
-            for (const auto& key : channel.scalings)
-            {
-                AppendBytes(payload, PackedVec3Key{key.time, key.val.x, key.val.y, key.val.z});
-            }
-
-            clipJson["channels"].push_back(std::move(channelJson));
+            AppendBytes(payload, PackedVec3Key{key.time, key.val.x, key.val.y, key.val.z});
         }
 
-        header["clips"].push_back(std::move(clipJson));
+        channelJson["rotationsOffset"] = payload.size();
+        channelJson["rotationsCount"] = channel.rotations.size();
+        for (const auto& key : channel.rotations)
+        {
+            AppendBytes(payload, PackedQuatKey{key.time, key.val.w, key.val.x, key.val.y, key.val.z});
+        }
+
+        channelJson["scalingsOffset"] = payload.size();
+        channelJson["scalingsCount"] = channel.scalings.size();
+        for (const auto& key : channel.scalings)
+        {
+            AppendBytes(payload, PackedVec3Key{key.time, key.val.x, key.val.y, key.val.z});
+        }
+
+        header["channels"].push_back(std::move(channelJson));
     }
 
-    return WriteBlob(path, AnimationMagic, header, payload);
+    return WriteBlob(path, AnimationClipMagic, header, payload);
 }
 
-std::unique_ptr<Animation> ReadAnimationBlob(const PodVector<uint8_t>& data)
+std::unique_ptr<AnimationClip> ReadAnimationClipBlob(const PodVector<uint8_t>& data)
 {
     nlohmann::json header;
     const uint8_t* payload = nullptr;
     size_t payloadSize = 0;
-    if (!ReadBlob(data, AnimationMagic, header, payload, payloadSize))
+    if (!ReadBlob(data, AnimationClipMagic, header, payload, payloadSize))
     {
         return nullptr;
     }
 
     try
     {
-        nlohmann::json clips = header.value("clips", nlohmann::json::array());
-        if (!clips.is_array())
+        nlohmann::json channelDescriptions = header.value("channels", nlohmann::json::array());
+        if (!channelDescriptions.is_array())
         {
             return nullptr;
         }
 
-        auto animation = std::make_unique<Animation>();
-        for (const auto& clipJson : clips)
+        std::vector<AnimationClip::Channel> channels;
+        for (const auto& channelJson : channelDescriptions)
         {
-            if (!clipJson.is_object())
+            size_t positionsOffset = 0;
+            size_t positionsCount = 0;
+            size_t rotationsOffset = 0;
+            size_t rotationsCount = 0;
+            size_t scalingsOffset = 0;
+            size_t scalingsCount = 0;
+            if (!channelJson.is_object() ||
+                !ReadSize(channelJson, "positionsOffset", positionsOffset) ||
+                !ReadSize(channelJson, "positionsCount", positionsCount) ||
+                !ReadSize(channelJson, "rotationsOffset", rotationsOffset) ||
+                !ReadSize(channelJson, "rotationsCount", rotationsCount) ||
+                !ReadSize(channelJson, "scalingsOffset", scalingsOffset) ||
+                !ReadSize(channelJson, "scalingsCount", scalingsCount))
             {
                 return nullptr;
             }
-            nlohmann::json channelDescriptions = clipJson.value("channels", nlohmann::json::array());
-            if (!channelDescriptions.is_array())
+
+            const uint8_t* positions = ReadKeyRange<PackedVec3Key>(payload, payloadSize, positionsOffset, positionsCount);
+            const uint8_t* rotations = ReadKeyRange<PackedQuatKey>(payload, payloadSize, rotationsOffset, rotationsCount);
+            const uint8_t* scalings = ReadKeyRange<PackedVec3Key>(payload, payloadSize, scalingsOffset, scalingsCount);
+            if (positions == nullptr || rotations == nullptr || scalings == nullptr)
             {
                 return nullptr;
             }
 
-            std::vector<Animation::Channel> channels;
-            for (const auto& channelJson : channelDescriptions)
+            AnimationClip::Channel channel;
+            channel.nodeName = channelJson.at("nodeName").get<std::string>();
+            for (size_t i = 0; i < positionsCount; ++i)
             {
-                size_t positionsOffset = 0;
-                size_t positionsCount = 0;
-                size_t rotationsOffset = 0;
-                size_t rotationsCount = 0;
-                size_t scalingsOffset = 0;
-                size_t scalingsCount = 0;
-                if (!channelJson.is_object() ||
-                    !ReadSize(channelJson, "positionsOffset", positionsOffset) ||
-                    !ReadSize(channelJson, "positionsCount", positionsCount) ||
-                    !ReadSize(channelJson, "rotationsOffset", rotationsOffset) ||
-                    !ReadSize(channelJson, "rotationsCount", rotationsCount) ||
-                    !ReadSize(channelJson, "scalingsOffset", scalingsOffset) ||
-                    !ReadSize(channelJson, "scalingsCount", scalingsCount))
-                {
-                    return nullptr;
-                }
-
-                const uint8_t* positions = ReadKeyRange<PackedVec3Key>(payload, payloadSize, positionsOffset, positionsCount);
-                const uint8_t* rotations = ReadKeyRange<PackedQuatKey>(payload, payloadSize, rotationsOffset, rotationsCount);
-                const uint8_t* scalings = ReadKeyRange<PackedVec3Key>(payload, payloadSize, scalingsOffset, scalingsCount);
-                if (positions == nullptr || rotations == nullptr || scalings == nullptr)
-                {
-                    return nullptr;
-                }
-
-                Animation::Channel channel;
-                channel.nodeName = channelJson.at("nodeName").get<std::string>();
-                for (size_t i = 0; i < positionsCount; ++i)
-                {
-                    PackedVec3Key key;
-                    std::memcpy(&key, positions + i * sizeof(key), sizeof(key));
-                    channel.positions.push_back({key.time, {key.x, key.y, key.z}});
-                }
-                for (size_t i = 0; i < rotationsCount; ++i)
-                {
-                    PackedQuatKey key;
-                    std::memcpy(&key, rotations + i * sizeof(key), sizeof(key));
-                    channel.rotations.push_back({key.time, {key.w, key.x, key.y, key.z}});
-                }
-                for (size_t i = 0; i < scalingsCount; ++i)
-                {
-                    PackedVec3Key key;
-                    std::memcpy(&key, scalings + i * sizeof(key), sizeof(key));
-                    channel.scalings.push_back({key.time, {key.x, key.y, key.z}});
-                }
-
-                channels.push_back(std::move(channel));
+                PackedVec3Key key;
+                std::memcpy(&key, positions + i * sizeof(key), sizeof(key));
+                channel.positions.push_back({key.time, {key.x, key.y, key.z}});
+            }
+            for (size_t i = 0; i < rotationsCount; ++i)
+            {
+                PackedQuatKey key;
+                std::memcpy(&key, rotations + i * sizeof(key), sizeof(key));
+                channel.rotations.push_back({key.time, {key.w, key.x, key.y, key.z}});
+            }
+            for (size_t i = 0; i < scalingsCount; ++i)
+            {
+                PackedVec3Key key;
+                std::memcpy(&key, scalings + i * sizeof(key), sizeof(key));
+                channel.scalings.push_back({key.time, {key.x, key.y, key.z}});
             }
 
-            animation->AddClip(
-                clipJson.at("name").get<std::string>(),
-                clipJson.at("tickPerSecond").get<float>(),
-                clipJson.at("duration").get<float>(),
-                channels
-            );
+            channels.push_back(std::move(channel));
         }
 
-        return animation;
+        auto clip = std::make_unique<AnimationClip>();
+        clip->SetName(header.at("name").get<std::string>());
+        clip->tickPerSecond = header.at("tickPerSecond").get<float>();
+        clip->duration = header.at("duration").get<float>();
+        clip->channels = std::move(channels);
+        return clip;
     }
     catch (const nlohmann::json::exception&)
     {
         return nullptr;
     }
+}
+
+bool WriteAnimationSetBlob(const std::filesystem::path& path, const AnimationSet& animationSet)
+{
+    JsonSerializer serializer;
+    animationSet.Serialize(&serializer);
+    auto binary = serializer.GetBinary();
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out.is_open() || !out.good())
+        return false;
+
+    out.write(reinterpret_cast<const char*>(binary.data()), static_cast<std::streamsize>(binary.size()));
+    return true;
+}
+
+std::unique_ptr<AnimationSet> ReadAnimationSetBlob(const PodVector<uint8_t>& data)
+{
+    std::vector<uint8_t> binary(data.data(), data.data() + data.size());
+    JsonSerializer serializer(binary, nullptr);
+    auto animationSet = std::make_unique<AnimationSet>();
+    animationSet->Deserialize(&serializer);
+    return animationSet;
 }
 
 bool WriteModelGraph(

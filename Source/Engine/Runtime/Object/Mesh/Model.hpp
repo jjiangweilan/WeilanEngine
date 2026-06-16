@@ -1,7 +1,8 @@
 #pragma once
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
-#include "Engine/Runtime/System/Rendering/Animation.hpp"
+#include "Engine/Runtime/System/Rendering/AnimationClip.hpp"
+#include "Engine/Runtime/System/Rendering/AnimationSet.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <span>
@@ -60,7 +61,8 @@ public:
     std::span<std::unique_ptr<Mesh>> GetMeshes() { return meshes; }
     std::span<std::unique_ptr<Texture>> GetTextures() { return textures; }
     std::span<std::unique_ptr<Material>> GetMaterials() { return materials; }
-    std::span<std::unique_ptr<Animation>> GetAnimations() { return animations; }
+    std::span<std::unique_ptr<AnimationClip>> GetAnimationClips() { return animationClips; }
+    std::span<std::unique_ptr<AnimationSet>> GetAnimationSets() { return animationSets; }
 
     Material* GetDefaultMaterial();
 
@@ -69,7 +71,8 @@ public:
         std::vector<std::unique_ptr<Mesh>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
         std::vector<std::unique_ptr<Material>>&& materials,
-        std::vector<std::unique_ptr<Animation>>&& animations
+        std::vector<std::unique_ptr<AnimationClip>>&& animationClips,
+        std::vector<std::unique_ptr<AnimationSet>>&& animationSets
     );
 
     void SetModelGraph(
@@ -78,7 +81,8 @@ public:
         std::vector<std::unique_ptr<Mesh>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
         std::vector<std::unique_ptr<Material>>&& materials,
-        std::vector<std::unique_ptr<Animation>>&& animations
+        std::vector<std::unique_ptr<AnimationClip>>&& animationClips,
+        std::vector<std::unique_ptr<AnimationSet>>&& animationSets
     );
 
     void OnLoaded() override;
@@ -88,7 +92,8 @@ private:
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
-    std::vector<std::unique_ptr<Animation>> animations;
+    std::vector<std::unique_ptr<AnimationClip>> animationClips;
+    std::vector<std::unique_ptr<AnimationSet>> animationSets;
 
     ModelNode rootNode;
     std::vector<std::unique_ptr<GameObject>> gameObjects; // the first one is the root

@@ -226,14 +226,16 @@ void Model::SetModel(
     std::vector<std::unique_ptr<Mesh>>&& meshes,
     std::vector<std::unique_ptr<Texture>>&& textures,
     std::vector<std::unique_ptr<Material>>&& materials,
-    std::vector<std::unique_ptr<Animation>>&& animations
+    std::vector<std::unique_ptr<AnimationClip>>&& animationClips,
+    std::vector<std::unique_ptr<AnimationSet>>&& animationSets
 )
 {
     assimpLoaded = true;
     this->meshes = std::move(meshes);
     this->textures = std::move(textures);
     this->materials = std::move(materials);
-    this->animations = std::move(animations);
+    this->animationClips = std::move(animationClips);
+    this->animationSets = std::move(animationSets);
     this->rootNode = root;
 
     SetMaterialKeywords(rootNode);
@@ -245,7 +247,8 @@ void Model::SetModelGraph(
     std::vector<std::unique_ptr<Mesh>>&& meshes,
     std::vector<std::unique_ptr<Texture>>&& textures,
     std::vector<std::unique_ptr<Material>>&& materials,
-    std::vector<std::unique_ptr<Animation>>&& animations
+    std::vector<std::unique_ptr<AnimationClip>>&& animationClips,
+    std::vector<std::unique_ptr<AnimationSet>>&& animationSets
 )
 {
     assimpLoaded = false;
@@ -254,7 +257,8 @@ void Model::SetModelGraph(
     this->meshes = std::move(meshes);
     this->textures = std::move(textures);
     this->materials = std::move(materials);
-    this->animations = std::move(animations);
+    this->animationClips = std::move(animationClips);
+    this->animationSets = std::move(animationSets);
 }
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
@@ -280,10 +284,10 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
         auto gos = CreateGameObject(rootNode, nullptr);
         if (!gos.empty())
         {
-            for (auto& anim : animations)
+            for (auto& animationSet : animationSets)
             {
                 auto animationPlayer = gos[0]->AddComponent<AnimationPlayer>();
-                animationPlayer->SetAnimation(anim.get());
+                animationPlayer->SetAnimationSet(animationSet.get());
             }
         }
         return gos;
@@ -333,7 +337,7 @@ Material* Model::GetDefaultMaterial()
 
 std::vector<Asset*> Model::GetInternalAssets()
 {
-    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size() + animations.size());
+    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size() + animationClips.size() + animationSets.size());
 
     int i = 0;
     for (auto& obj : meshes)
@@ -351,7 +355,12 @@ std::vector<Asset*> Model::GetInternalAssets()
         assets[i++] = obj.get();
     }
 
-    for (auto& obj : animations)
+    for (auto& obj : animationClips)
+    {
+        assets[i++] = obj.get();
+    }
+
+    for (auto& obj : animationSets)
     {
         assets[i++] = obj.get();
     }

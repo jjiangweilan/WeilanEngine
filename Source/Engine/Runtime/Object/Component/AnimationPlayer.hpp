@@ -1,7 +1,8 @@
 #pragma once
 #include "Component.hpp"
 #include "Engine/Core/Ptr.hpp"
-#include "Engine/Runtime/System/Rendering/Animation.hpp"
+#include "Engine/Runtime/System/Rendering/AnimationClip.hpp"
+#include "Engine/Runtime/System/Rendering/AnimationSet.hpp"
 
 enum class [[LuaEnum]] RootMotionTranslationMode
 {
@@ -94,10 +95,10 @@ public:
     float GetMainClipDurationInSeconds() const { return mainClipDurationInSeconds; }
     float GetBlendClipTimePassed() const { return blendClipTimePassed; }
     float GetBlendClipDurationInSeconds() const { return blendClipDurationInSeconds; }
-    void SetAnimation(Animation* animation) { this->animation = animation; }
-    Animation* GetAnimation() { return animation; }
-    const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
-    const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
+    void SetAnimationSet(AnimationSet* animationSet) { this->animationSet = animationSet; }
+    AnimationSet* GetAnimationSet() { return animationSet; }
+    const AnimationClip* GetActiveClip() const { return currentClip; }
+    const AnimationClip* GetBlendClip() const { return blendClip; }
     const RootMotionDelta& GetRootMotionDelta() const { return rootMotionDelta; }
     [[LuaFn]] RootMotionDelta PeekRootMotionDelta() const { return rootMotionDelta; }
     [[LuaFn]] RootMotionDelta ConsumeRootMotionDelta();
@@ -109,14 +110,14 @@ public:
 
 private:
     // ***** Serialized ****** //
-    ObjPtr<Animation> animation = nullptr;
+    ObjPtr<AnimationSet> animationSet = nullptr;
     float speed = 1.0f;
     bool autoPlay = true;
 
     // ***** Runtime ******//
     bool isPlaying = false;
-    const Animation::AnimationClip* currentClip = nullptr;
-    const Animation::AnimationClip* blendClip = nullptr;
+    const AnimationClip* currentClip = nullptr;
+    const AnimationClip* blendClip = nullptr;
     struct AnimatedGameObject
     {
         GameObject* go = nullptr;
@@ -139,10 +140,10 @@ private:
     std::string initialBlendClip = "";
     RootMotionDelta rootMotionDelta;
 
-    bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
+    bool SetupAnimatedObjects(const AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other)
     {
-        animation = other.animation;
+        animationSet = other.animationSet;
         speed = other.speed;
         autoPlay = other.autoPlay;
         rootName = other.rootName;
@@ -152,7 +153,7 @@ private:
         rootMotionRotationMode = other.rootMotionRotationMode;
     }
     void UpdateAnimatedGameObject(
-        const Animation::AnimationClip& mainClip,
+        const AnimationClip& mainClip,
         float& timePassed,
         float& durationInSeconds,
         float tickPerSecond,
@@ -160,15 +161,15 @@ private:
         float blend,
         bool stripRootMotion
     );
-    RootMotionDelta ExtractRootMotionDelta(const Animation::AnimationClip& clip, float fromTime, float deltaTime) const;
-    RootMotionDelta ExtractRootMotionDeltaSegment(const Animation::AnimationClip& clip, float fromTime, float toTime) const;
+    RootMotionDelta ExtractRootMotionDelta(const AnimationClip& clip, float fromTime, float deltaTime) const;
+    RootMotionDelta ExtractRootMotionDeltaSegment(const AnimationClip& clip, float fromTime, float toTime) const;
     RootMotionDelta BlendRootMotionDelta(const RootMotionDelta& a, const RootMotionDelta& b, float blend) const;
     void AccumulateRootMotionDelta(RootMotionDelta& target, const RootMotionDelta& delta) const;
     void FinalizeRootMotionDelta(RootMotionDelta& delta) const;
     void AdvanceClipTime(float& timePassed, float durationInSeconds, float deltaTime) const;
     bool SetClipInternal(
         const std::string& animationName,
-        const Animation::AnimationClip*& clipToSet,
+        const AnimationClip*& clipToSet,
         float& timePassed,
         float& durationInSeconds
     );
