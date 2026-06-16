@@ -21,6 +21,7 @@ namespace Editor
 
 class InspectorBase;
 class AssetBrowser;
+class GameEditorAssetDatabaseDebug;
 class GameEditor
 {
     friend class AssetBrowser; // Allow AssetBrowser to access private members
@@ -95,6 +96,7 @@ private:
     std::unique_ptr<SceneEditor> sceneEditor;
     std::unique_ptr<AssetBrowser> assetBrowser;
     std::unique_ptr<EngineCommandGUI> engineCommandGUI;
+    std::unique_ptr<GameEditorAssetDatabaseDebug> assetDatabaseDebug;
 
     GameObject* sceneViewHightedGameObjectCandidate = nullptr;
     GameObject* sceneTreeContextObject = nullptr;

@@ -2,6 +2,7 @@
 #include "Editor/EditorConfig.hpp"
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
+#include "Editor/GameEditor_AssetDatabaseDebug.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Editor/Tools/GrassSurfacePaintTool.hpp"
 #include "Editor/Windows/GrassSurfacePaintWindow.hpp"
@@ -207,6 +208,7 @@ GameEditor::GameEditor(WeilanEngine* engine, const char* path)
     assetBrowser = std::make_unique<AssetBrowser>(engine, this);
     gizmoManager = std::make_unique<GizmoManager>();
     engineCommandGUI = std::make_unique<EngineCommandGUI>();
+    assetDatabaseDebug = std::make_unique<GameEditorAssetDatabaseDebug>();
 
     gameView->Init();
     editorContext->SetGizmoManager(gizmoManager.get());
@@ -567,8 +569,7 @@ void GameEditor::MainMenuBar()
             {"Inspector", "Ctrl+I", inspectorWindow},
             {"Surfel GI Baker", nullptr, surfelGIBaker},
             {"AssetDatabase", nullptr, assetDatabaseWindow},
-            {"PBR Baker", nullptr, pbrBaker},
-            {"Debug Engine Resources", nullptr, debugEngineResources}
+            {"PBR Baker", nullptr, pbrBaker}
 
         };
         for (auto& w : windowToggles)
@@ -577,6 +578,16 @@ void GameEditor::MainMenuBar()
             {
                 std::get<2>(w) = !std::get<2>(w);
             }
+        }
+
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Debug"))
+    {
+        if (ImGui::MenuItem("AssetDatabase", nullptr, debugEngineResources))
+        {
+            debugEngineResources = !debugEngineResources;
         }
 
         ImGui::EndMenu();
@@ -1220,142 +1231,7 @@ void GameEditor::ShowEngineResourceDebug()
     if (!debugEngineResources)
         return;
 
-    ImGui::Begin("Engine Resource Debug", &debugEngineResources);
-    using Info = std::tuple<UUID, Object*, const std::string*>;
-    std::vector<Info> allObjects;
-    auto objs = Object::GetAllEngineObjects();
-    for (auto& o : objs)
-    {
-        allObjects.push_back({o.first, o.second, &ObjectRegistry::GetObjectTypeInfo(o.second->GetObjectTypeID())->GetTypeName()});
-    }
-
-    std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r)
-              { return *std::get<2>(l) < *std::get<2>(r); });
-    if (ImGui::TreeNode("engine objects"))
-    {
-        if (ImGui::BeginTable("EngineObject Table", 4))
-        {
-            ImGui::TableSetupColumn("name");
-            ImGui::TableSetupColumn("type");
-            ImGui::TableSetupColumn("UUID");
-            ImGui::TableSetupColumn("asset path");
-            ImGui::TableHeadersRow();
-
-            for (auto& obj : allObjects)
-            {
-                ImGui::TableNextRow();
-
-                ImGui::TableSetColumnIndex(0);
-                auto engineObject = std::get<1>(obj);
-                std::string uuid = std::get<0>(obj).ToString();
-                const std::string& name = engineObject ? engineObject->GetName() : uuid;
-                ImGui::Text("%s", name.c_str());
-
-                ImGui::TableSetColumnIndex(1);
-
-                const std::string& type = *std::get<2>(obj);
-                ImGui::Text("%s", type.c_str());
-
-                ImGui::TableSetColumnIndex(2);
-                ImGui::Text("%s", uuid.c_str());
-
-                ImGui::TableSetColumnIndex(3);
-                Asset* asAsset = dynamic_cast<Asset*>(engineObject);
-                if (asAsset)
-                {
-                    ImGui::Text("%s", AssetDatabase::Singleton()->GetAssetPath(asAsset->GetUUID()).string().c_str());
-                }
-            }
-
-            ImGui::EndTable();
-        }
-        ImGui::TreePop();
-    }
-
-    if (ImGui::TreeNode("Asset Data"))
-    {
-        using AssetDataInfo = std::tuple<AssetData*, UUID, std::filesystem::path, std::string>;
-        std::vector<AssetDataInfo> assetDatas;
-        for (auto& data : AssetDatabase::Singleton()->GetAssetData())
-        {
-            assetDatas
-                .emplace_back(data.get(), data->GetAssetUUID(), data->GetAssetPath(), data->GetAssetUUID().ToString());
-        }
-
-        std::sort(
-            assetDatas.begin(),
-            assetDatas.end(),
-            [](AssetDataInfo& l, AssetDataInfo& r)
-            { return std::get<3>(l) < std::get<3>(r); }
-        );
-
-        if (ImGui::BeginTable("AssetData Table", 4))
-        {
-            ImGui::TableSetupColumn("filename");
-            ImGui::TableSetupColumn("loaded");
-            ImGui::TableSetupColumn("asset path");
-            ImGui::TableSetupColumn("delete");
-            ImGui::TableHeadersRow();
-
-            int uid = 0;
-            for (auto& ad : assetDatas)
-            {
-                ImGui::PushID(uid++);
-                ImGui::TableNextRow();
-
-                // filename
-                ImGui::TableSetColumnIndex(0);
-                std::filesystem::path& path = std::get<2>(ad);
-                ImGui::Text("%s", path.filename().string().c_str());
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-                {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("GUID: %s", std::get<3>(ad).c_str());
-                    ImGui::EndTooltip();
-                }
-
-                // loaded
-                ImGui::TableSetColumnIndex(1);
-                auto objIter = objs.find(std::get<1>(ad));
-                bool loaded = objIter != objs.end();
-                ImGui::PushStyleColor(ImGuiCol_Text, loaded ? ImVec4{0, 1, 0, 1} : ImVec4{1, 0, 0, 1});
-                ImGui::Text("%s", loaded ? "true" : "false");
-                ImGui::PopStyleColor();
-
-                // asset path
-                ImGui::TableSetColumnIndex(2);
-                ImGui::PushStyleColor(
-                    ImGuiCol_Text,
-                    (std::filesystem::exists(std::get<0>(ad)->GetAssetAbsolutePath()) || !std::get<0>(ad)->IsValid())
-                        ? ImVec4{0, 1, 0, 1}
-                        : ImVec4{1, 0, 0, 1}
-                );
-                ImGui::Text("%s", path.string().c_str());
-
-                // Add hover tooltip with delay for full path
-                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
-                {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("Full path: %s", path.string().c_str());
-                    ImGui::EndTooltip();
-                }
-
-                ImGui::PopStyleColor();
-
-                ImGui::TableSetColumnIndex(3);
-                if (ImGui::Button("Delete"))
-                {
-                    AssetDatabase::Singleton()->RemoveAssetData(std::get<0>(ad));
-                }
-
-                ImGui::PopID();
-            }
-            ImGui::EndTable();
-        }
-
-        ImGui::TreePop();
-    }
-    ImGui::End();
+    assetDatabaseDebug->Show(debugEngineResources);
 }
 
 void GameEditor::ShowRenderPipelineSetting()

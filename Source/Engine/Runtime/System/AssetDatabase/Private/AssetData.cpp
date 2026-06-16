@@ -1,6 +1,7 @@
 #include "AssetData.hpp"
 #include "Engine/Library/PodVector.hpp"
 #include <spdlog/spdlog.h>
+#include <unordered_set>
 
 namespace
 {
@@ -212,9 +213,11 @@ void AssetData::UpdateAssetUUIDs()
 
     if (!internal)
     {
+        std::unordered_set<std::string> currentKeys;
         for (auto obj : asset->GetInternalAssets())
         {
             auto key = GetNameToUUIDKey(obj);
+            currentKeys.insert(key);
             auto iter = nameToUUID.find(key);
             if (iter != nameToUUID.end())
             {
@@ -224,6 +227,19 @@ void AssetData::UpdateAssetUUIDs()
             {
                 nameToUUID[key] = obj->GetUUID().ToString();
                 dirty = true;
+            }
+        }
+
+        for (auto iter = nameToUUID.begin(); iter != nameToUUID.end();)
+        {
+            if (!currentKeys.contains(iter->first))
+            {
+                iter = nameToUUID.erase(iter);
+                dirty = true;
+            }
+            else
+            {
+                ++iter;
             }
         }
     }
