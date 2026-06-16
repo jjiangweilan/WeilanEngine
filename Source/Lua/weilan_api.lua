@@ -465,6 +465,12 @@ function wl.RootMotionDelta:IsEmpty() end
 ---@class wl.AnimationPlayer
 wl.AnimationPlayer = {}
 
+---@param blendClipFactor number
+function wl.AnimationPlayer:SetBlendClipFactor(blendClipFactor) end
+---@param animationName string
+---@return boolean
+function wl.AnimationPlayer:SetBlendClip(animationName) end
+function wl.AnimationPlayer:ClearBlendClip() end
 ---@param animationName string
 ---@return boolean
 function wl.AnimationPlayer:SetClip(animationName) end
@@ -486,6 +492,7 @@ function wl.AnimationPlayer:PeekRootMotionDelta() end
 function wl.AnimationPlayer:ConsumeRootMotionDelta() end
 function wl.AnimationPlayer:Play() end
 function wl.AnimationPlayer:Stop() end
+function wl.AnimationPlayer:ResetBoneTransform() end
 
 ---@class wl.Boids
 wl.Boids = {}

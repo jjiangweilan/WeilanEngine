@@ -1,7 +1,7 @@
 #include "AnimationPlayer.hpp"
-#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Library/TypeReflection.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsScene.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <algorithm>
@@ -117,15 +117,15 @@ glm::vec3 FilterTranslation(glm::vec3 translation, RootMotionTranslationMode mod
 {
     switch (mode)
     {
-    case RootMotionTranslationMode::None:
-        return glm::vec3(0.0f);
-    case RootMotionTranslationMode::Horizontal:
-        translation.y = 0.0f;
-        return translation;
-    case RootMotionTranslationMode::Vertical:
-        return glm::vec3(0.0f, translation.y, 0.0f);
-    case RootMotionTranslationMode::Full:
-        return translation;
+        case RootMotionTranslationMode::None:
+            return glm::vec3(0.0f);
+        case RootMotionTranslationMode::Horizontal:
+            translation.y = 0.0f;
+            return translation;
+        case RootMotionTranslationMode::Vertical:
+            return glm::vec3(0.0f, translation.y, 0.0f);
+        case RootMotionTranslationMode::Full:
+            return translation;
     }
 
     return glm::vec3(0.0f);
@@ -135,15 +135,15 @@ glm::quat FilterRotation(const glm::quat& rotation, RootMotionRotationMode mode)
 {
     switch (mode)
     {
-    case RootMotionRotationMode::None:
-        return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    case RootMotionRotationMode::Yaw:
-    {
-        glm::vec3 euler = glm::eulerAngles(rotation);
-        return NormalizeSafe(glm::angleAxis(euler.y, glm::vec3(0.0f, 1.0f, 0.0f)));
-    }
-    case RootMotionRotationMode::Full:
-        return NormalizeSafe(rotation);
+        case RootMotionRotationMode::None:
+            return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        case RootMotionRotationMode::Yaw:
+            {
+                glm::vec3 euler = glm::eulerAngles(rotation);
+                return NormalizeSafe(glm::angleAxis(euler.y, glm::vec3(0.0f, 1.0f, 0.0f)));
+            }
+        case RootMotionRotationMode::Full:
+            return NormalizeSafe(rotation);
     }
 
     return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -178,18 +178,18 @@ void AnimationPlayer::UpdateAnimatedGameObject(
             const glm::vec3 rootReferencePosition = channel.positions.front().val;
             switch (rootMotionTranslationMode)
             {
-            case RootMotionTranslationMode::None:
-                break;
-            case RootMotionTranslationMode::Horizontal:
-                newPosition.x = rootReferencePosition.x;
-                newPosition.z = rootReferencePosition.z;
-                break;
-            case RootMotionTranslationMode::Vertical:
-                newPosition.y = rootReferencePosition.y;
-                break;
-            case RootMotionTranslationMode::Full:
-                newPosition = rootReferencePosition;
-                break;
+                case RootMotionTranslationMode::None:
+                    break;
+                case RootMotionTranslationMode::Horizontal:
+                    newPosition.x = rootReferencePosition.x;
+                    newPosition.z = rootReferencePosition.z;
+                    break;
+                case RootMotionTranslationMode::Vertical:
+                    newPosition.y = rootReferencePosition.y;
+                    break;
+                case RootMotionTranslationMode::Full:
+                    newPosition = rootReferencePosition;
+                    break;
             }
         }
         bone.position = glm::mix(bone.position, newPosition, blend);
@@ -442,6 +442,12 @@ bool AnimationPlayer::SetupAnimatedObjects(const AnimationClip& clipUsed, GameOb
         {
             return false;
         }
+
+        GameObject* go = animatedObjects[index].go;
+        animatedObjects[index].originalPosition = go->GetLocalPosition();
+        animatedObjects[index].originalScale = go->GetLocalScale();
+        animatedObjects[index].originalRotation = go->GetLocalRotation();
+
         index++;
     }
 
@@ -450,6 +456,7 @@ bool AnimationPlayer::SetupAnimatedObjects(const AnimationClip& clipUsed, GameOb
 
 void AnimationPlayer::Stop()
 {
+    ResetBoneTransform();
     isPlaying = false;
     mainClipTimePassed = 0;
 }
@@ -458,6 +465,31 @@ void AnimationPlayer::Play()
 {
     isPlaying = true;
     mainClipTimePassed = 0;
+}
+
+void AnimationPlayer::IdleTick()
+{
+    bool previousRootMotion = rootMotion;
+    rootMotion = false;
+    TickAnimation();
+    rootMotion = previousRootMotion;
+}
+
+void AnimationPlayer::ResetBoneTransform()
+{
+    for (auto& a : animatedObjects)
+    {
+        if (a.go == nullptr)
+            continue;
+
+        a.position = a.originalPosition;
+        a.scale = a.originalScale;
+        a.rotation = a.originalRotation;
+
+        a.go->SetLocalPosition(a.originalPosition);
+        a.go->SetLocalScale(a.originalScale);
+        a.go->SetLocalRotation(a.originalRotation);
+    }
 }
 
 void AnimationPlayer::Tick()
@@ -526,6 +558,14 @@ bool AnimationPlayer::SetBlendClip(const std::string& animationName)
     return success;
 }
 
+void AnimationPlayer::ClearBlendClip()
+{
+    blendClip = nullptr;
+    initialBlendClip = "";
+    blendClipTimePassed = 0;
+    blendClipDurationInSeconds = 0;
+}
+
 bool AnimationPlayer::SetClipInternal(
     const std::string& animationName,
     const AnimationClip*& clipToSet,
@@ -588,7 +628,8 @@ void AnimationPlayer::EnableRootMotion()
     auto iter = std::find_if(
         animatedObjects.begin(),
         animatedObjects.end(),
-        [this](AnimatedGameObject& go) { return go.go && go.go->GetName().compare(rootName) == 0; }
+        [this](AnimatedGameObject& go)
+        { return go.go && go.go->GetName().compare(rootName) == 0; }
     );
     if (iter == animatedObjects.end())
     {

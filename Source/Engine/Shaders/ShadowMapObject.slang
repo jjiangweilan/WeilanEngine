@@ -1,6 +1,7 @@
 import Library.PerScene;
 import WeilanEngine;
 import Shadows;
+import ObjectWorldPosition;
 
 #if CONFIG
 cull: back
@@ -28,14 +29,14 @@ ParameterBlock<ShadowPass> shadowPass;
 [shader("vertex")]
 VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_DrawIndex, uint renderDataIndex : SV_InstanceID)
 {
-    float4x4 modelMatrix;
-
     GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
-    modelMatrix = entity.GetModelMatrix();
+    float4x4 modelMatrix = entity.GetModelMatrix();
+    bool hasBoneWeight = false;
+    float4x4 objectModelMatrix = GetObjectModelMatrix(perScene, modelMatrix, entity.skeletonOffset, entity.GetBone(), hasBoneWeight);
 
-    float3 positionWS = mul(modelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+    float3 positionWS = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
 
     VertexOutput output;
     output.position = mul(perScene.mainLightShadow.worldToShadow[shadowPass.cascadeIndex], float4(positionWS, 1.0));

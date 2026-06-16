@@ -1,5 +1,6 @@
 import Library.PerScene;
 import WeilanEngine;
+import ObjectWorldPosition;
 
 #if CONFIG
 cull: back
@@ -37,7 +38,9 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     float4x4 modelMatrix = entity.GetModelMatrix();
-    float3 positionWS = mul(modelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+    bool hasBoneWeight = false;
+    float4x4 objectModelMatrix = GetObjectModelMatrix(perScene, modelMatrix, entity.skeletonOffset, entity.GetBone(), hasBoneWeight);
+    float3 positionWS = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
 
     VertexOutput output;
     output.positionWS = positionWS;

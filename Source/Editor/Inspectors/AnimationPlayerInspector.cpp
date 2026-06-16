@@ -171,15 +171,20 @@ private:
             target->SetBlendClipFactor(blendFactor);
         }
 
-        if (!ImGui::BeginTable("AnimationClips", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
+        if (!ImGui::BeginTable(
+                "AnimationClips",
+                6,
+                ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
+                    ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_NoSavedSettings
+            ))
             return;
 
-        ImGui::TableSetupColumn("Clip");
-        ImGui::TableSetupColumn("Duration");
-        ImGui::TableSetupColumn("TPS");
-        ImGui::TableSetupColumn("Channels");
-        ImGui::TableSetupColumn("Role");
-        ImGui::TableSetupColumn("Actions");
+        ImGui::TableSetupColumn("Clip", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Duration", ImGuiTableColumnFlags_WidthStretch, 0.8f);
+        ImGui::TableSetupColumn("TPS", ImGuiTableColumnFlags_WidthStretch, 0.8f);
+        ImGui::TableSetupColumn("Channels", ImGuiTableColumnFlags_WidthStretch, 0.8f);
+        ImGui::TableSetupColumn("Role", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthStretch, 2.f);
         ImGui::TableHeadersRow();
 
         int id = 0;
@@ -214,18 +219,19 @@ private:
             ImGui::TableSetColumnIndex(5);
             if (active)
                 ImGui::BeginDisabled();
-            if (ImGui::SmallButton("Set Active"))
+            if (ImGui::SmallButton("Activate"))
                 target->SetClip(clip->GetName());
             if (active)
                 ImGui::EndDisabled();
 
             ImGui::SameLine();
-            if (blend)
-                ImGui::BeginDisabled();
-            if (ImGui::SmallButton("Set Blend"))
-                target->SetBlendClip(clip->GetName());
-            if (blend)
-                ImGui::EndDisabled();
+            if (ImGui::SmallButton("Blend"))
+            {
+                if (blend)
+                    target->ClearBlendClip();
+                else
+                    target->SetBlendClip(clip->GetName());
+            }
 
             ImGui::PopID();
         }

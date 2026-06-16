@@ -55,8 +55,10 @@ public:
 public:
     void SetSpeed(float speed) { this->speed = speed; }
     void SetAutoPlay(bool autoPlay) { this->autoPlay = autoPlay; }
-    void SetBlendClipFactor(float blendClipFactor) { this->blendClipFactor = blendClipFactor; }
-    bool SetBlendClip(const std::string& animationName);
+    [[LuaFn]] void SetBlendClipFactor(float blendClipFactor) { this->blendClipFactor = blendClipFactor; }
+    [[LuaFn]] bool SetBlendClip(const std::string& animationName);
+    [[LuaFn]]
+    void ClearBlendClip();
     [[LuaFn]]
     bool SetClip(const std::string& animationName);
     void SetRootMotionEnabled(bool enabled) { this->rootMotion = enabled; }
@@ -104,9 +106,12 @@ public:
     [[LuaFn]] RootMotionDelta ConsumeRootMotionDelta();
     [[LuaFn]] void Play();
     [[LuaFn]] void Stop();
+    [[LuaFn]]
+    void ResetBoneTransform();
     void TickAnimation();
     void TickAnimation(float deltaTime);
     void PrePhysicsAnimationTick() override;
+    void IdleTick() override;
 
 private:
     // ***** Serialized ****** //
@@ -124,13 +129,16 @@ private:
         glm::vec3 position = {0, 0, 0};
         glm::vec3 scale{1, 1, 1};
         glm::quat rotation{1, 0, 0, 0};
+        glm::vec3 originalPosition = {0, 0, 0};
+        glm::vec3 originalScale{1, 1, 1};
+        glm::quat originalRotation{1, 0, 0, 0};
     };
     std::vector<AnimatedGameObject> animatedObjects;
     float mainClipTimePassed = 0;
     float mainClipDurationInSeconds = 0;
     float blendClipTimePassed = 0;
     float blendClipDurationInSeconds = 0;
-    float blendClipFactor = 1.0f;
+    float blendClipFactor = 0.0f;
     bool rootMotion = false;
     int animatedRootGOIndex = -1;
     RootMotionTranslationMode rootMotionTranslationMode = RootMotionTranslationMode::Horizontal;

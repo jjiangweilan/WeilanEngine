@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: ["-DLuaClass=", "-DLuaFn=", "-DLuaProp=", "-DTrClass=", "-DTrProp=", "-DTrFn=", "-DSerClass=", "-DSerProp=", "-DLuaRawFn(bindingName)=", "-DLuaNamedFn(bindingName)=" ]
+  Add: ["-DLuaClass=", "-DLuaFn=", "-DLuaProp=", "-DTrClass=", "-DTrProp=", "-DTrFn=", "-DSerClass=", "-DSerProp=", "-DLuaRawFn(...)=", "-DLuaNamedFn(bindingName)=" ]

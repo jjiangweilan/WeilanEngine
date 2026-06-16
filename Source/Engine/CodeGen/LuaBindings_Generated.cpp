@@ -601,6 +601,9 @@ void BindGeneratedClasses(lua_State* L)
 
     LuaBinder<AnimationPlayer> binder_AnimationPlayer(L);
     binder_AnimationPlayer.Begin("AnimationPlayer")
+        .BindMemFn("SetBlendClipFactor", &AnimationPlayer::SetBlendClipFactor) // void(float blendClipFactor)
+        .BindMemFn("SetBlendClip", &AnimationPlayer::SetBlendClip) // bool(std::string & animationName)
+        .BindMemFn("ClearBlendClip", &AnimationPlayer::ClearBlendClip) // void()
         .BindMemFn("SetClip", &AnimationPlayer::SetClip) // bool(std::string & animationName)
         .BindMemFn("SetRootMotionEnabled", &AnimationPlayer::Lua_SetRootMotionEnabled) // void(bool enabled)
         .BindMemFn("SetRootMotionRoot", &AnimationPlayer::Lua_SetRootMotionRoot) // void(std::string rootName)
@@ -612,6 +615,7 @@ void BindGeneratedClasses(lua_State* L)
         .BindMemFn("ConsumeRootMotionDelta", &AnimationPlayer::ConsumeRootMotionDelta) // RootMotionDelta()
         .BindMemFn("Play", &AnimationPlayer::Play) // void()
         .BindMemFn("Stop", &AnimationPlayer::Stop) // void()
+        .BindMemFn("ResetBoneTransform", &AnimationPlayer::ResetBoneTransform) // void()
         .End();
 
     // Bind Enum RootMotionTranslationMode
