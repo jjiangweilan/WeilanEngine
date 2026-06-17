@@ -43,6 +43,5 @@ private:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     ObjPtr<Scene> scene = nullptr;
 
-    std::unique_ptr<UI> ui;
     std::unique_ptr<Rendering::RenderPipeline> renderPipeline;
 };

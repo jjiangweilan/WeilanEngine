@@ -10,7 +10,6 @@
 GameLoop::GameLoop()
 {
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
-    ui = std::make_unique<UI>();
 }
 
 GameLoop::~GameLoop() {}
@@ -33,13 +32,12 @@ void GameLoop::StartScene(Scene& scene)
 {
     std::vector<GameObject*> awakedGos{};
     scene.ForEachGameObject([&awakedGos](GameObject* go)
-    {
+                            {
         if (go->IsActiveInScene())
         {
             go->OnAwake();
             awakedGos.push_back(go);
-        }
-    });
+        } });
 
     for (auto go : awakedGos)
     {
@@ -50,9 +48,7 @@ void GameLoop::StartScene(Scene& scene)
 void GameLoop::DestroyScene(Scene& scene)
 {
     scene.ForEachGameObject([](GameObject* go)
-    {
-        go->OnDestroy();
-    });
+                            { go->OnDestroy(); });
 }
 
 static void TickGameObjectDebugDraw(const std::vector<ObjPtr<GameObject>>& rootObjects)
@@ -107,7 +103,12 @@ const void GameLoop::Tick(
     bool offscreen
 )
 {
-    ui->DragOverlay();
+    auto& ui = UI::Instance();
+
+    ui.SetUICanvasCoordinate({0, 0}, {static_cast<int>(screenSize.x), static_cast<int>(screenSize.y)});
+    ui.Update();
+    ui.DragOverlay();
+
     ENGINE_SCOPED_PROFILE("GameLoop - Tick");
 
     Scene* scene = this->scene;
@@ -165,13 +166,17 @@ const void GameLoop::Tick(
         {
             ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
             renderPipeline->Render(*scene, *scene->GetMainCamera(), screenSize);
+            outGraphOutputImage = &renderPipeline->GetOutputColor();
+            outGraphOutputDepthImage = &renderPipeline->GetOutputDepth();
+            ui.RenderElements(outGraphOutputImage);
+
             ENGINE_END_PROFILE
         }
-
-        outGraphOutputImage = &renderPipeline->GetOutputColor();
-        outGraphOutputDepthImage = &renderPipeline->GetOutputDepth();
-
-        ui->RenderElements(outGraphOutputImage);
+        else
+        {
+            outGraphOutputImage = nullptr;
+            outGraphOutputDepthImage = nullptr;
+        }
     }
     else
     {

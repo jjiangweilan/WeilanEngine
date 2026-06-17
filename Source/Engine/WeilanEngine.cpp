@@ -10,9 +10,9 @@
 #include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
-#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBindings.hpp"
 #if ENGINE_EDITOR
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -44,6 +44,7 @@ WeilanEngine::~WeilanEngine()
 #endif
     editor = nullptr;
     event->Deinit();
+    UI::Instance().Destroy();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
     ClearLuaCreatedRuntimeAssets();
@@ -112,7 +113,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     ShaderLibrary::Singleton().WaitForShaderCompilation();
 
 #ifdef WEILAN_ENABLE_MCP
-    if (createInfo.enableMCP) {
+    if (createInfo.enableMCP)
+    {
         mcpServer = std::make_unique<MCPServer>(8080);
         mcpServer->Start();
     }
@@ -144,7 +146,8 @@ void WeilanEngine::StartEngine()
 
             editor->Tick();
 #ifdef WEILAN_ENABLE_MCP
-            if (mcpServer) mcpServer->Tick();
+            if (mcpServer)
+                mcpServer->Tick();
 #endif
             gameLoop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
             editor->AfterGameLoopTick();

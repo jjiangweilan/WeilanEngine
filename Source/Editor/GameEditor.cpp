@@ -17,6 +17,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Rendering/Tools/BRDFResponseGeneration.hpp"
+#include "Engine/Runtime/System/UserInterface/UI.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "Engine/ThirdParty/imgui/implot.h"
@@ -486,6 +487,23 @@ void GameEditor::ShowSceneWindow()
 void GameEditor::MainMenuBar()
 {
     ImGui::BeginMainMenuBar();
+
+    if (ImGui::MenuItem("Test"))
+    {
+        struct ApplicationData
+        {
+            bool show_text = true;
+            Rml::String animal = "dog";
+        } my_data;
+
+        if (Rml::DataModelConstructor constructor = UI::Instance().GetRmlContext()->CreateDataModel("animals"))
+        {
+            constructor.Bind("show_text", &my_data.show_text);
+            constructor.Bind("animal", &my_data.animal);
+        }
+
+        UI::Instance().LoadDocument("D:\\WeilanGame\\Assets\\UI\\hello_world.rml");
+    }
 
     if (ImGui::BeginMenu("Files"))
     {

@@ -1,4 +1,5 @@
 #include "Event.hpp"
+#include "Engine/Runtime/System/UserInterface/UI.hpp"
 #include <SDL.h>
 #if ENGINE_EDITOR
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -27,6 +28,8 @@ void Event::Poll()
 #if ENGINE_EDITOR
         ImGui_ImplSDL2_ProcessEvent(&event);
 #endif
+
+        UI::ProcessSDLEvent(event);
 
         if (event.type == SDL_WINDOWEVENT)
         {

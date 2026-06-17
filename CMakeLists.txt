@@ -460,6 +460,54 @@ if(NOT JoltPhysics_POPULATED)
     endif()
 endif()
 
+FetchContent_Declare(
+    freetype
+    GIT_REPOSITORY https://github.com/freetype/freetype.git
+    GIT_TAG VER-2-13-3
+    GIT_PROGRESS TRUE
+    GIT_SHALLOW TRUE
+)
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
+
+set(WEILAN_BUILD_SHARED_LIBS_WAS_DEFINED FALSE)
+if(DEFINED BUILD_SHARED_LIBS)
+    set(WEILAN_BUILD_SHARED_LIBS_WAS_DEFINED TRUE)
+    set(WEILAN_BUILD_SHARED_LIBS_PRE_RMLUI ${BUILD_SHARED_LIBS})
+endif()
+set(BUILD_SHARED_LIBS OFF)
+FetchContent_MakeAvailable(freetype)
+if(NOT TARGET Freetype::Freetype)
+    add_library(Freetype::Freetype ALIAS freetype)
+endif()
+
+FetchContent_Declare(
+    RmlUi
+    GIT_REPOSITORY https://github.com/mikke89/RmlUi.git
+    GIT_TAG 6.2
+    GIT_PROGRESS TRUE
+    GIT_SHALLOW TRUE
+)
+set(RMLUI_SAMPLES OFF)
+set(RMLUI_TESTS OFF)
+set(RMLUI_LUA_BINDINGS OFF)
+set(RMLUI_LOTTIE_PLUGIN OFF)
+set(RMLUI_SVG_PLUGIN OFF)
+set(RMLUI_HARFBUZZ_SAMPLE OFF)
+set(RMLUI_FONT_ENGINE freetype)
+set(RMLUI_PRECOMPILED_HEADERS OFF)
+set(RMLUI_WARNINGS_AS_ERRORS OFF)
+FetchContent_MakeAvailable(RmlUi)
+if(WEILAN_BUILD_SHARED_LIBS_WAS_DEFINED)
+    set(BUILD_SHARED_LIBS ${WEILAN_BUILD_SHARED_LIBS_PRE_RMLUI})
+else()
+    unset(BUILD_SHARED_LIBS)
+endif()
+
 
 # WeilanEngine
 
@@ -536,6 +584,7 @@ target_link_libraries( WeilanEngine
     meshoptimizer
     volk
     LuaJIT::LuaJIT
+    RmlUi::RmlUi
 )
 
 if(ENABLE_MCP)
@@ -708,6 +757,8 @@ SetDependencyFolder(nlohmann_json nlohmann_json)
 SetDependencyFolder(VulkanMemoryAllocator VulkanMemoryAllocator)
 SetDependencyFolder(assimp assimp)
 SetDependencyFolder(Jolt JoltPhysics)
+SetDependencyFolder(freetype freetype)
+SetDependencyFolder(RmlUi::RmlUi RmlUi)
 
 
 if (MSVC AND ENABLE_ASAN)

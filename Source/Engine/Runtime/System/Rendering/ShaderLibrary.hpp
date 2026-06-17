@@ -10,7 +10,7 @@
 
 #define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),             \
                          Do(PlaneGrid, "PlaneGrid"),                                                          \
-                         Do(ImGui, "ImGui"), Do(LineShader, "LineShader"),                                   \
+                         Do(ImGui, "ImGui"), Do(RmlUi, "RmlUi"), Do(LineShader, "LineShader"),             \
                          Do(TriangleShader, "TriangleShader"),                                               \
                          Do(JoltDebugShader, "Specific/JoltDebugShader"),                                    \
                          Do(PostProcess_OutlineFullScreenPass, "PostProcess/Outline/OutlineFullScreenPass"), \
