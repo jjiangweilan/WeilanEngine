@@ -190,6 +190,11 @@ UI::UI()
     Rml::SetSystemInterface(rmlSystem.get());
     Rml::SetRenderInterface(rmlRenderer.get());
     Rml::Initialise();
+    const std::filesystem::path defaultFontPath = std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf";
+    if (!Rml::LoadFontFace(defaultFontPath.string()))
+    {
+        spdlog::warn("Failed to load RmlUi default font: {}", defaultFontPath.string());
+    }
     rmlInitialized = true;
     rmlContext = Rml::CreateContext("GameUI", Rml::Vector2i(canvasSize.x, canvasSize.y));
 }
@@ -366,20 +371,6 @@ void UI::RenderElements(const Gfx::ImageIdentifier* colorImage)
         rmlRenderer->BeginFrame(*cmd, canvasOrigin, canvasSize);
         rmlContext->Render();
         rmlRenderer->EndFrame();
-    }
-
-    for (auto& element : uiElements)
-    {
-        Gfx::Viewport vp;
-        vp.x = static_cast<float>(canvasOrigin.x + element.orgin.x);
-        vp.y = static_cast<float>(canvasOrigin.y + element.orgin.y);
-        vp.width = static_cast<float>(element.size.x);
-        vp.height = static_cast<float>(element.size.y);
-        vp.minDepth = 0.0f;
-        vp.maxDepth = 1.0f;
-        cmd->SetViewport(vp);
-
-        ObjPtr<Texture> tex = element.texture ? element.texture : whiteTexture;
     }
 
     cmd->EndRenderPass();
