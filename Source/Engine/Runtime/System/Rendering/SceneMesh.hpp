@@ -7,8 +7,8 @@ class SceneMeshManager;
 
 struct SceneMeshHandle
 {
-    size_t vertexBufferOffset = 0;
-    size_t indexBufferOffset = 0;
+    VkDeviceSize vertexBufferOffset = 0;
+    VkDeviceSize indexBufferOffset = 0;
 
     VmaVirtualAllocation _vertexAlloc;
     VmaVirtualAllocation _indexAlloc;

@@ -160,10 +160,7 @@ FetchContent_Declare(LuaJIT
     UPDATE_DISCONNECTED TRUE
     ${LUAJIT_GIT_CONFIG_ARGS}
 )
-FetchContent_GetProperties(LuaJIT)
-if(NOT luajit_POPULATED)
-    FetchContent_Populate(LuaJIT)
-endif()
+FetchContent_MakeAvailable(LuaJIT)
 
 if(WIN32)
     set(LUAJIT_DLL_PATH "${luajit_SOURCE_DIR}/src/lua51.dll")
@@ -176,78 +173,113 @@ if(WIN32)
         COMMENT "Building LuaJIT DLL"
         VERBATIM
     )
+    add_custom_target(LuaJITBuild DEPENDS "${LUAJIT_DLL_PATH}" "${LUAJIT_IMPLIB_PATH}" "${LUAJIT_EXE_PATH}")
+    add_library(LuaJIT::LuaJIT SHARED IMPORTED GLOBAL)
+    set_target_properties(LuaJIT::LuaJIT PROPERTIES
+        IMPORTED_IMPLIB "${LUAJIT_IMPLIB_PATH}"
+        IMPORTED_LOCATION "${LUAJIT_DLL_PATH}"
+        INTERFACE_INCLUDE_DIRECTORIES "${luajit_SOURCE_DIR}/src"
+    )
 else()
-    message(FATAL_ERROR "LuaJIT DLL integration is currently implemented for Windows only")
-endif()
+    find_program(MAKE_EXECUTABLE make REQUIRED)
+    set(LUAJIT_LIB_PATH "${luajit_SOURCE_DIR}/src/libluajit.a")
+    set(LUAJIT_EXE_PATH "${luajit_SOURCE_DIR}/src/luajit")
+    set(LUAJIT_MAKE_ENV)
+    if(APPLE)
+        set(WEILAN_MACOSX_DEPLOYMENT_TARGET "${CMAKE_OSX_DEPLOYMENT_TARGET}")
+        if(NOT WEILAN_MACOSX_DEPLOYMENT_TARGET)
+            set(WEILAN_MACOSX_DEPLOYMENT_TARGET "11.0")
+        endif()
+        set(LUAJIT_MAKE_ENV "${CMAKE_COMMAND}" -E env "MACOSX_DEPLOYMENT_TARGET=${WEILAN_MACOSX_DEPLOYMENT_TARGET}")
+    endif()
 
-add_custom_target(LuaJITBuild DEPENDS "${LUAJIT_DLL_PATH}" "${LUAJIT_IMPLIB_PATH}" "${LUAJIT_EXE_PATH}")
-add_library(LuaJIT::LuaJIT SHARED IMPORTED GLOBAL)
-set_target_properties(LuaJIT::LuaJIT PROPERTIES
-    IMPORTED_IMPLIB "${LUAJIT_IMPLIB_PATH}"
-    IMPORTED_LOCATION "${LUAJIT_DLL_PATH}"
-    INTERFACE_INCLUDE_DIRECTORIES "${luajit_SOURCE_DIR}/src"
-)
+    add_custom_command(
+        OUTPUT "${LUAJIT_LIB_PATH}" "${LUAJIT_EXE_PATH}"
+        COMMAND ${LUAJIT_MAKE_ENV} "${MAKE_EXECUTABLE}" -C "${luajit_SOURCE_DIR}"
+        COMMENT "Building LuaJIT"
+        VERBATIM
+    )
+    add_custom_target(LuaJITBuild DEPENDS "${LUAJIT_LIB_PATH}" "${LUAJIT_EXE_PATH}")
+    add_library(LuaJIT::LuaJIT STATIC IMPORTED GLOBAL)
+    set_target_properties(LuaJIT::LuaJIT PROPERTIES
+        IMPORTED_LOCATION "${LUAJIT_LIB_PATH}"
+        INTERFACE_INCLUDE_DIRECTORIES "${luajit_SOURCE_DIR}/src"
+    )
+endif()
 add_dependencies(LuaJIT::LuaJIT LuaJITBuild)
 
-FetchContent_Declare(LuaRocks
-    GIT_REPOSITORY https://github.com/luarocks/luarocks.git
-    GIT_TAG v3.13.0
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
-    UPDATE_DISCONNECTED TRUE
-    ${LUAJIT_GIT_CONFIG_ARGS}
-)
-FetchContent_GetProperties(LuaRocks)
-if(NOT luarocks_POPULATED)
-    FetchContent_Populate(LuaRocks)
-endif()
-
-set(LUAROCKS_INSTALL_DIR "${CMAKE_BINARY_DIR}/luarocks")
-set(LUAROCKS_LUAJIT_LIB_DIR "${CMAKE_BINARY_DIR}/luajit-luarocks")
-set(LUAROCKS_BAT "${LUAROCKS_INSTALL_DIR}/luarocks.bat")
-set(LUAROCKS_CONFIG "${LUAROCKS_INSTALL_DIR}/config-5.1.lua")
-set(LUAROCKS_STAMP "${LUAROCKS_INSTALL_DIR}/.luarocks-installed")
 set(LUA_DEPENDENCIES_STAMP_DIR "${CMAKE_BINARY_DIR}/lua-dependencies/$<CONFIG>")
 set(LUA_DEPENDENCIES_STAMP "${LUA_DEPENDENCIES_STAMP_DIR}/.installed")
 set(LUA_ROCKS
     luasocket
 )
 
-add_custom_command(
-    OUTPUT "${LUAROCKS_STAMP}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUAROCKS_LUAJIT_LIB_DIR}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${LUAJIT_IMPLIB_PATH}" "${LUAROCKS_LUAJIT_LIB_DIR}/lua51.lib"
-    COMMAND "${luarocks_SOURCE_DIR}/install.bat"
-        /P "${LUAROCKS_INSTALL_DIR}"
-        /SELFCONTAINED
-        /NOADMIN
-        /F
-        /Q
-        /LV 5.1
-        /BIN "${luajit_SOURCE_DIR}/src"
-        /INC "${luajit_SOURCE_DIR}/src"
-        /LIB "${LUAROCKS_LUAJIT_LIB_DIR}"
-    COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR "${LUAROCKS_LUAJIT_LIB_DIR}"
-    COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR_FILE lua51.lib
-    COMMAND "${CMAKE_COMMAND}" -E touch "${LUAROCKS_STAMP}"
-    DEPENDS LuaJITBuild
-    WORKING_DIRECTORY "${luarocks_SOURCE_DIR}"
-    COMMENT "Installing LuaRocks for LuaJIT"
-    VERBATIM
-)
-add_custom_target(LuaRocksInstall DEPENDS "${LUAROCKS_STAMP}")
+if(WIN32)
+    FetchContent_Declare(LuaRocks
+        GIT_REPOSITORY https://github.com/luarocks/luarocks.git
+        GIT_TAG v3.13.0
+        GIT_PROGRESS TRUE
+        GIT_SHALLOW TRUE
+        UPDATE_DISCONNECTED TRUE
+        ${LUAJIT_GIT_CONFIG_ARGS}
+    )
+    FetchContent_MakeAvailable(LuaRocks)
 
-add_custom_command(
-    OUTPUT "${LUA_DEPENDENCIES_STAMP}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUA_DEPENDENCIES_STAMP_DIR}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
-    COMMAND "${LUAROCKS_BAT}" --tree "$<TARGET_FILE_DIR:WeilanEngine>" install ${LUA_ROCKS}
-    COMMAND "${CMAKE_COMMAND}" -E touch "${LUA_DEPENDENCIES_STAMP}"
-    DEPENDS LuaRocksInstall
-    COMMENT "Installing Lua dependencies"
-    VERBATIM
-)
-add_custom_target(LuaDependencies DEPENDS "${LUA_DEPENDENCIES_STAMP}")
+    set(LUAROCKS_INSTALL_DIR "${CMAKE_BINARY_DIR}/luarocks")
+    set(LUAROCKS_LUAJIT_LIB_DIR "${CMAKE_BINARY_DIR}/luajit-luarocks")
+    set(LUAROCKS_BAT "${LUAROCKS_INSTALL_DIR}/luarocks.bat")
+    set(LUAROCKS_CONFIG "${LUAROCKS_INSTALL_DIR}/config-5.1.lua")
+    set(LUAROCKS_STAMP "${LUAROCKS_INSTALL_DIR}/.luarocks-installed")
+
+    add_custom_command(
+        OUTPUT "${LUAROCKS_STAMP}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUAROCKS_LUAJIT_LIB_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${LUAJIT_IMPLIB_PATH}" "${LUAROCKS_LUAJIT_LIB_DIR}/lua51.lib"
+        COMMAND "${luarocks_SOURCE_DIR}/install.bat"
+            /P "${LUAROCKS_INSTALL_DIR}"
+            /SELFCONTAINED
+            /NOADMIN
+            /F
+            /Q
+            /LV 5.1
+            /BIN "${luajit_SOURCE_DIR}/src"
+            /INC "${luajit_SOURCE_DIR}/src"
+            /LIB "${LUAROCKS_LUAJIT_LIB_DIR}"
+        COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR "${LUAROCKS_LUAJIT_LIB_DIR}"
+        COMMAND "${LUAROCKS_BAT}" config variables.LUA_LIBDIR_FILE lua51.lib
+        COMMAND "${CMAKE_COMMAND}" -E touch "${LUAROCKS_STAMP}"
+        DEPENDS LuaJITBuild
+        WORKING_DIRECTORY "${luarocks_SOURCE_DIR}"
+        COMMENT "Installing LuaRocks for LuaJIT"
+        VERBATIM
+    )
+    add_custom_target(LuaRocksInstall DEPENDS "${LUAROCKS_STAMP}")
+
+    add_custom_command(
+        OUTPUT "${LUA_DEPENDENCIES_STAMP}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUA_DEPENDENCIES_STAMP_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
+        COMMAND "${LUAROCKS_BAT}" --tree "$<TARGET_FILE_DIR:WeilanEngine>" install ${LUA_ROCKS}
+        COMMAND "${CMAKE_COMMAND}" -E touch "${LUA_DEPENDENCIES_STAMP}"
+        DEPENDS LuaRocksInstall
+        COMMENT "Installing Lua dependencies"
+        VERBATIM
+    )
+    add_custom_target(LuaDependencies DEPENDS "${LUA_DEPENDENCIES_STAMP}")
+else()
+    find_program(LUAROCKS_EXECUTABLE luarocks REQUIRED)
+    add_custom_command(
+        OUTPUT "${LUA_DEPENDENCIES_STAMP}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${LUA_DEPENDENCIES_STAMP_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
+        COMMAND "${LUAROCKS_EXECUTABLE}" --tree "$<TARGET_FILE_DIR:WeilanEngine>" install ${LUA_ROCKS}
+        COMMAND "${CMAKE_COMMAND}" -E touch "${LUA_DEPENDENCIES_STAMP}"
+        DEPENDS LuaJITBuild
+        COMMENT "Installing Lua dependencies"
+        VERBATIM
+    )
+    add_custom_target(LuaDependencies DEPENDS "${LUA_DEPENDENCIES_STAMP}")
+endif()
 
 FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
@@ -296,9 +328,8 @@ FetchContent_Declare(sqlite3
     URL https://www.sqlite.org/2024/sqlite-amalgamation-3460100.zip
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-FetchContent_GetProperties(sqlite3)
-if(NOT sqlite3_POPULATED)
-    FetchContent_Populate(sqlite3)
+FetchContent_MakeAvailable(sqlite3)
+if(NOT TARGET sqlite3)
     add_library(sqlite3 STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
     target_include_directories(sqlite3 PUBLIC ${sqlite3_SOURCE_DIR})
     if(MSVC)
@@ -360,7 +391,9 @@ FetchContent_Declare(
     Boost
     GIT_REPOSITORY https://github.com/boostorg/boost.git
     GIT_TAG boost-1.89.0
+    GIT_PROGRESS TRUE
     GIT_SHALLOW TRUE
+    GIT_SUBMODULES_RECURSE TRUE
 )
 FetchContent_MakeAvailable(Boost)
 
@@ -458,6 +491,12 @@ endif()
 
 set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
 file(GLOB_RECURSE CORE_ENGINE_SRC "Source/Engine/*.c" "Source/Engine/*.cpp" "Source/Engine/*.hpp" "Source/Engine/*.h" "Source/Engine/*.tpp")
+if(NOT WIN32)
+    list(FILTER CORE_ENGINE_SRC EXCLUDE REGEX ".*/Source/Engine/Driver/WindowSystemHost/D3D11/.*")
+endif()
+if(NOT ENABLE_MCP)
+    list(FILTER CORE_ENGINE_SRC EXCLUDE REGEX ".*/Source/Engine/Runtime/MCP/.*")
+endif()
 
 target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
 find_package(Vulkan REQUIRED)
@@ -523,27 +562,42 @@ target_compile_definitions(
     VK_NO_PROTOTYPES
 )
 
-find_package(Python3 REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-execute_process(
-    COMMAND "${Python3_EXECUTABLE}" -c "import tree_sitter; import tree_sitter_cpp"
-    RESULT_VARIABLE TREE_SITTER_AVAILABLE
-    ERROR_QUIET
-)
-
-if (NOT TREE_SITTER_AVAILABLE EQUAL 0)
-    message(FATAL_ERROR "Python module 'tree_sitter' or 'tree_sitter_cpp' not found. Please install it via 'pip install tree-sitter tree-sitter-cpp'")
+set(WEILAN_PYTHON_VENV_DIR "${CMAKE_BINARY_DIR}/python-venv")
+if(WIN32)
+    set(WEILAN_PYTHON_EXECUTABLE "${WEILAN_PYTHON_VENV_DIR}/Scripts/python.exe")
+else()
+    set(WEILAN_PYTHON_EXECUTABLE "${WEILAN_PYTHON_VENV_DIR}/bin/python")
 endif()
-
-add_custom_target(CodeGeneration
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CodeGeneration.py"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-    COMMENT "Code Generation"
+set(WEILAN_PYTHON_DEPENDENCIES_STAMP "${WEILAN_PYTHON_VENV_DIR}/.dependencies-installed")
+set(WEILAN_PYTHON_PACKAGES
+    tree-sitter
+    tree-sitter-cpp
+    PyYAML
 )
 
 add_custom_command(
+    OUTPUT "${WEILAN_PYTHON_DEPENDENCIES_STAMP}"
+    COMMAND "${Python3_EXECUTABLE}" -m venv "${WEILAN_PYTHON_VENV_DIR}"
+    COMMAND "${WEILAN_PYTHON_EXECUTABLE}" -m pip install --upgrade pip
+    COMMAND "${WEILAN_PYTHON_EXECUTABLE}" -m pip install ${WEILAN_PYTHON_PACKAGES}
+    COMMAND "${CMAKE_COMMAND}" -E touch "${WEILAN_PYTHON_DEPENDENCIES_STAMP}"
+    COMMENT "Installing Python code generation dependencies"
+    VERBATIM
+)
+add_custom_target(PythonDependencies DEPENDS "${WEILAN_PYTHON_DEPENDENCIES_STAMP}")
+
+add_custom_target(CodeGeneration
+    COMMAND "${WEILAN_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CodeGeneration.py"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    COMMENT "Code Generation"
+)
+add_dependencies(CodeGeneration PythonDependencies)
+
+add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/Source/Lua/weilan_api.lua"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
+    COMMAND "${WEILAN_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
     DEPENDS "${CMAKE_SOURCE_DIR}/Source/Engine/CodeGen/LuaBindings_Generated.cpp"
     "${CMAKE_SOURCE_DIR}/Source/Engine/Runtime/System/ScriptingBackend/LuaBindings.cpp"
     "${CMAKE_SOURCE_DIR}/Source/Scripts/GenerateLuaAnnotation.py"
@@ -562,7 +616,7 @@ file(GLOB_RECURSE SHADER_SOURCES
 
 add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/Source/CompiledShader/shader_manifest.json"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
+    COMMAND "${WEILAN_PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
     DEPENDS ${SHADER_SOURCES}
     "${CMAKE_SOURCE_DIR}/Source/Scripts/CompileShaders.py"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -573,7 +627,7 @@ add_custom_command(
 add_subdirectory(Source/Tools/ShaderCompiler)
 
 add_custom_target(CompileShaders DEPENDS "${CMAKE_SOURCE_DIR}/Source/CompiledShader/shader_manifest.json")
-add_dependencies(CompileShaders ShaderCompilerTool)  # Ensure ShaderCompilerTool is built first
+add_dependencies(CompileShaders ShaderCompilerTool PythonDependencies)  # Ensure ShaderCompilerTool and Python deps are built first
 
 add_dependencies(WeilanEngine CodeGeneration)
 add_dependencies(WeilanEngine LuaAnnotationGen)

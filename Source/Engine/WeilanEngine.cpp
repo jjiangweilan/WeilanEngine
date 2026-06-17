@@ -4,7 +4,9 @@
 #include "Engine/Core/GameLoop.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#if defined(_WIN32) || defined(_WIN64)
 #include "Engine/Driver/WindowSystemHost/D3D11/D3D11InteropDriverCreateHelper.hpp"
+#endif
 #include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
@@ -395,6 +397,7 @@ int2 WeilanEngine::GetSystemWindowSize()
 
 void WeilanEngine::PresentGameOnly(bool enable)
 {
+#if defined(_WIN32) || defined(_WIN64)
     presentGameColorOnly = enable;
 
     // lazy create interop driver
@@ -414,4 +417,11 @@ void WeilanEngine::PresentGameOnly(bool enable)
     {
         gfxDriver->UnsetWin32WindowInteropTexture(int2(mainWindow.size.width, mainWindow.size.height));
     }
+#else
+    if (enable)
+    {
+        SPDLOG_WARN("PresentGameOnly is only supported on Windows.");
+    }
+    presentGameColorOnly = false;
+#endif
 }

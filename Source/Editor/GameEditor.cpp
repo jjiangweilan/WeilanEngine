@@ -125,6 +125,7 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
 
 void GameEditor::SimulatePlayerView(bool enable)
 {
+#if defined(_WIN32) || defined(_WIN64)
     // engine->WindowBorderless(enable);
     hideDevTool = enable;
 
@@ -143,6 +144,9 @@ void GameEditor::SimulatePlayerView(bool enable)
         engine->SetSystemWindowSize(cacheSystemWindowSize);
         engine->PresentGameOnly(false);
     }
+#else
+    (void)enable;
+#endif
 }
 
 GameEditor::GameEditor(WeilanEngine* engine, const char* path)
@@ -618,10 +622,12 @@ void GameEditor::MainMenuBar()
         }
     }
 
+#if defined(_WIN32) || defined(_WIN64)
     if (ImGui::MenuItem(hideDevTool ? "Show Dev Tool" : "Hide Dev Tool"))
     {
         SimulatePlayerView(!hideDevTool);
     }
+#endif
 
     for (auto& windowInfo : WindowRegistery::GetRegistery())
     {
@@ -749,10 +755,12 @@ void GameEditor::GUIPass()
         firstFrame = false;
     }
 
+#if defined(_WIN32) || defined(_WIN64)
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_H))
     {
         SimulatePlayerView(!hideDevTool);
     }
+#endif
 
     if (!ImGui::IsAnyItemActive())
         EditorState::GetUndoManager().CommitImplicitTransaction();

@@ -180,7 +180,7 @@ uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, Vk
 
 void Swapchain::AsWin32WindowInteropTexture(const void* sharedHandle, int2 size)
 {
-#if WIN32
+#if defined(_WIN32) || defined(_WIN64)
     // Create the interop image
     auto context = VKContext::Instance();
 
@@ -271,6 +271,9 @@ void Swapchain::AsWin32WindowInteropTexture(const void* sharedHandle, int2 size)
     swapchainImage->Recreate(vkImages, imageInfo.format, size.x, size.y, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
     swapchainImage->SetActiveSwapChainImage(0);
     swapchainImage->SetName("Win32 Interop Texture");
+#else
+    (void)sharedHandle;
+    (void)size;
 #endif
 }
 

@@ -922,7 +922,7 @@ void AssetBrowser::ShowSearchResults()
             ImGui::GetWindowDrawList()->AddRectFilled(bgMin, bgMax, bgColor, 4.0f);
         }
 
-        ImGui::Text("%s ", FileIcons::GetIcon(entry.path().extension()));
+        ImGui::Text("%s ", FileIcons::GetIcon(entry.path().extension()).c_str());
         ImGui::SameLine();
 
         if (isSelected)
