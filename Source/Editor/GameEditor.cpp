@@ -219,6 +219,7 @@ GameEditor::GameEditor(WeilanEngine* engine, const char* path)
     editorContext->SetGizmoManager(gizmoManager.get());
     gizmoManager->SetEditorContext(editorContext.get());
     sceneEditor->Init(editorContext.get());
+    sceneEditor->LoadEditorState(editorState);
 
     // Configure ImGui.io
     auto& io = ImGui::GetIO();
@@ -246,17 +247,7 @@ GameEditor::~GameEditor()
     if (SceneManager::GetActiveScene())
         editorState["lastActiveScene"] = SceneManager::GetActiveScene()->GetUUID().ToString();
 
-    if (Camera* cam = sceneEditor->GetEditorCamera())
-    {
-        nlohmann::json camJson = {};
-        auto pos = cam->GetGameObject()->GetPosition();
-        auto rot = cam->GetGameObject()->GetRotation();
-        auto scale = cam->GetGameObject()->GetLocalScale();
-        camJson["position"] = {pos.x, pos.y, pos.z};
-        camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
-        camJson["scale"] = {scale.x, scale.y, scale.z};
-        editorState["editorCamera"] = camJson;
-    }
+    sceneEditor->SaveEditorState(editorState);
 
     auto gameViewResolution = gameView->GetGameScreenResolution();
     editorState["gameView"]["resolution"] = {gameViewResolution.x, gameViewResolution.y};

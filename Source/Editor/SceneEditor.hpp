@@ -8,6 +8,7 @@
 #include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Engine/ThirdParty/imgui/ImGuizmo.h"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <nlohmann/json.hpp>
 #include <list>
 #include <vector>
 
@@ -30,6 +31,8 @@ public:
 
     void SetActiveScene(ObjPtr<Scene> scene);
     void SetActiveTool(SceneEditorTool* tool);
+    void LoadEditorState(const nlohmann::json& editorState);
+    void SaveEditorState(nlohmann::json& editorState) const;
 
     Camera* GetEditorCamera() const { return editorCamera; }
 

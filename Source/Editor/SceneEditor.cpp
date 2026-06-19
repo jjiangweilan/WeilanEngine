@@ -169,9 +169,30 @@ void SceneEditor::Init(EditorContext* editorContext)
         SetActiveScene(scene);
     }
 
-    if (GameEditor::instance->editorState.contains("editorCamera"))
     {
-        auto& camJson = GameEditor::instance->editorState["editorCamera"];
+        auto angles = ComputeEditorCameraAnglesFromForward(editorCamera->GetForward(), cameraLookAroundContext.yaw);
+        cameraLookAroundContext.yaw = angles.yaw;
+        cameraLookAroundContext.pitch = angles.pitch;
+        cameraLookAroundContext.anglesInitialized = true;
+    }
+
+    outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
+    outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
+
+    editorWorldSpaceGrid.plane =
+        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
+            ->GetMeshes()[0]
+            .get();
+    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(Shaders::PlaneGrid);
+
+    ChangeGameScreenResolution({256, 256});
+}
+
+void SceneEditor::LoadEditorState(const nlohmann::json& editorState)
+{
+    if (editorState.contains("editorCamera"))
+    {
+        const auto& camJson = editorState["editorCamera"];
         std::array<float, 3> pos{0, 0, 0};
         std::array<float, 4> rot{1, 0, 0, 0};
         std::array<float, 3> scale{1, 1, 1};
@@ -191,25 +212,44 @@ void SceneEditor::Init(EditorContext* editorContext)
         editorCamera->GetGameObject()->SetPosition({pos[0], pos[1], pos[2]});
         editorCamera->GetGameObject()->SetRotation(glm::quat{rot[0], rot[1], rot[2], rot[3]});
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
-    }
 
-    {
         auto angles = ComputeEditorCameraAnglesFromForward(editorCamera->GetForward(), cameraLookAroundContext.yaw);
         cameraLookAroundContext.yaw = angles.yaw;
         cameraLookAroundContext.pitch = angles.pitch;
         cameraLookAroundContext.anglesInitialized = true;
     }
 
-    outlineRawColorPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineRawColorPass);
-    outlineFullScreenPassShader = ShaderLibrary::GetShader(Shaders::PostProcess_OutlineFullScreenPass);
+    if (editorState.contains("sceneView") && editorState["sceneView"].is_object())
+    {
+        const auto& sceneViewState = editorState["sceneView"];
+        showGizmos = sceneViewState.value("showGizmos", showGizmos);
+        editorWorldSpaceGrid.show = sceneViewState.value("showGrid", editorWorldSpaceGrid.show);
+        showSelectionOutline = sceneViewState.value("selectionOutline", showSelectionOutline);
+        showHoverHighlightOutline = sceneViewState.value("hoverHighlightOutline", showHoverHighlightOutline);
+        pixelZoomEnabled = sceneViewState.value("pixelZoom", pixelZoomEnabled);
+    }
+}
 
-    editorWorldSpaceGrid.plane =
-        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
-            ->GetMeshes()[0]
-            .get();
-    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(Shaders::PlaneGrid);
+void SceneEditor::SaveEditorState(nlohmann::json& editorState) const
+{
+    if (Camera* cam = editorCamera.Get())
+    {
+        nlohmann::json camJson = {};
+        auto pos = cam->GetGameObject()->GetPosition();
+        auto rot = cam->GetGameObject()->GetRotation();
+        auto scale = cam->GetGameObject()->GetLocalScale();
+        camJson["position"] = {pos.x, pos.y, pos.z};
+        camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
+        camJson["scale"] = {scale.x, scale.y, scale.z};
+        editorState["editorCamera"] = camJson;
+    }
 
-    ChangeGameScreenResolution({256, 256});
+    auto& sceneViewState = editorState["sceneView"];
+    sceneViewState["showGizmos"] = showGizmos;
+    sceneViewState["showGrid"] = editorWorldSpaceGrid.show;
+    sceneViewState["selectionOutline"] = showSelectionOutline;
+    sceneViewState["hoverHighlightOutline"] = showHoverHighlightOutline;
+    sceneViewState["pixelZoom"] = pixelZoomEnabled;
 }
 
 bool SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
