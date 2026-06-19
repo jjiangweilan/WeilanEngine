@@ -579,6 +579,27 @@ function wl.GameObject:GetComponent(className) end
 wl.Prefab = {}
 
 
+---@class wl.NavPathResult
+wl.NavPathResult = {}
+
+---@return boolean
+function wl.NavPathResult:IsSuccess() end
+---@return number
+function wl.NavPathResult:Count() end
+---@param index number
+---@return wl.Float3
+function wl.NavPathResult:GetWaypoint(index) end
+
+---@class wl.NavSystem
+wl.NavSystem = {}
+
+---@param startWorld wl.Float3
+---@param endWorld wl.Float3
+---@return wl.NavPathResult
+function wl.NavSystem:FindPath(startWorld, endWorld) end
+---@return wl.NavSystem*
+function wl.NavSystem.GetGlobalInstance() end
+
 ---@class wl.Scene
 wl.Scene = {}
 

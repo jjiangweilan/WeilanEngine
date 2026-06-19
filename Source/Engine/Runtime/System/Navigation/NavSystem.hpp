@@ -26,10 +26,14 @@ struct NavPathQuery
     bool smoothPath = true;
 };
 
-struct NavPathResult
+struct [[LuaClass]] NavPathResult
 {
     bool success = false;
     std::vector<float3> waypoints;
+
+    [[LuaFn]] bool IsSuccess() const { return success; }
+    [[LuaFn]] int Count() const { return static_cast<int>(waypoints.size()); }
+    [[LuaFn]] float3 GetWaypoint(int index) const;
 };
 
 struct NavSteeringQuery
@@ -39,7 +43,7 @@ struct NavSteeringQuery
 };
 
 class MeshRenderer;
-class NavSystem
+class [[LuaClass]] NavSystem
 {
 public:
     void Init(ObjPtr<NavData> data);
@@ -49,9 +53,10 @@ public:
     void Visualize() const;
 
     NavPathResult FindPath(const float3& startWorld, const float3& endWorld, const NavPathQuery& query = {});
+    [[LuaNamedFn("FindPath")]] NavPathResult Lua_FindPath(const float3& startWorld, const float3& endWorld);
     bool GetSteeringTarget(const std::vector<float3>& waypoints, const float3& currentPosition, const NavSteeringQuery& query, float3& outTarget) const;
 
-    static NavSystem* GetGlobalInstance();
+    [[LuaFn]] static NavSystem* GetGlobalInstance();
     static void SetGlobalInstance(NavSystem* system);
     static void ClearGlobalInstance(NavSystem* system);
 

@@ -23,6 +23,14 @@ float Distance2D(const float3& a, const float3& b)
 }
 }
 
+float3 NavPathResult::GetWaypoint(int index) const
+{
+    if (index < 0 || index >= static_cast<int>(waypoints.size()))
+        return float3(0.0f);
+
+    return waypoints[index];
+}
+
 struct NavSystem::AStarPathfinder
 {
     struct Node
@@ -284,6 +292,11 @@ NavPathResult NavSystem::FindPath(const float3& startWorld, const float3& endWor
     NavData* data = navData.Get();
     AStarPathfinder pathfinder(*this, data->grid.config, query);
     return pathfinder.Find(startWorld, endWorld);
+}
+
+NavPathResult NavSystem::Lua_FindPath(const float3& startWorld, const float3& endWorld)
+{
+    return FindPath(startWorld, endWorld);
 }
 
 bool NavSystem::GetSteeringTarget(const std::vector<float3>& waypoints, const float3& currentPosition, const NavSteeringQuery& query, float3& outTarget) const

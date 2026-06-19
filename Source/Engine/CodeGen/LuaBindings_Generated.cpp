@@ -10,6 +10,7 @@
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Engine/Runtime/System/Navigation/NavSystem.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsLayer.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 
@@ -687,6 +688,19 @@ void BindGeneratedClasses(lua_State* L)
 
     LuaBinder<Prefab> binder_Prefab(L);
     binder_Prefab.Begin("Prefab")
+        .End();
+
+    LuaBinder<NavPathResult> binder_NavPathResult(L);
+    binder_NavPathResult.Begin("NavPathResult")
+        .BindMemFn("IsSuccess", &NavPathResult::IsSuccess) // bool()
+        .BindMemFn("Count", &NavPathResult::Count) // int()
+        .BindMemFn("GetWaypoint", &NavPathResult::GetWaypoint) // float3(int index)
+        .End();
+
+    LuaBinder<NavSystem> binder_NavSystem(L);
+    binder_NavSystem.Begin("NavSystem")
+        .BindMemFn("FindPath", &NavSystem::Lua_FindPath) // NavPathResult(float3 & startWorld, float3 & endWorld)
+        .BindStaticFn("GetGlobalInstance", &NavSystem::GetGlobalInstance) // NavSystem*()
         .End();
 
     // Bind Enum PhysicsLayerMask
