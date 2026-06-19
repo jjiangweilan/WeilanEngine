@@ -3,8 +3,8 @@
 #include "Editor/Window.hpp"
 #include "Engine/Core/Ptr.hpp"
 
-class Mesh;
 class NavData;
+class GameObject;
 
 namespace Editor
 {
@@ -16,7 +16,7 @@ public:
     bool Tick() override;
 
 private:
-    ObjPtr<Mesh> mesh;
+    ObjPtr<GameObject> rootObject;
     ObjPtr<NavData> navData;
 };
 } // namespace Editor

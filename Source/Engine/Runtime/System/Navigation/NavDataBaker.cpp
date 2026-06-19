@@ -1,6 +1,9 @@
 #include "NavDataBaker.hpp"
 
 #include "Engine/Core/JobSystem.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
 #include "Engine/Runtime/System/Rendering/Structs.hpp"
 
 #include <glm/gtx/intersect.hpp>
@@ -9,9 +12,58 @@
 #include <limits>
 #include <vector>
 
-void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
+namespace
 {
-    if (mesh == nullptr)
+struct BakeMesh
+{
+    Mesh* mesh = nullptr;
+    float4x4 worldMatrix = float4x4(1.0f);
+};
+
+void ExpandWorldAABB(const AABB& localAabb, const float4x4& worldMatrix, float3& outMin, float3& outMax)
+{
+    const float3 min = localAabb.min;
+    const float3 max = localAabb.max;
+    const float3 corners[] = {
+        {min.x, min.y, min.z},
+        {max.x, min.y, min.z},
+        {min.x, max.y, min.z},
+        {min.x, min.y, max.z},
+        {max.x, max.y, min.z},
+        {min.x, max.y, max.z},
+        {max.x, min.y, max.z},
+        {max.x, max.y, max.z},
+    };
+
+    for (const float3& corner : corners)
+    {
+        float3 worldCorner = float3(worldMatrix * float4(corner, 1.0f));
+        outMin = glm::min(outMin, worldCorner);
+        outMax = glm::max(outMax, worldCorner);
+    }
+}
+} // namespace
+
+void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
+{
+    std::vector<BakeMesh> bakeMeshes;
+    bakeMeshes.reserve(renderers.size());
+
+    for (MeshRenderer* renderer : renderers)
+    {
+        if (renderer == nullptr || renderer->GetGameObject() == nullptr)
+            continue;
+
+        const float4x4 worldMatrix = renderer->GetGameObject()->GetWorldMatrix();
+        std::span<ObjPtr<Mesh>> meshes = renderer->GetMeshes();
+        for (const ObjPtr<Mesh>& mesh : meshes)
+        {
+            if (mesh != nullptr)
+                bakeMeshes.push_back({mesh.Get(), worldMatrix});
+        }
+    }
+
+    if (bakeMeshes.empty())
     {
         navData.grid.cells.clear();
         return;
@@ -19,9 +71,22 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
 
     NavDataConfig& config = navData.grid.config;
 
-    const AABB& aabb = mesh->GetAABB();
-    const float extentX = aabb.max.x - aabb.min.x;
-    const float extentZ = aabb.max.z - aabb.min.z;
+    float3 worldMin(
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max()
+    );
+    float3 worldMax(
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest()
+    );
+
+    for (const BakeMesh& bakeMesh : bakeMeshes)
+        ExpandWorldAABB(bakeMesh.mesh->GetAABB(), bakeMesh.worldMatrix, worldMin, worldMax);
+
+    const float extentX = worldMax.x - worldMin.x;
+    const float extentZ = worldMax.z - worldMin.z;
 
     if (config.resolution.x <= 0 || config.resolution.y <= 0 || extentX <= 0 || extentZ <= 0)
     {
@@ -31,7 +96,7 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
 
     config.width = static_cast<int>(std::ceil(extentX / config.resolution.x));
     config.height = static_cast<int>(std::ceil(extentZ / config.resolution.y));
-    config.origin = float3(aabb.min.x, 0.0f, aabb.min.z);
+    config.origin = float3(worldMin.x, 0.0f, worldMin.z);
 
     const int width = config.width;
     const int height = config.height;
@@ -40,8 +105,7 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
     navData.grid.cells.resize(cellCount);
 
     auto cellIndex = [width](int x, int y) { return y * width + x; };
-    const auto& submeshes = mesh->GetSubmeshes();
-    const float rayOriginY = aabb.max.y + 1.0f;
+    const float rayOriginY = worldMax.y + 1.0f;
     const float3 rayDirection(0.0f, -1.0f, 0.0f);
 
     const float originX = config.origin.x;
@@ -64,37 +128,36 @@ void NavDataBaker::Bake(Mesh* mesh, NavData& navData)
                     bool hasHit = false;
                     float nearestDistance = std::numeric_limits<float>::max();
 
-                    for (const Submesh& submesh : submeshes)
+                    for (const BakeMesh& bakeMesh : bakeMeshes)
                     {
-                        const std::vector<uint32_t>& indices = submesh.GetIndices();
-                        const std::vector<glm::vec3>& positions = submesh.GetPositions();
-
-                        for (int i = 0; i + 2 < submesh.GetIndexCount(); i += 3)
+                        for (const Submesh& submesh : bakeMesh.mesh->GetSubmeshes())
                         {
-                            const uint32_t i0 = indices[i];
-                            const uint32_t i1 = indices[i + 1];
-                            const uint32_t i2 = indices[i + 2];
+                            const std::vector<uint32_t>& indices = submesh.GetIndices();
+                            const std::vector<glm::vec3>& positions = submesh.GetPositions();
 
-                            if (i0 >= positions.size() || i1 >= positions.size() || i2 >= positions.size())
+                            for (int i = 0; i + 2 < submesh.GetIndexCount(); i += 3)
                             {
-                                continue;
-                            }
+                                const uint32_t i0 = indices[i];
+                                const uint32_t i1 = indices[i + 1];
+                                const uint32_t i2 = indices[i + 2];
 
-                            float2 bary;
-                            float distance = 0.0f;
-                            if (glm::intersectRayTriangle(
-                                    rayOrigin,
-                                    rayDirection,
-                                    positions[i0],
-                                    positions[i1],
-                                    positions[i2],
-                                    bary,
-                                    distance
-                                ) &&
-                                distance >= 0.0f && distance < nearestDistance)
-                            {
-                                nearestDistance = distance;
-                                hasHit = true;
+                                if (i0 >= positions.size() || i1 >= positions.size() || i2 >= positions.size())
+                                {
+                                    continue;
+                                }
+
+                                float3 p0 = float3(bakeMesh.worldMatrix * float4(positions[i0], 1.0f));
+                                float3 p1 = float3(bakeMesh.worldMatrix * float4(positions[i1], 1.0f));
+                                float3 p2 = float3(bakeMesh.worldMatrix * float4(positions[i2], 1.0f));
+
+                                float2 bary;
+                                float distance = 0.0f;
+                                if (glm::intersectRayTriangle(rayOrigin, rayDirection, p0, p1, p2, bary, distance) &&
+                                    distance >= 0.0f && distance < nearestDistance)
+                                {
+                                    nearestDistance = distance;
+                                    hasHit = true;
+                                }
                             }
                         }
                     }

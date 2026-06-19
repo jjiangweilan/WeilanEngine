@@ -1,10 +1,13 @@
 #include "NavDataBakeWindow.hpp"
 
 #include "Editor/EditorGUI.hpp"
-#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Navigation/NavDataBaker.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+
+#include <vector>
 
 namespace Editor
 {
@@ -16,10 +19,10 @@ bool NavDataBakeWindow::Tick()
     ImGui::SetNextWindowSize(ImVec2(420, 260), ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Nav Data Baker", &open))
     {
-        Mesh* meshPtr = mesh.Get();
-        if (EditorGUI::ObjectField("Mesh", meshPtr))
+        GameObject* rootObjectPtr = rootObject.Get();
+        if (EditorGUI::ObjectField("Root Object", rootObjectPtr))
         {
-            mesh = meshPtr;
+            rootObject = rootObjectPtr;
         }
 
         NavData* navDataPtr = navData.Get();
@@ -29,6 +32,11 @@ bool NavDataBakeWindow::Tick()
         }
 
         ImGui::Separator();
+        std::vector<MeshRenderer*> renderers;
+        if (rootObjectPtr != nullptr)
+            renderers = rootObjectPtr->GetComponentsInChildren<MeshRenderer>();
+
+        ImGui::Text("Mesh Renderers: %zu", renderers.size());
         if (navDataPtr != nullptr)
         {
             const NavDataConfig& config = navDataPtr->grid.config;
@@ -43,7 +51,7 @@ bool NavDataBakeWindow::Tick()
             ImGui::TextDisabled("Assign a NavData asset to bake into.");
         }
 
-        const bool canBake = meshPtr != nullptr && navDataPtr != nullptr;
+        const bool canBake = !renderers.empty() && navDataPtr != nullptr;
         if (!canBake)
         {
             ImGui::BeginDisabled();
@@ -52,7 +60,7 @@ bool NavDataBakeWindow::Tick()
         if (ImGui::Button("Bake"))
         {
             NavDataBaker baker;
-            baker.Bake(meshPtr, *navDataPtr);
+            baker.Bake(renderers, *navDataPtr);
             navDataPtr->SetDirty();
         }
 

@@ -1,12 +1,14 @@
 #pragma once
 #include "./NavData.hpp"
 
-#include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include <span>
+
+class MeshRenderer;
 
 class NavDataBaker
 {
 public:
-    void Bake(Mesh* mesh, NavData& navData);
+    void Bake(std::span<MeshRenderer*> renderers, NavData& navData);
 
 private:
 };
