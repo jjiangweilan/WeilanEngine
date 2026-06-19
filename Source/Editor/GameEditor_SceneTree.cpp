@@ -2,14 +2,71 @@
 #include "Editor/EditorGUI.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/GameEditor.hpp"
+#include "Editor/ImGuiStyleSheet.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include <algorithm>
+#include <cctype>
+#include <string_view>
 
 namespace Editor
 {
+
+enum SceneTreeSearchMode
+{
+    SceneTreeSearchMode_GameObject = 0,
+    SceneTreeSearchMode_Component = 1
+};
+
+static bool ContainsCaseInsensitive(std::string_view text, std::string_view query)
+{
+    if (query.empty())
+        return true;
+
+    auto lower = [](char c)
+    { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); };
+
+    auto iter = std::search(
+        text.begin(),
+        text.end(),
+        query.begin(),
+        query.end(),
+        [lower](char a, char b)
+        { return lower(a) == lower(b); }
+    );
+    return iter != text.end();
+}
+
+static bool GameObjectMatchesSceneTreeSearch(GameObject* go, int searchMode, std::string_view query)
+{
+    if (go == nullptr)
+        return false;
+
+    if (searchMode == SceneTreeSearchMode_GameObject)
+        return ContainsCaseInsensitive(go->GetName(), query);
+
+    for (Component* component : go->GetComponents())
+    {
+        if (component != nullptr && ContainsCaseInsensitive(component->GetName(), query))
+            return true;
+    }
+    return false;
+}
+
+static bool SceneTreeHasSearchMatch(GameObject* go, int searchMode, std::string_view query)
+{
+    if (GameObjectMatchesSceneTreeSearch(go, searchMode, query))
+        return true;
+
+    for (auto child : go->GetChildren())
+    {
+        if (SceneTreeHasSearchMatch(child, searchMode, query))
+            return true;
+    }
+    return false;
+}
 
 static void BuildSceneTreeFlatList(Scene& scene, std::vector<GameObject*>& flatList)
 {
@@ -131,6 +188,54 @@ static void ReorderGameObjects(Scene& scene, const std::vector<GameObject*>& dra
     }
 }
 
+void GameEditor::ShowSceneTreeSearchBar()
+{
+    const bool componentMode = sceneTreeSearchMode == SceneTreeSearchMode_Component;
+    const char* modeLabel = componentMode ? "C##SceneTreeSearchMode" : "G##SceneTreeSearchMode";
+    const char* hint = componentMode ? "Search Components..." : "Search GameObjects...";
+
+    {
+        auto imguiStyleSheet = ImGuiStyleSheet::AccentToggleButton(componentMode);
+        ScopedImGuiButtonStyle scopedStyle(imguiStyleSheet);
+        if (ImGui::Button(modeLabel, ImGuiStyleSheet::FrameButtonSize(imguiStyleSheet)))
+        {
+            sceneTreeSearchMode = componentMode ? SceneTreeSearchMode_GameObject : SceneTreeSearchMode_Component;
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip(componentMode ? "C: find by component type" : "G: find by GameObject name");
+        }
+    }
+
+    ImGui::SameLine(0.0f, 6.0f);
+
+    float clearButtonWidth = sceneTreeSearchQuery.empty() ? 0.0f : ImGui::GetFrameHeight();
+    float inputWidth = ImGui::GetContentRegionAvail().x - clearButtonWidth;
+    if (clearButtonWidth > 0.0f)
+        inputWidth -= ImGui::GetStyle().ItemSpacing.x;
+    inputWidth = std::max(80.0f, inputWidth);
+
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.10f, 0.11f, 0.14f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.14f, 0.16f, 0.21f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.16f, 0.18f, 0.24f, 1.0f));
+    ImGui::PushItemWidth(inputWidth);
+    EditorGUI::InputText("##SceneTreeSearch", sceneTreeSearchQuery, hint);
+    ImGui::PopItemWidth();
+    ImGui::PopStyleColor(3);
+
+    if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Escape) && !sceneTreeSearchQuery.empty())
+        sceneTreeSearchQuery.clear();
+
+    if (!sceneTreeSearchQuery.empty())
+    {
+        ImGui::SameLine();
+        if (ImGui::Button("x##SceneTreeSearchClear", ImVec2(clearButtonWidth, 0.0f)))
+            sceneTreeSearchQuery.clear();
+    }
+
+    ImGui::Spacing();
+}
+
 void GameEditor::ShowSceneTree(Scene& scene)
 {
     ENGINE_BEGIN_PROFILE("ShowSceneTree");
@@ -158,6 +263,8 @@ void GameEditor::ShowSceneTree(Scene& scene)
         ImGui::EndMenu();
     }
     ImGui::EndMenuBar();
+
+    ShowSceneTreeSearchBar();
 
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
@@ -219,16 +326,28 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
     std::vector<GameObject*> lazyFlatList;
     std::vector<GameObject*>* flatList = nullptr;
+    bool searchActive = !sceneTreeSearchQuery.empty();
 
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, scene, lastSelectedGameObject.Get(), selects, autoExpand, lazyFlatList, flatList);
+        SceneTree(
+            root,
+            scene,
+            lastSelectedGameObject.Get(),
+            selects,
+            autoExpand,
+            searchActive,
+            sceneTreeSearchMode,
+            sceneTreeSearchQuery,
+            lazyFlatList,
+            flatList
+        );
     }
 
     ImVec2 rootDropMin = ImGui::GetCursorScreenPos();
     ImVec2 rootDropMax = ImVec2(windowMax.x, rootDropMin.y + ImGui::GetTextLineHeightWithSpacing());
     Object* rootEndDropGO = nullptr;
-    if (EditorGUI::DragDropTarget(typeid(GameObject), rootEndDropGO, {rootDropMin, rootDropMax}))
+    if (!searchActive && EditorGUI::DragDropTarget(typeid(GameObject), rootEndDropGO, {rootDropMin, rootDropMax}))
     {
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(rootEndDropGO));
         int targetIndex = static_cast<int>(scene.GetRootObjects().size());
@@ -395,10 +514,16 @@ void GameEditor::SceneTree(
     GameObject* currentSelected,
     std::vector<ObjPtr<Object>>& selects,
     bool autoExpand,
+    bool searchActive,
+    int searchMode,
+    std::string_view searchQuery,
     std::vector<GameObject*>& flatListCache,
     std::vector<GameObject*>*& flatList
 )
 {
+    if (searchActive && !SceneTreeHasSearchMatch(go, searchMode, searchQuery))
+        return;
+
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
@@ -410,6 +535,9 @@ void GameEditor::SceneTree(
     }
 
     if (autoExpand && currentSelected != nullptr && IsAncestorOf(go, currentSelected))
+        ImGui::SetNextItemOpen(true);
+
+    if (searchActive)
         ImGui::SetNextItemOpen(true);
 
     if (go->GetChildren().empty())
@@ -575,7 +703,7 @@ void GameEditor::SceneTree(
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, scene, currentSelected, selects, autoExpand, flatListCache, flatList);
+            SceneTree(child, scene, currentSelected, selects, autoExpand, searchActive, searchMode, searchQuery, flatListCache, flatList);
         }
         ImGui::TreePop();
     }

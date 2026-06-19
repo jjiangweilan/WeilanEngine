@@ -13,6 +13,7 @@
 #include "SceneEditor.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
+#include <string_view>
 
 class GrassSurface;
 class WeilanEngine;
@@ -71,12 +72,16 @@ private:
     void ShowStaticEngineDebugs();
     GameObject* AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void ShowSceneTree(Scene& scene);
+    void ShowSceneTreeSearchBar();
     void SceneTree(
         GameObject* go,
         Scene& scene,
         GameObject* currentSelected,
         std::vector<ObjPtr<Object>>& selects,
         bool autoExpand,
+        bool searchActive,
+        int searchMode,
+        std::string_view searchQuery,
         std::vector<GameObject*>& flatListCache,
         std::vector<GameObject*>*& flatList
     );
@@ -101,6 +106,8 @@ private:
     GameObject* sceneViewHightedGameObjectCandidate = nullptr;
     GameObject* sceneTreeContextObject = nullptr;
     ObjPtr<GameObject> lastSelectedGameObject;
+    std::string sceneTreeSearchQuery;
+    int sceneTreeSearchMode = 0;
     bool beginSceneTreeContextPopup = false;
     bool sceneTree = true;
     bool sceneInfo = false;

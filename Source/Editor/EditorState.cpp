@@ -20,6 +20,12 @@ UndoManager& EditorState::GetUndoManager()
     return undoManager;
 }
 
+bool& EditorState::GetScaleLock()
+{
+    static bool scaleLock = false;
+    return scaleLock;
+}
+
 void EditorState::DeselectObject(Object* obj)
 {
     if (obj == nullptr)

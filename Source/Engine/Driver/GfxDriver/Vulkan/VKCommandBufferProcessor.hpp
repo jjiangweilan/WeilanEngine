@@ -203,6 +203,7 @@ private:
 
     std::vector<std::unordered_map<uint64_t, VKResolvedTemporaryBuffer>> temporaryBuffers;
     std::vector<std::vector<TransientDescriptorSetInfo>> transientDescriptorSets;
+    std::vector<uint32_t> hoistedTransferCmdIndices;
 
     VkDescriptorSet
     RequestDescriptorSet(std::span<VkWriteDescriptorSet> writes, uint32_t set, VKShaderProgram* shaderProgram);
@@ -232,7 +233,9 @@ private:
         VKRenderPass& renderPass,
         int& visitIndex,
         int& barrierCount,
-        int& barrierOffset
+        int& barrierOffset,
+        uint32_t& hoistedTransferOffset,
+        uint32_t& hoistedTransferCount
     );
     void BindDynamicDescriptorSet(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, VKDynamicBindResourceCmd& dynamicBindResourceCmd, uint32_t set, VKShaderProgram* shaderProgram, int inflightIndex);
     std::vector<VKWritableGPUResource> GetWritableResourcesNoCache(uint32_t set, VKDynamicBindResourceCmd& dynamicBindResourceCmd, VKShaderProgram* shaderProgram, VKCommandBufferProcessor* graph);
@@ -250,6 +253,20 @@ private:
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
     void PreExecute(int inflightIndex, VKFramePrepareData& framePrepare);
+    bool IsHoistedRenderPassTransferCmd(VKCmdType type) const;
+    bool IsUnsupportedRenderPassTransferCmd(VKCmdType type) const;
+    void AllocateTemporaryBufferCmd(VKAllocateBufferCmd& args, int inflightIndex);
+    void PrepareCopyBufferCmd(VKCopyBufferCmd& args, int inflightIndex);
+    void PrepareUploadDataCmd(VKUploadDataCmd& args, int inflightIndex);
+    void ExecuteCopyBufferCmd(VkCommandBuffer vkcmd, VKCopyBufferCmd& args, int inflightIndex);
+    void ExecuteUploadDataCmd(VkCommandBuffer vkcmd, VKUploadDataCmd& args, int inflightIndex);
+    void ExecuteHoistedRenderPassTransfers(
+        VkCommandBuffer vkcmd,
+        std::vector<VKCmd>& executedCmds,
+        uint32_t hoistedTransferOffset,
+        uint32_t hoistedTransferCount,
+        int inflightIndex
+    );
     void BeginRenderPass(
         VkCommandBuffer vkcmd,
         VKRenderPass* renderPass,

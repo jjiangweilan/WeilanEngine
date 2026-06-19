@@ -212,6 +212,11 @@ void Camera::Serialize(Serializer* s) const
     s->Serialize("viewMatrix", viewMatrix);
     s->Serialize("diffuseEnv", diffuseEnv.Get());
     s->Serialize("specularEnv", specularEnv.Get());
+    s->Serialize("near", near);
+    s->Serialize("far", far);
+    s->Serialize("fov", fov);
+    s->Serialize("projectionMode", static_cast<int>(projectionMode));
+    s->Serialize("orthographicSize", orthographicSize);
 }
 void Camera::Deserialize(Serializer* s)
 {
@@ -241,6 +246,15 @@ void Camera::Deserialize(Serializer* s)
             }
         }
     );
+
+    s->Deserialize("near", near);
+    s->Deserialize("far", far);
+    s->Deserialize("fov", fov);
+    int projectionModeValue = static_cast<int>(projectionMode);
+    s->Deserialize("projectionMode", projectionModeValue);
+    projectionMode = static_cast<ProjectionMode>(projectionModeValue);
+    s->Deserialize("orthographicSize", orthographicSize);
+    updateProjectionMatrix = true;
 }
 
 const std::string& Camera::GetName() const

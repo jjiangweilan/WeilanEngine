@@ -69,6 +69,8 @@ struct VKBeginRenderPassCmd
 
     int barrierOffset;
     int barrierCount;
+    uint32_t hoistedTransferOffset = 0;
+    uint32_t hoistedTransferCount = 0;
 };
 
 struct VKSetLineWidthCmd
@@ -96,6 +98,8 @@ struct VKRGBeginRenderPassCmd
 
     int barrierOffset;
     int barrierCount;
+    uint32_t hoistedTransferOffset = 0;
+    uint32_t hoistedTransferCount = 0;
 };
 
 struct VKDynamicRenderPassCmd
@@ -106,6 +110,8 @@ struct VKDynamicRenderPassCmd
     VKRenderPass* resolvedRenderPass;
     int barrierOffset;
     int barrierCount;
+    uint32_t hoistedTransferOffset = 0;
+    uint32_t hoistedTransferCount = 0;
 };
 
 struct VKEndRenderPassCmd

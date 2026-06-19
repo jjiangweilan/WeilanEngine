@@ -1,9 +1,11 @@
 #include "GameObjectInspector.hpp"
 #include "Editor/EditorState.hpp"
+#include "Editor/ImGuiStyleSheet.hpp"
 #include "Editor/UndoManager.hpp"
 #include "Engine/Runtime/Object/Component/Component.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <cmath>
 
 namespace Editor
 {
@@ -133,10 +135,40 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         target->SetEulerAngles(glm::radians(degree));
     }
 
-    auto scale = target->GetLocalScale();
+    auto oldScale = target->GetLocalScale();
+    auto scale = oldScale;
+    bool& scaleLock = EditorState::GetScaleLock();
     bool scaleChanged = ImGui::DragFloat3("scale", &scale[0]);
+    ImGui::SameLine();
+    const char* lockButtonLabel = scaleLock ? "\xEF\x80\xA3##ScaleLock" : "\xEF\x82\x9C##ScaleLock";
+    {
+        auto imguiStyleSheet = ImGuiStyleSheet::AccentToggleButton(scaleLock);
+        ScopedImGuiButtonStyle scopedStyle(imguiStyleSheet);
+        if (ImGui::Button(lockButtonLabel, ImGuiStyleSheet::FrameButtonSize(imguiStyleSheet)))
+            scaleLock = !scaleLock;
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip(scaleLock ? "Scale lock: editing one axis applies the same value to all axes" : "Scale lock disabled");
+    }
+
     if (scaleChanged)
     {
+        if (scaleLock)
+        {
+            spdlog::info("hello");
+            int changedAxis = 0;
+            float largestDelta = std::abs(scale.x - oldScale.x);
+            for (int i = 1; i < 3; ++i)
+            {
+                float delta = std::abs(scale[i] - oldScale[i]);
+                if (delta > largestDelta)
+                {
+                    largestDelta = delta;
+                    changedAxis = i;
+                }
+            }
+            scale = glm::vec3(scale[changedAxis]);
+        }
+
         undoManager.TrackGameObjectHierarchyPlacement(target.Get());
         target->SetScale(scale);
     }

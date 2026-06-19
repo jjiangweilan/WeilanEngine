@@ -2,6 +2,7 @@
 #include "Editor/EditorContext.hpp"
 #include "Editor/PickObjectFromGameView.hpp"
 #include "Editor/SceneEditor.hpp"
+#include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
@@ -202,7 +203,16 @@ void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::v
     BuildONB(normal, tangent, bitangent);
 
     const int segments = 32;
-    Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
+
+    struct LineData
+    {
+        glm::vec4 fromPos;
+        glm::vec4 toPos;
+        glm::vec4 color;
+    };
+
+    std::vector<LineData> lines;
+    lines.reserve(segments);
 
     for (int i = 0; i < segments; ++i)
     {
@@ -212,20 +222,23 @@ void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::v
         glm::vec3 p0 = center + (tangent * glm::cos(a0) + bitangent * glm::sin(a0)) * radius;
         glm::vec3 p1 = center + (tangent * glm::cos(a1) + bitangent * glm::sin(a1)) * radius;
 
-        struct
-        {
-            glm::vec4 fromPos;
-            glm::vec4 toPos;
-            glm::vec4 color;
-        } data;
-        data.fromPos = glm::vec4(p0, 1.0f);
-        data.toPos = glm::vec4(p1, 1.0f);
-        data.color = color;
-
-        cmd.SetPushConstant(lineShaderProgram, (void*)&data);
-        cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
-        cmd.Draw(2, 1, 0, 0);
+        lines.push_back({glm::vec4(p0, 1.0f), glm::vec4(p1, 1.0f), color});
     }
+
+    auto lineBuffer = cmd.AllocateBuffer(
+        sizeof(LineData) * lines.size(),
+        Gfx::TemporaryBufferUsage::Storage,
+        alignof(LineData)
+    );
+    cmd.UploadData(lineBuffer, lines.data(), sizeof(LineData) * lines.size());
+
+    Shader& lineShader = EngineInternalResources::GetLineShader();
+    Gfx::ShaderProgram* lineShaderProgram = lineShader.GetShaderProgram();
+    int lineSet = lineShader.GetSet(Gfx::DescriptorSetSemantics::Material);
+
+    cmd.BindResource(lineSet, std::vector<Gfx::DynamicBinding>{Gfx::DynamicBinding("lineData", lineBuffer)});
+    cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
+    cmd.Draw(static_cast<uint32_t>(lines.size() * 2), 1, 0, 0);
 }
 
 void GrassSurfacePaintTool::OnActivate()

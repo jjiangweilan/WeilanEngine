@@ -227,10 +227,40 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
     VKRenderPass& renderPass,
     int& visitIndex,
     int& barrierCountResult,
-    int& barrierOffsetResult
+    int& barrierOffsetResult,
+    uint32_t& hoistedTransferOffsetResult,
+    uint32_t& hoistedTransferCountResult
 )
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - GoThroughRenderPass");
+    uint32_t hoistedTransferOffset = static_cast<uint32_t>(hoistedTransferCmdIndices.size());
+
+    for (int scanIndex = visitIndex + 1; scanIndex < exectedCmds.size(); ++scanIndex)
+    {
+        VKCmd& cmd = exectedCmds[scanIndex];
+        if (cmd.type == VKCmdType::EndRenderPass)
+            break;
+
+        if (cmd.type == VKCmdType::AllocateBuffer)
+        {
+            AllocateTemporaryBufferCmd(std::get<VKAllocateBufferCmd>(cmd.args), inflightIndex);
+        }
+        else if (cmd.type == VKCmdType::UploadData)
+        {
+            PrepareUploadDataCmd(std::get<VKUploadDataCmd>(cmd.args), inflightIndex);
+            hoistedTransferCmdIndices.push_back(static_cast<uint32_t>(scanIndex));
+        }
+        else if (cmd.type == VKCmdType::CopyBuffer)
+        {
+            PrepareCopyBufferCmd(std::get<VKCopyBufferCmd>(cmd.args), inflightIndex);
+            hoistedTransferCmdIndices.push_back(static_cast<uint32_t>(scanIndex));
+        }
+        else if (IsUnsupportedRenderPassTransferCmd(cmd.type))
+        {
+            SPDLOG_ERROR("VKCommandBufferProcessor: unsupported transfer command recorded inside render pass");
+        }
+    }
+
     int barrierOffset = barriers.size();
     int barrierCount = 0;
 
@@ -315,6 +345,8 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
             recordState.bindSetCmdIndex[std::get<VKBindResourceCmd>(cmd.args).set] = visitIndex;
             recordState.bindedSetUpdateNeeded[std::get<VKBindResourceCmd>(cmd.args).set] = true;
         }
+        else if (cmd.type == VKCmdType::AllocateBuffer || IsHoistedRenderPassTransferCmd(cmd.type) || IsUnsupportedRenderPassTransferCmd(cmd.type))
+        {}
         else if (cmd.type == VKCmdType::DynamicBindResource)
         {
             auto& args = std::get<VKDynamicBindResourceCmd>(cmd.args);
@@ -409,6 +441,8 @@ void VKCommandBufferProcessor::GoThroughRenderPass(
 
     barrierCountResult = barrierCount;
     barrierOffsetResult = barrierOffset;
+    hoistedTransferOffsetResult = hoistedTransferOffset;
+    hoistedTransferCountResult = static_cast<uint32_t>(hoistedTransferCmdIndices.size()) - hoistedTransferOffset;
 }
 
 int VKCommandBufferProcessor::MakeBarrierForLastUsage(void* res, const UUID& uuid)
@@ -783,6 +817,120 @@ int VKCommandBufferProcessor::TrackUploadDataDestination(BufferIdentifier dst, i
     return 0;
 }
 
+bool VKCommandBufferProcessor::IsHoistedRenderPassTransferCmd(VKCmdType type) const
+{
+    return type == VKCmdType::UploadData || type == VKCmdType::CopyBuffer;
+}
+
+bool VKCommandBufferProcessor::IsUnsupportedRenderPassTransferCmd(VKCmdType type) const
+{
+    return type == VKCmdType::CopyBufferToImage || type == VKCmdType::CopyImageToBuffer || type == VKCmdType::Blit;
+}
+
+void VKCommandBufferProcessor::AllocateTemporaryBufferCmd(VKAllocateBufferCmd& args, int inflightIndex)
+{
+    auto handle = GetMemAllocator()->AllocateScratchBuffer(args.size, args.alignment, args.usage, false);
+    VKResolvedTemporaryBuffer resolved{
+        .buffer = handle.buffer,
+        .deviceAddress = handle.deviceAddress,
+        .mappedData = handle.mappedData,
+        .offset = handle.offset,
+        .size = handle.size,
+    };
+    temporaryBuffers[inflightIndex][args.handle.id] = resolved;
+}
+
+void VKCommandBufferProcessor::PrepareCopyBufferCmd(VKCopyBufferCmd& args, int inflightIndex)
+{
+    size_t barrierOffset = barriers.size();
+    size_t barrierCount = 0;
+    if (args.src.type == BufferIdentifier::Type::RawBuffer || args.src.type == BufferIdentifier::Type::TemporaryBuffer)
+    {
+        auto refSrc = ResolveTrackableBuffer(args.src, inflightIndex);
+        if (TrackResource(refSrc, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+            barrierCount += MakeBarrierForLastUsage(refSrc);
+    }
+
+    if (args.dst.type == BufferIdentifier::Type::RawBuffer || args.dst.type == BufferIdentifier::Type::TemporaryBuffer)
+    {
+        auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
+        if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+            barrierCount += MakeBarrierForLastUsage(refDst);
+    }
+
+    args.barrierOffset = static_cast<int>(barrierOffset);
+    args.barrierCount = static_cast<int>(barrierCount);
+}
+
+void VKCommandBufferProcessor::PrepareUploadDataCmd(VKUploadDataCmd& args, int inflightIndex)
+{
+    size_t barrierOffset = barriers.size();
+    size_t barrierCount = 0;
+    if (args.dst.IsBuffer())
+    {
+        barrierCount += TrackUploadDataDestination(args.dst, inflightIndex);
+    }
+    args.barrierOffset = static_cast<int>(barrierOffset);
+    args.barrierCount = static_cast<int>(barrierCount);
+}
+
+void VKCommandBufferProcessor::ExecuteCopyBufferCmd(VkCommandBuffer vkcmd, VKCopyBufferCmd& args, int inflightIndex)
+{
+    PutBarriers(vkcmd, args.barrierOffset, args.barrierCount);
+
+    auto resolvedSrc = ResolveBuffer(args.src, inflightIndex);
+    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
+    VkBufferCopy adjustedRegions[8];
+    for (uint32_t i = 0; i < args.copyRegionCount; ++i)
+    {
+        adjustedRegions[i] = args.copyRegions[i];
+        adjustedRegions[i].srcOffset += resolvedSrc.offset;
+        adjustedRegions[i].dstOffset += resolvedDst.offset;
+    }
+
+    vkCmdCopyBuffer(vkcmd, resolvedSrc.buffer, resolvedDst.buffer, args.copyRegionCount, adjustedRegions);
+}
+
+void VKCommandBufferProcessor::ExecuteUploadDataCmd(VkCommandBuffer vkcmd, VKUploadDataCmd& args, int inflightIndex)
+{
+    PutBarriers(vkcmd, args.barrierOffset, args.barrierCount);
+
+    auto stagingHandle = GetMemAllocator()->AllocateScratchBuffer(
+        static_cast<uint32_t>(args.data.size()),
+        4,
+        TemporaryBufferUsage::TransferSrc,
+        true
+    );
+    memcpy(stagingHandle.mappedData, args.data.data(), args.data.size());
+
+    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
+    VkDeviceSize srcOffset = stagingHandle.offset;
+    VkBufferCopy region{.srcOffset = srcOffset, .dstOffset = args.dstOffset + resolvedDst.offset, .size = args.data.size()};
+    vkCmdCopyBuffer(vkcmd, stagingHandle.buffer, resolvedDst.buffer, 1, &region);
+}
+
+void VKCommandBufferProcessor::ExecuteHoistedRenderPassTransfers(
+    VkCommandBuffer vkcmd,
+    std::vector<VKCmd>& executedCmds,
+    uint32_t hoistedTransferOffset,
+    uint32_t hoistedTransferCount,
+    int inflightIndex
+)
+{
+    for (uint32_t i = 0; i < hoistedTransferCount; ++i)
+    {
+        VKCmd& cmd = executedCmds[hoistedTransferCmdIndices[hoistedTransferOffset + i]];
+        if (cmd.type == VKCmdType::UploadData)
+        {
+            ExecuteUploadDataCmd(vkcmd, std::get<VKUploadDataCmd>(cmd.args), inflightIndex);
+        }
+        else if (cmd.type == VKCmdType::CopyBuffer)
+        {
+            ExecuteCopyBufferCmd(vkcmd, std::get<VKCopyBufferCmd>(cmd.args), inflightIndex);
+        }
+    }
+}
+
 void VKCommandBufferProcessor::FlushBindResourceTrack() {}
 
 size_t VKCommandBufferProcessor::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
@@ -826,6 +974,8 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor::PreExecute");
 
     auto& executedCmds = framePrepare.cmds;
+    hoistedTransferCmdIndices.clear();
+    hoistedTransferCmdIndices.reserve(16);
 
     // track where to put barriers
     for (int visitIndex = 0; visitIndex < executedCmds.size(); visitIndex++)
@@ -834,7 +984,16 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         if (cmd.type == VKCmdType::BeginRenderPass)
         {
             auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
-            GoThroughRenderPass(inflightIndex, executedCmds, *args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(
+                inflightIndex,
+                executedCmds,
+                *args.renderPass,
+                visitIndex,
+                args.barrierCount,
+                args.barrierOffset,
+                args.hoistedTransferOffset,
+                args.hoistedTransferCount
+            );
         }
         else if (cmd.type == VKCmdType::AsyncReadback)
         {
@@ -844,17 +1003,7 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         else if (cmd.type == VKCmdType::AllocateBuffer)
         {
             auto& args = std::get<VKAllocateBufferCmd>(cmd.args);
-            auto handle = GetMemAllocator()->AllocateScratchBuffer(
-                args.size, args.alignment, args.usage, false
-            );
-            VKResolvedTemporaryBuffer resolved{
-                .buffer = handle.buffer,
-                .deviceAddress = handle.deviceAddress,
-                .mappedData = handle.mappedData,
-                .offset = handle.offset,
-                .size = handle.size,
-            };
-            temporaryBuffers[inflightIndex][args.handle.id] = resolved;
+            AllocateTemporaryBufferCmd(args, inflightIndex);
         }
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
@@ -863,7 +1012,16 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
             auto renderPass = VKContext::Instance()->resourceAllocator->Request(args.renderPass);
             if (renderPass != nullptr)
             {
-                GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+                GoThroughRenderPass(
+                    inflightIndex,
+                    executedCmds,
+                    *renderPass,
+                    visitIndex,
+                    args.barrierCount,
+                    args.barrierOffset,
+                    args.hoistedTransferOffset,
+                    args.hoistedTransferCount
+                );
             }
             else
             {
@@ -917,7 +1075,16 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
 
             VKRenderPass* renderPass = Request(passDescriptor);
             args.resolvedRenderPass = renderPass;
-            GoThroughRenderPass(inflightIndex, executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(
+                inflightIndex,
+                executedCmds,
+                *renderPass,
+                visitIndex,
+                args.barrierCount,
+                args.barrierOffset,
+                args.hoistedTransferOffset,
+                args.hoistedTransferCount
+            );
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
@@ -940,40 +1107,14 @@ void VKCommandBufferProcessor::PreExecute(int inflightIndex, VKFramePrepareData&
         else if (cmd.type == VKCmdType::CopyBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: copy buffer");
-            size_t barrierOffset = barriers.size();
-            size_t barrierCount = 0;
             auto& args = std::get<VKCopyBufferCmd>(cmd.args);
-            if (args.src.type == BufferIdentifier::Type::RawBuffer)
-            {
-                auto refSrc = ResolveTrackableBuffer(args.src, inflightIndex);
-                if (TrackResource(refSrc, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
-                    barrierCount += MakeBarrierForLastUsage(refSrc);
-            }
-
-            if (args.dst.type == BufferIdentifier::Type::RawBuffer)
-            {
-                auto refDst = ResolveTrackableBuffer(args.dst, inflightIndex);
-                if (TrackResource(refDst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                    barrierCount += MakeBarrierForLastUsage(refDst);
-            }
-
-            args.barrierOffset = barrierOffset;
-            args.barrierCount = barrierCount;
+            PrepareCopyBufferCmd(args, inflightIndex);
         }
-        else if (cmd.type == VKCmdType::CopyBuffer)
-        {}
         else if (cmd.type == VKCmdType::UploadData)
         {
             ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor: upload data");
-            size_t barrierOffset = barriers.size();
-            size_t barrierCount = 0;
             auto& args = std::get<VKUploadDataCmd>(cmd.args);
-            if (args.dst.IsBuffer())
-            {
-                barrierCount += TrackUploadDataDestination(args.dst, inflightIndex);
-            }
-            args.barrierOffset = barrierOffset;
-            args.barrierCount = barrierCount;
+            PrepareUploadDataCmd(args, inflightIndex);
         }
         else if (cmd.type == VKCmdType::Blit)
         {
@@ -1227,9 +1368,20 @@ void VKCommandBufferProcessor::Execute(
         exeState.currentTimestapQueryIndex = 0;
     }
 
+    bool insideRenderPass = false;
     for (size_t i = 0; i < executedCmds.size(); ++i)
     {
         auto& cmd = executedCmds[i];
+        if (insideRenderPass && IsHoistedRenderPassTransferCmd(cmd.type))
+        {
+            continue;
+        }
+        if (insideRenderPass && IsUnsupportedRenderPassTransferCmd(cmd.type))
+        {
+            SPDLOG_ERROR("VKCommandBufferProcessor: skipped unsupported transfer command inside render pass");
+            continue;
+        }
+
         switch (cmd.type)
         {
             case VKCmdType::SetLineWidth:
@@ -1370,6 +1522,14 @@ void VKCommandBufferProcessor::Execute(
                     VKRenderPass* renderPasss = args.resolvedRenderPass;
                     std::span<ClearValue> clearValues = args.clearValues;
 
+                    ExecuteHoistedRenderPassTransfers(
+                        vkcmd,
+                        executedCmds,
+                        args.hoistedTransferOffset,
+                        args.hoistedTransferCount,
+                        inflightIndex
+                    );
+
                     auto& subpasses = renderPasss->GetSubpesses();
                     size_t clearCount = subpasses[0].colors.size() + (subpasses[0].depth.has_value() ? 1 : 0);
                     std::vector<VkClearValue> clearValuesFinal(clearCount, {{{0, 0, 0, 0}}});
@@ -1389,6 +1549,7 @@ void VKCommandBufferProcessor::Execute(
                         args.barrierOffset,
                         args.barrierCount
                     );
+                    insideRenderPass = true;
                     break;
                 }
             case VKCmdType::BeginRenderPass:
@@ -1399,6 +1560,14 @@ void VKCommandBufferProcessor::Execute(
                     VkRenderPass vkRenderPass = renderPass->GetHandle();
                     exeState.renderPass = renderPass;
                     exeState.subpassIndex = 0;
+
+                    ExecuteHoistedRenderPassTransfers(
+                        vkcmd,
+                        executedCmds,
+                        args.hoistedTransferOffset,
+                        args.hoistedTransferCount,
+                        inflightIndex
+                    );
 
                     // framebuffer has to get inside the execution function due to how
                     // RenderPass handle swapchain image as framebuffer attachment
@@ -1436,6 +1605,7 @@ void VKCommandBufferProcessor::Execute(
 
                     UpdateViewportAndScissorForRenderPass(vkcmd, viewport, scissor, extent);
                     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                    insideRenderPass = true;
                     break;
                 }
             case VKCmdType::EndRenderPass:
@@ -1446,6 +1616,7 @@ void VKCommandBufferProcessor::Execute(
                     exeState.overrideScissor = false;
                     exeState.overrideViewport = false;
                     exeState.renderPass = nullptr;
+                    insideRenderPass = false;
                     break;
                 }
             case VKCmdType::Blit:
@@ -1736,46 +1907,14 @@ void VKCommandBufferProcessor::Execute(
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - CopyBuffer");
                     auto& args = std::get<VKCopyBufferCmd>(cmd.args);
-                    auto barrierOffset = args.barrierOffset;
-                    auto barrierCount = args.barrierCount;
-                    PutBarriers(vkcmd, barrierOffset, barrierCount);
-
-                    auto resolvedSrc = ResolveBuffer(args.src, inflightIndex);
-                    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
-                    VkBufferCopy adjustedRegions[8];
-                    for (uint32_t i = 0; i < args.copyRegionCount; ++i)
-                    {
-                        adjustedRegions[i] = args.copyRegions[i];
-                        adjustedRegions[i].srcOffset += resolvedSrc.offset;
-                        adjustedRegions[i].dstOffset += resolvedDst.offset;
-                    }
-                    vkCmdCopyBuffer(
-                        vkcmd,
-                        resolvedSrc.buffer,
-                        resolvedDst.buffer,
-                        args.copyRegionCount,
-                        adjustedRegions
-                    );
+                    ExecuteCopyBufferCmd(vkcmd, args, inflightIndex);
                     break;
                 }
             case VKCmdType::UploadData:
                 {
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - UploadData");
                     auto& args = std::get<VKUploadDataCmd>(cmd.args);
-                    PutBarriers(vkcmd, args.barrierOffset, args.barrierCount);
-
-                    auto stagingHandle = GetMemAllocator()->AllocateScratchBuffer(
-                        static_cast<uint32_t>(args.data.size()),
-                        4,
-                        TemporaryBufferUsage::TransferSrc,
-                        true
-                    );
-                    memcpy(stagingHandle.mappedData, args.data.data(), args.data.size());
-
-                    auto resolvedDst = ResolveBuffer(args.dst, inflightIndex);
-                    VkDeviceSize srcOffset = stagingHandle.offset;
-                    VkBufferCopy region{.srcOffset = srcOffset, .dstOffset = args.dstOffset + resolvedDst.offset, .size = args.data.size()};
-                    vkCmdCopyBuffer(vkcmd, stagingHandle.buffer, resolvedDst.buffer, 1, &region);
+                    ExecuteUploadDataCmd(vkcmd, args, inflightIndex);
                     break;
                 }
             case VKCmdType::CopyBufferToImage:
@@ -1822,6 +1961,13 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - RGBeginRenderPass");
                     auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
                     Gfx::VKRenderPass* renderPass = VKContext::Instance()->resourceAllocator->Request(args.renderPass);
+                    ExecuteHoistedRenderPassTransfers(
+                        vkcmd,
+                        executedCmds,
+                        args.hoistedTransferOffset,
+                        args.hoistedTransferCount,
+                        inflightIndex
+                    );
                     BeginRenderPass(
                         vkcmd,
                         renderPass,
@@ -1830,6 +1976,7 @@ void VKCommandBufferProcessor::Execute(
                         args.barrierOffset,
                         args.barrierCount
                     );
+                    insideRenderPass = true;
                     break;
                 }
             case Gfx::VKCmdType::BeginLabel:

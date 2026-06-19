@@ -21,6 +21,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <cmath>
 #include <limits>
 
 namespace Editor
