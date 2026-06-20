@@ -147,6 +147,37 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex, ui
         totalWeight += weight;
     }
 
+    static const int2 kOffsets2[4] =
+    {
+        int2(-1, -1),
+        int2(2, -1),
+        int2(-1, 2),
+        int2(2, 2)
+    };
+
+    // pick any fit matches, we want to use this probe as long as it's valid
+    if (totalWeight < 1e-6)
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            int2 sc = clamp(shCoord00 + kOffsets2[i], int2(0, 0), shMaxCoord);
+
+            float accumWeight = perMaterial.accumTex.Load(int3(sc, 0)).x;
+
+            float weight = accumWeight;
+
+            if (accumWeight > 0)
+            {
+                sh0Sum = perMaterial.rtgiSH0Tex.Load(int3(sc, 0)) * weight;
+                sh1Sum = perMaterial.rtgiSH1Tex.Load(int3(sc, 0)) * weight;
+                sh2Sum = perMaterial.rtgiSH2Tex.Load(int3(sc, 0)) * weight;
+                totalWeight = weight;
+                break;
+            }
+        }
+    }
+
+
     float3 irradiance = 0.0;
     if (totalWeight < 1e-6)
     {
