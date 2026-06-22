@@ -398,7 +398,7 @@ int2 WeilanEngine::GetSystemWindowSize()
     return int2{w, h};
 }
 
-void WeilanEngine::PresentGameOnly(bool enable)
+void WeilanEngine::PresentGameOnly(bool enable, int2 size)
 {
 #if defined(_WIN32) || defined(_WIN64)
     presentGameColorOnly = enable;
@@ -406,15 +406,20 @@ void WeilanEngine::PresentGameOnly(bool enable)
     // lazy create interop driver
     if (window_HWND == nullptr)
     {
-        window_HWND = WeilanEngine_CreateWindow();
+        window_HWND = WeilanEngine_CreateWindow(size.x, size.y);
         interopDriver = CreateD3D11InteropDriver();
-        interopDriver->Initialize(window_HWND, mainWindow.size.width, mainWindow.size.height);
+        interopDriver->Initialize(window_HWND, size.x, size.y);
+    }
+    else if (presentGameColorOnly)
+    {
+        WeilanEngine_ResizeWindow(window_HWND, size.x, size.y);
+        interopDriver->Resize(size.x, size.y);
     }
 
     if (presentGameColorOnly)
     {
         auto intermediateTextureHandle = interopDriver->GetSharedHandle();
-        gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, int2(mainWindow.size.width, mainWindow.size.height));
+        gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, size);
     }
     else
     {

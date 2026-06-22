@@ -131,19 +131,18 @@ void GameEditor::SimulatePlayerView(bool enable)
     hideDevTool = enable;
 
     // adjust system window to current view size
-    auto gameImage = gameView->GetGameScreenImage();
-    float2 sceneImageSize = gameImage->GetDescription().GetSize();
-    cacheSystemWindowSize = engine->GetSystemWindowSize();
+    glm::ivec2 gameResolution = gameView->GetGameScreenResolution();
 
     if (enable)
     {
-        engine->SetSystemWindowSize(sceneImageSize);
-        engine->PresentGameOnly(true);
+        cacheSystemWindowSize = engine->GetSystemWindowSize();
+        engine->SetSystemWindowSize(gameResolution);
+        engine->PresentGameOnly(true, gameResolution);
     }
     else
     {
         engine->SetSystemWindowSize(cacheSystemWindowSize);
-        engine->PresentGameOnly(false);
+        engine->PresentGameOnly(false, cacheSystemWindowSize);
     }
 #else
     (void)enable;

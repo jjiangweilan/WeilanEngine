@@ -46,7 +46,7 @@ public:
     void WindowBorderless(bool enable);
     void SetSystemWindowSize(int2 size);
     int2 GetSystemWindowSize();
-    void PresentGameOnly(bool enable);
+    void PresentGameOnly(bool enable, int2 size);
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
     {

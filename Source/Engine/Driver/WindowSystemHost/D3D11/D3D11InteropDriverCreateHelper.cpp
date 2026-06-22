@@ -6,7 +6,7 @@ std::unique_ptr<WindowSystemHost::IInteropDriver> CreateD3D11InteropDriver()
     return std::make_unique<WindowSystemHost::D3D11InteropDriver>();
 }
 
-void* WeilanEngine_CreateWindow()
+void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
 {
     HINSTANCE hInst = GetModuleHandle(NULL);
 
@@ -48,11 +48,16 @@ void* WeilanEngine_CreateWindow()
 
     RegisterClass(&wc);
 
-    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, hInst, nullptr);
+    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
 
     LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
     style &= ~(WS_BORDER | WS_CAPTION | WS_THICKFRAME);
     SetWindowLongPtr(window, GWL_STYLE, style);
 
     return (void*)window;
+}
+
+void WeilanEngine_ResizeWindow(void* windowHandle, uint32_t width, uint32_t height)
+{
+    SetWindowPos((HWND)windowHandle, nullptr, 0, 0, static_cast<int>(width), static_cast<int>(height), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }

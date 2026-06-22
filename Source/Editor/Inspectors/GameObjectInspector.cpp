@@ -154,7 +154,6 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     {
         if (scaleLock)
         {
-            spdlog::info("hello");
             int changedAxis = 0;
             float largestDelta = std::abs(scale.x - oldScale.x);
             for (int i = 1; i < 3; ++i)
