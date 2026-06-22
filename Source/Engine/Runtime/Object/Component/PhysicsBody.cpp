@@ -284,7 +284,7 @@ bool PhysicsBody::SetAsSphere()
         return true;
     };
 
-    return recreateShape();
+    return RecreateShape();
 }
 
 bool PhysicsBody::SetAsBox()
@@ -301,7 +301,7 @@ bool PhysicsBody::SetAsBox()
         return true;
     };
 
-    return recreateShape();
+    return RecreateShape();
 }
 
 bool PhysicsBody::SetAsCapsule()
@@ -315,7 +315,7 @@ bool PhysicsBody::SetAsCapsule()
         return true;
     };
 
-    return recreateShape();
+    return RecreateShape();
 }
 
 void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
@@ -340,20 +340,25 @@ void PhysicsBody::OnStart() {}
 
 void PhysicsBody::TransformChanged()
 {
-    if (auto i = GetBodyInterface())
+    glm::vec3 currentScale = gameObject->GetScale();
+    if (currentScale != shapeGameObjectScale && RecreateShape())
+        return;
+
+    UpdateBodyPositionAndRotation();
+}
+
+bool PhysicsBody::RecreateShape()
+{
+    if (!recreateShape)
+        return false;
+
+    if (recreateShape())
     {
-        if (body)
-        {
-            auto pos = gameObject->GetPosition();
-            auto rot = gameObject->GetRotation();
-            i->SetPositionAndRotation(
-                body->GetID(),
-                {pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z},
-                {rot.x, rot.y, rot.z, rot.w},
-                EActivation::DontActivate
-            );
-        }
+        shapeGameObjectScale = gameObject->GetScale();
+        return true;
     }
+
+    return false;
 }
 
 void PhysicsBody::SetLinearVelocity(const glm::vec3& velocity)
@@ -442,7 +447,7 @@ bool PhysicsBody::SetAsMeshRenderer()
         return createFromMeshRenderer;
     };
 
-    return recreateShape();
+    return RecreateShape();
 }
 
 bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& triangles)
@@ -524,7 +529,7 @@ bool PhysicsBody::SetAsCompound()
         return true;
     };
 
-    return recreateShape();
+    return RecreateShape();
 }
 
 void PhysicsBody::SetSensor(bool isSensor)

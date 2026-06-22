@@ -79,7 +79,7 @@ public:
     {
         this->bodyOffset = offset;
         if (recreateShape)
-            recreateShape();
+            RecreateShape();
     }
 
     const glm::vec4& GetBodyOffset() const { return bodyOffset; }
@@ -87,7 +87,7 @@ public:
     {
         this->bodyScale = scale;
         if (recreateShape)
-            recreateShape();
+            RecreateShape();
     }
 
     bool IsSensor() { return isSensor; }
@@ -177,6 +177,7 @@ private:
     JPH::Ref<JPH::Shape> shapeRef;
     JPH::Body* body = nullptr;
     PhysicsBodyShapes shapeType = PhysicsBodyShapes::Mesh;
+    glm::vec3 shapeGameObjectScale = glm::vec3(1.0f);
 
     std::function<bool()> recreateShape = nullptr;
     std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
@@ -190,6 +191,7 @@ private:
     void OnDisable() override;
     bool SetShape(JPH::ShapeSettings& shape);
     void TransformChanged() override;
+    bool RecreateShape();
     void UpdateBodyPositionAndRotation();
     JPH::BodyInterface* GetBodyInterface();
     void Init();
