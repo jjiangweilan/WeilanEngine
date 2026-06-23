@@ -966,9 +966,11 @@ void GameEditor::ShowConsoleOutputWindow()
     auto ringBufferSink = engine->GetRingBufferLoggerSink();
     auto lastRaw = ringBufferSink->last_raw();
     static auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    static bool consoleScrollInitialized = false;
     ImGui::SetNextWindowSize({300, 300}, ImGuiCond_FirstUseEver);
     ImGui::Begin("Console");
-    for (auto r = lastRaw.rbegin(); r != lastRaw.rend(); r++)
+    const bool wasAtBottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f;
+    for (auto r = lastRaw.begin(); r != lastRaw.end(); r++)
     {
         spdlog::memory_buf_t formatted;
         formatter->format(*r, formatted);
@@ -993,6 +995,11 @@ void GameEditor::ShowConsoleOutputWindow()
 
         if (colorPushed)
             ImGui::PopStyleColor();
+    }
+    if (!consoleScrollInitialized || wasAtBottom)
+    {
+        ImGui::SetScrollHereY(1.0f);
+        consoleScrollInitialized = true;
     }
     ImGui::End();
 }

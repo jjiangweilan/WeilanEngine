@@ -700,6 +700,7 @@ void BindGeneratedClasses(lua_State* L)
     LuaBinder<NavSystem> binder_NavSystem(L);
     binder_NavSystem.Begin("NavSystem")
         .BindMemFn("FindPath", &NavSystem::Lua_FindPath) // NavPathResult(float3 & startWorld, float3 & endWorld)
+        .BindMemFn("PossionSampleFreeArea", &NavSystem::PossionSampleFreeArea) // float3(float3 & position, float size, float outterRadius, float innerRadius)
         .BindStaticFn("GetGlobalInstance", &NavSystem::GetGlobalInstance) // NavSystem*()
         .End();
 

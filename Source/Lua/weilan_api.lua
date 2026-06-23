@@ -597,6 +597,12 @@ wl.NavSystem = {}
 ---@param endWorld wl.Float3
 ---@return wl.NavPathResult
 function wl.NavSystem:FindPath(startWorld, endWorld) end
+---@param position wl.Float3
+---@param size number
+---@param outterRadius number
+---@param innerRadius number
+---@return wl.Float3
+function wl.NavSystem:PossionSampleFreeArea(position, size, outterRadius, innerRadius) end
 ---@return wl.NavSystem*
 function wl.NavSystem.GetGlobalInstance() end
 

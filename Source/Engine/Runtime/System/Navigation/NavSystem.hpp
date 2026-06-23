@@ -54,6 +54,7 @@ public:
 
     NavPathResult FindPath(const float3& startWorld, const float3& endWorld, const NavPathQuery& query = {});
     [[LuaNamedFn("FindPath")]] NavPathResult Lua_FindPath(const float3& startWorld, const float3& endWorld);
+    [[LuaFn]] float3 PossionSampleFreeArea(const float3& position, float size, float outterRadius, float innerRadius);
     bool GetSteeringTarget(const std::vector<float3>& waypoints, const float3& currentPosition, const NavSteeringQuery& query, float3& outTarget) const;
 
     [[LuaFn]] static NavSystem* GetGlobalInstance();
@@ -101,6 +102,7 @@ private:
     bool WorldToCell(const float3& world, int2& outCell) const;
     float3 CellToWorldCenter(int2 cell) const;
     bool IsCellWalkable(int2 cell) const;
+    bool IsAreaFree(const float3& world, float radius) const;
     bool CanMoveBetween(int2 from, int2 to, float maxSlopeRadians) const;
     bool HasLineOfSight(int2 from, int2 to, float maxSlopeRadians) const;
     std::vector<float3> SmoothPath(const std::vector<int2>& cells, float maxSlopeRadians) const;

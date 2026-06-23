@@ -2,6 +2,7 @@
 
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Library/Math/Geometry/Geometry.hpp"
+#include "Engine/Library/Random.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 
@@ -11,16 +12,11 @@
 #include <limits>
 #include <queue>
 
+#include <glm/gtx/norm.hpp>
+
 namespace
 {
 NavSystem* globalNavSystem = nullptr;
-
-float Distance2D(const float3& a, const float3& b)
-{
-    const float dx = a.x - b.x;
-    const float dz = a.z - b.z;
-    return std::sqrt(dx * dx + dz * dz);
-}
 }
 
 float3 NavPathResult::GetWaypoint(int index) const
@@ -299,6 +295,130 @@ NavPathResult NavSystem::Lua_FindPath(const float3& startWorld, const float3& en
     return FindPath(startWorld, endWorld);
 }
 
+float3 NavSystem::PossionSampleFreeArea(const float3& position, float size, float outterRadius, float innerRadius)
+{
+    if (!EnsureRuntimeCells())
+        return position;
+
+    outterRadius = std::max(0.0f, outterRadius);
+    innerRadius = std::clamp(innerRadius, 0.0f, outterRadius);
+
+    const float objectRadius = std::max(0.0f, size * 0.5f);
+    if (outterRadius <= 0.0f)
+    {
+        return position;
+    }
+
+    if (innerRadius <= 0.0f && IsAreaFree(position, objectRadius))
+        return position;
+
+    NavData* data = navData.Get();
+    const NavDataConfig& config = data->grid.config;
+    const float minSampleDistance = std::max(std::min(config.resolution.x, config.resolution.y), std::max(size, 0.01f));
+    const float minSampleDistanceSq = minSampleDistance * minSampleDistance;
+    constexpr int candidatesPerSample = 16;
+    constexpr int maxSamples = 128;
+    constexpr float twoPi = 6.28318530717958647692f;
+
+    std::vector<float3> samples;
+    std::vector<int> active;
+    samples.reserve(maxSamples);
+    active.reserve(maxSamples);
+
+    auto isInsideSearchArea = [&](const float3& candidate)
+    {
+        const float distanceSq = glm::distance2(float2(position.x, position.z), float2(candidate.x, candidate.z));
+        return distanceSq >= innerRadius * innerRadius && distanceSq <= outterRadius * outterRadius;
+    };
+
+    auto hasPoissonSpacing = [&](const float3& candidate)
+    {
+        for (const float3& sample : samples)
+        {
+            if (glm::distance2(float2(candidate.x, candidate.z), float2(sample.x, sample.z)) < minSampleDistanceSq)
+                return false;
+        }
+        return true;
+    };
+
+    auto makeCandidate = [&](const float3& center)
+    {
+        const float angle = Random::GenerateNormalized() * twoPi;
+        const float radius = minSampleDistance * (1.0f + Random::GenerateNormalized());
+        float3 candidate = center + float3(std::cos(angle) * radius, 0.0f, std::sin(angle) * radius);
+        int2 cell;
+        if (WorldToCell(candidate, cell))
+        {
+            const float3 cellCenter = CellToWorldCenter(cell);
+            candidate.y = cellCenter.y;
+        }
+        return candidate;
+    };
+
+    auto makeSearchCandidate = [&]()
+    {
+        const float angle = Random::GenerateNormalized() * twoPi;
+        const float innerSq = innerRadius * innerRadius;
+        const float radius = std::sqrt(innerSq + Random::GenerateNormalized() * (outterRadius * outterRadius - innerSq));
+        float3 candidate = position + float3(std::cos(angle) * radius, 0.0f, std::sin(angle) * radius);
+        int2 cell;
+        if (WorldToCell(candidate, cell))
+        {
+            const float3 cellCenter = CellToWorldCenter(cell);
+            candidate.y = cellCenter.y;
+        }
+        return candidate;
+    };
+
+    for (int i = 0; i < maxSamples / 4; ++i)
+    {
+        const float3 candidate = makeSearchCandidate();
+        if (!isInsideSearchArea(candidate))
+            continue;
+
+        if (IsAreaFree(candidate, objectRadius))
+            return candidate;
+
+        if (!hasPoissonSpacing(candidate))
+            continue;
+
+        samples.push_back(candidate);
+        active.push_back(static_cast<int>(samples.size()) - 1);
+    }
+
+    while (!active.empty() && static_cast<int>(samples.size()) < maxSamples)
+    {
+        const int activeIndex = std::min(static_cast<int>(Random::GenerateNormalized() * static_cast<float>(active.size())), static_cast<int>(active.size()) - 1);
+        const float3 center = samples[active[activeIndex]];
+        bool accepted = false;
+
+        for (int i = 0; i < candidatesPerSample; ++i)
+        {
+            const float3 candidate = makeCandidate(center);
+            if (!isInsideSearchArea(candidate) || !hasPoissonSpacing(candidate))
+                continue;
+
+            samples.push_back(candidate);
+            active.push_back(static_cast<int>(samples.size()) - 1);
+            accepted = true;
+
+            if (IsAreaFree(candidate, objectRadius))
+                return candidate;
+
+            if (static_cast<int>(samples.size()) >= maxSamples)
+                break;
+        }
+
+        if (!accepted)
+        {
+            active[activeIndex] = active.back();
+            active.pop_back();
+        }
+    }
+
+    return position;
+}
+
 bool NavSystem::GetSteeringTarget(const std::vector<float3>& waypoints, const float3& currentPosition, const NavSteeringQuery& query, float3& outTarget) const
 {
     if (waypoints.empty())
@@ -307,7 +427,7 @@ bool NavSystem::GetSteeringTarget(const std::vector<float3>& waypoints, const fl
     int targetIndex = static_cast<int>(waypoints.size()) - 1;
     for (int i = 0; i < static_cast<int>(waypoints.size()); ++i)
     {
-        if (Distance2D(currentPosition, waypoints[i]) > query.waypointReachDistance)
+        if (glm::distance(float2(currentPosition.x, currentPosition.z), float2(waypoints[i].x, waypoints[i].z)) > query.waypointReachDistance)
         {
             targetIndex = i;
             break;
@@ -317,7 +437,7 @@ bool NavSystem::GetSteeringTarget(const std::vector<float3>& waypoints, const fl
     float lookAhead = 0.0f;
     for (int i = targetIndex; i + 1 < static_cast<int>(waypoints.size()); ++i)
     {
-        const float segmentLength = Distance2D(waypoints[i], waypoints[i + 1]);
+        const float segmentLength = glm::distance(float2(waypoints[i].x, waypoints[i].z), float2(waypoints[i + 1].x, waypoints[i + 1].z));
         if (lookAhead + segmentLength >= query.lookAheadDistance)
         {
             const float t = segmentLength > 0.0f ? (query.lookAheadDistance - lookAhead) / segmentLength : 0.0f;
@@ -679,6 +799,52 @@ bool NavSystem::IsCellWalkable(int2 cell) const
 
     const int index = CellIndex(cell);
     return index >= 0 && index < static_cast<int>(runtimeCells.size()) && !runtimeCells[index].occupied;
+}
+
+bool NavSystem::IsAreaFree(const float3& world, float radius) const
+{
+    int2 centerCell;
+    if (!WorldToCell(world, centerCell) || !IsCellWalkable(centerCell))
+        return false;
+
+    NavData* data = navData.Get();
+    if (data == nullptr)
+        return false;
+
+    const NavDataConfig& config = data->grid.config;
+    const float gridOriginX = relativePosition.x + config.origin.x;
+    const float gridOriginZ = relativePosition.z + config.origin.z;
+    const float minX = world.x - radius;
+    const float maxX = world.x + radius;
+    const float minZ = world.z - radius;
+    const float maxZ = world.z + radius;
+    const int minCellX = static_cast<int>(std::floor((minX - gridOriginX) / config.resolution.x));
+    const int maxCellX = static_cast<int>(std::floor((maxX - gridOriginX) / config.resolution.x));
+    const int minCellY = static_cast<int>(std::floor((minZ - gridOriginZ) / config.resolution.y));
+    const int maxCellY = static_cast<int>(std::floor((maxZ - gridOriginZ) / config.resolution.y));
+
+    if (minCellX < 0 || minCellY < 0 || maxCellX >= config.width || maxCellY >= config.height)
+        return false;
+
+    const float radiusSq = radius * radius;
+    for (int y = minCellY; y <= maxCellY; ++y)
+    {
+        for (int x = minCellX; x <= maxCellX; ++x)
+        {
+            const int2 cell(x, y);
+            const float3 cellCenter = CellToWorldCenter(cell);
+            const float halfWidth = config.resolution.x * 0.5f;
+            const float halfHeight = config.resolution.y * 0.5f;
+            const float closestX = std::clamp(world.x, cellCenter.x - halfWidth, cellCenter.x + halfWidth);
+            const float closestZ = std::clamp(world.z, cellCenter.z - halfHeight, cellCenter.z + halfHeight);
+            const float dx = world.x - closestX;
+            const float dz = world.z - closestZ;
+            if (dx * dx + dz * dz <= radiusSq && !IsCellWalkable(cell))
+                return false;
+        }
+    }
+
+    return true;
 }
 
 bool NavSystem::CanMoveBetween(int2 from, int2 to, float maxSlopeRadians) const
