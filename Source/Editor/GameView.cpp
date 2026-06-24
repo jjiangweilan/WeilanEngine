@@ -1,23 +1,23 @@
 #include "Editor/GameView.hpp"
 
-#include "Engine/Runtime/Object/Component/Camera.hpp"
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
-#include "Engine/Core/EngineState.hpp"
-#include "Editor/Gizmos/Gizmo.hpp"
-#include "Engine/MiddleLayer/SystemInfo.hpp"
-#include "Engine/Core/Time.hpp"
-#include "Editor/HudDebug.hpp"
 #include "Editor/EditorState.hpp"
 #include "Editor/GameEditor.hpp"
-#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
-#include "Engine/Library/Math.hpp"
-#include "Engine/Driver/Physics/JoltDebugRenderer.hpp"
+#include "Editor/Gizmos/Gizmo.hpp"
+#include "Editor/HudDebug.hpp"
 #include "Editor/PickObjectFromGameView.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Core/EngineState.hpp"
 #include "Engine/Core/GameLoop.hpp"
-#include "Engine/WeilanEngine.hpp"
+#include "Engine/Core/Time.hpp"
+#include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Driver/Physics/JoltDebugRenderer.hpp"
+#include "Engine/Library/Math.hpp"
+#include "Engine/MiddleLayer/SystemInfo.hpp"
+#include "Engine/Runtime/Object/Component/Camera.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include "Engine/WeilanEngine.hpp"
 
 namespace Editor
 {
@@ -64,6 +64,8 @@ struct GameView::PlayTheGame
             AssetDatabase::Singleton()->UnloadAsset(scene);
 
             GameEditor::instance->GetEngine()->ReloadScripts();
+            UI::Instance().Init();
+
             sceneCopy = AssetDatabase::Singleton()->LoadScene(sceneUUID);
             sceneCopy->SetName("scene copy");
             sceneCopy->SetFlags(AssetState::DontSave);
@@ -89,6 +91,7 @@ struct GameView::PlayTheGame
             EngineState::GetSingleton().isPlaying = false;
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
 
+            UI::Instance().Destroy();
             GameEditor::instance->GetEngine()->ReloadScripts();
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
@@ -223,7 +226,8 @@ bool GameView::Tick()
     {
         p.frameCount += 1;
     }
-    pendingDeleteSceneImages.remove_if([](PendingDelete& p) { return p.frameCount > 5; });
+    pendingDeleteSceneImages.remove_if([](PendingDelete& p)
+                                       { return p.frameCount > 5; });
 
     bool open = true;
 

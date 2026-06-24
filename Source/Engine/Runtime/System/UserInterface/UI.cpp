@@ -2,6 +2,7 @@
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
+#include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include "RmlUiRenderer.hpp"
 #include <RmlUi/Core/Input.h>
 #include <RmlUi/Core/SystemInterface.h>
@@ -10,6 +11,7 @@
 #include <chrono>
 #include <filesystem>
 #include <spdlog/spdlog.h>
+#include <RmlUi/Lua.h>
 
 namespace
 {
@@ -174,7 +176,15 @@ private:
 } // namespace
 
 UI::UI()
+{}
+
+void UI::Init()
 {
+    if (rmlInitialized)
+    {
+        return;
+    }
+
     activeUI = this;
     whiteTexture = &EngineInternalResources::GetWhiteTexture();
     cmd = GetGfxDriver()->CreateCommandBuffer();
@@ -189,7 +199,13 @@ UI::UI()
     rmlRenderer = std::make_unique<RmlUiRenderer>();
     Rml::SetSystemInterface(rmlSystem.get());
     Rml::SetRenderInterface(rmlRenderer.get());
+
     Rml::Initialise();
+
+    Rml::Lua::Initialise(LuaBackend::L);
+    const int topnums = lua_gettop(LuaBackend::L);
+    lua_pop(LuaBackend::L, topnums);
+
     const std::filesystem::path defaultFontPath = std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf";
     if (!Rml::LoadFontFace(defaultFontPath.string()))
     {
@@ -351,7 +367,7 @@ void UI::DrawTexture(int2 origin, int2 size, ObjPtr<Texture>& texture, const std
 
 void UI::RenderElements(const Gfx::ImageIdentifier* colorImage)
 {
-    if (colorImage == nullptr)
+    if (colorImage == nullptr || rmlContext == nullptr)
         return;
 
     Gfx::RenderAttachment colorAttachment[1] =

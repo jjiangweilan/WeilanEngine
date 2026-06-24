@@ -27,7 +27,7 @@ std::filesystem::path GetExecutableDirectory()
 
     return std::filesystem::current_path();
 }
-}
+} // namespace
 
 LuaBackend::LuaBackend() {}
 

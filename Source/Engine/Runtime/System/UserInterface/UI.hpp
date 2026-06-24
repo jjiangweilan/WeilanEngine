@@ -24,8 +24,6 @@ public:
 
     // this is in game view space
     void SetUICanvasCoordinate(int2 origin, int2 size);
-    void Destroy();
-    void Update();
     Rml::ElementDocument* LoadDocument(std::string_view path);
     bool LoadFontFace(std::string_view path, bool fallbackFace = false);
     Rml::Context* GetRmlContext();
@@ -34,6 +32,9 @@ public:
     void DrawTexture(int2 origin, int2 size, ObjPtr<Texture>& texture, const std::string& name = "");
 
     void RenderElements(const Gfx::ImageIdentifier* colorImage);
+    void Init();
+    void Update();
+    void Destroy();
 
     static UI& Instance();
 

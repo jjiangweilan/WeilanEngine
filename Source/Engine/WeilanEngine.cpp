@@ -44,7 +44,8 @@ WeilanEngine::~WeilanEngine()
 #endif
     editor = nullptr;
     event->Deinit();
-    UI::Instance().Destroy();
+    // UI::Instance().Destroy();
+    luaBackend->Destroy();
     gfxDriver->WaitForIdle();
     DelayDestroy::Singleton()->Flush();
     ClearLuaCreatedRuntimeAssets();
@@ -57,6 +58,7 @@ WeilanEngine::~WeilanEngine()
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     DeinitSDL();
+
 
     JobSystem::DeinitJobSystem();
 }
@@ -108,6 +110,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 #endif
 
     luaBackend->Init(assetDatabase->GetAssetDirectory().string().c_str());
+    // UI::Instance().Init();
     gameLoop = std::make_unique<GameLoop>();
 
     ShaderLibrary::Singleton().WaitForShaderCompilation();

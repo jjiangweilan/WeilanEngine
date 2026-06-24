@@ -51,7 +51,7 @@ bool InheritsFromGameScript(lua_State* L, int classIndex)
     lua_settop(L, initialStackTop);
     return false;
 }
-}
+} // namespace
 
 DEFINE_ASSET(LuaScript, "656C3158-FDAB-4EB3-AED4-CC4DFACA46F8", "lua")
 
@@ -64,8 +64,8 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     luaBackendUUID = LuaBackend::currentStateUUID;
     std::string script = fmt::format("local code = require '{}';return code or {}", luaScriptPath, "{}");
 
-#define wllua_popall()                                                                                                 \
-    int stacknum = lua_gettop(L);                                                                                      \
+#define wllua_popall()            \
+    int stacknum = lua_gettop(L); \
     lua_pop(L, stacknum);
 
     if (luaL_dostring(L, script.c_str()) != 0)
@@ -77,6 +77,8 @@ void LuaScript::LoadScript(const char* luaScriptPath)
 
     // only a single value should return from a game script
     int argnum = lua_gettop(L);
+
+    // sinle value on the stack is not necessaryly true, lua code can push multiple values on stack then clean together later
     if (argnum != 1)
     {
         spdlog::error(
