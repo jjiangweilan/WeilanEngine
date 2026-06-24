@@ -494,7 +494,8 @@ FetchContent_Declare(
 )
 set(RMLUI_SAMPLES OFF)
 set(RMLUI_TESTS OFF)
-set(RMLUI_LUA_BINDINGS OFF)
+set(RMLUI_LUA_BINDINGS ON)
+set(RMLUI_LUA_BINDINGS_LIBRARY luajit CACHE STRING "" FORCE)
 set(RMLUI_LOTTIE_PLUGIN OFF)
 set(RMLUI_SVG_PLUGIN OFF)
 set(RMLUI_HARFBUZZ_SAMPLE OFF)
@@ -585,6 +586,7 @@ target_link_libraries( WeilanEngine
     volk
     LuaJIT::LuaJIT
     RmlUi::RmlUi
+    RmlUi::Lua
 )
 
 if(ENABLE_MCP)
@@ -759,6 +761,7 @@ SetDependencyFolder(assimp assimp)
 SetDependencyFolder(Jolt JoltPhysics)
 SetDependencyFolder(freetype freetype)
 SetDependencyFolder(RmlUi::RmlUi RmlUi)
+SetDependencyFolder(RmlUi::Lua RmlUi)
 
 
 if (MSVC AND ENABLE_ASAN)
