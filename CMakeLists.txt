@@ -524,6 +524,10 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PUBLIC "/Ob0")
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(WeilanEngine PUBLIC -Wno-unknown-attributes)
+endif()
+
 set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
 file(GLOB_RECURSE CORE_ENGINE_SRC "Source/Engine/*.c" "Source/Engine/*.cpp" "Source/Engine/*.hpp" "Source/Engine/*.h" "Source/Engine/*.tpp")
 if(NOT WIN32)
@@ -535,6 +539,12 @@ endif()
 
 target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
 find_package(Vulkan REQUIRED)
+
+if(APPLE)
+    get_filename_component(VULKAN_LIBRARY_DIR "${Vulkan_LIBRARY}" DIRECTORY)
+    set_property(TARGET WeilanEngine APPEND PROPERTY BUILD_RPATH "${VULKAN_LIBRARY_DIR}")
+    set_property(TARGET WeilanEngineEditor APPEND PROPERTY BUILD_RPATH "${VULKAN_LIBRARY_DIR}")
+endif()
 
 target_include_directories( WeilanEngine
     PRIVATE

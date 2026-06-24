@@ -49,6 +49,7 @@ class ITypeReflection
 public:
     virtual const std::unordered_map<std::string, PropertyMetadata>&
     GetVariables() const = 0;
+    virtual ~ITypeReflection() {};
 
     virtual void Copy(Object* src, Object* dst) const = 0;
     virtual void GetVariable(Object& obj, const std::string& name, void* ptr) const = 0;

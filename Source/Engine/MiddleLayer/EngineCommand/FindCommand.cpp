@@ -1,4 +1,3 @@
-#pragma once
 #include "Engine/Runtime/System/SceneManager/SceneManager.hpp"
 #include "Editor/EditorState.hpp"
 #include "EngineCommand.hpp"
