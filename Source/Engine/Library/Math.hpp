@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <spdlog/spdlog.h> // to extend spdlog

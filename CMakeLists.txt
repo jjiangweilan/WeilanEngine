@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 4.1)
 cmake_policy(SET CMP0114 NEW)
 cmake_policy(SET CMP0135 NEW)
 cmake_policy(SET CMP0077 NEW) # honors GLM_BUILD_INSTALL
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(WeilanEngine)
 
@@ -105,12 +106,22 @@ function(SetDependencyFolder inTarget folder_name)
     endforeach(target ${dependencies})
 endfunction()
 
+set(WEILAN_SLANG_GIT_SUBMODULES
+    external/unordered_dense
+    external/miniz
+    external/lz4
+    external/vulkan
+    external/spirv-headers
+    external/lua
+)
+
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
     GIT_TAG "v2025.24.3"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     GIT_SHALLOW TRUE
+    GIT_SUBMODULES ${WEILAN_SLANG_GIT_SUBMODULES}
 )
 set(SLANG_ENABLE_DXIL OFF)
 set(SLANG_ENABLE_GFX OFF)
@@ -127,6 +138,10 @@ set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 set(SLANG_ENABLE_SLANG_GLSLANG OFF)
 set(SLANG_EMBED_CORE_MODULE_SOURCE OFF)
+set(SLANG_ENABLE_PREBUILT_BINARIES OFF)
+set(SLANG_SLANG_LLVM_FLAVOR DISABLE)
+set(SLANG_EXCLUDE_DAWN ON)
+set(SLANG_EXCLUDE_TINT ON)
 # Slang don't need to do ASAN
 FetchContent_MakeAvailable(Slang)
 
@@ -136,7 +151,7 @@ FetchContent_MakeAvailable(Slang)
 
 FetchContent_Declare(SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG "release-2.30.x"
+    GIT_TAG "release-2.30.12"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     GIT_SHALLOW TRUE
@@ -216,12 +231,8 @@ set(LUA_ROCKS
 
 if(WIN32)
     FetchContent_Declare(LuaRocks
-        GIT_REPOSITORY https://github.com/luarocks/luarocks.git
-        GIT_TAG v3.13.0
-        GIT_PROGRESS TRUE
-        GIT_SHALLOW TRUE
-        UPDATE_DISCONNECTED TRUE
-        ${LUAJIT_GIT_CONFIG_ARGS}
+        URL https://github.com/luarocks/luarocks/archive/refs/tags/v3.13.0.tar.gz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_MakeAvailable(LuaRocks)
 
@@ -282,11 +293,8 @@ else()
 endif()
 
 FetchContent_Declare(fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 11.1.3
-    UPDATE_DISCONNECTED TRUE
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/fmtlib/fmt/archive/refs/tags/11.1.3.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(FMT_DOC OFF)
 set(FMT_TEST OFF)
@@ -294,20 +302,16 @@ set(FMT_SYSTEM_HEADERS ON)
 FetchContent_MakeAvailable(fmt)
 
 FetchContent_Declare(SPDLOG
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.15.1
-    GIT_PROGRESS TRUE
-    UPDATE_DISCONNECTED TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/gabime/spdlog/archive/refs/tags/v1.15.1.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(SPDLOG_BUILD_EXAMPLE OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
 FetchContent_MakeAvailable(SPDLOG)
 
 FetchContent_Declare(rapidyaml
-    # GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_REPOSITORY https://github.com/jjiangweilan/rapidyaml.git # temp fix a problem where clang in windows doesn't have alloca.h header https://github.com/biojppm/rapidyaml/issues/539
-    GIT_TAG v0.9.0_patch
+    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_TAG v0.15.2
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     GIT_SHALLOW TRUE
@@ -315,11 +319,8 @@ FetchContent_Declare(rapidyaml
 FetchContent_MakeAvailable(rapidyaml)
 
 FetchContent_Declare(json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.12.0
-    GIT_PROGRESS TRUE
-    UPDATE_DISCONNECTED TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(JSON_BuildTests OFF)
 FetchContent_MakeAvailable(json)
@@ -339,30 +340,23 @@ endif()
 add_library(SQLite::SQLite3 ALIAS sqlite3)
 
 FetchContent_Declare(glm
-    GIT_REPOSITORY "https://github.com/g-truc/glm.git"
-    GIT_TAG 1.0.1
-    GIT_PROGRESS TRUE
-    UPDATE_DISCONNECTED TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/g-truc/glm/archive/refs/tags/1.0.3.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(GLM_BUILD_TESTS OFF)
 set(GLM_BUILD_INSTALL OFF)
 FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(vma
-    GIT_REPOSITORY "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
-    GIT_TAG "v3.1.0"
-    UPDATE_DISCONNECTED TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/archive/refs/tags/v3.1.0.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(VMA_ENABLE_INSTALL OFF)
 FetchContent_MakeAvailable(vma)
 
 FetchContent_Declare(volk
-    GIT_REPOSITORY https://github.com/zeux/volk.git
-    GIT_TAG "1.4.304"
-    UPDATE_DISCONNECTED TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/zeux/volk/archive/refs/tags/1.4.304.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 if (WIN32)
     set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
@@ -389,11 +383,8 @@ endif()
 set(BOOST_ENABLE_CMAKE ON)
 FetchContent_Declare(
     Boost
-    GIT_REPOSITORY https://github.com/boostorg/boost.git
-    GIT_TAG boost-1.89.0
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
-    GIT_SUBMODULES_RECURSE TRUE
+    URL https://github.com/boostorg/boost/releases/download/boost-1.89.0/boost-1.89.0-cmake.tar.xz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(Boost)
 
@@ -416,9 +407,8 @@ endif()
 
 FetchContent_Declare(
     meshoptimizer
-    GIT_REPOSITORY "https://github.com/zeux/meshoptimizer.git"
-    GIT_TAG "v1.1"
-    GIT_SHALLOW TRUE
+    URL https://github.com/zeux/meshoptimizer/archive/refs/tags/v1.1.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(meshoptimizer)
 
@@ -462,10 +452,8 @@ endif()
 
 FetchContent_Declare(
     freetype
-    GIT_REPOSITORY https://github.com/freetype/freetype.git
-    GIT_TAG VER-2-13-3
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/freetype/freetype/archive/refs/tags/VER-2-13-3.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
@@ -487,10 +475,8 @@ endif()
 
 FetchContent_Declare(
     RmlUi
-    GIT_REPOSITORY https://github.com/mikke89/RmlUi.git
-    GIT_TAG 6.2
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
+    URL https://github.com/mikke89/RmlUi/archive/refs/tags/6.2.tar.gz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 set(RMLUI_SAMPLES OFF)
 set(RMLUI_TESTS OFF)
@@ -684,12 +670,33 @@ add_dependencies(WeilanEngine CodeGeneration)
 add_dependencies(WeilanEngine LuaAnnotationGen)
 add_dependencies(WeilanEngine CompileShaders)
 
+set(WEILAN_LUA_RUNTIME_FILES
+    "${CMAKE_SOURCE_DIR}/Source/Engine/Lua/imgui.lua"
+)
+
+add_custom_target(WeilanLuaRuntime)
+add_dependencies(WeilanLuaRuntime WeilanEngine)
+
+foreach(lua_runtime_file ${WEILAN_LUA_RUNTIME_FILES})
+    get_filename_component(lua_runtime_filename "${lua_runtime_file}" NAME)
+    add_custom_command(
+        TARGET WeilanLuaRuntime
+        POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${lua_runtime_file}"
+            "$<TARGET_FILE_DIR:WeilanEngine>/${lua_runtime_filename}"
+        VERBATIM
+    )
+endforeach()
+
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/Launcher.cpp)
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
     file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
     target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})
     add_dependencies(WeilanEngineEditor LuaDependencies)
+    add_dependencies(WeilanEngineEditor WeilanLuaRuntime)
 endif()
 
 if (MSVC)
@@ -709,7 +716,7 @@ if (UNIT_TEST)
     include(FetchContent)
     FetchContent_Declare(
         googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+        URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.tar.gz
     )
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

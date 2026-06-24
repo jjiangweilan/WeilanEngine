@@ -107,6 +107,26 @@ int LuaBackend::EnginePrint(lua_State* L)
 
 lua_State* LuaBackend::L = nullptr;
 
+void LuaBackend::TickImGui()
+{
+    if (L == nullptr)
+        return;
+
+    lua_getglobal(L, "OnImGui");
+    if (!lua_isfunction(L, -1))
+    {
+        lua_pop(L, 1);
+        return;
+    }
+
+    if (lua_pcall(L, 0, 0, 0) != 0)
+    {
+        const char* error = lua_tostring(L, -1);
+        SPDLOG_ERROR("Lua OnImGui error: {}", error != nullptr ? error : "unknown error");
+        lua_pop(L, 1);
+    }
+}
+
 void LuaBackend::Destroy()
 {
     if (L)

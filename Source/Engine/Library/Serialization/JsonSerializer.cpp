@@ -314,6 +314,6 @@ const nlohmann::json& JsonSerializer::GetJsonObject(std::string_view name)
         return j[TO_JSON_PTR(name)];
     }
 
-    static nlohmann::json::object_t empty;
+    static nlohmann::json empty = nlohmann::json::object_t();
     return empty;
 }
