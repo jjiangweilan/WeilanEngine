@@ -15,7 +15,6 @@ public:
 
     void Init(const char* projectAssetFolder);
     void Destroy();
-    void TickImGui();
 
 private:
     static int EnginePrint(lua_State* L);

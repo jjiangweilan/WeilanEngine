@@ -1,18 +1,20 @@
 #include "Editor/EditorState.hpp"
-#include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Engine/Runtime/Object/Component/GameScript.hpp"
 namespace Editor
 {
 class GameScriptInspector : public Inspector<GameScript>
 {
 public:
-    void DrawInspector(GameEditor& editor) override {
+    void DrawInspector(GameEditor& editor) override
+    {
         LuaScript* script = target->GetScript().Get();
-        if(EditorGUI::ObjectField("Lua Script", script))
+        if (EditorGUI::ObjectField("Lua Script", script))
         {
             target->SetScript(script);
         }
 
+        EditorGUI::SeparatorTextLabeled("Serialized");
         JsonSerializer s;
         target->LuaSerialize(&s);
         auto j = s.GetJson();
@@ -23,6 +25,9 @@ public:
             JsonSerializer des(j);
             target->LuaDeserialize(&des);
         }
+
+        EditorGUI::SeparatorTextLabeled("Lua Inspector");
+        target->OnInspector();
     }
 
 private:

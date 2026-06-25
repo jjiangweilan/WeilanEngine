@@ -28,6 +28,8 @@ public:
     void DebugDraw() override;
     void OnStart() override;
     void OnDestroy() override;
+    void OnLoaded() override;
+    void OnInspector();
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() const override;
@@ -45,6 +47,7 @@ private:
     using LuaRef = int;
     UUID luaBackendUUID;
     std::vector<std::string> serializationValKeys;
+    std::unique_ptr<Serializer> luaDataCache;
     std::string luaClassName = "";
 
     // lua state

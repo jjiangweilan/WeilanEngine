@@ -206,15 +206,24 @@ void GameScript::Deserialize(Serializer* s)
 
     if (luaScriptUUID != UUID::GetEmptyUUID())
     {
-        luaScript = AssetDatabase::Singleton()->LoadAssetByID(luaScriptUUID);
+        luaScript = AssetDatabase::Singleton()->LoadAssetByID(luaScriptUUID); // this avoid async loading of lua script
+        luaDataCache = s->CreateSubdeserializer("LuaData");
+    }
+}
 
-        if (luaScript != nullptr)
+void GameScript::OnLoaded()
+{
+    if (luaScript != nullptr)
+    {
+        SetScript(luaScript);
+
+        if (luaDataCache)
         {
-            SetScript(luaScript);
-            auto subs = s->CreateSubdeserializer("LuaData");
-            LuaDeserialize(subs.get());
+            LuaDeserialize(luaDataCache.get());
         }
     }
+
+    luaDataCache = nullptr;
 }
 
 void GameScript::LuaSerialize(Serializer* s) const
@@ -529,4 +538,9 @@ bool GameScript::CallLua(const char* functionName)
 void GameScript::ReloadScript()
 {
     SetScript(luaScript);
+}
+
+void GameScript::OnInspector()
+{
+    CallLua("OnInspector");
 }

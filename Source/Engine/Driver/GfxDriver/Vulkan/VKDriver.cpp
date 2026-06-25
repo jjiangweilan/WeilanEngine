@@ -412,6 +412,9 @@ void VKDriver::GenerateMipmaps(SRef<VKImage> image)
             auto image = imageRef.Get();
             if (image == nullptr)
                 return;
+            if (image->GetDescription().mipLevels <= 1)
+                return;
+
             VkImageSubresourceRange range;
             range.baseArrayLayer = 0;
             range.layerCount = image->GetDescription().GetLayer();

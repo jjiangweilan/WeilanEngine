@@ -680,33 +680,12 @@ add_dependencies(WeilanEngine CodeGeneration)
 add_dependencies(WeilanEngine LuaAnnotationGen)
 add_dependencies(WeilanEngine CompileShaders)
 
-set(WEILAN_LUA_RUNTIME_FILES
-    "${CMAKE_SOURCE_DIR}/Source/Engine/Lua/imgui.lua"
-)
-
-add_custom_target(WeilanLuaRuntime)
-add_dependencies(WeilanLuaRuntime WeilanEngine)
-
-foreach(lua_runtime_file ${WEILAN_LUA_RUNTIME_FILES})
-    get_filename_component(lua_runtime_filename "${lua_runtime_file}" NAME)
-    add_custom_command(
-        TARGET WeilanLuaRuntime
-        POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WeilanEngine>"
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "${lua_runtime_file}"
-            "$<TARGET_FILE_DIR:WeilanEngine>/${lua_runtime_filename}"
-        VERBATIM
-    )
-endforeach()
-
 if (${EDITOR_ON})
     target_sources(WeilanEngineEditor PRIVATE Source/Main/Launcher.cpp)
     target_compile_definitions(WeilanEngine PRIVATE ENGINE_EDITOR)
     file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
     target_sources(WeilanEngine PRIVATE ${EDITOR_ENGINE_SRC})
     add_dependencies(WeilanEngineEditor LuaDependencies)
-    add_dependencies(WeilanEngineEditor WeilanLuaRuntime)
 endif()
 
 if (MSVC)

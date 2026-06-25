@@ -140,7 +140,6 @@ void WeilanEngine::StartEngine()
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
             ImGuizmo::BeginFrame();
-            luaBackend->TickImGui();
 
             // update gameloop
             auto screenSize = editor->GetGameScreenSize();

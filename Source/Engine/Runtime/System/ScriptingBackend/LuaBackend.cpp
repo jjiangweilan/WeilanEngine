@@ -53,13 +53,15 @@ void LuaBackend::Init(const char* projectAssetFolder)
         luaL_openlibs(L);
 
         // set search path
+        std::string engineLuaDir = (std::filesystem::current_path() / "Source/Engine/Lua").generic_string();
         std::string executableDir = GetExecutableDirectory().generic_string();
         lua_getglobal(L, "package");
         lua_getfield(L, -1, "path");
         const char* defaultPath = lua_tostring(L, -1);
         std::string searchPath = fmt::format(
-            "?.lua;{}/?.lua;{}/share/lua/5.1/?.lua;{}/share/lua/5.1/?/init.lua;{}",
+            "?.lua;{}/?.lua;{}/?.lua;{}/share/lua/5.1/?.lua;{}/share/lua/5.1/?/init.lua;{}",
             std::string(projectAssetFolder),
+            engineLuaDir,
             executableDir,
             executableDir,
             defaultPath != nullptr ? defaultPath : ""
@@ -106,26 +108,6 @@ int LuaBackend::EnginePrint(lua_State* L)
 }
 
 lua_State* LuaBackend::L = nullptr;
-
-void LuaBackend::TickImGui()
-{
-    if (L == nullptr)
-        return;
-
-    lua_getglobal(L, "OnImGui");
-    if (!lua_isfunction(L, -1))
-    {
-        lua_pop(L, 1);
-        return;
-    }
-
-    if (lua_pcall(L, 0, 0, 0) != 0)
-    {
-        const char* error = lua_tostring(L, -1);
-        SPDLOG_ERROR("Lua OnImGui error: {}", error != nullptr ? error : "unknown error");
-        lua_pop(L, 1);
-    }
-}
 
 void LuaBackend::Destroy()
 {

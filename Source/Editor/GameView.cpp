@@ -55,6 +55,8 @@ struct GameView::PlayTheGame
     {
         if (!played)
         {
+            UI::Instance().Destroy(); // this destroys the editor UI context
+
             played = true;
             auto& scene = *SceneManager::GetActiveScene();
 
@@ -64,7 +66,7 @@ struct GameView::PlayTheGame
             AssetDatabase::Singleton()->UnloadAsset(scene);
 
             GameEditor::instance->GetEngine()->ReloadScripts();
-            UI::Instance().Init();
+            UI::Instance().Init(); // this creates the game UI context
 
             sceneCopy = AssetDatabase::Singleton()->LoadScene(sceneUUID);
             sceneCopy->SetName("scene copy");
@@ -91,7 +93,7 @@ struct GameView::PlayTheGame
             EngineState::GetSingleton().isPlaying = false;
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
 
-            UI::Instance().Destroy();
+            UI::Instance().Destroy(); // destroys the game UI context
             GameEditor::instance->GetEngine()->ReloadScripts();
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
@@ -102,6 +104,8 @@ struct GameView::PlayTheGame
             // destroy sceneCopy
             sceneCopy = nullptr;
             Input::SetGameplayInput(false);
+
+            UI::Instance().Init(); // this creates the editor UI context
         }
     }
 };
@@ -111,6 +115,7 @@ GameView::~GameView() {}
 void GameView::Deinit()
 {
     playTheGame->Stop(this);
+    UI::Instance().Destroy();
 }
 
 void GameView::Init()
@@ -179,6 +184,7 @@ void GameView::Init()
     }
 
     ChangeGameScreenResolution(resolution);
+    UI::Instance().Init();
 }
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
