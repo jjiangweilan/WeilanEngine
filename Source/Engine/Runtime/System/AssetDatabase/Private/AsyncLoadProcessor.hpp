@@ -1,16 +1,18 @@
 #pragma once
-#include "Engine/Runtime/System/AssetDatabase/Importers/AssetImporter.hpp"
-#include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
-#include "Engine/Runtime/System/AssetDatabase/Private/AssetFileSystem.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Library/MPMCQueue.hpp"
 #include "Engine/Library/SpinLock.hpp"
 #include "Engine/Library/UUID.hpp"
+#include "Engine/Runtime/System/AssetDatabase/Importers/AssetImporter.hpp"
+#include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
+#include "Engine/Runtime/System/AssetDatabase/Private/AssetFileSystem.hpp"
 #include <boost/lockfree/stack.hpp>
 #include <boost/unordered/concurrent_flat_map.hpp>
 
 struct AsyncProcessedPayload
 {
+    bool requireMainThreadLoading = false;
+    std::unique_ptr<AssetLoader> loader = nullptr;
     AssetData* assetData;
     Asset* asset;
 
@@ -20,7 +22,7 @@ struct AsyncProcessedPayload
 
     AsyncProcessedPayload(const AsyncProcessedPayload&) = delete;
     AsyncProcessedPayload(AsyncProcessedPayload&& other) noexcept
-        : assetData(other.assetData), asset(other.asset), loadedAsset(std::move(other.loadedAsset))
+        : assetData(other.assetData), asset(other.asset), loadedAsset(std::move(other.loadedAsset)), requireMainThreadLoading(other.requireMainThreadLoading), loader(std::move(other.loader))
     {}
 
     AsyncProcessedPayload& operator=(const AsyncProcessedPayload& other) = delete;
@@ -31,6 +33,8 @@ struct AsyncProcessedPayload
             assetData = other.assetData;
             asset = other.asset;
             loadedAsset = std::move(other.loadedAsset);
+            requireMainThreadLoading = other.requireMainThreadLoading;
+            loader = std::move(other.loader);
         }
 
         return *this;
@@ -71,8 +75,16 @@ public:
     }
 
     void PollAsyncLoading();
-    ObjPtr<Asset> AsyncLoadFromPath(const AssetPath& path);
-    std::unique_ptr<Asset> LoadAssetJob(const AssetPath& path, AssetData* assetData);
+    ObjPtr<Asset> DispatchLoadJobFromPath(const AssetPath& path, bool async);
+    std::unique_ptr<Asset> LoadAssetJob(const AssetPath& path, AssetData* assetData)
+    {
+        bool requireMainThreadLoading;
+        std::unique_ptr<AssetLoader> outLoader;
+        return LoadAssetJob(path, assetData, requireMainThreadLoading, outLoader);
+    }
+
+    std::unique_ptr<Asset> LoadAssetJob(const AssetPath& path, AssetData* assetData, bool& requireMainThreadLoading, std::unique_ptr<AssetLoader>& outLoader);
+    std::unique_ptr<Asset> ExecuteLoader(std::unique_ptr<AssetLoader>& loader, AssetData* assetData, bool async);
     void SyncLoad();
 
 private:

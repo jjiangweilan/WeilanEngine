@@ -192,7 +192,17 @@ GameEditor::GameEditor(WeilanEngine* engine, const char* path)
         );
     }
 
-    // Load previous active scene
+    // Initialize standalone window implementations
+    gameView = std::make_unique<GameView>();
+    sceneEditor = std::make_unique<SceneEditor>();
+    assetBrowser = std::make_unique<AssetBrowser>(engine, this);
+    gizmoManager = std::make_unique<GizmoManager>();
+    engineCommandGUI = std::make_unique<EngineCommandGUI>();
+    assetDatabaseDebug = std::make_unique<GameEditorAssetDatabaseDebug>();
+
+    gameView->Init();
+
+    // Load previous active scene, we need gameView to init UI first
     UUID lastActiveSceneUUID(editorState.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
@@ -204,15 +214,6 @@ GameEditor::GameEditor(WeilanEngine* engine, const char* path)
         }
     }
 
-    // Initialize standalone window implementations
-    gameView = std::make_unique<GameView>();
-    sceneEditor = std::make_unique<SceneEditor>();
-    assetBrowser = std::make_unique<AssetBrowser>(engine, this);
-    gizmoManager = std::make_unique<GizmoManager>();
-    engineCommandGUI = std::make_unique<EngineCommandGUI>();
-    assetDatabaseDebug = std::make_unique<GameEditorAssetDatabaseDebug>();
-
-    gameView->Init();
     editorContext->SetGizmoManager(gizmoManager.get());
     gizmoManager->SetEditorContext(editorContext.get());
     sceneEditor->Init(editorContext.get());

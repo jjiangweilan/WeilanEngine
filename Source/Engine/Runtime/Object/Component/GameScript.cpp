@@ -1,7 +1,6 @@
 #include "GameScript.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
-#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -201,14 +200,8 @@ void GameScript::Serialize(Serializer* s) const
 void GameScript::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    UUID luaScriptUUID;
-    s->Deserialize("luaScript", luaScriptUUID);
-
-    if (luaScriptUUID != UUID::GetEmptyUUID())
-    {
-        luaScript = AssetDatabase::Singleton()->LoadAssetByID(luaScriptUUID); // this avoid async loading of lua script
-        luaDataCache = s->CreateSubdeserializer("LuaData");
-    }
+    s->Deserialize("luaScript", luaScript);
+    luaDataCache = s->CreateSubdeserializer("LuaData");
 }
 
 void GameScript::OnLoaded()

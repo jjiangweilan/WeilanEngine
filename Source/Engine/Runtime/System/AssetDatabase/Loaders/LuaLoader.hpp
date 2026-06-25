@@ -7,6 +7,7 @@ class LuaLoader : public AssetLoader
     DECLARE_ASSET_LOADER()
 
 public:
+    bool SupportsAsyncLoad() const override { return false; }
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override { return std::move(asset); }
 

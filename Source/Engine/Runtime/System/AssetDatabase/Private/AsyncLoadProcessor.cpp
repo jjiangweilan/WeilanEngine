@@ -1,7 +1,42 @@
 #include "AsyncLoadProcessor.hpp"
 #include "Engine/Core/JobSystem.hpp"
 
-ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const AssetPath& path)
+std::unique_ptr<Asset> AsyncLoadProcessor::ExecuteLoader(std::unique_ptr<AssetLoader>& loader, AssetData* assetData, bool async)
+{
+    auto assetMeta = &assetData->GetMeta();
+    const auto& absoluteAssetPath = assetData->GetAssetAbsolutePath();
+    loader->Setup(importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
+
+    loader->Load();
+    std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
+
+    // failed to load asset
+    if (newAsset == nullptr)
+    {
+        return nullptr;
+    }
+
+    // newly imported or loaded, resolve references
+    Serializer* serializer;
+    SerializeReferenceResolveMap* localResolveMap;
+    loader->GetReferenceResolveData(serializer, localResolveMap);
+
+    if (serializer)
+    {
+        for (auto& uuid : serializer->GetReferencedObjects())
+        {
+            auto assetData = assetFileSystem->GetAssetData(uuid);
+            if (assetData)
+            {
+                DispatchLoadJobFromPath(assetData->GetAssetPath(), async);
+            }
+        }
+    }
+
+    return newAsset;
+}
+
+ObjPtr<Asset> AsyncLoadProcessor::DispatchLoadJobFromPath(const AssetPath& path, bool async)
 {
     ScopedJobCounter _c(jobCounter);
 
@@ -41,9 +76,10 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const AssetPath& path)
         jobCounter++;
         auto job = [this, ret, path, assetData]()
         {
-            auto loadedAsset = LoadAssetJob(path, assetData);
-
             AsyncProcessedPayload payload{};
+
+            auto loadedAsset = LoadAssetJob(path, assetData, payload.requireMainThreadLoading, payload.loader);
+
             payload.assetData = assetData;
             payload.asset = loadedAsset.get();
             payload.loadedAsset = std::move(loadedAsset);
@@ -52,72 +88,47 @@ ObjPtr<Asset> AsyncLoadProcessor::AsyncLoadFromPath(const AssetPath& path)
             jobCounter--;
         };
 
-        JobSystem::Instance().Schedule(std::move(job));
+        if (async)
+        {
+            JobSystem::Instance().Schedule(std::move(job));
+        }
+        else
+        {
+            job();
+        }
     }
 
     return ObjPtr<Asset>(ret);
 }
 
-std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const AssetPath& path, AssetData* assetData)
+std::unique_ptr<Asset> AsyncLoadProcessor::LoadAssetJob(const AssetPath& path, AssetData* assetData, bool& requireMainThreadLoading, std::unique_ptr<AssetLoader>& outLoader)
 {
-    // copy json meta is slow, so we use pointer here
-    static nlohmann::json empty = nlohmann::json::object();
-    const nlohmann::json* assetMeta = &empty;
+    outLoader = nullptr;
+    requireMainThreadLoading = false;
 
     // find the asset if it's already imported
-    auto absoluteAssetPath = assetData->GetAssetAbsolutePath();
+    const auto& absoluteAssetPath = assetData->GetAssetAbsolutePath();
 
     if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
 
     // this asset is already imported once, we can read its meta
     ASSERT(assetData != nullptr);
-    assetMeta = &assetData->GetMeta();
-
-    // override the asset path because this asset may be an internal asset
-    absoluteAssetPath = assetData->GetAssetAbsolutePath();
 
     std::filesystem::path ext = absoluteAssetPath.extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+
     if (loader == nullptr)
         return nullptr;
 
-    loader->Setup(importDatabase, assetData->GetAssetUUID(), absoluteAssetPath, *assetMeta);
-
-    Asset* asset = assetData ? assetData->GetAsset() : nullptr;
-    bool isReload = asset == nullptr;
-
-    loader->Load();
-    std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
-
-    // failed to load asset
-    if (newAsset == nullptr)
+    if (!loader->SupportsAsyncLoad() && JobSystem::Instance().GetMainThreadID() != std::this_thread::get_id())
     {
+        requireMainThreadLoading = true;
+        outLoader = std::move(loader);
         return nullptr;
     }
 
-    asset = newAsset.get();
-
-    // newly imported or loaded, resolve references
-    Serializer* serializer;
-    SerializeReferenceResolveMap* localResolveMap;
-    loader->GetReferenceResolveData(serializer, localResolveMap);
-
-    if (serializer)
-    {
-        for (auto& uuid : serializer->GetReferencedObjects())
-        {
-            auto assetData = assetFileSystem->GetAssetData(uuid);
-            if (assetData)
-            {
-                AsyncLoadFromPath(assetData->GetAssetPath());
-            }
-        }
-    }
-
-    // asset->OnLoaded();
-
-    return newAsset;
+    return ExecuteLoader(loader, assetData, true);
 }
 
 void AsyncLoadProcessor::SyncLoad()
@@ -138,11 +149,25 @@ void AsyncLoadProcessor::PollAsyncLoading()
     std::vector<std::pair<UUID, AssetData*>> finishedJobs{};
 
     asyncProcessedPayload.visit_all(
-        [projectRoot = this->projectRoot, &finishedJobs](std::pair<const UUID, AsyncProcessedPayload>& payload)
+        [this, projectRoot = this->projectRoot, &finishedJobs](std::pair<const UUID, AsyncProcessedPayload>& payload)
         {
+            if (payload.second.requireMainThreadLoading)
+            {
+                auto& assetData = payload.second.assetData;
+                auto& loader = payload.second.loader;
+
+                if (loader == nullptr)
+                    return;
+
+                std::unique_ptr<Asset> newAsset = ExecuteLoader(loader, assetData, false);
+
+                payload.second.loadedAsset = std::move(newAsset);
+                payload.second.asset = payload.second.loadedAsset.get();
+            }
+
             if (payload.second.loadedAsset)
             {
-                auto asset = payload.second.assetData->SetAsset(std::move(payload.second.loadedAsset), projectRoot);
+                payload.second.assetData->SetAsset(std::move(payload.second.loadedAsset), projectRoot);
             }
 
             finishedJobs.emplace_back(payload.first, payload.second.assetData);

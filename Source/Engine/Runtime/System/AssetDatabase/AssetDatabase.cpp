@@ -384,13 +384,6 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
     }
 }
 
-ObjPtr<Asset> AssetDatabase::LoadAssetAsync_Experimental(const AssetPath& path, bool forceReload)
-{
-    auto loaded = asyncLoadProcessor.AsyncLoadFromPath(path);
-
-    return loaded;
-}
-
 Asset* AssetDatabase::LoadAsset(const AssetPath& path, bool forceReload)
 {
     asyncLoadProcessor.SyncLoad(); // this is used to avoid loading an asset in main thread while it's also loading in async load processor

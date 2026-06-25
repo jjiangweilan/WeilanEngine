@@ -34,6 +34,7 @@ public:
     }
 
     virtual bool IsInternalAsset() { return false; }
+    virtual bool SupportsAsyncLoad() const { return true; }
 
     virtual void Load() = 0;
 

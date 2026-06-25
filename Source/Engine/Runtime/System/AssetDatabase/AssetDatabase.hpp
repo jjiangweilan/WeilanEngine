@@ -49,7 +49,6 @@ public:
     // ObjPtr<Asset> LoadAssetAsync(const std::filesystem::path& path);
     Asset* LoadAsset(const AssetPath& path, bool forceReload = false);
     Scene* LoadScene(const UUID& sceneUUID);
-    ObjPtr<Asset> LoadAssetAsync_Experimental(const AssetPath& path, bool forceReload = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReload = false);
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, const AssetPath& path);
     bool IsAssetInDatabase(Asset& asset);
