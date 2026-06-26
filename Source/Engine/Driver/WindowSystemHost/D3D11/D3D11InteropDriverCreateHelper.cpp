@@ -1,5 +1,6 @@
 #include "D3D11InteropDriverCreateHelper.hpp"
 #include "Engine/Driver/WindowSystemHost/D3D11/D3D11InteropDriver.hpp"
+#include <stdexcept>
 
 std::unique_ptr<WindowSystemHost::IInteropDriver> CreateD3D11InteropDriver()
 {
@@ -46,9 +47,16 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
         return DefWindowProc(window, message, wparam, lparam);
     };
 
-    RegisterClass(&wc);
+    if (!RegisterClass(&wc))
+    {
+        DWORD error = GetLastError();
+        if (error != ERROR_CLASS_ALREADY_EXISTS)
+            throw std::runtime_error("Failed to register D3D11 interop window class");
+    }
 
     HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
+    if (!window)
+        throw std::runtime_error("Failed to create D3D11 interop window");
 
     LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
     style &= ~(WS_BORDER | WS_CAPTION | WS_THICKFRAME);
@@ -60,4 +68,9 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
 void WeilanEngine_ResizeWindow(void* windowHandle, uint32_t width, uint32_t height)
 {
     SetWindowPos((HWND)windowHandle, nullptr, 0, 0, static_cast<int>(width), static_cast<int>(height), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void WeilanEngine_DestroyWindow(void* windowHandle)
+{
+    DestroyWindow((HWND)windowHandle);
 }

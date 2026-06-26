@@ -13,12 +13,22 @@ void Time::Tick()
     t.lastTime = nowTime;
 }
 
+void Time::Reset()
+{
+    auto& t = GetTimeInternal();
+    auto nowTime = Time::Clock::now();
+    t.lastTime = nowTime;
+    t.launchTime = nowTime;
+    t.timeSinceLuanch = 0.0f;
+    t.deltaTime = 0.0f;
+}
+
 float Time::RealtimedDeltaTime()
 {
     auto& t = GetTimeInternal();
-	auto nowTime = Time::Clock::now();
-	auto deltaTimeDuration = nowTime - t.lastTime;
-	return std::chrono::duration_cast<std::chrono::microseconds>(deltaTimeDuration).count() * 1e-6f;
+    auto nowTime = Time::Clock::now();
+    auto deltaTimeDuration = nowTime - t.lastTime;
+    return std::chrono::duration_cast<std::chrono::microseconds>(deltaTimeDuration).count() * 1e-6f;
 }
 
 Time& Time::GetTimeInternal()
@@ -31,4 +41,6 @@ Time::Time()
 {
     lastTime = Time::Clock::now();
     launchTime = Time::Clock::now();
+    timeSinceLuanch = 0.0f;
+    deltaTime = 0.0f;
 }

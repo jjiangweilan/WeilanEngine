@@ -1,5 +1,6 @@
 #include "GameLoop.hpp"
 #include "Engine/Core/Profiler/Profiler.hpp"
+#include "Engine/Core/Time.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/MiddleLayer/DebugOptions.hpp"
 #include "Engine/Runtime/System/SceneManager/BVHScene.hpp"
@@ -204,6 +205,8 @@ void GameLoop::Play()
 
     // recreate render pipeline when playing
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
+
+    Time::Reset();
 }
 
 void GameLoop::Stop()

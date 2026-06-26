@@ -30,6 +30,10 @@ public:
     static void ProcessSDLEvent(const SDL_Event& event);
     void DragOverlay();
     void DrawTexture(int2 origin, int2 size, ObjPtr<Texture>& texture, const std::string& name = "");
+    void InitLuaBinding();
+    void SetRmlDebuggerVisible(bool visible);
+    void ToggleRmlDebugger();
+    bool IsRmlDebuggerVisible() const;
 
     void RenderElements(const Gfx::ImageIdentifier* colorImage);
     void Init();
@@ -52,6 +56,8 @@ private:
     std::unique_ptr<RmlUiRenderer> rmlRenderer;
     Rml::Context* rmlContext = nullptr;
     bool rmlInitialized = false;
+    bool rmlDebuggerInitialized = false;
+    bool rmlDebuggerVisible = false;
     ObjPtr<Texture> whiteTexture;
     plf::hive<UIElement> uiElements;
     int2 canvasOrigin = {0, 0};

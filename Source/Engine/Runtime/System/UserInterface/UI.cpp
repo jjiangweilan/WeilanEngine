@@ -6,12 +6,13 @@
 #include "RmlUiRenderer.hpp"
 #include <RmlUi/Core/Input.h>
 #include <RmlUi/Core/SystemInterface.h>
+#include <RmlUi/Debugger.h>
+#include <RmlUi/Lua.h>
 #include <SDL.h>
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <spdlog/spdlog.h>
-#include <RmlUi/Lua.h>
 
 namespace
 {
@@ -178,6 +179,13 @@ private:
 UI::UI()
 {}
 
+void UI::InitLuaBinding()
+{
+    Rml::Lua::Initialise(LuaBackend::L);
+    const int topnums = lua_gettop(LuaBackend::L);
+    lua_pop(LuaBackend::L, topnums);
+}
+
 void UI::Init()
 {
     if (rmlInitialized)
@@ -202,9 +210,7 @@ void UI::Init()
 
     Rml::Initialise();
 
-    Rml::Lua::Initialise(LuaBackend::L);
-    const int topnums = lua_gettop(LuaBackend::L);
-    lua_pop(LuaBackend::L, topnums);
+    InitLuaBinding();
 
     const std::filesystem::path defaultFontPath = std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf";
     if (!Rml::LoadFontFace(defaultFontPath.string()))
@@ -213,6 +219,11 @@ void UI::Init()
     }
     rmlInitialized = true;
     rmlContext = Rml::CreateContext("GameUI", Rml::Vector2i(canvasSize.x, canvasSize.y));
+    rmlDebuggerInitialized = Rml::Debugger::Initialise(rmlContext);
+    if (rmlDebuggerInitialized)
+    {
+        Rml::Debugger::SetVisible(rmlDebuggerVisible);
+    }
 }
 
 void UI::Destroy()
@@ -224,6 +235,11 @@ void UI::Destroy()
 
     if (rmlInitialized)
     {
+        if (rmlDebuggerInitialized)
+        {
+            Rml::Debugger::Shutdown();
+            rmlDebuggerInitialized = false;
+        }
         Rml::Shutdown();
         rmlContext = nullptr;
         rmlInitialized = false;
@@ -275,6 +291,29 @@ bool UI::LoadFontFace(std::string_view path, bool fallbackFace)
 Rml::Context* UI::GetRmlContext()
 {
     return rmlContext;
+}
+
+void UI::SetRmlDebuggerVisible(bool visible)
+{
+    rmlDebuggerVisible = visible;
+    if (rmlDebuggerInitialized)
+    {
+        Rml::Debugger::SetVisible(visible);
+    }
+}
+
+void UI::ToggleRmlDebugger()
+{
+    SetRmlDebuggerVisible(!IsRmlDebuggerVisible());
+}
+
+bool UI::IsRmlDebuggerVisible() const
+{
+    if (rmlDebuggerInitialized)
+    {
+        return Rml::Debugger::IsVisible();
+    }
+    return rmlDebuggerVisible;
 }
 
 void UI::ProcessSDLEvent(const SDL_Event& event)

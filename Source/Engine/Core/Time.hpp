@@ -5,6 +5,7 @@ class Time
 {
 public:
     static void Tick();
+    static void Reset();
 
     // delta time in real time
     static float RealtimedDeltaTime();

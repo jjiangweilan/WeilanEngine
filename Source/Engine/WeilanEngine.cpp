@@ -407,7 +407,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
     presentGameColorOnly = enable;
 
     // lazy create interop driver
-    if (window_HWND == nullptr)
+    if (presentGameColorOnly && window_HWND == nullptr)
     {
         window_HWND = WeilanEngine_CreateWindow(size.x, size.y);
         interopDriver = CreateD3D11InteropDriver();
@@ -427,6 +427,12 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
     else
     {
         gfxDriver->UnsetWin32WindowInteropTexture(int2(mainWindow.size.width, mainWindow.size.height));
+        if (window_HWND)
+        {
+            interopDriver = nullptr;
+            WeilanEngine_DestroyWindow(window_HWND);
+            window_HWND = nullptr;
+        }
     }
 #else
     if (enable)

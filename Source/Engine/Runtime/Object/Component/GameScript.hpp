@@ -21,11 +21,15 @@ public:
     void SetScript(ObjPtr<LuaScript> luaScript);
 
     void ReloadScript();
+    void LuaOnEnable();
+    void LuaOnDisable();
     void LuaOnStart();
     void LuaOnStop();
     void Tick() override;
     void PrePhysicsTick() override;
     void DebugDraw() override;
+    void OnEnable() override;
+    void OnDisable() override;
     void OnStart() override;
     void OnDestroy() override;
     void OnLoaded() override;

@@ -2,9 +2,10 @@
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Importers/AssetImporter.hpp"
 #include "Engine/Runtime/System/AssetDatabase/Loaders/AssetLoader.hpp"
+#include "Engine/Runtime/System/EngineConfig.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
-#include "Engine/Runtime/System/EngineConfig.hpp"
+#include "Engine/Runtime/System/UserInterface/UI.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -299,14 +300,13 @@ bool AssetDatabase::RefreshShader()
     if (requestShaderRefresh)
     {
         requestShaderRefresh = false;
-        
+
         // Launch compilation asynchronously if not already running
         if (!isCompilingShaders)
         {
             isCompilingShaders = true;
-            shaderCompileFuture = std::async(std::launch::async, []() {
-                return ShaderLibrary::TriggerShaderRecompilation();
-            });
+            shaderCompileFuture = std::async(std::launch::async, []()
+                                             { return ShaderLibrary::TriggerShaderRecompilation(); });
         }
     }
 
@@ -318,7 +318,7 @@ bool AssetDatabase::RefreshShader()
         isCompilingShaders = false;
         bool success = shaderCompileFuture.get();
         requestShaderRefreshAll = false;
-        
+
         if (success)
         {
             // Now that compilation is done, safely reload shaders and materials on the main thread
@@ -327,7 +327,7 @@ bool AssetDatabase::RefreshShader()
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -592,6 +592,8 @@ void AssetDatabase::ReloadScripts()
     auto luaBackend = LuaBackend::GetInstance();
     luaBackend->Destroy();
     luaBackend->Init(GetAssetDirectory().string().c_str());
+
+    UI::Instance().InitLuaBinding();
 
     auto luaScripts = Object::GetObjectsOfType<LuaScript>();
     for (auto& lg : luaScripts)

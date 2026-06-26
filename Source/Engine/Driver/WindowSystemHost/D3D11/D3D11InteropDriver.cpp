@@ -28,8 +28,6 @@ D3D11InteropDriver::~D3D11InteropDriver()
         CloseHandle(m_sharedTextureHandle);
         m_sharedTextureHandle = nullptr;
     }
-
-    pRTV->Release();
 }
 
 void D3D11InteropDriver::Initialize(void* windowHandle, uint32_t width, uint32_t height)
@@ -95,12 +93,7 @@ void D3D11InteropDriver::CreateDevice()
 
 void D3D11InteropDriver::SetupDComp(HWND hwnd)
 {
-    HRESULT hr = m_device.As(&dxgiDevice);
-    if (FAILED(hr))
-        throw std::runtime_error("Failed to query IDXGIDevice");
-
-    // This can fail if RenderDoc is attached
-    hr = DCompositionCreateDevice(dxgiDevice.Get(), IID_PPV_ARGS(&m_dcompDevice));
+    HRESULT hr = DCompositionCreateDevice(nullptr, IID_PPV_ARGS(&m_dcompDevice));
     if (FAILED(hr))
         throw std::runtime_error("Failed to create DComposition Device");
 
@@ -166,9 +159,11 @@ void D3D11InteropDriver::Resize(uint32_t width, uint32_t height)
         desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
         ComPtr<IDXGIDevice> dxgiDevice;
-        m_device.As(&dxgiDevice);
+        HRESULT hr = m_device.As(&dxgiDevice);
+        if (FAILED(hr))
+            throw std::runtime_error("Failed to query IDXGIDevice for composition swapchain");
 
-        HRESULT hr = m_dxgiFactory->CreateSwapChainForComposition(
+        hr = m_dxgiFactory->CreateSwapChainForComposition(
             dxgiDevice.Get(),
             &desc,
             nullptr,
@@ -177,8 +172,13 @@ void D3D11InteropDriver::Resize(uint32_t width, uint32_t height)
         if (FAILED(hr))
             throw std::runtime_error("Failed to create SwapChain for Composition");
 
-        m_dcompVisual->SetContent(m_swapChain.Get());
-        m_dcompDevice->Commit();
+        hr = m_dcompVisual->SetContent(m_swapChain.Get());
+        if (FAILED(hr))
+            throw std::runtime_error("Failed to set DComposition visual content");
+
+        hr = m_dcompDevice->Commit();
+        if (FAILED(hr))
+            throw std::runtime_error("Failed to commit DComposition swapchain setup");
     }
 
     // 2. Create Intermediate Shared Texture
@@ -206,8 +206,6 @@ void D3D11InteropDriver::Resize(uint32_t width, uint32_t height)
     hr = sharedResource->CreateSharedHandle(nullptr, DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE, nullptr, &m_sharedTextureHandle);
     if (FAILED(hr))
         throw std::runtime_error("Failed to create shared texture handle");
-
-    m_device->CreateRenderTargetView(m_intermediateTexture.Get(), nullptr, &pRTV);
 }
 
 void D3D11InteropDriver::CreateSwapChain(uint32_t width, uint32_t height)
@@ -249,10 +247,18 @@ void D3D11InteropDriver::Present()
         HRESULT hr = m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
         if (SUCCEEDED(hr))
         {
-            const float black[4] = {0.0f, 0.0f, 0.0f, 0.5f};
             m_context->CopyResource(backBuffer.Get(), m_intermediateTexture.Get());
-            m_swapChain->Present(1, 0);
-            m_dcompDevice->Commit();
+            hr = m_swapChain->Present(1, 0);
+            if (FAILED(hr))
+                throw std::runtime_error("Failed to present D3D11 composition swapchain");
+
+            hr = m_dcompDevice->Commit();
+            if (FAILED(hr))
+                throw std::runtime_error("Failed to commit DComposition presentation");
+        }
+        else
+        {
+            throw std::runtime_error("Failed to get D3D11 composition swapchain back buffer");
         }
     }
 }

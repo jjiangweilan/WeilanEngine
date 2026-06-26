@@ -94,6 +94,7 @@ struct GameView::PlayTheGame
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
 
             UI::Instance().Destroy(); // destroys the game UI context
+            UI::Instance().Init(); // this creates the editor UI context
             GameEditor::instance->GetEngine()->ReloadScripts();
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
@@ -105,7 +106,6 @@ struct GameView::PlayTheGame
             sceneCopy = nullptr;
             Input::SetGameplayInput(false);
 
-            UI::Instance().Init(); // this creates the editor UI context
         }
     }
 };
@@ -258,6 +258,11 @@ bool GameView::Tick()
         {
             menuSelected = "Auto Resize";
         }
+        bool rmlDebuggerVisible = UI::Instance().IsRmlDebuggerVisible();
+        if (ImGui::MenuItem("Rml Debugger", nullptr, rmlDebuggerVisible))
+        {
+            menuSelected = "Rml Debugger";
+        }
         if (playTheGame->played && ImGui::MenuItem("Stop"))
         {
             menuSelected = "Stop";
@@ -291,6 +296,10 @@ bool GameView::Tick()
         int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
         ChangeGameScreenResolution({width, height});
         resolutionSelectionIdx = GetGameViewResolutionSelectionIndex({width, height});
+    }
+    else if (strcmp(menuSelected, "Rml Debugger") == 0)
+    {
+        UI::Instance().ToggleRmlDebugger();
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
@@ -400,6 +409,10 @@ bool GameView::Tick()
         cursorPos.x = cursorPos.x + contentRegionWidth / 2.0f - imageWidth / 2.0f;
         cursorPos.y = cursorPos.y + contentRegionHeight / 2.0f - imageHeight / 2.0f;
         ImGui::SetCursorPos(cursorPos);
+
+        auto windowPos = ImGui::GetWindowPos();
+        auto imagePos = ImGui::GetCursorPos();
+        SystemInfo::Singleton().SetGameViewOrigin(int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y));
 
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 

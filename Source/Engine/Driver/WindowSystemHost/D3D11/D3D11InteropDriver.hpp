@@ -27,8 +27,6 @@ private:
     void SetupDComp(HWND hwnd);
     void CreateSyncFence();
 
-    Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
-
     Microsoft::WRL::ComPtr<ID3D11Device> m_device;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> m_context;
     Microsoft::WRL::ComPtr<ID3D11Device5> m_device5;
@@ -43,7 +41,6 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D11Fence> m_fence;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_intermediateTexture;
-    ID3D11RenderTargetView* pRTV = nullptr;
     HANDLE m_sharedFenceHandle = nullptr;
     HANDLE m_sharedTextureHandle = nullptr;
 };

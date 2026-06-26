@@ -142,6 +142,16 @@ void GameScript::LuaOnStart()
     isScriptStarted = CallLua("OnStart");
 }
 
+void GameScript::LuaOnEnable()
+{
+    CallLua("OnEnable");
+}
+
+void GameScript::LuaOnDisable()
+{
+    CallLua("OnDisable");
+}
+
 void GameScript::Tick()
 {
     CallLua("Tick");
@@ -155,6 +165,16 @@ void GameScript::PrePhysicsTick()
 void GameScript::DebugDraw()
 {
     CallLua("DebugDraw");
+}
+
+void GameScript::OnEnable()
+{
+    LuaOnEnable();
+}
+
+void GameScript::OnDisable()
+{
+    LuaOnDisable();
 }
 
 void GameScript::LuaOnStop()
