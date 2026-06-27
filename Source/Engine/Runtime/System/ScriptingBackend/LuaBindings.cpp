@@ -189,10 +189,19 @@ void LuaBindings::BindClasses(lua_State* L)
             .BindMemFn("GetGameObject", &Component::GetGameObject) // GameObject*()
             .End();
 
+        LuaBinder<Ray> ray(L);
+        ray
+            .Begin("Ray")
+            .BindProperty("origin", &Ray::origin) // float3
+            .BindProperty("direction", &Ray::direction) // float3
+            .End();
+
         LuaBinder<Camera> camera(L);
         camera
             .Begin("Camera")
             .BindMemFn("LookAt", &Camera::LookAt) // void(float3 lookAtPos)
+            .BindMemFn("ScreenUVToWorldSpaceRay", &Camera::ScreenUVToWorldSpaceRay) // Ray(float2 screenUV)
+            .BindMemFn("GetGameObject", &Camera::GetGameObject) // GameObject*()
             .End();
 
         LuaBinder<Light> light(L);

@@ -13,8 +13,6 @@ struct Transform
 struct VertexInput
 {
     float3 position : POSITION;
-    float3 normal : NORMAL;
-    float4 tangent : TANGENT;
     float2 uv : TEXCOORD0;
 }
 
@@ -113,5 +111,4 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 {
     return float4(1,1,1, PristineGrid(input.uv, 0.01f));
 }
-
 

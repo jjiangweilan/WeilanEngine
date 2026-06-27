@@ -1,4 +1,5 @@
 #include "UI.hpp"
+#include "Engine/Core/DelayDestroy.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
@@ -244,6 +245,8 @@ void UI::Destroy()
         rmlContext = nullptr;
         rmlInitialized = false;
     }
+
+    DelayDestroy::Singleton()->Destory(std::move(rmlRenderer));
 }
 
 UI::~UI() {}
@@ -316,11 +319,13 @@ bool UI::IsRmlDebuggerVisible() const
     return rmlDebuggerVisible;
 }
 
-void UI::ProcessSDLEvent(const SDL_Event& event)
+bool UI::ProcessSDLEvent(const SDL_Event& event)
 {
+    bool consumeInput = false;
+
     if (!activeUI || !activeUI->rmlContext)
     {
-        return;
+        return false;
     }
 
     auto toGameViewPosition = [](int x, int y)
@@ -353,9 +358,9 @@ void UI::ProcessSDLEvent(const SDL_Event& event)
                     Rml::Vector2i pos = toGameViewPosition(event.button.x, event.button.y);
                     activeUI->rmlContext->ProcessMouseMove(pos.x, pos.y, 0);
                     if (event.type == SDL_MOUSEBUTTONDOWN)
-                        activeUI->rmlContext->ProcessMouseButtonDown(button, 0);
+                        consumeInput = activeUI->rmlContext->ProcessMouseButtonDown(button, 0);
                     else
-                        activeUI->rmlContext->ProcessMouseButtonUp(button, 0);
+                        consumeInput = activeUI->rmlContext->ProcessMouseButtonUp(button, 0);
                 }
                 break;
             }
@@ -382,6 +387,8 @@ void UI::ProcessSDLEvent(const SDL_Event& event)
         default:
             break;
     }
+
+    return consumeInput;
 }
 
 void UI::DragOverlay()

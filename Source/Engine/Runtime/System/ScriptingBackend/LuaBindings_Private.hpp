@@ -131,10 +131,19 @@ struct PushEngineUserDataHelper
     // push a userdata of value v with a per userdata metatable
     static void Execute(lua_State* L, R&& v, bool isRuntimeObjectPtr = false)
     {
+        using RawType = std::remove_const_t<std::remove_reference_t<R>>;
+        if constexpr (std::is_pointer_v<RawType>)
+        {
+            if (!isRuntimeObjectPtr && v == nullptr)
+            {
+                lua_pushnil(L);
+                return;
+            }
+        }
+
         // Handle user-defined types
         void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<R>));
 
-        using RawType = std::remove_const_t<std::remove_reference_t<R>>;
         // refactor to PushUserData()
         if (!isRuntimeObjectPtr)
         {

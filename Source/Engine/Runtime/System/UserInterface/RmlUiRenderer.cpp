@@ -1,21 +1,55 @@
 #include "RmlUiRenderer.hpp"
 
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
+#include "Engine/Core/DelayDestroy.hpp"
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
+#include <limits>
 #include <spdlog/spdlog.h>
+
+namespace
+{
+constexpr size_t InitialVertexBufferSize = 64 * 1024;
+constexpr size_t InitialIndexBufferSize = 32 * 1024;
+
+size_t GrowCapacity(size_t currentCapacity, size_t requiredCapacity, size_t minimumCapacity)
+{
+    size_t capacity = std::max(currentCapacity, minimumCapacity);
+    requiredCapacity = std::max(requiredCapacity, minimumCapacity);
+    while (capacity < requiredCapacity && capacity <= std::numeric_limits<size_t>::max() / 2)
+    {
+        capacity *= 2;
+    }
+    return std::max(capacity, requiredCapacity);
+}
+} // namespace
 
 RmlUiRenderer::RmlUiRenderer()
 {
     shader = ShaderLibrary::GetShader(Shaders::RmlUi);
     whiteTexture = &EngineInternalResources::GetWhiteTexture();
+    CreateGeometryBlock(InitialVertexBufferSize, InitialIndexBufferSize);
 }
 
-RmlUiRenderer::~RmlUiRenderer() = default;
+RmlUiRenderer::~RmlUiRenderer()
+{
+    for (auto& block : geometryBlocks)
+    {
+        if (block->vertexBuffer)
+        {
+            DelayDestroy::Singleton()->Destory(std::move(block->vertexBuffer));
+        }
+        if (block->indexBuffer)
+        {
+            DelayDestroy::Singleton()->Destory(std::move(block->indexBuffer));
+        }
+    }
+    geometryBlocks.clear();
+}
 
 void RmlUiRenderer::BeginFrame(Gfx::CommandBuffer& cmd, int2 viewportOrigin, int2 viewportSize)
 {
@@ -55,18 +89,20 @@ Rml::CompiledGeometryHandle RmlUiRenderer::CompileGeometry(
     const size_t vertexSize = vertices.size() * sizeof(Rml::Vertex);
     const size_t indexSize = indices.size() * sizeof(int);
 
-    geometry->vertexBuffer = GetGfxDriver()->CreateBuffer(
-        {Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, vertexSize, false, "RmlUi Vertex Buffer"}
-    );
-    geometry->vertexBuffer->SetVertexAttributes(0, GetVertexAttributes());
+    if (!AllocateGeometryRanges(*geometry, vertexSize, indexSize))
+    {
+        AddGeometryBlock(vertexSize, indexSize);
+        if (!AllocateGeometryRanges(*geometry, vertexSize, indexSize))
+        {
+            spdlog::error("RmlUi failed to allocate geometry buffers: vertex bytes {}, index bytes {}", vertexSize, indexSize);
+            return {};
+        }
+    }
 
-    geometry->indexBuffer = GetGfxDriver()->CreateBuffer(
-        {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false, "RmlUi Index Buffer"}
-    );
     geometry->indexCount = static_cast<uint32_t>(indices.size());
 
-    GetGfxDriver()->UploadBuffer(*geometry->vertexBuffer, (uint8_t*)vertices.data(), vertexSize);
-    GetGfxDriver()->UploadBuffer(*geometry->indexBuffer, (uint8_t*)indices.data(), indexSize);
+    GetGfxDriver()->UploadBuffer(*geometry->block->vertexBuffer, (uint8_t*)vertices.data(), vertexSize, geometry->vertexOffset);
+    GetGfxDriver()->UploadBuffer(*geometry->block->indexBuffer, (uint8_t*)indices.data(), indexSize, geometry->indexOffset);
 
     return reinterpret_cast<Rml::CompiledGeometryHandle>(geometry.release());
 }
@@ -84,7 +120,7 @@ void RmlUiRenderer::RenderGeometry(
 
     Geometry* geometry = reinterpret_cast<Geometry*>(geometryHandle);
     Gfx::ShaderProgram* shaderProgram = shader->GetShaderProgram();
-    if (!shaderProgram || !geometry->vertexBuffer || !geometry->indexBuffer)
+    if (!shaderProgram || !geometry->block || !geometry->block->vertexBuffer || !geometry->block->indexBuffer)
     {
         return;
     }
@@ -108,17 +144,31 @@ void RmlUiRenderer::RenderGeometry(
     pushConstant.geometryTranslate = {translation.x, translation.y};
     pushConstant.useTexture = useTexture;
 
-    Gfx::VertexBufferBinding vertexBinding[] = {{geometry->vertexBuffer.get(), 0}};
+    Gfx::VertexBufferBinding vertexBinding[] = {{geometry->block->vertexBuffer.get(), geometry->vertexOffset}};
     activeCmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
     activeCmd->BindVertexBuffer(vertexBinding, 0);
-    activeCmd->BindIndexBuffer(geometry->indexBuffer.get(), 0, Gfx::IndexBufferType::UInt32);
+    activeCmd->BindIndexBuffer(geometry->block->indexBuffer.get(), geometry->indexOffset, Gfx::IndexBufferType::UInt32);
     activeCmd->SetPushConstant(shaderProgram, &pushConstant);
     activeCmd->DrawIndexed(geometry->indexCount, 1, 0, 0, 0);
 }
 
 void RmlUiRenderer::ReleaseGeometry(Rml::CompiledGeometryHandle geometry)
 {
-    delete reinterpret_cast<Geometry*>(geometry);
+    Geometry* geometryData = reinterpret_cast<Geometry*>(geometry);
+    if (!geometryData)
+    {
+        return;
+    }
+
+    if (geometryData->block && geometryData->block->vertexAllocator)
+    {
+        geometryData->block->vertexAllocator->Free(geometryData->vertexAllocation);
+    }
+    if (geometryData->block && geometryData->block->indexAllocator)
+    {
+        geometryData->block->indexAllocator->Free(geometryData->indexAllocation);
+    }
+    delete geometryData;
 }
 
 Rml::TextureHandle RmlUiRenderer::LoadTexture(Rml::Vector2i& textureDimensions, const Rml::String& source)
@@ -259,4 +309,78 @@ VertexAttributes RmlUiRenderer::GetVertexAttributes() const
     attributes.AddAttribute("color", VertexAttributeSemantics::Color, 0, 4);
     attributes.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 8);
     return attributes;
+}
+
+RmlUiRenderer::GeometryBlock* RmlUiRenderer::CreateGeometryBlock(size_t vertexCapacity, size_t indexCapacity)
+{
+    vertexCapacity = std::max<size_t>(vertexCapacity, 1);
+    indexCapacity = std::max<size_t>(indexCapacity, 1);
+
+    auto block = std::make_unique<GeometryBlock>();
+    block->vertexCapacity = vertexCapacity;
+    block->indexCapacity = indexCapacity;
+    block->vertexBuffer = GetGfxDriver()->CreateBuffer(
+        {Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, vertexCapacity, false, "RmlUi Persistent Vertex Buffer"}
+    );
+    block->vertexBuffer->SetVertexAttributes(0, GetVertexAttributes());
+
+    block->indexBuffer = GetGfxDriver()->CreateBuffer(
+        {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexCapacity, false, "RmlUi Persistent Index Buffer"}
+    );
+
+    block->vertexAllocator = std::make_unique<VirtualTLSFAllocator>(vertexCapacity);
+    block->indexAllocator = std::make_unique<VirtualTLSFAllocator>(indexCapacity);
+
+    GeometryBlock* result = block.get();
+    geometryBlocks.push_back(std::move(block));
+    return result;
+}
+
+bool RmlUiRenderer::AllocateGeometryRanges(Geometry& geometry, size_t vertexSize, size_t indexSize)
+{
+    for (auto& block : geometryBlocks)
+    {
+        if (!block->vertexAllocator || !block->indexAllocator)
+        {
+            continue;
+        }
+
+        VirtualTLSFAllocator::Allocation vertexAllocation;
+        VirtualTLSFAllocator::Allocation indexAllocation;
+        if (!block->vertexAllocator->Allocate(vertexSize, static_cast<uint32_t>(alignof(Rml::Vertex)), vertexAllocation))
+        {
+            continue;
+        }
+        if (!block->indexAllocator->Allocate(indexSize, static_cast<uint32_t>(alignof(int)), indexAllocation))
+        {
+            block->vertexAllocator->Free(vertexAllocation);
+            continue;
+        }
+
+        geometry.block = block.get();
+        geometry.vertexAllocation = vertexAllocation;
+        geometry.indexAllocation = indexAllocation;
+        geometry.vertexOffset = static_cast<size_t>(vertexAllocation.offset);
+        geometry.indexOffset = static_cast<size_t>(indexAllocation.offset);
+        geometry.vertexSize = vertexSize;
+        geometry.indexSize = indexSize;
+        return true;
+    }
+
+    return false;
+}
+
+RmlUiRenderer::GeometryBlock* RmlUiRenderer::AddGeometryBlock(size_t requiredVertexSize, size_t requiredIndexSize)
+{
+    size_t largestVertexCapacity = InitialVertexBufferSize;
+    size_t largestIndexCapacity = InitialIndexBufferSize;
+    for (const auto& block : geometryBlocks)
+    {
+        largestVertexCapacity = std::max(largestVertexCapacity, block->vertexCapacity);
+        largestIndexCapacity = std::max(largestIndexCapacity, block->indexCapacity);
+    }
+
+    const size_t vertexCapacity = GrowCapacity(largestVertexCapacity, requiredVertexSize, InitialVertexBufferSize);
+    const size_t indexCapacity = GrowCapacity(largestIndexCapacity, requiredIndexSize, InitialIndexBufferSize);
+    return CreateGeometryBlock(vertexCapacity, indexCapacity);
 }

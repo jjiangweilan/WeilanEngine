@@ -5,6 +5,7 @@
 #include "Editor/GameEditor_AssetDatabaseDebug.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Editor/Tools/GrassSurfacePaintTool.hpp"
+#include "Editor/Windows/CursorAtlasEditorWindow.hpp"
 #include "Editor/Windows/GrassSurfacePaintWindow.hpp"
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
@@ -526,6 +527,10 @@ void GameEditor::MainMenuBar()
             {
                 auto navData = std::make_unique<NavData>();
                 engine->assetDatabase->SaveAsset(std::move(navData), "New NavData");
+            }
+            if (ImGui::MenuItem("Cursor Atlas"))
+            {
+                activeWindows.push_back(std::make_unique<CursorAtlasEditorWindow>());
             }
             ImGui::EndMenu();
         }

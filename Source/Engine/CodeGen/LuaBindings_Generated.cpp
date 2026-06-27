@@ -4,6 +4,7 @@
 
 #include "Engine/Game/Input.hpp"
 #include "Engine/MiddleLayer/EngineDebug.hpp"
+#include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Runtime/Physics.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/Boids.hpp"
@@ -27,12 +28,22 @@ void BindGeneratedClasses(lua_State* L)
     LuaBinder<Input> binder_Input(L);
     binder_Input.Begin("Input")
         .BindStaticFn("GetGamepad", &Input::GetGamepad) // Gamepad()
+        .BindStaticFn("IsKeyDown", &Input::IsKeyDown) // bool(InputScancode key)
+        .BindStaticFn("IsKeyPressed", &Input::IsKeyPressed) // bool(InputScancode key)
+        .BindStaticFn("IsKeyReleased", &Input::IsKeyReleased) // bool(InputScancode key)
+        .BindStaticFn("GetMousePosition", &Input::GetMousePosition) // float2()
+        .BindStaticFn("GetMouseUV", &Input::GetMouseUV) // float2()
+        .BindStaticFn("GetMouseWheelDelta", &Input::GetMouseWheelDelta) // float()
         .BindStaticFn("GetMovementX", &Input::GetMovementX) // float()
         .BindStaticFn("GetMovementY", &Input::GetMovementY) // float()
         .BindStaticFn("IsInteractPressed", &Input::IsInteractPressed) // bool()
         .BindStaticFn("GetLookAroundX", &Input::GetLookAroundX) // float()
         .BindStaticFn("GetLookAroundY", &Input::GetLookAroundY) // float()
         .BindStaticFn("Jump", &Input::Jump) // bool()
+        .BindStaticFn("IsMouseButtonDown", &Input::IsMouseButtonDown) // bool(MouseButton mouseButton)
+        .BindStaticFn("IsMouseButtonPressed", &Input::IsMouseButtonPressed) // bool(MouseButton mouseButton)
+        .BindStaticFn("IsMouseButtonReleased", &Input::IsMouseButtonReleased) // bool(MouseButton mouseButton)
+        .BindStaticFn("GetMouseDelta", &Input::GetMouseDelta) // float2()
         .End();
 
     // Bind Enum GamepadButtons
@@ -547,10 +558,26 @@ void BindGeneratedClasses(lua_State* L)
     lua_setfield(L, -2, "SDL_NUM_SCANCODES");
     lua_setfield(L, -2, "InputScancode");
 
+    // Bind Enum MouseButton
+    lua_newtable(L);
+    lua_pushinteger(L, static_cast<int>(MouseButton::Left));
+    lua_setfield(L, -2, "Left");
+    lua_pushinteger(L, static_cast<int>(MouseButton::Right));
+    lua_setfield(L, -2, "Right");
+    lua_pushinteger(L, static_cast<int>(MouseButton::Middle));
+    lua_setfield(L, -2, "Middle");
+    lua_setfield(L, -2, "MouseButton");
+
     LuaBinder<Debug> binder_Debug(L);
     binder_Debug.Begin("Debug")
         .BindStaticFn("DrawLine", &Debug::DrawLine) // void(float3 & from, float3 & to, float4 & color)
         .BindStaticFn("DrawBox", &Debug::DrawBox) // void(float3 & center, float3 & halfExtents, float4 & color)
+        .End();
+
+    LuaBinder<SystemInfo> binder_SystemInfo(L);
+    binder_SystemInfo.Begin("SystemInfo")
+        .BindStaticFn("GetScreenResolution", &SystemInfo::GetScreenResolution) // float2()
+        .BindStaticFn("GetScreenSize", &SystemInfo::GetScreenSize) // float2()
         .End();
 
     LuaBinder<PhysicsHit> binder_PhysicsHit(L);

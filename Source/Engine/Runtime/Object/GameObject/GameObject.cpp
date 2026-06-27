@@ -26,7 +26,7 @@ GameObject::GameObject(GameObject&& other)
     ApplyPrefabComponents();
     UpdateAllComponents();
 }
-
+ 
 GameObject::GameObject(Scene* gameScene) : gameScene(gameScene)
 {
     name = "New GameObject";

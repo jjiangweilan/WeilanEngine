@@ -460,7 +460,7 @@ enum class [[LuaEnum]] InputScancode
                                  for array bounds */
 };
 
-enum class MouseButton
+enum class [[LuaEnum]] MouseButton
 {
     Left,
     Right,
@@ -478,27 +478,28 @@ class [[LuaClass]] Input
 {
 public:
     [[LuaFn]] static Gamepad GetGamepad(int padIdx = 0);
-    static bool IsKeyDown(InputScancode key);
-    static bool IsKeyPressed(InputScancode key);
-    static bool IsKeyReleased(InputScancode key);
-    static int2 GetMousePosition();
-    static float2 GetMouseUV();
-    static float GetMouseWheelDelta();
+    [[LuaFn]] static bool IsKeyDown(InputScancode key);
+    [[LuaFn]] static bool IsKeyPressed(InputScancode key);
+    [[LuaFn]] static bool IsKeyReleased(InputScancode key);
+    [[LuaFn]] static float2 GetMousePosition();
+    [[LuaFn]] static float2 GetMouseUV();
+    [[LuaFn]] static float GetMouseWheelDelta();
     [[LuaFn]] static float GetMovementX();
     [[LuaFn]] static float GetMovementY();
     [[LuaFn]] static bool IsInteractPressed();
+
     static void GetMovement(float& x, float& y);
     static void GetLookAround(float& x, float& y);
     [[LuaFn]] static float GetLookAroundX();
     [[LuaFn]] static float GetLookAroundY();
     [[LuaFn]] static bool Jump();
-    static void PushEvent(SDL_Event& event);
+    static void PushEvent(SDL_Event& event, bool uiConsumeMouseInput);
     static void SetGameplayInput(bool enabled);
     static void Reset();
     static void UpdateState();
-    static bool IsMouseButtonDown(MouseButton mouseButton);
-    static bool IsMouseButtonPressed(MouseButton mouseButton);
-    static bool IsMouseButtonReleased(MouseButton mouseButton);
+    [[LuaFn]] static bool IsMouseButtonDown(MouseButton mouseButton);
+    [[LuaFn]] static bool IsMouseButtonPressed(MouseButton mouseButton);
+    [[LuaFn]] static bool IsMouseButtonReleased(MouseButton mouseButton);
+    [[LuaFn]] static float2 GetMouseDelta();
     static bool HasFocus();
-    static float2 GetMouseDelta();
 };

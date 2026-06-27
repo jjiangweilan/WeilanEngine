@@ -29,7 +29,7 @@ void Event::Poll()
         ImGui_ImplSDL2_ProcessEvent(&event);
 #endif
 
-        UI::ProcessSDLEvent(event);
+        bool uiConsumeMouseInput = UI::ProcessSDLEvent(event);
 
         if (event.type == SDL_WINDOWEVENT)
         {
@@ -44,7 +44,8 @@ void Event::Poll()
                 windowSizeChange.height = event.window.data2;
             }
         }
-        Input::PushEvent(event);
+
+        Input::PushEvent(event, uiConsumeMouseInput);
     }
     Input::UpdateState();
 }

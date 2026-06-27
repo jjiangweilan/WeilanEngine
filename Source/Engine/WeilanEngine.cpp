@@ -9,6 +9,7 @@
 #endif
 #include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/MiddleLayer/PlatformSpecific/TransparentWindowPixel.hpp"
+#include "Engine/MiddleLayer/SystemInfo.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
 #include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
@@ -421,6 +422,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
 
     if (presentGameColorOnly)
     {
+        SystemInfo::Singleton().SetScreenSize(size.x, size.y);
         auto intermediateTextureHandle = interopDriver->GetSharedHandle();
         gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, size);
     }

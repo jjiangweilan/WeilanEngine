@@ -99,7 +99,7 @@ struct Input
         return gamepads[id].get();
     }
 
-    void PushEvent(SDL_Event& event)
+    void PushEvent(SDL_Event& event, bool uiConsumeMouseInput)
     {
         if (gameplayInput)
         {
@@ -209,7 +209,7 @@ struct Input
                     pad->axis[0].y = pressing ? -1 : 0;
                 }
             }
-            else if (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP)
+            else if (!uiConsumeMouseInput && (event.type == SDL_MOUSEBUTTONDOWN || event.type == SDL_MOUSEBUTTONUP))
             {
                 bool pressing = event.type == SDL_MOUSEBUTTONDOWN;
                 int index = -1;
@@ -285,9 +285,9 @@ private:
 
 static Details::Input input;
 
-void Input::PushEvent(SDL_Event& event)
+void Input::PushEvent(SDL_Event& event, bool uiConsumeMouseInput)
 {
-    input.PushEvent(event);
+    input.PushEvent(event, uiConsumeMouseInput);
 }
 
 void Input::UpdateState()
@@ -363,7 +363,7 @@ void Input::GetMovement(float& x, float& y)
     y = GetMovementY();
 }
 
-int2 Input::GetMousePosition()
+float2 Input::GetMousePosition()
 {
     return input.mousePosition;
 }
@@ -372,7 +372,7 @@ float2 Input::GetMouseUV()
 {
     auto& systemInfo = SystemInfo::Singleton();
     int2 origin = systemInfo.GetGameViewOrigin();
-    float2 screenSize = systemInfo.GetScreenSize();
+    float2 screenSize = SystemInfo::GetScreenSize();
 
     if (screenSize.x <= 0.0f || screenSize.y <= 0.0f)
     {
@@ -383,7 +383,8 @@ float2 Input::GetMouseUV()
         static_cast<float>(input.mousePosition.x - origin.x),
         static_cast<float>(input.mousePosition.y - origin.y)
     };
-    return {mouseInView.x / screenSize.x, mouseInView.y / screenSize.y};
+    float2 result = glm::clamp({ mouseInView.x / screenSize.x, mouseInView.y / screenSize.y }, float2(0, 0), float2(1, 1));
+    return result;
 }
 
 float Input::GetMouseWheelDelta()
@@ -516,7 +517,7 @@ float2 Input::GetMouseDelta()
 {
     auto& systemInfo = SystemInfo::Singleton();
     int2 origin = systemInfo.GetGameViewOrigin();
-    float2 screenSize = systemInfo.GetScreenSize();
+    float2 screenSize = SystemInfo::GetScreenSize();
 
     if (screenSize.x <= 0.0f || screenSize.y <= 0.0f)
     {

@@ -6,13 +6,8 @@ DelayDestroy* DelayDestroy::Singleton()
     return &d;
 }
 
-void DelayDestroy::Destory(std::unique_ptr<Object>&& obj)
-{
-    if (obj != nullptr)
-        pending.push_back(std::move(obj));
-}
-
 void DelayDestroy::Flush()
 {
+    auto deleting = std::move(pending);
     pending.clear();
 }

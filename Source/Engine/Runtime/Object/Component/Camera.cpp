@@ -38,7 +38,7 @@ float Camera::GetProjectionRight()
         float a = aspect;
         if (a <= 0.0f)
         {
-            auto screenSize = SystemInfo::Singleton().GetScreenSize();
+            auto screenSize = SystemInfo::Singleton().GetScreenResolution();
             a = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
         }
         const float orthoWidth = orthographicSize * a;
@@ -110,7 +110,7 @@ const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
     {
         if (aspect == 0.0f)
         {
-            auto screenSize = SystemInfo::Singleton().GetScreenSize();
+            auto screenSize = SystemInfo::Singleton().GetScreenResolution();
             aspect = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
         }
 
@@ -140,7 +140,7 @@ glm::mat4 Camera::CalculateProjectionMatrixWithOverride(float farPlane, float as
 {
     if (aspect == 0.0f)
     {
-        auto screenSize = SystemInfo::Singleton().GetScreenSize();
+        auto screenSize = SystemInfo::Singleton().GetScreenResolution();
         aspect = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
     }
 

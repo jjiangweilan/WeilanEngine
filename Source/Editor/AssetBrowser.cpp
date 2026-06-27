@@ -7,6 +7,7 @@
 #include "Editor/EditorState.hpp"
 #include "Editor/FileIcons.hpp"
 #include "Editor/GameEditor.hpp"
+#include "Editor/Windows/CursorAtlasEditorWindow.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/WeilanEngine.hpp"
 #include "Engine/Library/Utils.hpp"
@@ -465,6 +466,10 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
             {
                 auto navData = std::make_unique<NavData>();
                 engine->assetDatabase->SaveAsset(std::move(navData), path / "New NavData");
+            }
+            if (ImGui::MenuItem("Cursor Atlas"))
+            {
+                gameEditor->activeWindows.push_back(std::make_unique<CursorAtlasEditorWindow>());
             }
             ImGui::EndMenu();
         }

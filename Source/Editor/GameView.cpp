@@ -196,7 +196,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
-    SystemInfo::Singleton().SetScreenSize(width, height);
+    SystemInfo::Singleton().SetScreenResolution(width, height);
 }
 
 void GameView::Render(
@@ -413,6 +413,7 @@ bool GameView::Tick()
         auto windowPos = ImGui::GetWindowPos();
         auto imagePos = ImGui::GetCursorPos();
         SystemInfo::Singleton().SetGameViewOrigin(int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y));
+        SystemInfo::Singleton().SetScreenSize(imageWidth, imageHeight);
 
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 

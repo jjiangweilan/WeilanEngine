@@ -3,6 +3,7 @@
 #include "Engine/Driver/GfxDriver/Buffer.hpp"
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/ShaderResource.hpp"
+#include "Engine/Library/Allocators/VirtualTLSFAllocator.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Library/UUID.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
@@ -11,6 +12,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 class RmlUiRenderer : public Rml::RenderInterface
 {
@@ -41,10 +43,25 @@ public:
     void SetTransform(const Rml::Matrix4f* transform) override;
 
 private:
-    struct Geometry
+    struct GeometryBlock
     {
         std::unique_ptr<Gfx::Buffer> vertexBuffer;
         std::unique_ptr<Gfx::Buffer> indexBuffer;
+        std::unique_ptr<VirtualTLSFAllocator> vertexAllocator;
+        std::unique_ptr<VirtualTLSFAllocator> indexAllocator;
+        size_t vertexCapacity = 0;
+        size_t indexCapacity = 0;
+    };
+
+    struct Geometry
+    {
+        GeometryBlock* block = nullptr;
+        VirtualTLSFAllocator::Allocation vertexAllocation;
+        VirtualTLSFAllocator::Allocation indexAllocation;
+        size_t vertexOffset = 0;
+        size_t indexOffset = 0;
+        size_t vertexSize = 0;
+        size_t indexSize = 0;
         uint32_t indexCount = 0;
     };
 
@@ -74,8 +91,12 @@ private:
     ObjPtr<Shader> shader = nullptr;
     ObjPtr<Texture> whiteTexture = nullptr;
     std::unordered_map<UUID, std::unique_ptr<Gfx::ShaderResource>> textureResourceCache;
+    std::vector<std::unique_ptr<GeometryBlock>> geometryBlocks;
 
     void ApplyScissor();
     void BindTexture(Texture* texture);
     VertexAttributes GetVertexAttributes() const;
+    GeometryBlock* CreateGeometryBlock(size_t vertexCapacity, size_t indexCapacity);
+    bool AllocateGeometryRanges(Geometry& geometry, size_t vertexSize, size_t indexSize);
+    GeometryBlock* AddGeometryBlock(size_t requiredVertexSize, size_t requiredIndexSize);
 };

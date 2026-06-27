@@ -27,7 +27,7 @@ public:
     Rml::ElementDocument* LoadDocument(std::string_view path);
     bool LoadFontFace(std::string_view path, bool fallbackFace = false);
     Rml::Context* GetRmlContext();
-    static void ProcessSDLEvent(const SDL_Event& event);
+    static bool ProcessSDLEvent(const SDL_Event& event);
     void DragOverlay();
     void DrawTexture(int2 origin, int2 size, ObjPtr<Texture>& texture, const std::string& name = "");
     void InitLuaBinding();

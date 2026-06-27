@@ -263,6 +263,12 @@ wl.GamepadButtons = {}
 ---@field SDL_NUM_SCANCODES number
 wl.InputScancode = {}
 
+---@class wl.MouseButton
+---@field Left number
+---@field Right number
+---@field Middle number
+wl.MouseButton = {}
+
 ---@class wl.RootMotionTranslationMode
 ---@field None number
 ---@field Horizontal number
@@ -305,6 +311,21 @@ wl.Input = {}
 
 ---@return wl.Gamepad
 function wl.Input.GetGamepad() end
+---@param key wl.InputScancode
+---@return boolean
+function wl.Input.IsKeyDown(key) end
+---@param key wl.InputScancode
+---@return boolean
+function wl.Input.IsKeyPressed(key) end
+---@param key wl.InputScancode
+---@return boolean
+function wl.Input.IsKeyReleased(key) end
+---@return wl.Float2
+function wl.Input.GetMousePosition() end
+---@return wl.Float2
+function wl.Input.GetMouseUV() end
+---@return number
+function wl.Input.GetMouseWheelDelta() end
 ---@return number
 function wl.Input.GetMovementX() end
 ---@return number
@@ -317,6 +338,17 @@ function wl.Input.GetLookAroundX() end
 function wl.Input.GetLookAroundY() end
 ---@return boolean
 function wl.Input.Jump() end
+---@param mouseButton wl.MouseButton
+---@return boolean
+function wl.Input.IsMouseButtonDown(mouseButton) end
+---@param mouseButton wl.MouseButton
+---@return boolean
+function wl.Input.IsMouseButtonPressed(mouseButton) end
+---@param mouseButton wl.MouseButton
+---@return boolean
+function wl.Input.IsMouseButtonReleased(mouseButton) end
+---@return wl.Float2
+function wl.Input.GetMouseDelta() end
 
 ---@class wl.Debug
 wl.Debug = {}
@@ -329,6 +361,14 @@ function wl.Debug.DrawLine(from, to, color) end
 ---@param halfExtents wl.Float3
 ---@param color wl.Float4
 function wl.Debug.DrawBox(center, halfExtents, color) end
+
+---@class wl.SystemInfo
+wl.SystemInfo = {}
+
+---@return wl.Float2
+function wl.SystemInfo.GetScreenResolution() end
+---@return wl.Float2
+function wl.SystemInfo.GetScreenSize() end
 
 ---@class wl.PhysicsHit
 ---@field hasHit boolean
@@ -888,11 +928,22 @@ function wl.Component:GetName() end
 ---@return wl.GameObject*
 function wl.Component:GetGameObject() end
 
+---@class wl.Ray
+---@field origin wl.Float3
+---@field direction wl.Float3
+wl.Ray = {}
+
+
 ---@class wl.Camera
 wl.Camera = {}
 
 ---@param lookAtPos wl.Float3
 function wl.Camera:LookAt(lookAtPos) end
+---@param screenUV wl.Float2
+---@return wl.Ray
+function wl.Camera:ScreenUVToWorldSpaceRay(screenUV) end
+---@return wl.GameObject*
+function wl.Camera:GetGameObject() end
 
 ---@class wl.Light
 wl.Light = {}

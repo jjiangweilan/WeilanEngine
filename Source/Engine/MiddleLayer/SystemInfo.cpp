@@ -25,11 +25,23 @@ void SystemInfo::SetGameViewOrigin(int2 origin)
     this->gameViewOrigin = origin;
 }
 
-void SystemInfo::GetScreenSize(float& width, float& height)
+float2 SystemInfo::GetScreenResolution()
 {
-    width = screenWidth;
-    height = screenHeight;
-};
+    auto& systemInfo = Singleton();
+    return {systemInfo.screenResolutionWidth, systemInfo.screenResolutionHeight};
+}
+
+float2 SystemInfo::GetScreenSize()
+{
+    auto& systemInfo = Singleton();
+    return {systemInfo.screenWidth, systemInfo.screenHeight};
+}
+
+void SystemInfo::SetScreenResolution(float width, float height)
+{
+    this->screenResolutionWidth = width;
+    this->screenResolutionHeight = height;
+}
 
 void SystemInfo::SetScreenSize(float width, float height)
 {
