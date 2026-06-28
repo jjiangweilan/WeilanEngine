@@ -16,6 +16,29 @@ namespace
 constexpr size_t InitialVertexBufferSize = 64 * 1024;
 constexpr size_t InitialIndexBufferSize = 32 * 1024;
 
+struct TextureSource
+{
+    std::string path;
+    bool usePointFilter = false;
+};
+
+TextureSource ParseTextureSource(const Rml::String& source)
+{
+    TextureSource result;
+
+    const size_t queryStart = source.find('?');
+    if (queryStart == Rml::String::npos)
+    {
+        result.path = source;
+        return result;
+    }
+
+    result.path = source.substr(0, queryStart);
+    const Rml::String query = source.substr(queryStart + 1);
+    result.usePointFilter = query.find("filter=point") != Rml::String::npos || query.find("filter=nearest") != Rml::String::npos;
+    return result;
+}
+
 size_t GrowCapacity(size_t currentCapacity, size_t requiredCapacity, size_t minimumCapacity)
 {
     size_t capacity = std::max(currentCapacity, minimumCapacity);
@@ -127,11 +150,13 @@ void RmlUiRenderer::RenderGeometry(
 
     Texture* texture = whiteTexture.Get();
     float useTexture = 0.0f;
+    float usePointFilter = 0.0f;
     if (textureHandle)
     {
         TextureData* textureData = reinterpret_cast<TextureData*>(textureHandle);
         texture = textureData->texture.get();
         useTexture = 1.0f;
+        usePointFilter = textureData->usePointFilter ? 1.0f : 0.0f;
     }
 
     BindTexture(texture);
@@ -143,6 +168,7 @@ void RmlUiRenderer::RenderGeometry(
     pushConstant.translate = {-1.0f, -1.0f};
     pushConstant.geometryTranslate = {translation.x, translation.y};
     pushConstant.useTexture = useTexture;
+    pushConstant.usePointFilter = usePointFilter;
 
     Gfx::VertexBufferBinding vertexBinding[] = {{geometry->block->vertexBuffer.get(), geometry->vertexOffset}};
     activeCmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
@@ -175,8 +201,10 @@ Rml::TextureHandle RmlUiRenderer::LoadTexture(Rml::Vector2i& textureDimensions, 
 {
     try
     {
+        const TextureSource textureSource = ParseTextureSource(source);
         auto textureData = std::make_unique<TextureData>();
-        textureData->texture = std::make_unique<Texture>(source.c_str());
+        textureData->usePointFilter = textureSource.usePointFilter;
+        textureData->texture = std::make_unique<Texture>(textureSource.path.c_str());
         textureData->texture->SetName(source);
         textureDimensions = {
             static_cast<int>(textureData->texture->GetDescription().img.width),

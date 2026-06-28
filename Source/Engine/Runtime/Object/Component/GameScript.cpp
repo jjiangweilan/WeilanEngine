@@ -1,4 +1,5 @@
 #include "GameScript.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
@@ -447,10 +448,21 @@ void GameScript::LuaDeserialize(Serializer* s)
 
 std::unique_ptr<Component> GameScript::Clone(GameObject& owner)
 {
-    auto newScript = std::make_unique<GameScript>();
-    newScript->luaScript = luaScript;
-    newScript->luaBackendUUID = luaBackendUUID;
-    newScript->serializationValKeys = serializationValKeys;
+    auto newScript = std::make_unique<GameScript>(&owner);
+    newScript->enabled = enabled;
+
+    JsonSerializer luaData;
+    bool hasLuaData = luaScript != nullptr && luaRef != LUA_REFNIL;
+    if (hasLuaData)
+    {
+        LuaSerialize(&luaData);
+    }
+
+    newScript->SetScript(luaScript);
+    if (hasLuaData)
+    {
+        newScript->LuaDeserialize(&luaData);
+    }
 
     return newScript;
 }

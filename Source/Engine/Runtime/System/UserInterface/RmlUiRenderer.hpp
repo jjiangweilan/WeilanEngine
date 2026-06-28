@@ -69,6 +69,7 @@ private:
     {
         std::unique_ptr<Texture> texture;
         std::unique_ptr<Gfx::ShaderResource> shaderResource;
+        bool usePointFilter = false;
     };
 
     struct PushConstant
@@ -78,7 +79,8 @@ private:
         glm::vec2 translate = {};
         glm::vec2 geometryTranslate = {};
         float useTexture = 0.0f;
-        float padding[3] = {};
+        float usePointFilter = 0.0f;
+        float padding[2] = {};
     };
 
     Gfx::CommandBuffer* activeCmd = nullptr;

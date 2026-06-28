@@ -15,6 +15,7 @@ public:
 
     void Init(const char* projectAssetFolder);
     void Destroy();
+    static void RestoreEnginePrint();
 
 private:
     static int EnginePrint(lua_State* L);

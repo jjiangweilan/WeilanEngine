@@ -14,6 +14,7 @@
 #include "Engine/Runtime/System/Navigation/NavSystem.hpp"
 #include "Engine/Runtime/System/SceneManager/PhysicsLayer.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Engine/Runtime/System/UserInterface/UI.hpp"
 
 void BindGeneratedClasses(lua_State* L)
 {
@@ -750,6 +751,12 @@ void BindGeneratedClasses(lua_State* L)
         .BindMemFn("CreateGameObject", &Scene::Lua_CreateGameObject) // ObjPtr<GameObject>()
         .BindMemFn("SpawnPrefab", &Scene::SpawnPrefab) // ObjPtr<GameObject>(ObjPtr<Prefab> & prefab)
         .BindMemFn("DestroyGameObject", &Scene::DestroyGameObject) // void(GameObject * obj)
+        .End();
+
+    LuaBinder<UI> binder_UI(L);
+    binder_UI.Begin("UI")
+        .BindStaticFn("ClearRmlUiCache", &UI::ClearRmlUiCache) // void()
+        .BindStaticFn("ReloadRmlUiResources", &UI::ReloadRmlUiResources) // void()
         .End();
 
 }

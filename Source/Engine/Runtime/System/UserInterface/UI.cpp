@@ -5,6 +5,8 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include "RmlUiRenderer.hpp"
+#include <RmlUi/Core/Factory.h>
+#include <RmlUi/Core/FileInterface.h>
 #include <RmlUi/Core/Input.h>
 #include <RmlUi/Core/SystemInterface.h>
 #include <RmlUi/Debugger.h>
@@ -12,12 +14,78 @@
 #include <SDL.h>
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
 namespace
 {
 UI* activeUI = nullptr;
+
+std::filesystem::path GetProjectRoot()
+{
+    if (auto assetDatabase = AssetDatabase::Singleton())
+    {
+        return assetDatabase->GetProjectRoot();
+    }
+    return {};
+}
+
+std::filesystem::path ResolveProjectPath(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+    {
+        return path.lexically_normal();
+    }
+
+    const std::filesystem::path projectRoot = GetProjectRoot();
+    if (projectRoot.empty())
+    {
+        return path.lexically_normal();
+    }
+
+    return (projectRoot / path).lexically_normal();
+}
+
+class WeilanRmlUiFileInterface : public Rml::FileInterface
+{
+public:
+    Rml::FileHandle Open(const Rml::String& path) override
+    {
+        const std::filesystem::path resolvedPath = ResolveProjectPath(std::filesystem::path(path));
+        return reinterpret_cast<Rml::FileHandle>(std::fopen(resolvedPath.string().c_str(), "rb"));
+    }
+
+    void Close(Rml::FileHandle file) override
+    {
+        std::fclose(reinterpret_cast<std::FILE*>(file));
+    }
+
+    size_t Read(void* buffer, size_t size, Rml::FileHandle file) override
+    {
+        return std::fread(buffer, 1, size, reinterpret_cast<std::FILE*>(file));
+    }
+
+    bool Seek(Rml::FileHandle file, long offset, int origin) override
+    {
+        return std::fseek(reinterpret_cast<std::FILE*>(file), offset, origin) == 0;
+    }
+
+    size_t Tell(Rml::FileHandle file) override
+    {
+        return static_cast<size_t>(std::ftell(reinterpret_cast<std::FILE*>(file)));
+    }
+};
+
+std::filesystem::path GetDocumentBasePath(const Rml::String& documentPath)
+{
+    std::filesystem::path basePath(documentPath);
+    if (basePath.has_extension())
+    {
+        return basePath.parent_path();
+    }
+    return basePath;
+}
 
 int GetRmlKeyModifierState()
 {
@@ -123,13 +191,14 @@ public:
     void JoinPath(Rml::String& translatedPath, const Rml::String& documentPath, const Rml::String& path) override
     {
         std::filesystem::path resourcePath(path);
-        if (resourcePath.is_absolute() || documentPath.empty())
+        if (resourcePath.is_absolute())
         {
             translatedPath = resourcePath.lexically_normal().generic_string();
             return;
         }
 
-        translatedPath = (std::filesystem::path(documentPath).parent_path() / resourcePath).lexically_normal().generic_string();
+        std::filesystem::path joinedPath = documentPath.empty() ? resourcePath : GetDocumentBasePath(documentPath) / resourcePath;
+        translatedPath = ResolveProjectPath(joinedPath).generic_string();
     }
 
     bool LogMessage(Rml::Log::Type type, const Rml::String& message) override
@@ -183,6 +252,7 @@ UI::UI()
 void UI::InitLuaBinding()
 {
     Rml::Lua::Initialise(LuaBackend::L);
+    LuaBackend::RestoreEnginePrint();
     const int topnums = lua_gettop(LuaBackend::L);
     lua_pop(LuaBackend::L, topnums);
 }
@@ -204,8 +274,10 @@ void UI::Init()
         canvasSize = {static_cast<int>(surfaceSize.width), static_cast<int>(surfaceSize.height)};
     }
 
+    rmlFileInterface = std::make_unique<WeilanRmlUiFileInterface>();
     rmlSystem = std::make_unique<WeilanRmlUiSystem>();
     rmlRenderer = std::make_unique<RmlUiRenderer>();
+    Rml::SetFileInterface(rmlFileInterface.get());
     Rml::SetSystemInterface(rmlSystem.get());
     Rml::SetRenderInterface(rmlRenderer.get());
 
@@ -446,4 +518,36 @@ UI& UI::Instance()
 {
     static UI ui;
     return ui;
+}
+
+void UI::ClearRmlUiCache()
+{
+    Rml::Factory::ClearStyleSheetCache();
+    Rml::Factory::ClearTemplateCache();
+}
+
+void UI::ReloadRmlUiResources()
+{
+    UI& ui = Instance();
+    const bool debuggerWasInitialized = ui.rmlDebuggerInitialized;
+    const bool debuggerWasVisible = debuggerWasInitialized && Rml::Debugger::IsVisible();
+
+    if (debuggerWasInitialized)
+    {
+        Rml::Debugger::Shutdown();
+        ui.rmlDebuggerInitialized = false;
+    }
+
+    Rml::Factory::ClearStyleSheetCache();
+    Rml::Factory::ClearTemplateCache();
+    Rml::ReleaseTextures();
+
+    if (debuggerWasInitialized && ui.rmlContext)
+    {
+        ui.rmlDebuggerInitialized = Rml::Debugger::Initialise(ui.rmlContext);
+        if (ui.rmlDebuggerInitialized)
+        {
+            Rml::Debugger::SetVisible(debuggerWasVisible);
+        }
+    }
 }

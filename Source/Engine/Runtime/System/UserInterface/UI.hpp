@@ -11,12 +11,13 @@ namespace Rml
 {
 class Context;
 class ElementDocument;
+class FileInterface;
 class SystemInterface;
 } // namespace Rml
 
 class RmlUiRenderer;
 
-class UI
+class [[LuaClass]] UI
 {
 public:
     UI();
@@ -41,6 +42,8 @@ public:
     void Destroy();
 
     static UI& Instance();
+    [[LuaFn]] static void ClearRmlUiCache();
+    [[LuaFn]] static void ReloadRmlUiResources();
 
 private:
     struct UIElement
@@ -52,6 +55,7 @@ private:
     };
 
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<Rml::FileInterface> rmlFileInterface;
     std::unique_ptr<Rml::SystemInterface> rmlSystem;
     std::unique_ptr<RmlUiRenderer> rmlRenderer;
     Rml::Context* rmlContext = nullptr;

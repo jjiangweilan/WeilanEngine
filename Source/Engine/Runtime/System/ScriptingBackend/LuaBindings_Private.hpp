@@ -25,6 +25,10 @@ T* GetLuaUserDataPackValue(lua_State* L, int idx)
     {
         return ((LuaUserDataPack<T*>*)mem)->val;
     }
+    else if (type == LuaEngineUserDataType::RuntimeObject)
+    {
+        return ((LuaUserDataPack<T*>*)mem)->val;
+    }
     else if (type == LuaEngineUserDataType::ObjPtr)
     {
         if constexpr (std::is_base_of_v<Object, T>)
@@ -36,6 +40,23 @@ T* GetLuaUserDataPackValue(lua_State* L, int idx)
     {
         return &(((LuaUserDataPack<T>*)mem)->val);
     }
+}
+
+static Object* GetLuaObjectUserDataValue(lua_State* L, int idx)
+{
+    void* mem = lua_touserdata(L, idx);
+    LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
+
+    if (type == LuaEngineUserDataType::RawPtr || type == LuaEngineUserDataType::RuntimeObject)
+    {
+        return ((LuaUserDataPack<Object*>*)mem)->val;
+    }
+    else if (type == LuaEngineUserDataType::ObjPtr)
+    {
+        return ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val.Get();
+    }
+
+    return nullptr;
 }
 
 struct InvalidObjPtrError : std::runtime_error
@@ -125,6 +146,19 @@ static int Lua_UserData_NewIndex(lua_State* L)
 
     return 0;
 }
+
+static int Lua_Object_UserData_Eq(lua_State* L)
+{
+    if (!lua_isuserdata(L, 1) || !lua_isuserdata(L, 2))
+    {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    lua_pushboolean(L, GetLuaObjectUserDataValue(L, 1) == GetLuaObjectUserDataValue(L, 2));
+    return 1;
+}
+
 template <class R>
 struct PushEngineUserDataHelper
 {
@@ -249,6 +283,13 @@ public:
                    { s->Serialize(name, val); });
             BindFn("DeserializeTo", [](T& val, const char* name, Serializer* s)
                    { s->Deserialize(name, val); });
+        }
+
+        if constexpr (std::is_base_of_v<Object, T>)
+        {
+            lua_pushstring(L, "__eq");
+            lua_pushcfunction(L, Lua_Object_UserData_Eq);
+            lua_settable(L, -3);
         }
 
         if constexpr (std::is_base_of_v<Asset, T>)

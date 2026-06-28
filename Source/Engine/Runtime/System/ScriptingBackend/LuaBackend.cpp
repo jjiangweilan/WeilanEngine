@@ -82,11 +82,7 @@ void LuaBackend::Init(const char* projectAssetFolder)
         lua_setfield(L, -2, "cpath");
         lua_pop(L, 1);
 
-        // redirect print
-        lua_getglobal(L, "_G");
-        lua_pushcfunction(L, EnginePrint);
-        lua_setfield(L, -2, "print");
-        lua_pop(L, 1);
+        RestoreEnginePrint();
 
         LuaBindings().BindClasses(L);
         instance = this;
@@ -105,6 +101,14 @@ int LuaBackend::EnginePrint(lua_State* L)
     }
 
     return 0;
+}
+
+void LuaBackend::RestoreEnginePrint()
+{
+    lua_getglobal(L, "_G");
+    lua_pushcfunction(L, EnginePrint);
+    lua_setfield(L, -2, "print");
+    lua_pop(L, 1);
 }
 
 lua_State* LuaBackend::L = nullptr;

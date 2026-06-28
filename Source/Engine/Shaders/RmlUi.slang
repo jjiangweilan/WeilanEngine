@@ -24,6 +24,7 @@ struct PerMaterial
     Texture2D texture;
     SamplerState sampler_linear;
     SamplerState sampler_linear_clamp;
+    SamplerState sampler_point_clamp;
 }
 
 [Material]
@@ -43,6 +44,7 @@ struct PushConstant
     float2 translate;
     float2 geometryTranslate;
     float useTexture;
+    float usePointFilter;
 }
 
 [vk::push_constant]
@@ -67,7 +69,14 @@ float4 FragmentMain(VOut input) : SV_Target
     float4 color = input.color;
     if (p.useTexture > 0.0f)
     {
-        color *= perMaterial.texture.Sample(perMaterial.sampler_linear_clamp, input.uv);
+        if (p.usePointFilter > 0.0f)
+        {
+            color *= perMaterial.texture.Sample(perMaterial.sampler_point_clamp, input.uv);
+        }
+        else
+        {
+            color *= perMaterial.texture.Sample(perMaterial.sampler_linear_clamp, input.uv);
+        }
     }
 
     return color;

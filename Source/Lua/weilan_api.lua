@@ -657,6 +657,12 @@ function wl.Scene:SpawnPrefab(prefab) end
 ---@param obj wl.GameObject *
 function wl.Scene:DestroyGameObject(obj) end
 
+---@class wl.UI
+wl.UI = {}
+
+function wl.UI.ClearRmlUiCache() end
+function wl.UI.ReloadRmlUiResources() end
+
 ---@class wl.GameScript
 wl.GameScript = {}
 
