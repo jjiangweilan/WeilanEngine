@@ -191,7 +191,7 @@ void WeilanEngine::StartEngine()
 
             if (presentGameColorOnly)
             {
-                GetGfxDriver()->WaitForIdle();
+                // GetGfxDriver()->WaitForIdle();
                 interopDriver->Present();
             }
         }
@@ -413,6 +413,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
         window_HWND = WeilanEngine_CreateWindow(size.x, size.y);
         interopDriver = CreateD3D11InteropDriver();
         interopDriver->Initialize(window_HWND, size.x, size.y);
+        WeilanEngine_SetWindowHitTestDriver(window_HWND, interopDriver.get());
     }
     else if (presentGameColorOnly)
     {
@@ -431,6 +432,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
         gfxDriver->UnsetWin32WindowInteropTexture(int2(mainWindow.size.width, mainWindow.size.height));
         if (window_HWND)
         {
+            WeilanEngine_SetWindowHitTestDriver(window_HWND, nullptr);
             interopDriver = nullptr;
             WeilanEngine_DestroyWindow(window_HWND);
             window_HWND = nullptr;

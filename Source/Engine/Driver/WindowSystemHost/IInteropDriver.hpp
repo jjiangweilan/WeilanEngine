@@ -29,5 +29,8 @@ namespace WindowSystemHost
 
         // Commits the visual tree or presents the swapchain
         virtual void Present() = 0;
+
+        // Returns whether the cached presented alpha says this client pixel should receive mouse input.
+        virtual bool HitTestVisible(int clientX, int clientY) const { return true; }
     };
 }

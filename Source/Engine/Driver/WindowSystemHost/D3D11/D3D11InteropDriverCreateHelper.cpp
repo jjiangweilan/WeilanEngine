@@ -1,6 +1,17 @@
 #include "D3D11InteropDriverCreateHelper.hpp"
 #include "Engine/Driver/WindowSystemHost/D3D11/D3D11InteropDriver.hpp"
 #include <stdexcept>
+#include <windowsx.h>
+
+namespace
+{
+constexpr const char* InteropWindowClassName = "WeilanEngineD3D11InteropWindow";
+
+WindowSystemHost::IInteropDriver* GetHitTestDriver(HWND window)
+{
+    return reinterpret_cast<WindowSystemHost::IInteropDriver*>(GetWindowLongPtr(window, GWLP_USERDATA));
+}
+} // namespace
 
 std::unique_ptr<WindowSystemHost::IInteropDriver> CreateD3D11InteropDriver()
 {
@@ -14,7 +25,7 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
     WNDCLASS wc = {};
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hInstance = hInst;
-    wc.lpszClassName = "window";
+    wc.lpszClassName = InteropWindowClassName;
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc =
         [](HWND window, UINT message, WPARAM wparam, LPARAM lparam) -> LRESULT
@@ -37,9 +48,21 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
             // First, let the default procedure determine where the mouse is
             LRESULT hit = DefWindowProc(window, message, wparam, lparam);
 
-            // If the mouse is inside the client area, tell Windows it's the caption/title bar
             if (hit == HTCLIENT)
             {
+                POINT screenPos = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+                POINT clientPos = screenPos;
+                ScreenToClient(window, &clientPos);
+
+                if (auto* driver = GetHitTestDriver(window))
+                {
+                    if (!driver->HitTestVisible(clientPos.x, clientPos.y))
+                    {
+                        return HTTRANSPARENT;
+                    }
+                }
+
+                // If the mouse is inside an opaque client area, tell Windows it's the caption/title bar.
                 return HTCAPTION;
             }
             return hit;
@@ -54,7 +77,7 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
             throw std::runtime_error("Failed to register D3D11 interop window class");
     }
 
-    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
+    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOPMOST | WS_EX_LAYERED, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
     if (!window)
         throw std::runtime_error("Failed to create D3D11 interop window");
 
@@ -73,4 +96,9 @@ void WeilanEngine_ResizeWindow(void* windowHandle, uint32_t width, uint32_t heig
 void WeilanEngine_DestroyWindow(void* windowHandle)
 {
     DestroyWindow((HWND)windowHandle);
+}
+
+void WeilanEngine_SetWindowHitTestDriver(void* windowHandle, WindowSystemHost::IInteropDriver* driver)
+{
+    SetWindowLongPtr((HWND)windowHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(driver));
 }
