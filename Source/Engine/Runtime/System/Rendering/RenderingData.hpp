@@ -24,6 +24,11 @@ struct LightInfo
     float pointLightTerm2;
 
     float p0, p1, p2; // padding
+    glm::vec4 skyColor;
+    glm::vec4 skyHorizonFalloffColor;
+    glm::vec4 skyHorizonColor;
+    glm::vec4 skySunColor;
+    glm::vec4 skySunCoreColor;
 };
 
 struct InterleavedGradientNoise

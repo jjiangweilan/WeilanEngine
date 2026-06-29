@@ -13,6 +13,10 @@ public:
 
         ImGui::Separator();
         ImGui::Text("Noise Generator");
+        if (ImGui::Button("Reset"))
+        {
+            target->ResetToDefaultValues();
+        }
         ImGui::Checkbox("Always Update", &alwayUpdate);
         ImGui::SeparatorText("Parameter");
         Draw(target->volumetricCloud.get(), target->volumetricCloud->GetShaderProgram());

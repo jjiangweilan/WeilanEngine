@@ -30,6 +30,7 @@ public:
     const std::string& GetName() const override;
 
     void Setup();
+    void ResetToDefaultValues();
     void UpdateNoiseTexture();
     Gfx::Image* UpdateDebugImage(int debugImageIndex);
     void OnLoaded() override;
@@ -51,6 +52,8 @@ private:
     std::unique_ptr<Material> highFrequencyNoiseGenerator = std::make_unique<Material>();
 
     Gfx::RenderPass debugRenderPass = Gfx::RenderPass::SingleColor("a debug pass");
+    inline static const char* volumetricCloudShader =
+        "VolumetricCloud/VolumetricCloud";
     inline static const char* cloudNoiseGeneratorShader =
         "VolumetricCloud/CloudNoiseGenerator";
 

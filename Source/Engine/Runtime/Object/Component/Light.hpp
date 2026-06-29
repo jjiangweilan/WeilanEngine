@@ -22,6 +22,11 @@ class Light : public Component
     LightType lightType = LightType::Directional;
     glm::vec4 lightColor = glm::vec4(1, 1, 1, 1);
     glm::vec4 linearLightColor = glm::vec4(1, 1, 1, 1);
+    glm::vec4 skyColor = glm::vec4(0.3f, 0.5f, 0.85f, 1.0f);
+    glm::vec4 skyHorizonFalloffColor = glm::vec4(0.7f, 0.75f, 0.85f, 1.0f);
+    glm::vec4 skyHorizonColor = glm::vec4(0.418f, 0.394f, 0.372f, 1.0f);
+    glm::vec4 skySunColor = glm::vec4(1.0f, 0.7f, 0.4f, 1.0f);
+    glm::vec4 skySunCoreColor = glm::vec4(1.0f, 0.8f, 0.6f, 1.0f);
     float ambientScale = 1.0f;
     float range = 10.0f; // valid when it's a point light
     float intensity = 1.0f;
@@ -65,6 +70,11 @@ public:
 
     glm::vec3 GetLightColor() const { return lightColor; }
     glm::vec3 GetLinearLightColor() const { return linearLightColor; }
+    glm::vec3 GetSkyColor() const { return skyColor; }
+    glm::vec3 GetSkyHorizonFalloffColor() const { return skyHorizonFalloffColor; }
+    glm::vec3 GetSkyHorizonColor() const { return skyHorizonColor; }
+    glm::vec3 GetSkySunColor() const { return skySunColor; }
+    glm::vec3 GetSkySunCoreColor() const { return skySunCoreColor; }
 
     float GetAmbientScale() const { return ambientScale; }
 
@@ -75,6 +85,12 @@ public:
         this->lightColor = glm::vec4(lightColor, 1.0);
         this->linearLightColor = glm::vec4(glm::pow(lightColor, glm::vec3(2.2f)), 1.0f);
     }
+
+    void SetSkyColor(glm::vec3 color) { skyColor = glm::vec4(color, 1.0f); }
+    void SetSkyHorizonFalloffColor(glm::vec3 color) { skyHorizonFalloffColor = glm::vec4(color, 1.0f); }
+    void SetSkyHorizonColor(glm::vec3 color) { skyHorizonColor = glm::vec4(color, 1.0f); }
+    void SetSkySunColor(glm::vec3 color) { skySunColor = glm::vec4(color, 1.0f); }
+    void SetSkySunCoreColor(glm::vec3 color) { skySunCoreColor = glm::vec4(color, 1.0f); }
 
     void SetPointLightLinear(float t) { this->pointLightTerm1 = t; }
 

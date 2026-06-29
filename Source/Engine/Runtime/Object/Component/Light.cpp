@@ -9,6 +9,11 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     Light,
     TYPE_REFLECTION_MEM(Light, ambientScale),
     TYPE_REFLECTION_MEM(Light, lightColor),
+    TYPE_REFLECTION_MEM(Light, skyColor),
+    TYPE_REFLECTION_MEM(Light, skyHorizonFalloffColor),
+    TYPE_REFLECTION_MEM(Light, skyHorizonColor),
+    TYPE_REFLECTION_MEM(Light, skySunColor),
+    TYPE_REFLECTION_MEM(Light, skySunCoreColor),
     TYPE_REFLECTION_MEM(Light, range),
     TYPE_REFLECTION_MEM(Light, intensity),
     TYPE_REFLECTION_MEM(Light, pointLightTerm1),
@@ -66,6 +71,11 @@ void Light::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("ambientScale", ambientScale);
     s->Serialize("ambient", lightColor);
+    s->Serialize("skyColor", skyColor);
+    s->Serialize("skyHorizonFalloffColor", skyHorizonFalloffColor);
+    s->Serialize("skyHorizonColor", skyHorizonColor);
+    s->Serialize("skySunColor", skySunColor);
+    s->Serialize("skySunCoreColor", skySunCoreColor);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
     s->Serialize("pointLightTerm1", pointLightTerm1);
@@ -89,6 +99,11 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("ambientScale", ambientScale);
     s->Deserialize("ambient", lightColor);
     SetLightColor(lightColor);
+    s->Deserialize("skyColor", skyColor);
+    s->Deserialize("skyHorizonFalloffColor", skyHorizonFalloffColor);
+    s->Deserialize("skyHorizonColor", skyHorizonColor);
+    s->Deserialize("skySunColor", skySunColor);
+    s->Deserialize("skySunCoreColor", skySunCoreColor);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
     s->Deserialize("pointLightTerm1", pointLightTerm1);
@@ -126,6 +141,11 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
     clone->lightType = lightType;
     clone->range = range;
     clone->intensity = intensity;
+    clone->skyColor = skyColor;
+    clone->skyHorizonFalloffColor = skyHorizonFalloffColor;
+    clone->skyHorizonColor = skyHorizonColor;
+    clone->skySunColor = skySunColor;
+    clone->skySunCoreColor = skySunCoreColor;
 
     return clone;
 }

@@ -713,6 +713,11 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
             sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
             sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLinearLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
+            sceneParam.lights[i].skyColor = glm::vec4(lights[i]->GetSkyColor(), 1.0);
+            sceneParam.lights[i].skyHorizonFalloffColor = glm::vec4(lights[i]->GetSkyHorizonFalloffColor(), 1.0);
+            sceneParam.lights[i].skyHorizonColor = glm::vec4(lights[i]->GetSkyHorizonColor(), 1.0);
+            sceneParam.lights[i].skySunColor = glm::vec4(lights[i]->GetSkySunColor(), 1.0);
+            sceneParam.lights[i].skySunCoreColor = glm::vec4(lights[i]->GetSkySunCoreColor(), 1.0);
             auto model = lights[i]->GetGameObject()->GetWorldMatrix();
             switch (lights[i]->GetLightType())
             {

@@ -3,6 +3,7 @@
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Runtime/System/Rendering/Graphics.hpp"
+#include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Component, Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
@@ -147,6 +148,53 @@ void Cloud::Tick()
 void Cloud::IdleTick()
 {
     Tick();
+}
+
+void Cloud::ResetToDefaultValues()
+{
+    volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
+    volumetricCloud->SetVector("stratusType", {-0.36f, 0.17f, 0.57f, 0.62f});
+    volumetricCloud->SetVector("areaMapRemap", {-0.22f, 1.0f, 0.0f, 0.0f});
+    volumetricCloud->SetVector("ambientColor", {1.0f, 1.0f, 1.0f, 1.0f});
+    volumetricCloud->SetVector("cloudCenter", {0.0f, 0.0f, 0.0f, 0.0f});
+    volumetricCloud->SetVector("cloudExtent", {64.0f, 10.0f, 64.0f, 0.0f});
+    volumetricCloud->SetFloat("fixedStep", 0.01f);
+    volumetricCloud->SetFloat("extinction", 2.0f);
+    volumetricCloud->SetFloat("lightExtinction", 0.1f);
+    volumetricCloud->SetFloat("lightPhase_g", 0.3f);
+    volumetricCloud->SetFloat("lightPhase_K", 0.8f);
+    volumetricCloud->SetFloat("detailMapScale", 256.0f);
+    volumetricCloud->SetFloat("highFrequencyMapScale", 6.0f);
+    volumetricCloud->SetFloat("ambientScale", 0.05f);
+    volumetricCloud->SetFloat("lightScale", 6.0f);
+    volumetricCloud->SetFloat("lightStep", 0.5f);
+    volumetricCloud->SetFloat("lightStepCount", 64.0f);
+    volumetricCloud->SetFloat("globalScale", 1.0f);
+
+    auto resetNoiseGenerator = [](Material& material)
+    {
+        material.SetFloat("perlin_Lacunarity", 2.0f);
+        material.SetFloat("perlin_Gain", 0.5f);
+        material.SetFloat("perlin_Amplitude", 0.5f);
+        material.SetFloat("perlin_Frequency", 1.0f);
+        material.SetFloat("octaves", 8.0f);
+        material.SetFloat("worley_Lacunarity", 2.0f);
+        material.SetFloat("worley_Gain", 0.5f);
+        material.SetFloat("worley_Amplitude", 0.5f);
+        material.SetFloat("worley_Frequency", 1.0f);
+    };
+
+    noiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
+    highFrequencyNoiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
+    resetNoiseGenerator(*noiseGenerator);
+    resetNoiseGenerator(*highFrequencyNoiseGenerator);
+
+    if (cloudNoise.baseShapeNoise && cloudNoise.highFrequencyNoise)
+    {
+        noiseGenerator->SetTexture("imgOutput", cloudNoise.baseShapeNoise.get());
+        highFrequencyNoiseGenerator->SetTexture("imgOutput", cloudNoise.highFrequencyNoise.get());
+        UpdateNoiseTexture();
+    }
 }
 
 void Cloud::Setup()

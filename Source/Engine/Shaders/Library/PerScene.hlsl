@@ -11,6 +11,11 @@ struct Light
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
+    float4 skyColor;
+    float4 skyHorizonFalloffColor;
+    float4 skyHorizonColor;
+    float4 skySunColor;
+    float4 skySunCoreColor;
 };
 
 struct SphericalHarmonics_2ndOrder

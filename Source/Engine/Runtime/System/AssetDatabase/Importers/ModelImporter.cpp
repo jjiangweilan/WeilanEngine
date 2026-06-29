@@ -25,7 +25,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 8;
+constexpr uint64_t ModelImporterVersion = 9;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
@@ -536,14 +536,18 @@ void ProcessMaterials(ModelImportContext& context)
         }
         mat->SetName(materialName);
 
-        aiColor4D baseColorFactor = {0.5, 0.5, 0.5, 0.5};
+        aiColor4D baseColorFactor = {1, 1, 1, 1};
         aiColor4D emissive = {0, 0, 0, 0};
         float roughness = 0.4f;
         float metallic = 0.2f;
         float alphaCutoff = 0.5f;
         aiString alphaMode;
         bool twoSided = false;
-        material->Get(AI_MATKEY_BASE_COLOR, baseColorFactor);
+        if (material->Get(AI_MATKEY_BASE_COLOR, baseColorFactor) != aiReturn_SUCCESS &&
+            material->Get(AI_MATKEY_COLOR_DIFFUSE, baseColorFactor) != aiReturn_SUCCESS)
+        {
+            baseColorFactor = {0.5, 0.5, 0.5, 0.5};
+        }
         material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive);
         material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
         material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);

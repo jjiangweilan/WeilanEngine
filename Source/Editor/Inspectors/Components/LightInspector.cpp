@@ -59,6 +59,41 @@ public:
             light->SetIntensity(intensity);
         }
 
+        if (light->GetLightType() == LightType::Directional)
+        {
+            EditorGUI::SeparatorTextLabeled("Sky");
+
+            glm::vec3 skyColor = light->GetSkyColor();
+            if (ImGui::ColorEdit3("Sky Color", &skyColor[0]))
+            {
+                light->SetSkyColor(skyColor);
+            }
+
+            glm::vec3 skyHorizonFalloffColor = light->GetSkyHorizonFalloffColor();
+            if (ImGui::ColorEdit3("Sky Horizon Falloff", &skyHorizonFalloffColor[0]))
+            {
+                light->SetSkyHorizonFalloffColor(skyHorizonFalloffColor);
+            }
+
+            glm::vec3 skyHorizonColor = light->GetSkyHorizonColor();
+            if (ImGui::ColorEdit3("Sky Horizon", &skyHorizonColor[0]))
+            {
+                light->SetSkyHorizonColor(skyHorizonColor);
+            }
+
+            glm::vec3 skySunColor = light->GetSkySunColor();
+            if (ImGui::ColorEdit3("Sky Sun", &skySunColor[0]))
+            {
+                light->SetSkySunColor(skySunColor);
+            }
+
+            glm::vec3 skySunCoreColor = light->GetSkySunCoreColor();
+            if (ImGui::ColorEdit3("Sky Sun Core", &skySunCoreColor[0]))
+            {
+                light->SetSkySunCoreColor(skySunCoreColor);
+            }
+        }
+
         if (light->GetLightType() == LightType::Point)
         {
             float range = light->GetRange();
