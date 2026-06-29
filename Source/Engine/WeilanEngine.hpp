@@ -72,7 +72,7 @@ public:
 private:
     struct MainWindow
     {
-        SDL_Window* handle;
+        SDL_Window* handle = nullptr;
         Extent2D size = {512, 512};
     } mainWindow;
 
@@ -84,6 +84,7 @@ private:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
 
     void* window_HWND = nullptr;
+    SDL_Window* presentGameSDLWindow = nullptr;
     std::unique_ptr<WindowSystemHost::IInteropDriver> interopDriver;
 
     std::filesystem::path projectPath;

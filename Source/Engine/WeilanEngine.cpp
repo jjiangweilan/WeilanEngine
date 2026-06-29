@@ -19,6 +19,7 @@
 #include "Engine/ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
 #include <iostream>
+#include <stdexcept>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 // clang-format off
@@ -104,7 +105,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     InitAssetDatabase();
     InitJoltPhysics();
     event = std::make_unique<Event>();
-    event->Init();
+    event->Init(mainWindow.handle);
 #if ENGINE_EDITOR
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
@@ -217,7 +218,6 @@ bool WeilanEngine::BeginFrame()
     Time::Tick();
     GetFrameContext().BeginFrame();
 
-    Input::Reset();
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
@@ -374,8 +374,26 @@ void WeilanEngine::InitAssetDatabase()
 
 void WeilanEngine::DeinitSDL()
 {
-    // destroy appWindow
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    if (presentGameSDLWindow)
+    {
+        SDL_DestroyWindow(presentGameSDLWindow);
+        presentGameSDLWindow = nullptr;
+    }
+#if defined(_WIN32) || defined(_WIN64)
+    if (window_HWND)
+    {
+        WeilanEngine_SetWindowHitTestDriver(window_HWND, nullptr);
+        interopDriver = nullptr;
+        WeilanEngine_DestroyWindow(window_HWND);
+        window_HWND = nullptr;
+    }
+#endif
+    if (mainWindow.handle)
+    {
+        SDL_DestroyWindow(mainWindow.handle);
+        mainWindow.handle = nullptr;
+    }
+    SDL_QuitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER);
 }
 
 void WeilanEngine::ReloadScripts()
@@ -411,6 +429,15 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
     if (presentGameColorOnly && window_HWND == nullptr)
     {
         window_HWND = WeilanEngine_CreateWindow(size.x, size.y);
+        presentGameSDLWindow = SDL_CreateWindowFrom(window_HWND);
+        if (!presentGameSDLWindow)
+        {
+            WeilanEngine_DestroyWindow(window_HWND);
+            window_HWND = nullptr;
+            throw std::runtime_error(SDL_GetError());
+        }
+        event->SetMainWindow(presentGameSDLWindow);
+
         interopDriver = CreateD3D11InteropDriver();
         interopDriver->Initialize(window_HWND, size.x, size.y);
         WeilanEngine_SetWindowHitTestDriver(window_HWND, interopDriver.get());
@@ -423,6 +450,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
 
     if (presentGameColorOnly)
     {
+        SystemInfo::Singleton().SetGameViewOrigin({0, 0});
         SystemInfo::Singleton().SetScreenSize(size.x, size.y);
         auto intermediateTextureHandle = interopDriver->GetSharedHandle();
         gfxDriver->SetWin32WindowInteropTexture(intermediateTextureHandle, size);
@@ -432,8 +460,14 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
         gfxDriver->UnsetWin32WindowInteropTexture(int2(mainWindow.size.width, mainWindow.size.height));
         if (window_HWND)
         {
+            event->SetMainWindow(mainWindow.handle);
             WeilanEngine_SetWindowHitTestDriver(window_HWND, nullptr);
             interopDriver = nullptr;
+            if (presentGameSDLWindow)
+            {
+                SDL_DestroyWindow(presentGameSDLWindow);
+                presentGameSDLWindow = nullptr;
+            }
             WeilanEngine_DestroyWindow(window_HWND);
             window_HWND = nullptr;
         }

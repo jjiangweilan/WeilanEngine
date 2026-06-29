@@ -4,6 +4,7 @@
 #include <SDL_gamecontroller.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
+#include <SDL_video.h>
 
 struct WindowSizeChange
 {
@@ -25,10 +26,11 @@ struct SwapchainRecreated
 class Event
 {
 public:
-    void Init();
+    void Init(SDL_Window* mainWindow);
     void Deinit();
     void Poll();
     void Reset();
+    void SetMainWindow(SDL_Window* window);
 
     const WindowSizeChange& GetWindowSizeChanged()
     {
@@ -44,6 +46,8 @@ public:
     }
 
 private:
+    SDL_Window* mainWindow = nullptr;
+    Uint32 mainWindowId = 0;
     WindowSizeChange windowSizeChange;
     WindowClose windowClose;
     SwapchainRecreated swapchainRecreated;

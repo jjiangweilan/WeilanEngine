@@ -378,11 +378,11 @@ float2 Input::GetMouseUV()
     {
         return {0.0f, 0.0f};
     }
-
     float2 mouseInView = {
         static_cast<float>(input.mousePosition.x - origin.x),
         static_cast<float>(input.mousePosition.y - origin.y)
     };
+
     float2 result = glm::clamp({ mouseInView.x / screenSize.x, mouseInView.y / screenSize.y }, float2(0, 0), float2(1, 1));
     return result;
 }

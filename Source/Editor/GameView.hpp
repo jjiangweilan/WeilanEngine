@@ -17,6 +17,7 @@ public:
 public:
     void Init();
     void Deinit();
+    void SetGameViewOnly(bool gameViewOnly);
 
     bool IsWindowFocused() { return isWindowFocused; };
     bool IsVisible() const { return visible; }
@@ -50,6 +51,7 @@ private:
     ObjPtr<Shader> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
     bool isWindowFocused = false;
+    bool gameViewOnly = false;
 
     struct
     {

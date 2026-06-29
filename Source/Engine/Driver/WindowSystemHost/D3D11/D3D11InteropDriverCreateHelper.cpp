@@ -62,8 +62,7 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
                     }
                 }
 
-                // If the mouse is inside an opaque client area, tell Windows it's the caption/title bar.
-                return HTCAPTION;
+                return HTCLIENT;
             }
             return hit;
         }

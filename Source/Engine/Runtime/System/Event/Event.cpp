@@ -6,8 +6,9 @@
 #endif
 #include <spdlog/spdlog.h>
 
-void Event::Init()
+void Event::Init(SDL_Window* mainWindow)
 {
+    SetMainWindow(mainWindow);
 }
 void Event::Deinit()
 {
@@ -18,6 +19,13 @@ void Event::Reset()
     windowSizeChange.state = false;
     windowClose.state = false;
 }
+
+void Event::SetMainWindow(SDL_Window* window)
+{
+    mainWindow = window;
+    mainWindowId = mainWindow ? SDL_GetWindowID(mainWindow) : 0;
+}
+
 void Event::Poll()
 {
 
@@ -33,6 +41,12 @@ void Event::Poll()
 
         if (event.type == SDL_WINDOWEVENT)
         {
+            if (mainWindowId != 0 && event.window.windowID != mainWindowId)
+            {
+                Input::PushEvent(event, uiConsumeMouseInput);
+                continue;
+            }
+
             if (event.window.event == SDL_WINDOWEVENT_CLOSE)
             {
                 windowClose.state = true;

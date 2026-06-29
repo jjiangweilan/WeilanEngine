@@ -94,7 +94,7 @@ struct GameView::PlayTheGame
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
 
             UI::Instance().Destroy(); // destroys the game UI context
-            UI::Instance().Init(); // this creates the editor UI context
+            UI::Instance().Init();    // this creates the editor UI context
             GameEditor::instance->GetEngine()->ReloadScripts();
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
@@ -105,7 +105,6 @@ struct GameView::PlayTheGame
             // destroy sceneCopy
             sceneCopy = nullptr;
             Input::SetGameplayInput(false);
-
         }
     }
 };
@@ -410,10 +409,13 @@ bool GameView::Tick()
         cursorPos.y = cursorPos.y + contentRegionHeight / 2.0f - imageHeight / 2.0f;
         ImGui::SetCursorPos(cursorPos);
 
+        const auto& imageDescription = sceneImage->GetDescription();
         auto windowPos = ImGui::GetWindowPos();
         auto imagePos = ImGui::GetCursorPos();
-        SystemInfo::Singleton().SetGameViewOrigin(int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y));
-        SystemInfo::Singleton().SetScreenSize(imageWidth, imageHeight);
+        SystemInfo::Singleton().SetGameViewOrigin(gameViewOnly ? int2(0, 0) : int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y));
+        SystemInfo::Singleton().SetScreenSize(
+            gameViewOnly ? imageDescription.width : imageWidth,
+            gameViewOnly ? imageDescription.height : imageHeight);
 
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
@@ -435,6 +437,11 @@ void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
         d.resolution = resolution;
         CreateRenderData(resolution.x, resolution.y);
     }
+}
+
+void GameView::SetGameViewOnly(bool gameViewOnly)
+{
+    this->gameViewOnly = gameViewOnly;
 }
 
 glm::ivec2 GameView::GetGameScreenResolution() const

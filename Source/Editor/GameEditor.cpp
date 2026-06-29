@@ -130,6 +130,7 @@ void GameEditor::SimulatePlayerView(bool enable)
     hideDevTool = enable;
 
     // adjust system window to current view size
+    gameView->SetGameViewOnly(hideDevTool);
     glm::ivec2 gameResolution = gameView->GetGameScreenResolution();
 
     if (enable)
