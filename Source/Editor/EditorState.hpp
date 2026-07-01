@@ -22,6 +22,7 @@ public:
     static GameLoop*& GetGameLoop();
     static UndoManager& GetUndoManager();
     static bool& GetScaleLock();
+    static bool& GetPositionChildrenWorldLock();
 
     static void Clear()
     {

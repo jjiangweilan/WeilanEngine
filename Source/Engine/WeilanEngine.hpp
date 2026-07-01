@@ -99,4 +99,5 @@ private:
 
     void InitSDL();
     void DeinitSDL();
+    int2 GetBottomAlignedGameWindowPosition(int2 size) const;
 };

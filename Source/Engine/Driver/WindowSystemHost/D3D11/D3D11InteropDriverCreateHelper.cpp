@@ -18,7 +18,7 @@ std::unique_ptr<WindowSystemHost::IInteropDriver> CreateD3D11InteropDriver()
     return std::make_unique<WindowSystemHost::D3D11InteropDriver>();
 }
 
-void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
+void* WeilanEngine_CreateWindow(int32_t x, int32_t y, uint32_t width, uint32_t height)
 {
     HINSTANCE hInst = GetModuleHandle(NULL);
 
@@ -76,7 +76,7 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
             throw std::runtime_error("Failed to register D3D11 interop window class");
     }
 
-    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOPMOST | WS_EX_LAYERED, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
+    HWND const window = CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | WS_EX_TOPMOST | WS_EX_LAYERED, wc.lpszClassName, "Sample", WS_OVERLAPPEDWINDOW | WS_VISIBLE, x, y, static_cast<int>(width), static_cast<int>(height), nullptr, nullptr, hInst, nullptr);
     if (!window)
         throw std::runtime_error("Failed to create D3D11 interop window");
 
@@ -87,9 +87,9 @@ void* WeilanEngine_CreateWindow(uint32_t width, uint32_t height)
     return (void*)window;
 }
 
-void WeilanEngine_ResizeWindow(void* windowHandle, uint32_t width, uint32_t height)
+void WeilanEngine_SetWindowBounds(void* windowHandle, int32_t x, int32_t y, uint32_t width, uint32_t height)
 {
-    SetWindowPos((HWND)windowHandle, nullptr, 0, 0, static_cast<int>(width), static_cast<int>(height), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos((HWND)windowHandle, nullptr, x, y, static_cast<int>(width), static_cast<int>(height), SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void WeilanEngine_DestroyWindow(void* windowHandle)

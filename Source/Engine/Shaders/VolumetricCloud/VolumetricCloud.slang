@@ -121,8 +121,9 @@ CloudInfo SampleDensity(float3 worldPos)
     if (IsPosInsideCloud(worldPos))
     {
         float3 samplePos = (worldPos) / perMaterial.detailMapScale;
-        float3 offset = float3(perScene.scene.time * 0.001,0,perScene.scene.time * 0.001);
-        float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz + offset, 0);
+        float3 offset1 = float3(perScene.scene.time * 0.008,0,perScene.scene.time * 0.0016);
+        float3 offset2 = float3(perScene.scene.time * 0.01,0,perScene.scene.time * 0.02);
+        float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz + offset1, 0);
         // info.dimensionalProfile *= density.x;
 
         float areaMap = saturate(remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1));
@@ -142,7 +143,7 @@ CloudInfo SampleDensity(float3 worldPos)
         {
             // apply details
             float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
-            float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz, 0).yzw;
+            float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz + offset2, 0).yzw;
             float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
             highFrequencyFbm = 1- highFrequencyFbm;
             float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
@@ -254,7 +255,7 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
         return;
 
     float d = perMaterial.depthMap.Load(uint3(id.xy,0)).x;
-    if (d != 1.0)
+    if (d != 0.0)
     {
         return;
     }
@@ -280,5 +281,5 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
     float4 cloud = RenderCloud(dir, start, end);
 
     float4 mainColor = perMaterial.mainColor.Load(id.xy);
-    perMaterial.mainColor[id.xy] = lerp(float4(cloud.xyz, mainColor.a), mainColor, cloud.w);
+    perMaterial.mainColor[id.xy] = lerp(float4(cloud.xyz, 1 - cloud.w), mainColor, cloud.w);
 }

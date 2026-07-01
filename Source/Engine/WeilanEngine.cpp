@@ -35,6 +35,7 @@
 #ifdef WEILAN_ENABLE_MCP
 #include "Engine/Runtime/MCP/MCPServer.hpp"
 #endif
+#include <algorithm>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 WeilanEngine::WeilanEngine() {};
@@ -420,15 +421,36 @@ int2 WeilanEngine::GetSystemWindowSize()
     return int2{w, h};
 }
 
+int2 WeilanEngine::GetBottomAlignedGameWindowPosition(int2 size) const
+{
+    int displayIndex = SDL_GetWindowDisplayIndex(mainWindow.handle);
+    if (displayIndex < 0)
+        displayIndex = 0;
+
+    SDL_Rect usableBounds{};
+    if (SDL_GetDisplayUsableBounds(displayIndex, &usableBounds) != 0)
+    {
+        int x = 0;
+        int y = 0;
+        SDL_GetWindowPosition(mainWindow.handle, &x, &y);
+        return {x, y};
+    }
+
+    const int x = std::max(usableBounds.x, usableBounds.x + (usableBounds.w - size.x) / 2);
+    const int y = std::max(usableBounds.y, usableBounds.y + usableBounds.h - size.y);
+    return {x, y};
+}
+
 void WeilanEngine::PresentGameOnly(bool enable, int2 size)
 {
 #if defined(_WIN32) || defined(_WIN64)
     presentGameColorOnly = enable;
+    int2 position = GetBottomAlignedGameWindowPosition(size);
 
     // lazy create interop driver
     if (presentGameColorOnly && window_HWND == nullptr)
     {
-        window_HWND = WeilanEngine_CreateWindow(size.x, size.y);
+        window_HWND = WeilanEngine_CreateWindow(position.x, position.y, size.x, size.y);
         presentGameSDLWindow = SDL_CreateWindowFrom(window_HWND);
         if (!presentGameSDLWindow)
         {
@@ -444,7 +466,7 @@ void WeilanEngine::PresentGameOnly(bool enable, int2 size)
     }
     else if (presentGameColorOnly)
     {
-        WeilanEngine_ResizeWindow(window_HWND, size.x, size.y);
+        WeilanEngine_SetWindowBounds(window_HWND, position.x, position.y, size.x, size.y);
         interopDriver->Resize(size.x, size.y);
     }
 

@@ -120,10 +120,49 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
     glm::vec3 pos = target->GetLocalPosition();
     bool positionChanged = ImGui::DragFloat3("Position", &pos[0]);
+    ImGui::SameLine();
+    bool& positionChildrenWorldLock = EditorState::GetPositionChildrenWorldLock();
+    const char* positionLockButtonLabel = positionChildrenWorldLock ? "\xEF\x80\xA3##PositionChildrenWorldLock"
+                                                                  : "\xEF\x82\x9C##PositionChildrenWorldLock";
+    {
+        auto imguiStyleSheet = ImGuiStyleSheet::AccentToggleButton(positionChildrenWorldLock);
+        ScopedImGuiButtonStyle scopedStyle(imguiStyleSheet);
+        if (ImGui::Button(positionLockButtonLabel, ImGuiStyleSheet::FrameButtonSize(imguiStyleSheet)))
+            positionChildrenWorldLock = !positionChildrenWorldLock;
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip(
+                positionChildrenWorldLock ? "Child world positions stay fixed while editing this local position"
+                                          : "Children move with this object"
+            );
+        }
+    }
+
     if (positionChanged)
     {
         undoManager.TrackGameObjectHierarchyPlacement(target.Get());
+        std::vector<std::pair<GameObject*, glm::vec3>> childWorldPositions;
+        if (positionChildrenWorldLock)
+        {
+            for (GameObject* child : target->GetChildren())
+            {
+                if (child == nullptr)
+                    continue;
+
+                undoManager.TrackGameObjectHierarchyPlacement(child);
+                childWorldPositions.emplace_back(child, child->GetPosition());
+            }
+        }
+
         target->SetLocalPosition(pos);
+        if (!childWorldPositions.empty())
+        {
+            glm::mat4 worldToTarget = glm::inverse(target->GetWorldMatrix());
+            for (auto& [child, worldPosition] : childWorldPositions)
+            {
+                child->SetLocalPosition(glm::vec3(worldToTarget * glm::vec4(worldPosition, 1.0f)));
+            }
+        }
     }
 
     auto rotation = target->GetEuluerAngles();

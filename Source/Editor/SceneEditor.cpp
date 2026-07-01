@@ -21,6 +21,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -951,6 +952,8 @@ bool SceneEditor::Tick()
                     if (ImGuizmo::IsUsing())
                     {
                         auto& undoManager = EditorState::GetUndoManager();
+                        bool preserveChildWorldPositions = EditorState::GetPositionChildrenWorldLock() &&
+                                                           currentGizmoOperation == ImGuizmo::TRANSLATE;
                         if (gizmoTransformTransactionActive && gizmoTransformTransactionSelection != selectedGameObjectUUIDs)
                         {
                             undoManager.EndTransaction();
@@ -966,6 +969,20 @@ bool SceneEditor::Tick()
                                 for (GameObject* selectedGameObject : selectedGameObjects)
                                 {
                                     undoManager.TrackGameObjectHierarchyPlacement(selectedGameObject);
+                                    if (preserveChildWorldPositions)
+                                    {
+                                        for (GameObject* child : selectedGameObject->GetChildren())
+                                        {
+                                            if (child == nullptr)
+                                                continue;
+
+                                            if (std::find(selectedGameObjects.begin(), selectedGameObjects.end(), child) !=
+                                                selectedGameObjects.end())
+                                                continue;
+
+                                            undoManager.TrackGameObjectHierarchyPlacement(child);
+                                        }
+                                    }
                                 }
                                 gizmoTransformTransactionActive = undoManager.HasActiveTransaction();
                                 gizmoTransformTransactionSelection = selectedGameObjectUUIDs;
@@ -974,6 +991,22 @@ bool SceneEditor::Tick()
 
                         for (GameObject* selectedGameObject : selectedGameObjects)
                         {
+                            std::vector<std::pair<GameObject*, glm::vec3>> childWorldPositions;
+                            if (preserveChildWorldPositions)
+                            {
+                                for (GameObject* child : selectedGameObject->GetChildren())
+                                {
+                                    if (child == nullptr)
+                                        continue;
+
+                                    if (std::find(selectedGameObjects.begin(), selectedGameObjects.end(), child) !=
+                                        selectedGameObjects.end())
+                                        continue;
+
+                                    childWorldPositions.emplace_back(child, child->GetPosition());
+                                }
+                            }
+
                             glm::mat4 worldMatrix = selectedGameObject->GetWorldMatrix();
 
                             // handle translation and rotation
@@ -983,6 +1016,15 @@ bool SceneEditor::Tick()
                             // handle scale
                             auto afterS = baseModel * deltaS * baseModelInv * selectedGameObject->GetWorldMatrix();
                             selectedGameObject->SetWorldMatrix(afterS);
+
+                            if (!childWorldPositions.empty())
+                            {
+                                glm::mat4 worldToSelected = glm::inverse(selectedGameObject->GetWorldMatrix());
+                                for (auto& [child, worldPosition] : childWorldPositions)
+                                {
+                                    child->SetLocalPosition(glm::vec3(worldToSelected * glm::vec4(worldPosition, 1.0f)));
+                                }
+                            }
                         }
                     }
                 }

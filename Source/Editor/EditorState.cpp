@@ -26,6 +26,12 @@ bool& EditorState::GetScaleLock()
     return scaleLock;
 }
 
+bool& EditorState::GetPositionChildrenWorldLock()
+{
+    static bool positionChildrenWorldLock = false;
+    return positionChildrenWorldLock;
+}
+
 void EditorState::DeselectObject(Object* obj)
 {
     if (obj == nullptr)

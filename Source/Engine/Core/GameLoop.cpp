@@ -89,11 +89,14 @@ static void TickGameObject(GameObject* go)
 
 static void IdleTickGameObject(GameObject* go)
 {
+    if (go == nullptr)
+        return;
+
     go->IdleTick();
 
-    for (auto chil : go->GetChildren())
+    for (auto child : go->GetChildren())
     {
-        IdleTickGameObject(chil);
+        IdleTickGameObject(child);
     }
 }
 

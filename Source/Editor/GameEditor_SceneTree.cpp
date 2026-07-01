@@ -4,9 +4,9 @@
 #include "Editor/GameEditor.hpp"
 #include "Editor/ImGuiStyleSheet.hpp"
 #include "Engine/Runtime/Object/GameObject/Prefab.hpp"
+#include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
-#include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include <algorithm>
 #include <cctype>
 #include <string_view>
@@ -70,7 +70,8 @@ static bool SceneTreeHasSearchMatch(GameObject* go, int searchMode, std::string_
 
 static void BuildSceneTreeFlatList(Scene& scene, std::vector<GameObject*>& flatList)
 {
-    auto add_to_list = [&](GameObject* go, auto& self) -> void {
+    auto add_to_list = [&](GameObject* go, auto& self) -> void
+    {
         flatList.push_back(go);
         for (auto child : go->GetChildren())
         {
@@ -352,13 +353,12 @@ void GameEditor::ShowSceneTree(Scene& scene)
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(rootEndDropGO));
         int targetIndex = static_cast<int>(scene.GetRootObjects().size());
         endEvents.Register([&scene, draggedGameObjects, targetIndex]()
-                           {
-            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
-                "Reorder GameObject",
-                GetReparentUndoTargets(draggedGameObjects),
-                [&scene, draggedGameObjects, targetIndex]()
-                { ReorderGameObjects(scene, draggedGameObjects, nullptr, targetIndex); }
-            ); });
+                           { EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                                 "Reorder GameObject",
+                                 GetReparentUndoTargets(draggedGameObjects),
+                                 [&scene, draggedGameObjects, targetIndex]()
+                                 { ReorderGameObjects(scene, draggedGameObjects, nullptr, targetIndex); }
+                             ); });
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -577,13 +577,12 @@ void GameEditor::SceneTree(
 
         GameObject* parent = go->GetParent();
         endEvents.Register([&scene, draggedGameObjects, parent, targetIndex]()
-                           {
-            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
-                "Reorder GameObject",
-                GetReparentUndoTargets(draggedGameObjects),
-                [&scene, draggedGameObjects, parent, targetIndex]()
-                { ReorderGameObjects(scene, draggedGameObjects, parent, targetIndex); }
-            ); });
+                           { EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                                 "Reorder GameObject",
+                                 GetReparentUndoTargets(draggedGameObjects),
+                                 [&scene, draggedGameObjects, parent, targetIndex]()
+                                 { ReorderGameObjects(scene, draggedGameObjects, parent, targetIndex); }
+                             ); });
     };
 
     if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO, aboveDropRect))
@@ -607,19 +606,20 @@ void GameEditor::SceneTree(
         acceptedGameObjectDrop = true;
         std::vector<GameObject*> draggedGameObjects = ResolveDraggedGameObjects(static_cast<GameObject*>(dropGO));
         endEvents.Register([go, draggedGameObjects]()
-                           {
-            EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
-                "Reparent GameObject",
-                GetReparentUndoTargets(draggedGameObjects),
-                [go, draggedGameObjects]()
-                {
-                    for (GameObject* gameObject : draggedGameObjects) {
-                        if (gameObject != go && !IsAncestorOf(gameObject, go)) {
-                            gameObject->SetParent(go);
-                        }
-                    }
-                }
-            ); });
+                           { EditorState::GetUndoManager().CaptureGameObjectHierarchyChange(
+                                 "Reparent GameObject",
+                                 GetReparentUndoTargets(draggedGameObjects),
+                                 [go, draggedGameObjects]()
+                                 {
+                                     for (GameObject* gameObject : draggedGameObjects)
+                                     {
+                                         if (gameObject != go && !IsAncestorOf(gameObject, go))
+                                         {
+                                             gameObject->SetParent(go);
+                                         }
+                                     }
+                                 }
+                             ); });
     }
 
     if (itemHovered)

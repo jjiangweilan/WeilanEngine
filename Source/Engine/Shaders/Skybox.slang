@@ -88,6 +88,7 @@ float4 Frag(VertexOutput input) : SV_Target
     float3 skyHorizonColor = float3(0.418, 0.394, 0.372);
     float3 skySunColor = float3(1.0, 0.7, 0.4);
     float3 skySunCoreColor = float3(1.0, 0.8, 0.6);
+    float lightIntensity = 1.0;
 
     if (hasSun)
     {
@@ -98,7 +99,8 @@ float4 Frag(VertexOutput input) : SV_Target
         skyHorizonColor = light.skyHorizonColor.xyz;
         skySunColor = light.skySunColor.xyz;
         skySunCoreColor = light.skySunCoreColor.xyz;
+        lightIntensity = light.intensity;
     }
 
-    return float4(Sky(0, normalize(input.positionOS.xyz), lightDir, hasSun, skyColor, skyHorizonFalloffColor, skyHorizonColor, skySunColor, skySunCoreColor) * 15, 0.0);
+    return float4(Sky(0, normalize(input.positionOS.xyz), lightDir, hasSun, skyColor, skyHorizonFalloffColor, skyHorizonColor, skySunColor, skySunCoreColor) * lightIntensity, 0.0);
 }

@@ -1,6 +1,7 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
 
+#define WEIGHT_TRANSPARENT_PIXEL 1
 #define SOURCE_IN_GAMMA_SPACE 1
 #define FXAA_GATHER4_ALPHA 0
 #define FxaaTexOff(t, p, o, r) t.Sample(perMaterial.sampler_linear_clamp, p + (o * r))
@@ -31,7 +32,13 @@ float FxaaLuma(float4 rgb)
 #if SOURCE_IN_GAMMA_SPACE == 0
     rgb = pow(rgb, float4(2.2f));
 #endif
-    return rgb.y * (0.587/0.299) + rgb.x; 
+
+#if WEIGHT_TRANSPARENT_PIXEL
+    // multiply with the alpha improve the situation but doesn't solve it. Better solution is needed
+    return rgb.a * (rgb.y * (0.587/0.299) + rgb.x); 
+#else
+    return (rgb.y * (0.587/0.299) + rgb.x); 
+#endif
 }
 
 // FXAA by TIMOTHY LOTTES
