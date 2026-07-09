@@ -32,6 +32,7 @@ public:
 
     void Show(bool& isOpen);
     const char* GetWindowName() { return "Asset Browser"; }
+    void PinAsset(const AssetPath& path);
 
 private:
     enum class Mode

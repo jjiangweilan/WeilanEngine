@@ -81,6 +81,7 @@ public:
                     auto temp = savePath.ToFilesystemPath();
                     savePath = temp.filename().replace_extension(".mat");
                 }
+                savePath = modelPath.GetParentPath() / AssetPath(savePath.GetFileName());
                 db->SaveAsset(std::move(copy), savePath);
             }
 

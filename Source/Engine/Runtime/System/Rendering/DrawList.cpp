@@ -166,6 +166,16 @@ void DrawList::Sort(const glm::vec3& cameraPos)
     );
     this->alphaTestIndex = std::distance(sorted.begin(), alphaTestIter);
     this->opaqueIndex = 0;
+
+    std::sort(
+        sorted.begin() + this->transparentIndex,
+        sorted.end(),
+        [&cameraPos, this](int left, int right)
+        {
+            return glm::distance2(cameraPos, glm::vec3(this->at(left).model[3])) >
+                   glm::distance2(cameraPos, glm::vec3(this->at(right).model[3]));
+        }
+    );
 }
 
 void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
@@ -181,7 +191,7 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->transparentIndex = this->size();
 }
 
-void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride) const
+void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride, bool bindMeshVertexBuffers) const
 {
     for (int i = from; i < to; ++i)
     {
@@ -211,7 +221,16 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
 
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(shaderProgram, (void*)&ps);
-            cmd.Draw(draw.indexCount, 1, 0, 0);
+            if (bindMeshVertexBuffers)
+            {
+                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+            }
+            else
+            {
+                cmd.Draw(draw.indexCount, 1, 0, 0);
+            }
         }
     }
 }

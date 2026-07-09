@@ -8,6 +8,7 @@
 #include "Editor/FileIcons.hpp"
 #include "Editor/GameEditor.hpp"
 #include "Editor/Windows/CursorAtlasEditorWindow.hpp"
+#include "Engine/Library/Platform/FileExplore.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/WeilanEngine.hpp"
 #include "Engine/Library/Utils.hpp"
@@ -46,6 +47,18 @@ AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     : engine(engine), gameEditor(gameEditor), currentDragDropAssetFileDepth(0)
 {
     currentDirectory = engine->GetProjectAssetPath();
+}
+
+void AssetBrowser::PinAsset(const AssetPath& path)
+{
+    if (path.empty() || path.IsInternal())
+        return;
+
+    std::filesystem::path absolutePath = path.ToAbsolutePath();
+    currentDirectory = absolutePath.parent_path();
+    lastSelectedPath = path;
+    searchQuery.clear();
+    searchSelectedPath.clear();
 }
 
 void AssetBrowser::Show(bool& isOpen)
@@ -448,6 +461,11 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         if (ImGui::MenuItem("Create Folder"))
         {
             AssetDatabase::Singleton()->CreateFolderAtPath(path);
+        }
+
+        if (ImGui::MenuItem("Open System Directory"))
+        {
+            Platform::FileExplore::OpenFolder(path);
         }
 
         if (ImGui::BeginMenu("Create"))

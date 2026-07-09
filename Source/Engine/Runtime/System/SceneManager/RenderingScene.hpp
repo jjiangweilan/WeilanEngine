@@ -116,6 +116,23 @@ public:
 
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
 
+    void AddForwardRenderer(MeshRenderer& renderingObject)
+    {
+        forwardMeshRenderers.push_back(&renderingObject);
+    }
+
+    void RemoveForwardRenderer(MeshRenderer& renderingObject)
+    {
+        auto iter = std::find(forwardMeshRenderers.begin(), forwardMeshRenderers.end(), &renderingObject);
+        if (iter != forwardMeshRenderers.end())
+        {
+            std::swap(*iter, forwardMeshRenderers.back());
+            forwardMeshRenderers.pop_back();
+        }
+    }
+
+    std::span<MeshRenderer*> GetForwardMeshRenderers() { return forwardMeshRenderers; }
+
     // GPU-Driven object list
     void AddGPUObjectRenderer(MeshRenderer& renderer)
     {
@@ -180,6 +197,7 @@ private:
 
     std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;
+    std::vector<MeshRenderer*> forwardMeshRenderers;
     std::vector<MeshRenderer*> gpuObjectRenderers;
     std::vector<GrassSurface*> grassSurfaces;
     std::vector<Cloud*> clouds;

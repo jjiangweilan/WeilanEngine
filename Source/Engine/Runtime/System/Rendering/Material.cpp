@@ -57,16 +57,37 @@ Material::~Material()
 
 void Material::Copy(const Material& src)
 {
+    SetName(src.GetName());
     ubo = src.ubo;
     shaderName = src.shaderName;
     shaderFeatures = src.shaderFeatures;
     shaderInUse = src.shaderInUse;
     shaderConfig = src.shaderConfig;
     overrideShaderConfig = src.overrideShaderConfig;
+    targetDescriptorSet = src.targetDescriptorSet;
     textureValues = src.textureValues;
+    textureSamplerIndices = src.textureSamplerIndices;
     textureImageViewOptions = src.textureImageViewOptions;
     bufferValues = src.bufferValues;
     enabledFeatures = src.enabledFeatures;
+
+    if (shaderResource)
+    {
+        shaderResource->Clear();
+        for (auto& [name, texture] : textureValues)
+        {
+            if (texture != nullptr)
+            {
+                auto optionIter = textureImageViewOptions.find(name);
+                SetTextureInternal(name, texture, optionIter != textureImageViewOptions.end() ? optionIter->second : std::nullopt);
+            }
+        }
+        for (auto& [name, buffer] : bufferValues)
+        {
+            if (buffer != nullptr)
+                shaderResource->SetBuffer(name, buffer);
+        }
+    }
 
     uploadNeeded = true;
     needRequestNewShader = src.needRequestNewShader;
@@ -358,8 +379,7 @@ void Material::Serialize(Serializer* s) const
 
 std::unique_ptr<Asset> Material::Clone()
 {
-    return nullptr;
-    // return std::unique_ptr<Material>(new Material(*this));
+    return std::make_unique<Material>(*this);
 }
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
@@ -529,22 +549,33 @@ void Material::WriteParameterDataToBuffer(
 
     if (bufferDataDescription.IsVector())
     {
-        ASSERT(bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Float);
-        {
-            auto iter = ubo.vectors.find(bufferDataDescription.name);
-            if (iter != ubo.vectors.end())
-            {
-                if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)
-                {
-                    ASSERT(offset + sizeof(glm::vec4) <= bufSize);
-                    *((glm::vec4*)(buf + offset)) = iter->second;
-                }
-                else if (bufferDataDescription.rowCount == 2)
-                {
-                    ASSERT(offset + sizeof(glm::vec2) <= bufSize);
-                    *((glm::vec2*)(buf + offset)) = glm::vec2(iter->second);
-                }
+        #define COPY_TO_BUFFER(type) \
+            auto iter = ubo.vectors.find(bufferDataDescription.name);\
+            if (iter != ubo.vectors.end())\
+            {\
+                if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)\
+                {\
+                    ASSERT(offset + sizeof(glm::##type##4) <= bufSize);\
+                    *((glm::##type##4*)(buf + offset)) = iter->second;\
+                }\
+                else if (bufferDataDescription.rowCount == 2)\
+                {\
+                    ASSERT(offset + sizeof(glm::##type##2) <= bufSize);\
+                    *((glm::##type##2*)(buf + offset)) = glm::##type##2(iter->second);\
+                }\
             }
+
+        if(bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
+        {
+            COPY_TO_BUFFER(vec)
+        }
+        else if (bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Int)
+        {
+            COPY_TO_BUFFER(ivec)
+        }
+        else if (bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::UInt)
+        {
+            COPY_TO_BUFFER(uvec)
         }
     }
     else if (bufferDataDescription.IsMatrix())

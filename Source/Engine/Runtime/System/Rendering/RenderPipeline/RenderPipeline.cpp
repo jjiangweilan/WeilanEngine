@@ -96,21 +96,37 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     auto& renderingScene = scene.GetRenderingScene();
 
     ENGINE_BEGIN_PROFILE("Bulid Scene Draw List");
-    DrawList sceneDrawList{};
+    DrawList deferredDrawList{};
+    DrawList forwardDrawList{};
     if (setting->frustumCull)
     {
         auto renderers = scene.GetBVHScene().QueryMeshRenderersInFrustum(renderingData.cameraFrustum);
-        sceneDrawList.Add(renderers);
+        std::vector<MeshRenderer*> deferredRenderers;
+        std::vector<MeshRenderer*> forwardRenderers;
+        deferredRenderers.reserve(renderers.size());
+        forwardRenderers.reserve(renderers.size());
+        for (auto* renderer : renderers)
+        {
+            if (renderer->IsForwardRenderer())
+                forwardRenderers.push_back(renderer);
+            else
+                deferredRenderers.push_back(renderer);
+        }
+        deferredDrawList.Add(deferredRenderers);
+        forwardDrawList.Add(forwardRenderers);
     }
     else
     {
-        sceneDrawList.Add(renderingScene.GetMeshRenderers());
+        deferredDrawList.Add(renderingScene.GetMeshRenderers());
+        forwardDrawList.Add(renderingScene.GetForwardMeshRenderers());
     }
 
-    sceneDrawList.Lock();
+    deferredDrawList.Lock();
+    forwardDrawList.Lock();
 
     ENGINE_BEGIN_PROFILE("Sort");
-    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
+    deferredDrawList.Sort(camera.GetGameObject()->GetPosition());
+    forwardDrawList.Sort(camera.GetGameObject()->GetPosition());
     ENGINE_END_PROFILE; // Sort
 
     ENGINE_END_PROFILE; // Bulid Scene Draw List
@@ -195,8 +211,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         DrawGPUObjects(*cmd, polygonMode, stencilOverride);
 
         // Fallback: normal draw for non-GPU objects
-        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex, polygonMode, stencilOverride);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex, polygonMode, stencilOverride);
+        deferredDrawList.DrawRangeHelper(*cmd, 0, deferredDrawList.alphaTestIndex, polygonMode, stencilOverride);
+        deferredDrawList.DrawRangeHelper(*cmd, deferredDrawList.alphaTestIndex, deferredDrawList.transparentIndex, polygonMode, stencilOverride);
 
         // Grass surfaces write stencil bit 2
         cmd->BindResource(0, perScene.GetGlobalResource());
@@ -418,6 +434,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
 
+        std::optional<Gfx::PolygonMode> forwardPolygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
+        forwardDrawList.DrawRangeHelper(*cmd, 0, forwardDrawList.alphaTestIndex, forwardPolygonMode, std::nullopt, true);
+        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.alphaTestIndex, forwardDrawList.transparentIndex, forwardPolygonMode, std::nullopt, true);
+
         if (renderConfig.drawGraphics)
         {
             cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
@@ -439,7 +459,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // draw objects
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPassAttachments, clears);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size(), setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt);
+        deferredDrawList.DrawRangeHelper(*cmd, deferredDrawList.transparentIndex, deferredDrawList.size(), forwardPolygonMode);
+        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.transparentIndex, forwardDrawList.size(), forwardPolygonMode, std::nullopt, true);
 
         cmd->EndLabel(); // Forward Objects
 
@@ -484,7 +505,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     if (setting->postProcess.colorGrading)
     {
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize, (uint32_t)setting->postProcess.tonemapMode);
+        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize, setting->postProcess, renderingData);
         finalColor = colorGradingPass->GetOutputId();
         cmd->EndLabel(); // Color Grading
     }
@@ -713,6 +734,7 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
             sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
             sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLinearLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
+            sceneParam.lights[i].skyboxIntensity = lights[i]->GetSkyboxIntensity();
             sceneParam.lights[i].skyColor = glm::vec4(lights[i]->GetSkyColor(), 1.0);
             sceneParam.lights[i].skyHorizonFalloffColor = glm::vec4(lights[i]->GetSkyHorizonFalloffColor(), 1.0);
             sceneParam.lights[i].skyHorizonColor = glm::vec4(lights[i]->GetSkyHorizonColor(), 1.0);
@@ -881,7 +903,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     // 1. Gather all draw commands into a flat array using direct material indexing
     for (auto* renderer : gpuRenderers)
     {
-        if (!renderer || !renderer->IsActiveInScene())
+        if (!renderer || !renderer->IsActiveInScene() || renderer->IsForwardRenderer())
             continue;
 
         uint32_t previousSkeletonOffset = renderer->UploadGPUDrivenFrameData(cmd);
@@ -976,7 +998,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
 
     for (auto* renderer : gpuRenderers)
     {
-        if (renderer && renderer->IsActiveInScene())
+        if (renderer && renderer->IsActiveInScene() && !renderer->IsForwardRenderer())
             renderer->CommitMotionState();
     }
 

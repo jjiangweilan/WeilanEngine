@@ -83,6 +83,8 @@ public:
 
     void EnableRayTracing(bool enabled);
     bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
+    void SetForwardRenderer(bool enabled);
+    bool IsForwardRenderer() const { return isForwardRenderer; }
     MotionState* FlushMotionState();
     void CommitMotionState();
     bool HasMotionState() const { return motionState != nullptr; }
@@ -128,6 +130,7 @@ private:
     bool wantsToEnableSkinning = false;
     bool isRayTracingEnabled = true;
     bool isGPUObject = true;
+    bool isForwardRenderer = false;
 
     /**** Runtime Data *******/
     bool isRayTracingInitialized = false;
@@ -164,6 +167,8 @@ private:
     void RemoveFromBVHScene();
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
+    void AddToForwardRenderingScene();
+    void RemoveFromForwardRenderingScene();
     void UpdateAABB();
     void CheckSkeleton();
 

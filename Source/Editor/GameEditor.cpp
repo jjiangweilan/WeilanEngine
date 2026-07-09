@@ -76,6 +76,22 @@ static bool InspectorManagesOwnUndo(Object* object)
     return dynamic_cast<GameObject*>(object) != nullptr;
 }
 
+static AssetPath GetInspectorAssetPath(InspectorBase* inspector)
+{
+    if (inspector == nullptr)
+        return {};
+
+    Asset* asset = dynamic_cast<Asset*>(inspector->GetTarget());
+    if (asset == nullptr)
+        return {};
+
+    const AssetPath& path = AssetDatabase::Singleton()->GetAssetPath(asset->GetUUID());
+    if (path.empty() || path.IsInternal())
+        return {};
+
+    return path;
+}
+
 static void DrawInspectorWindowMenuBar(GameEditor& editor, InspectorBase* inspector)
 {
     if (!ImGui::BeginMenuBar())
@@ -84,6 +100,12 @@ static void DrawInspectorWindowMenuBar(GameEditor& editor, InspectorBase* inspec
     if (ImGui::MenuItem("Back", nullptr, false, EditorState::CanSelectPreviousObject()))
     {
         EditorState::SelectPreviousObject();
+    }
+
+    AssetPath assetPath = GetInspectorAssetPath(inspector);
+    if (ImGui::MenuItem("Pin in Browser", nullptr, false, !assetPath.empty()))
+    {
+        editor.PinAssetInBrowser(assetPath);
     }
 
     if (inspector != nullptr)
@@ -864,6 +886,12 @@ void GameEditor::DrawInspectorWithUndo(Object* object, InspectorBase* inspector)
         TrackInspectorUndoTarget(undoManager, object);
 
     inspector->DrawInspector(*this);
+}
+
+void GameEditor::PinAssetInBrowser(const AssetPath& path)
+{
+    assetBrowser->PinAsset(path);
+    assetWindow = true;
 }
 
 void GameEditor::ShowInspectorWindow()

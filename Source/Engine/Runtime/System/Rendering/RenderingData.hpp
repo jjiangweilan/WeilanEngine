@@ -22,8 +22,9 @@ struct LightInfo
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
+    float skyboxIntensity;
 
-    float p0, p1, p2; // padding
+    float p0, p1; // padding
     glm::vec4 skyColor;
     glm::vec4 skyHorizonFalloffColor;
     glm::vec4 skyHorizonColor;

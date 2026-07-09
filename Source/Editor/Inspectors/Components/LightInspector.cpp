@@ -16,6 +16,7 @@ public:
         glm::vec3 lightColor = light->GetLightColor();
         float intensity = light->GetIntensity();
         float ambientScale = light->GetAmbientScale();
+        float skyboxIntensity = light->GetSkyboxIntensity();
         int lightType = static_cast<int>(light->GetLightType());
         float shadowDistance = light->GetShadowDistance();
         const char* lightTypes[] = {"Directional", "Point"};
@@ -62,6 +63,11 @@ public:
         if (light->GetLightType() == LightType::Directional)
         {
             EditorGUI::SeparatorTextLabeled("Sky");
+
+            if (EditorGUI::DragFloat("Skybox Intensity", &skyboxIntensity))
+            {
+                light->SetSkyboxIntensity(skyboxIntensity);
+            }
 
             glm::vec3 skyColor = light->GetSkyColor();
             if (ImGui::ColorEdit3("Sky Color", &skyColor[0]))

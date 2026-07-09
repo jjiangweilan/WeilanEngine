@@ -2,6 +2,7 @@
 #include "Engine/Driver/GfxDriver/CommandBuffer.hpp"
 #include "Engine/Driver/GfxDriver/RenderGraph.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
+#include "Engine/Runtime/System/Rendering/PipelineGPUBuffer.hpp"
 #include "Engine/Runtime/System/Rendering/RenderPipeline/RenderPipelinePass.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"
 
@@ -18,7 +19,8 @@ public:
         Gfx::CommandBuffer& cmd,
         Gfx::Image* mainColorInput,
         const glm::float2& rtSize,
-        uint32_t tonemapMode
+        const RenderPipelineSetting::PostProcess& settings,
+        const RenderingData& renderingData
     );
 
     const Gfx::ImageIdentifier& GetOutputId() const { return colorGradingId; }
@@ -26,8 +28,10 @@ public:
     void OnInit(RenderingData* renderingData) override;
 
 private:
-    struct PushConstants {
-        uint32_t tonemapMode;
+    struct ColorGradingInput
+    {
+        glm::uvec4 flags;
+        glm::vec4 hsv;
     };
 
     Gfx::ImageIdentifier colorGradingId = Gfx::ImageIdentifier("Color Grading");
@@ -35,5 +39,6 @@ private:
     ObjPtr<Shader> colorGradingShader;
     Material mat;
     ObjPtr<Texture> tonyMcMapfaceLUT;
+    PipelineGPUBuffer colorGradingInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("ColorGrading", PipelineGPUBufferUsage::Uniform);
 };
 } // namespace Rendering::Passes

@@ -13,6 +13,7 @@ import Library.CommonUtils;
 import Library.PerScene;
 import Library.RayTracing;
 import Lighting;
+import Sky_Common;
 import Utils.Noise;
 
 // ---------------------------------------------------------------------------
@@ -43,37 +44,6 @@ float3 GetSemiSphereDirection(float3 normal, float2 uv, out float sinTheta)
     float3 bitangent = cross(normal, tangent);
 
     return tangent * (sinTheta * cos(phi)) + bitangent * (sinTheta * sin(phi)) + normal * cosTheta;
-}
-
-// ---------------------------------------------------------------------------
-// Procedural sky
-// ---------------------------------------------------------------------------
-
-/// Returns approximate sky radiance for ray direction rd.
-/// https://www.shadertoy.com/view/wslyWs
-float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
-{
-    const float SC = 1e5;
-
-    float dist = (SC - ro.y) / rd.y;
-    float2 p   = (ro + dist * rd).xz;
-    p         *= 1.2 / SC;
-
-    float3 skyCol = float3(0.3, 0.5, 0.85) - rd.y * rd.y * 0.5;
-    skyCol = lerp(skyCol, 0.85 * float3(0.7, 0.75, 0.85), pow(1.0 - max(rd.y, 0.0), 4.0));
-
-    if (hasSun)
-    {
-        float sundot  = clamp(dot(rd, lightDir), 0.0, 1.0);
-        float3 sun    = 0.25 * float3(1.0, 0.7, 0.4) * pow(sundot, 5.0);
-        sun          += 0.25 * float3(1.0, 0.8, 0.6) * pow(sundot, 64.0);
-        sun          += 0.2  * float3(1.0, 0.8, 0.6) * pow(sundot, 512.0);
-        skyCol       += sun;
-    }
-
-    skyCol = lerp(skyCol, 0.68 * float3(0.418, 0.394, 0.372), pow(1.0 - max(rd.y, 0.0), 16.0));
-
-    return skyCol * 0.45;
 }
 
 // ---------------------------------------------------------------------------
@@ -213,8 +183,19 @@ float3 IndirectRayHitLight(
     }
     else
     {
+        bool hasSun = scene.scene.lightCount > 0;
         Light mainLight = scene.GetMainLight();
-        return Sky(rayOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * 20;
+        return Sky(
+            rayOrigin,
+            rayDir,
+            hasSun ? mainLight.position.xyz : float3(0.0, 1.0, 0.0),
+            hasSun,
+            hasSun ? mainLight.skyColor.xyz : float3(0.3, 0.5, 0.85),
+            hasSun ? mainLight.skyHorizonFalloffColor.xyz : float3(0.7, 0.75, 0.85),
+            hasSun ? mainLight.skyHorizonColor.xyz : float3(0.418, 0.394, 0.372),
+            hasSun ? mainLight.skySunColor.xyz : float3(1.0, 0.7, 0.4),
+            hasSun ? mainLight.skySunCoreColor.xyz : float3(1.0, 0.8, 0.6)
+        ) * (hasSun ? mainLight.skyboxIntensity : 1.0) * 20;
     }
 }
 

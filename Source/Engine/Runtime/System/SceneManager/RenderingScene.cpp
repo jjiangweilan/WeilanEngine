@@ -54,6 +54,7 @@ void RenderingScene::ResetRuntimeState()
     renderingObjects.Clear();
     particleSystems.clear();
     meshRenderers.clear();
+    forwardMeshRenderers.clear();
     gpuObjectRenderers.clear();
     grassSurfaces.clear();
     clouds.clear();
@@ -77,6 +78,11 @@ void RenderingScene::Tick()
     }
 
     for (auto m : gpuObjectRenderers)
+    {
+        m->UpdateSkinning();
+    }
+
+    for (auto m : forwardMeshRenderers)
     {
         m->UpdateSkinning();
     }

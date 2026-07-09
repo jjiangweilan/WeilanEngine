@@ -27,6 +27,7 @@ class Light : public Component
     glm::vec4 skyHorizonColor = glm::vec4(0.418f, 0.394f, 0.372f, 1.0f);
     glm::vec4 skySunColor = glm::vec4(1.0f, 0.7f, 0.4f, 1.0f);
     glm::vec4 skySunCoreColor = glm::vec4(1.0f, 0.8f, 0.6f, 1.0f);
+    float skyboxIntensity = 1.0f;
     float ambientScale = 1.0f;
     float range = 10.0f; // valid when it's a point light
     float intensity = 1.0f;
@@ -75,10 +76,12 @@ public:
     glm::vec3 GetSkyHorizonColor() const { return skyHorizonColor; }
     glm::vec3 GetSkySunColor() const { return skySunColor; }
     glm::vec3 GetSkySunCoreColor() const { return skySunCoreColor; }
+    float GetSkyboxIntensity() const { return skyboxIntensity; }
 
     float GetAmbientScale() const { return ambientScale; }
 
     void SetAmbientScale(float scale) { this->ambientScale = scale; }
+    void SetSkyboxIntensity(float intensity) { skyboxIntensity = intensity; }
 
     void SetLightColor(glm::vec3 lightColor)
     {

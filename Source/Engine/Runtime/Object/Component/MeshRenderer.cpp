@@ -18,7 +18,8 @@ MeshRenderer::MeshRenderer() : Component(nullptr), meshes(), materials() {};
 TYPE_REFLECTION_MEMBER_VARIABLES(
     MeshRenderer,
     TYPE_REFLECTION_MEM(MeshRenderer, meshes),
-    TYPE_REFLECTION_MEM(MeshRenderer, materials)
+    TYPE_REFLECTION_MEM(MeshRenderer, materials),
+    TYPE_REFLECTION_MEM(MeshRenderer, isForwardRenderer)
 );
 
 DEFINE_SERIALIZATION(
@@ -30,7 +31,8 @@ DEFINE_SERIALIZATION(
     SER(aabbMax, aabb.max),
     SER(wantsToEnableSkinning),
     // SER(isRayTracingEnabled),
-    SER(isGPUObject)
+    SER(isGPUObject),
+    SER(isForwardRenderer)
 );
 
 void MeshRenderer::SetMesh(Mesh* mesh)
@@ -141,6 +143,11 @@ std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
 
     clone->meshes = meshes;
     clone->materials = materials;
+    clone->multipass = multipass;
+    clone->wantsToEnableSkinning = wantsToEnableSkinning;
+    clone->isRayTracingEnabled = isRayTracingEnabled;
+    clone->isGPUObject = isGPUObject;
+    clone->isForwardRenderer = isForwardRenderer;
 
     if (IsEnabled())
     {
@@ -203,11 +210,35 @@ void MeshRenderer::RemoveFromRenderingScene()
     }
 }
 
+void MeshRenderer::AddToForwardRenderingScene()
+{
+    Scene* scene = GetScene();
+
+    if (scene)
+    {
+        auto renderingScene = &scene->GetRenderingScene();
+        renderingScene->AddForwardRenderer(*this);
+    }
+}
+
+void MeshRenderer::RemoveFromForwardRenderingScene()
+{
+    Scene* scene = GetScene();
+
+    if (scene)
+    {
+        auto renderingScene = &scene->GetRenderingScene();
+        renderingScene->RemoveForwardRenderer(*this);
+    }
+}
+
 void MeshRenderer::OnEnable()
 {
     AddToBVHScene();
 
-    if (isGPUObject)
+    if (isForwardRenderer)
+        AddToForwardRenderingScene();
+    else if (isGPUObject)
         RegisterGPUSceneObjects();
     else
         AddToRenderingScene();
@@ -219,7 +250,9 @@ void MeshRenderer::OnDisable()
 {
     RemoveFromBVHScene();
 
-    if (isGPUObject)
+    if (isForwardRenderer)
+        RemoveFromForwardRenderingScene();
+    else if (isGPUObject)
         UnregisterGPUSceneObjects();
     else
         RemoveFromRenderingScene();
@@ -515,6 +548,9 @@ void MeshRenderer::SetGPUObject(bool enabled)
 
     isGPUObject = enabled;
 
+    if (isForwardRenderer)
+        return;
+
     if (IsEnabled())
     {
         if (isGPUObject)
@@ -530,11 +566,51 @@ void MeshRenderer::SetGPUObject(bool enabled)
     }
 }
 
+void MeshRenderer::SetForwardRenderer(bool enabled)
+{
+    if (isForwardRenderer == enabled)
+        return;
+
+    if (IsEnabled())
+    {
+        if (isForwardRenderer)
+        {
+            RemoveFromForwardRenderingScene();
+        }
+        else if (isGPUObject)
+        {
+            UnregisterGPUSceneObjects();
+        }
+        else
+        {
+            RemoveFromRenderingScene();
+        }
+    }
+
+    isForwardRenderer = enabled;
+
+    if (IsEnabled())
+    {
+        if (isForwardRenderer)
+        {
+            AddToForwardRenderingScene();
+        }
+        else if (isGPUObject)
+        {
+            RegisterGPUSceneObjects();
+        }
+        else
+        {
+            AddToRenderingScene();
+        }
+    }
+}
+
 void MeshRenderer::RegisterGPUSceneObjects()
 {
     ValidateSkinning();
 
-    if (gpuObjectRegistered || meshes.empty() || materials.empty())
+    if (isForwardRenderer || gpuObjectRegistered || meshes.empty() || materials.empty())
         return;
 
     gpuGeometries.clear();

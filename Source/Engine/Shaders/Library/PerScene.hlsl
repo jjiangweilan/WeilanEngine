@@ -11,6 +11,7 @@ struct Light
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
+    float skyboxIntensity;
     float4 skyColor;
     float4 skyHorizonFalloffColor;
     float4 skyHorizonColor;
@@ -132,6 +133,7 @@ Light GetMainLight()
     l.range = 0;
     l.pointLightTerm1 = 0;
     l.pointLightTerm2 = 0;
+    l.skyboxIntensity = 0;
     return l;
 }
 

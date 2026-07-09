@@ -14,6 +14,7 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(Light, skyHorizonColor),
     TYPE_REFLECTION_MEM(Light, skySunColor),
     TYPE_REFLECTION_MEM(Light, skySunCoreColor),
+    TYPE_REFLECTION_MEM(Light, skyboxIntensity),
     TYPE_REFLECTION_MEM(Light, range),
     TYPE_REFLECTION_MEM(Light, intensity),
     TYPE_REFLECTION_MEM(Light, pointLightTerm1),
@@ -76,6 +77,7 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("skyHorizonColor", skyHorizonColor);
     s->Serialize("skySunColor", skySunColor);
     s->Serialize("skySunCoreColor", skySunCoreColor);
+    s->Serialize("skyboxIntensity", skyboxIntensity);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
     s->Serialize("pointLightTerm1", pointLightTerm1);
@@ -104,6 +106,7 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("skyHorizonColor", skyHorizonColor);
     s->Deserialize("skySunColor", skySunColor);
     s->Deserialize("skySunCoreColor", skySunCoreColor);
+    s->Deserialize("skyboxIntensity", skyboxIntensity);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
     s->Deserialize("pointLightTerm1", pointLightTerm1);
@@ -146,6 +149,7 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
     clone->skyHorizonColor = skyHorizonColor;
     clone->skySunColor = skySunColor;
     clone->skySunCoreColor = skySunCoreColor;
+    clone->skyboxIntensity = skyboxIntensity;
 
     return clone;
 }

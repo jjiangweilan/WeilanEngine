@@ -8,58 +8,59 @@
 #include <string>
 #include <unordered_map>
 
-#define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),             \
-                         Do(PlaneGrid, "PlaneGrid"),                                                          \
-                         Do(ImGui, "ImGui"), Do(RmlUi, "RmlUi"), Do(LineShader, "LineShader"),             \
-                         Do(TriangleShader, "TriangleShader"),                                               \
-                         Do(JoltDebugShader, "Specific/JoltDebugShader"),                                    \
-                         Do(PostProcess_OutlineFullScreenPass, "PostProcess/Outline/OutlineFullScreenPass"), \
-                         Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),     \
-                         Do(PostProcess_SSAO, "PostProcess/SSAO"),                                           \
-Do(PostProcess_SSIL, "PostProcess/SSIL"),                                           \
-                          Do(PostProcess_SSILGeometry, "PostProcess/SSILGeometry"),                               \
-                          Do(PostProcess_SSILSmoothNormal, "PostProcess/SSILSmoothNormal"),                         \
-                          Do(PostProcess_SSILBilateralFilter, "PostProcess/SSILBilateralFilter"),               \
-                          Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),   \
-                         Do(PostProcess_RTGI, "PostProcess/RTGI"),                                           \
-                         Do(LightingCombine, "LightingCombine"),                                             \
-                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                         \
-                          Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),               \
-                          Do(PostProcess_DynamicMotionVector, "PostProcess/DynamicMotionVector"),             \
-                          Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                     \
-                         Do(PostProcess_HierarchyZBuffer_Downsample, "HierarchyZBuffer_Downsample"),         \
-                         Do(ShadowMapObject, "ShadowMapObject"),                                             \
-                         Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                               \
-                         Do(PointLightShadowMapObject, "PointLightShadowMapObject"),                         \
-                         Do(ScreenSpaceShadow, "ScreenSpaceShadow"), Do(FXAA, "FXAA"),                       \
-                         Do(PrimitiveShape, "PrimitiveShape"),                                               \
-                         Do(SimpleForwardLit, "SimpleForwardLit"),                                           \
-                         Do(SimpleColor, "SimpleColor"), Do(Skybox, "Skybox"),                               \
-                         Do(ColorGrading, "ColorGrading"),                                                   \
-                         Do(InterleavedGradientNoise, "InterleavedGradientNoise"),                           \
-                         Do(BlueNoise, "BlueNoise"),                                                         \
-                         Do(Particle, "Particles/Particle"), Do(Blit, "Blit"),                               \
-                         Do(BilateralUpScale, "BilateralUpScale"),                                           \
-                         Do(DepthDownSampler, "DepthDownSampler"),                                           \
-                         Do(ContactShadow, "ContactShadow/ContactShadow"),                                   \
-                         Do(Ocean, "Ocean"),                                                                 \
-                         Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),                     \
-                         Do(FidelityFX_SPD, "ffx_spd"),                                                      \
-                         Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                 \
-                         Do(DepthBasedFog, "DepthBasedFog"),                                                 \
-                         Do(OceanPatchShader, "OceanPatchShader"),                                           \
-                         Do(RayTracingTest, "RayTracingTest"),                                               \
-                         Do(GI_RayGen, "GI/GI_RayGen"),                                                      \
-                         Do(GI_ProbePack, "GI/GI_ProbePack"),                                                \
-                         Do(GI_Disocclusion, "GI/GI_Disocclusion"),                                          \
-                         Do(GI_GI, "GI/GI"),                                                                 \
-                         Do(GI_HistoryFix, "GI/GI_HistoryFix"),                                              \
-                         Do(GI_Blur, "GI/GI_Blur"),                                                          \
-                         Do(GI_PostBlur, "GI/GI_PostBlur"),                                                  \
-                         Do(GI_Resolve, "GI/GI_Resolve"),                                                    \
-                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                                 \
-                         Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),                                     \
-                          Do(Grass, "Grass"), Do(Grass_MotionVector, "Grass_MotionVector"), Do(GrassLighting, "GrassLighting"),
+#define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),                               \
+                         Do(PlaneGrid, "PlaneGrid"),                                                                           \
+                         Do(ImGui, "ImGui"), Do(RmlUi, "RmlUi"), Do(LineShader, "LineShader"),                                 \
+                         Do(TriangleShader, "TriangleShader"),                                                                 \
+                         Do(JoltDebugShader, "Specific/JoltDebugShader"),                                                      \
+                         Do(PostProcess_OutlineFullScreenPass, "PostProcess/Outline/OutlineFullScreenPass"),                   \
+                         Do(PostProcess_OutlineRawColorPass, "PostProcess/Outline/OutlineRawColorPass"),                       \
+                         Do(PostProcess_SSAO, "PostProcess/SSAO"),                                                             \
+                         Do(PostProcess_SSIL, "PostProcess/SSIL"),                                                             \
+                         Do(PostProcess_SSILGeometry, "PostProcess/SSILGeometry"),                                             \
+                         Do(PostProcess_SSILSmoothNormal, "PostProcess/SSILSmoothNormal"),                                     \
+                         Do(PostProcess_SSILBilateralFilter, "PostProcess/SSILBilateralFilter"),                               \
+                         Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),                     \
+                         Do(PostProcess_RTGI, "PostProcess/RTGI"),                                                             \
+                         Do(LightingCombine, "LightingCombine"),                                                               \
+                         Do(PostProcess_Bloom, "PostProcess/Bloom"),                                                           \
+                         Do(PostProcess_StaticMotionVector, "PostProcess/StaticMotionVector"),                                 \
+                         Do(PostProcess_DynamicMotionVector, "PostProcess/DynamicMotionVector"),                               \
+                         Do(PostProcess_HierarchyZBuffer_Mip0, "HierarchyZBuffer_Mip0"),                                       \
+                         Do(PostProcess_HierarchyZBuffer_Downsample, "HierarchyZBuffer_Downsample"),                           \
+                         Do(ShadowMapObject, "ShadowMapObject"),                                                               \
+                         Do(ShadowMapObjectSkinned, "ShadowMapObjectSkinned"),                                                 \
+                         Do(PointLightShadowMapObject, "PointLightShadowMapObject"),                                           \
+                         Do(ScreenSpaceShadow, "ScreenSpaceShadow"), Do(FXAA, "FXAA"),                                         \
+                         Do(PrimitiveShape, "PrimitiveShape"),                                                                 \
+                         Do(SimpleForwardLit, "SimpleForwardLit"),                                                             \
+                         Do(SimpleColor, "SimpleColor"), Do(Skybox, "Skybox"),                                                 \
+                         Do(ColorGrading, "ColorGrading"),                                                                     \
+                         Do(InterleavedGradientNoise, "InterleavedGradientNoise"),                                             \
+                         Do(BlueNoise, "BlueNoise"),                                                                           \
+                         Do(Particle, "Particles/Particle"), Do(Blit, "Blit"),                                                 \
+                         Do(BilateralUpScale, "BilateralUpScale"),                                                             \
+                         Do(DepthDownSampler, "DepthDownSampler"),                                                             \
+                         Do(ContactShadow, "ContactShadow/ContactShadow"),                                                     \
+                         Do(Ocean, "Ocean"),                                                                                   \
+                         Do(ReflectionProbeIBLGenerator, "ReflectionProbeIBLGenerator"),                                       \
+                         Do(FidelityFX_SPD, "ffx_spd"),                                                                        \
+                         Do(ReflectionProbeSkybox, "ReflectionProbeSkybox"),                                                   \
+                         Do(DepthBasedFog, "DepthBasedFog"),                                                                   \
+                         Do(OceanPatchShader, "OceanPatchShader"),                                                             \
+                         Do(RayTracingTest, "RayTracingTest"),                                                                 \
+                         Do(GI_RayGen, "GI/GI_RayGen"),                                                                        \
+                         Do(GI_ProbePack, "GI/GI_ProbePack"),                                                                  \
+                         Do(GI_Disocclusion, "GI/GI_Disocclusion"),                                                            \
+                         Do(GI_GI, "GI/GI"),                                                                                   \
+                         Do(GI_HistoryFix, "GI/GI_HistoryFix"),                                                                \
+                         Do(GI_Blur, "GI/GI_Blur"),                                                                            \
+                         Do(GI_PostBlur, "GI/GI_PostBlur"),                                                                    \
+                         Do(GI_Resolve, "GI/GI_Resolve"),                                                                      \
+                         Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                                                   \
+                         Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),                                                       \
+                         Do(Grass, "Grass"), Do(Grass_MotionVector, "Grass_MotionVector"), Do(GrassLighting, "GrassLighting"), \
+                         Do(River, "River"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y

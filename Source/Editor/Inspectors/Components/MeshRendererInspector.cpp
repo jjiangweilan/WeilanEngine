@@ -47,6 +47,12 @@ public:
             meshRenderer->EnableRayTracing(rayTracing);
         }
 
+        bool forwardRenderer = meshRenderer->IsForwardRenderer();
+        if (ImGui::Checkbox("Forward Renderer", &forwardRenderer))
+        {
+            meshRenderer->SetForwardRenderer(forwardRenderer);
+        }
+
         bool gpuObject = meshRenderer->IsActiveGPUObject();
         if (ImGui::Checkbox("GPU Object", &gpuObject))
         {

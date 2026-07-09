@@ -4,6 +4,7 @@ import Library.PerScene;
 import Library.RayTracing;
 import Lighting;
 import GI.GI_Common;
+import Sky_Common;
 
 struct GIRayGenParameter
 {
@@ -142,8 +143,19 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
             }
             else
             {
+                bool hasSun = perScene.scene.lightCount > 0;
                 Light mainLight = perScene.GetMainLight();
-                rayContribution += currentThroughput * Sky(currentOrigin, rayDir, mainLight.position.xyz, mainLight.lightColor.a > 0.0) * mainLight.intensity * 0.5;
+                rayContribution += currentThroughput * Sky(
+                    currentOrigin,
+                    rayDir,
+                    mainLight.position.xyz,
+                    hasSun,
+                    mainLight.skyColor.xyz,
+                    mainLight.skyHorizonFalloffColor.xyz,
+                    mainLight.skyHorizonColor.xyz,
+                    mainLight.skySunColor.xyz,
+                    mainLight.skySunCoreColor.xyz
+                ) * mainLight.skyboxIntensity;
                 break;
             }
         }

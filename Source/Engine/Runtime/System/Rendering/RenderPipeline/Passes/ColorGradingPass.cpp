@@ -22,7 +22,8 @@ void ColorGradingPass::Execute(
     Gfx::CommandBuffer& cmd,
     Gfx::Image* mainColorInput,
     const glm::float2& rtSize,
-    uint32_t tonemapMode
+    const RenderPipelineSetting::PostProcess& settings,
+    const RenderingData& renderingData
 )
 {
     auto shader = colorGradingShader->GetShaderProgram();
@@ -35,15 +36,20 @@ void ColorGradingPass::Execute(
     {
         mat.SetTexture("tonyMcMapfaceLUT", tonyMcMapfaceLUT->GetGfxImage());
     }
-    
+
+    ColorGradingInput input {
+        .flags = {settings.tonemapMode, settings.hueValueSaturation ? 1u : 0u, 0u, 0u},
+        .hsv = {settings.hue, settings.saturation, settings.value, 0.0f},
+    };
+    renderingData.pipelineAllocator->AllocateBuffer(colorGradingInputBuffer, sizeof(ColorGradingInput));
+    colorGradingInputBuffer.Write(&input, sizeof(ColorGradingInput));
+    mat.SetBuffer("settings", colorGradingInputBuffer.GetBuffer());
+
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd.BeginRenderPass(pass, clears);
     cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
     cmd.BindResource(0, mat.GetShaderResource());
-    
-    PushConstants pc { tonemapMode };
-    cmd.SetPushConstant(shader, &pc);
-    
+
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();
 }

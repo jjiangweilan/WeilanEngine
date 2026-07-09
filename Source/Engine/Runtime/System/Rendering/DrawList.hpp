@@ -50,7 +50,14 @@ public:
     const auto& GetSortedIndices() const { return sorted; }
     void Lock();
 
-    void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt) const;
+    void DrawRangeHelper(
+        Gfx::CommandBuffer& cmd,
+        int from,
+        int to,
+        std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt,
+        std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt,
+        bool bindMeshVertexBuffers = false
+    ) const;
 
     std::vector<int> sorted;
 };

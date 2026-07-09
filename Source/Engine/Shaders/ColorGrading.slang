@@ -1,14 +1,15 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
 
-struct PushConstants
+struct ColorGradingInput
 {
-    uint tonemapMode;
+    uint4 flags;
+    float4 hsv;
 };
-[[vk::push_constant]] ConstantBuffer<PushConstants> pc;
 
 struct PerMaterial
 {
+    ConstantBuffer<ColorGradingInput> settings;
     Sampler2D mainColor;
 #if GPU_RESOURCE
     Sampler3D tonyMcMapfaceLUT;
@@ -34,18 +35,50 @@ float3 TonyMcMapface(float3 stimulus) {
 #endif
 }
 
+float3 RGBToHSV(float3 c)
+{
+    float4 K = float4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    float4 p = c.g < c.b ? float4(c.bg, K.wz) : float4(c.gb, K.xy);
+    float4 q = c.r < p.x ? float4(p.xyw, c.r) : float4(c.r, p.yzx);
+    float d = q.x - min(q.w, q.y);
+    const float e = 1.0e-10;
+    return float3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+float3 HSVToRGB(float3 c)
+{
+    float4 K = float4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    float3 p = abs(frac(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * lerp(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+float3 ApplyHueValueSaturation(float3 color)
+{
+    if (perMaterial.settings.flags.y == 0)
+    {
+        return color;
+    }
+
+    float3 hsv = RGBToHSV(color);
+    hsv.x = frac(hsv.x + perMaterial.settings.hsv.x);
+    hsv.y = saturate(hsv.y * perMaterial.settings.hsv.y);
+    hsv.z = saturate(hsv.z * perMaterial.settings.hsv.z);
+    return HSVToRGB(hsv);
+}
+
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float4 color = perMaterial.mainColor.SampleLevel(input.uv, 0);
 
     float3 tonemapped;
-    if (pc.tonemapMode == 1) {
+    if (perMaterial.settings.flags.x == 1) {
         tonemapped = TonyMcMapface(color.xyz);
     } else {
         tonemapped = ACESFilm(color.xyz);
     }
 
+    tonemapped = ApplyHueValueSaturation(tonemapped);
+
     return float4(tonemapped, color.a);
 }
-

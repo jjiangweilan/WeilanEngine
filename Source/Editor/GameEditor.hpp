@@ -44,6 +44,7 @@ public:
     WeilanEngine* GetEngine() { return engine; }
 
     void SetActiveScene(ObjPtr<Scene> scene);
+    void PinAssetInBrowser(const AssetPath& path);
 
     std::unique_ptr<Gfx::Image> fontImage;
     nlohmann::json editorState;

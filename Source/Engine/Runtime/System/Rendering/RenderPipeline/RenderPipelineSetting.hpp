@@ -26,6 +26,10 @@ public:
     {
         bool colorGrading = true;
         uint32_t tonemapMode = (uint32_t)TonemapMode::ACES;
+        bool hueValueSaturation = false;
+        float hue = 0.0f;
+        float saturation = 1.0f;
+        float value = 1.0f;
         struct Bloom
         {
             bool enabled = true;
@@ -46,6 +50,10 @@ public:
         INLINE_DEFINE_SERIALIZABLE(
             SER(colorGrading),
             SER(tonemapMode),
+            SER(hueValueSaturation),
+            SER(hue),
+            SER(saturation),
+            SER(value),
             SER(bloom)
         );
     } postProcess;

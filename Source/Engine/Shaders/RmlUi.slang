@@ -7,8 +7,8 @@ blendOp:
 cull: none
 interleaved: true
 depth:
-    test: false
-    write: false
+    testEnable: false
+    writeEnable: false
 #endif
 
 struct Vertex

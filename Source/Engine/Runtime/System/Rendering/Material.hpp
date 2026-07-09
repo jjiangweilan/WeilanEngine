@@ -30,7 +30,7 @@ public:
     Material();
     Material(std::string_view shaderName);
     Material(ObjPtr<Shader> shader);
-    Material(const Material& src) { Copy(src); }
+    Material(const Material& src) : Material() { Copy(src); }
     Material& operator=(const Material& src)
     {
         Copy(src);
