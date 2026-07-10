@@ -555,13 +555,13 @@ void Material::WriteParameterDataToBuffer(
             {\
                 if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)\
                 {\
-                    ASSERT(offset + sizeof(glm::##type##4) <= bufSize);\
-                    *((glm::##type##4*)(buf + offset)) = iter->second;\
+                    ASSERT(offset + sizeof(glm::type##4) <= bufSize);\
+                    *((glm::type##4*)(buf + offset)) = iter->second;\
                 }\
                 else if (bufferDataDescription.rowCount == 2)\
                 {\
-                    ASSERT(offset + sizeof(glm::##type##2) <= bufSize);\
-                    *((glm::##type##2*)(buf + offset)) = glm::##type##2(iter->second);\
+                    ASSERT(offset + sizeof(glm::type##2) <= bufSize);\
+                    *((glm::type##2*)(buf + offset)) = glm::type##2(iter->second);\
                 }\
             }
 
