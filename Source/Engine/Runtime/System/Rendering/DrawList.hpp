@@ -1,7 +1,7 @@
 #pragma once
-#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -18,6 +18,7 @@ struct SceneObjectDrawData
     const Gfx::PipelineConfig* shaderConfig = nullptr;
     Material* material = nullptr;
     int materialSet = 0;
+    int passSet = -1;
     int objectSet = -1;
     Gfx::ShaderResource* materialResource = nullptr;
     Gfx::ShaderResource* objectResource = nullptr;
@@ -56,6 +57,7 @@ public:
         int to,
         std::optional<Gfx::PolygonMode> polygonModeOverride = std::nullopt,
         std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride = std::nullopt,
+        const std::vector<Gfx::DynamicBinding>* passBindings = nullptr,
         bool bindMeshVertexBuffers = false
     ) const;
 

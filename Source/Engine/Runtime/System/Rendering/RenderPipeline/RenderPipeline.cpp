@@ -368,8 +368,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         );
 
         cmd->EndRenderPass();
-
-        cmd->Blit(mainColor, colorCopy);
     }
     cmd->EndLabel(); // Shading
 
@@ -414,8 +412,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         lightingCombinePass->Execute(cmd, rtgiOutput, giIrradiance, ambientOcclusion, albedoGBuffer, mainColor, renderingData);
     }
 
-    // TODO: copy mainColor and mainDepth for special effects
-
     // Forward Pass
     cmd->BeginLabel("Forward", &labelColors.passColor[0]);
     {
@@ -435,8 +431,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         ExecuteRenderEvents(*cmd, scene, RenderEvents::ForwardOpaque);
 
         std::optional<Gfx::PolygonMode> forwardPolygonMode = setting->debugDraw.wireframe ? std::optional<Gfx::PolygonMode>(Gfx::PolygonMode::Line) : std::nullopt;
-        forwardDrawList.DrawRangeHelper(*cmd, 0, forwardDrawList.alphaTestIndex, forwardPolygonMode, std::nullopt, true);
-        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.alphaTestIndex, forwardDrawList.transparentIndex, forwardPolygonMode, std::nullopt, true);
+        forwardDrawList.DrawRangeHelper(*cmd, 0, forwardDrawList.alphaTestIndex, forwardPolygonMode, std::nullopt, nullptr, true);
+        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.alphaTestIndex, forwardDrawList.transparentIndex, forwardPolygonMode, std::nullopt, nullptr, true);
 
         if (renderConfig.drawGraphics)
         {
@@ -456,11 +452,17 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             cloudPass->Execute(*clouds[0], *cmd, renderingData);
         }
 
+        cmd->Blit(mainColor, colorCopy);
+        cmd->Blit(mainDepth, depthCopy);
+
+        std::vector<Gfx::DynamicBinding> passBindings = {
+            {"colorCopy", colorCopy},
+            {"depthCopy", depthCopy}
+        };
         // draw objects
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPassAttachments, clears);
-        deferredDrawList.DrawRangeHelper(*cmd, deferredDrawList.transparentIndex, deferredDrawList.size(), forwardPolygonMode);
-        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.transparentIndex, forwardDrawList.size(), forwardPolygonMode, std::nullopt, true);
+        forwardDrawList.DrawRangeHelper(*cmd, forwardDrawList.transparentIndex, forwardDrawList.size(), forwardPolygonMode, std::nullopt, &passBindings, true);
 
         cmd->EndLabel(); // Forward Objects
 
@@ -584,7 +586,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Update camera temporal state for the next frame
     camera.SetPreviousViewProjection(perScene.cameraParameter.viewProjection);
     camera.SetInvPreviousViewProjection(perScene.cameraParameter.invNDCToWorld);
-}
+} // namespace Rendering
 
 PerScene::PerScene()
 {

@@ -182,6 +182,7 @@ const char* DescriptorSetSemanticsToString(DescriptorSetSemantics semantics)
     switch (semantics)
     {
         case DescriptorSetSemantics::Global: return "Global";
+        case DescriptorSetSemantics::Pass: return "Pass";
         case DescriptorSetSemantics::Material: return "Material";
         case DescriptorSetSemantics::Object: return "Object";
     }
@@ -192,7 +193,9 @@ DescriptorSetSemantics StringToDescriptorSetSemantics(const std::string& str)
 {
     if (str == "Material")
         return DescriptorSetSemantics::Material;
-    if (str == "Object")
+    else if (str == "Pass")
+        return DescriptorSetSemantics::Pass;
+    else if (str == "Object")
         return DescriptorSetSemantics::Object;
     return DescriptorSetSemantics::Global;
 }

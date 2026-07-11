@@ -248,8 +248,8 @@ private:
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
     void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
-    void UpdateDescriptorSetBinding(int inflightIndex, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
-    void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, int inflightIndex);
+    void UpdateDescriptorSetBinding(std::vector<VKCmd>& cmds, int inflightIndex, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
+    void UpdateDynamicDescriptorSetBinding(std::vector<VKCmd>& cmds, VkCommandBuffer cmd, VkPipelineBindPoint bindPoint, int inflightIndex, int setIndex);
     void PutBarrier(VkCommandBuffer cmd, int index);
     void PutBarriers(VkCommandBuffer vkcmd, int barrierOffset, int barrierCount);
     void PreExecute(int inflightIndex, VKFramePrepareData& framePrepare);

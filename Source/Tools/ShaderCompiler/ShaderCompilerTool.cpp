@@ -888,6 +888,8 @@ private:
             std::string name = attribute->getName();
             if (name == "Global")
                 set["semantics"] = "Global";
+            else if (name == "Pass")
+                set["semantics"] = "Pass";
             else if (name == "Material")
                 set["semantics"] = "Material";
             else if (name == "Object")

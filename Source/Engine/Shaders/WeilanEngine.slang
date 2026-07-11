@@ -9,6 +9,11 @@ struct MaterialAttribute
 };
 
 [__AttributeUsage(_AttributeTargets.Var)]
+struct PassAttribute
+{
+};
+
+[__AttributeUsage(_AttributeTargets.Var)]
 struct ObjectAttribute
 {
 };

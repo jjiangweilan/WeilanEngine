@@ -1,5 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
+import Library.CommonUtils;
 
 #if CONFIG
 cull: none
@@ -34,15 +35,27 @@ struct Ps
     float4x4 invTspModelMatrix;
 }
 
+struct TransparentPass
+{
+    Texture2D colorCopy;
+    Texture2D depthCopy;
+}
+
 struct Material
 {
     [Texture] Texture2D normalMap;
+    [Texture] Texture2D flowMap;
+
+    float flowScale;
 
     SamplerState _Linear_Sampler;
 }
 
 [Global]
 ParameterBlock<PerScene> perScene;
+
+[Pass]
+ParameterBlock<TransparentPass> pass;
 
 [Material]
 ParameterBlock<Material> mat;
@@ -74,9 +87,15 @@ VertexOutput Vertex(VertexInput input)
 [shader("fragment")]
 float4 Fragment(VertexOutput input) : SV_Target
 {
-    float3 normalMap = normalize(mat.normalMap.Sample(mat._Linear_Sampler, input.uv).xyz);
+    float2 flowUV = input.uv + float2(-1,0) * mat.flowScale * perScene.scene.time;
+    float3 normalMap = normalize(mat.normalMap.Sample(mat._Linear_Sampler, flowUV).xyz);
+
     float3 normalWS = mul(transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangetWS), normalize(input.normalWS))), normalMap);
     Light mainLight = perScene.GetMainLight();
-    float ndotl = dot(normalWS, mainLight.position.xyz);
-    return float4(0,0,1,0.5) * ndotl;
+
+    float2 screenUV = (input.position.xy + 0.5) * perScene.camera.screenSize.zw;
+    float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV).x;
+
+    float ndotl = saturate(dot(normalWS, mainLight.position.xyz)) * ndcDepth;
+    return float4((float4(0.1,0.3,1.8,0.5) * ndotl).xyz, 0.85);
 }

@@ -46,6 +46,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.indexBuffer = submesh.GetIndexBuffer();
                         drawData.indexBufferType = submesh.GetIndexBufferType();
                         drawData.materialSet = material->GetShader()->GetSet(Gfx::DescriptorSetSemantics::Material);
+                        drawData.passSet = material->GetShader()->GetSet(Gfx::DescriptorSetSemantics::Pass);
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectSet = material->GetSet(Gfx::DescriptorSetSemantics::Object);
                         drawData.objectResource = meshRenderer.GetObjectResource();
@@ -191,8 +192,10 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->transparentIndex = this->size();
 }
 
-void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride, bool bindMeshVertexBuffers) const
+void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride, const std::vector<Gfx::DynamicBinding>* passBindings, bool bindMeshVertexBuffers) const
 {
+    bool previouslySet = false;
+    Gfx::ShaderProgram* previousShaderProgram = nullptr;
     for (int i = from; i < to; ++i)
     {
         auto& draw = this->at(sorted.at(i));
@@ -201,8 +204,19 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
         {
             if (draw.materialSet != -1 && draw.materialResource)
                 cmd.BindResource(draw.materialSet, draw.materialResource);
-            if (draw.objectSet && draw.objectResource)
+            if (draw.passSet != -1 && passBindings && (!previouslySet || previousShaderProgram != shaderProgram))
+            {
+                cmd.BindResource(draw.passSet, *passBindings);
+                previouslySet = true;
+            }
+            else
+            {
+                previouslySet = false;
+            }
+            if (draw.objectSet != -1 && draw.objectResource)
                 cmd.BindResource(draw.objectSet, draw.objectResource);
+
+            previousShaderProgram = shaderProgram;
 
             bool configModified = polygonModeOverride.has_value() || stencilOverride.has_value();
             if (configModified)

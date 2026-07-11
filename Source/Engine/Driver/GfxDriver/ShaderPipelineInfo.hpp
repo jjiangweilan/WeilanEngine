@@ -12,6 +12,7 @@ namespace Gfx
 enum class DescriptorSetSemantics
 {
     Global,
+    Pass,
     Material,
     Object,
 };
