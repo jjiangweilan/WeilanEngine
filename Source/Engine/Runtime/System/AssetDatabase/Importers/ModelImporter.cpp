@@ -1,4 +1,5 @@
 #include "ModelImporter.hpp"
+#include "ModelSubAssetUUIDAllocator.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
@@ -187,8 +188,8 @@ struct ModelImportContext
     const aiScene* scene = nullptr;
     const std::filesystem::path* absoluteAssetPath = nullptr;
     const ImportDatabase* importDatabase = nullptr;
-    const std::unordered_map<std::string, UUID>* internalNameToUUID = nullptr;
     UUID sourceAssetUUID;
+    ModelSubAssetUUIDAllocator subAssetUUIDAllocator;
 
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> embeddedTextures;
@@ -200,19 +201,10 @@ struct ModelImportContext
     std::vector<ImportDatabase::ArtifactRecord> artifacts;
     std::unordered_map<int, Texture*> embeddedTextureByIndex;
 
-    UUID GetSubAssetUUID(std::string_view name, std::string_view typeName, AssetArtifacts::Kind kind, std::string_view locator) const
+    UUID GetSubAssetUUID(std::string_view name, std::string_view typeName)
     {
         std::string key = fmt::format("{}-{}", name, typeName);
-        if (internalNameToUUID != nullptr)
-        {
-            auto iter = internalNameToUUID->find(key);
-            if (iter != internalNameToUUID->end() && !iter->second.IsEmpty())
-            {
-                return iter->second;
-            }
-        }
-
-        return AssetArtifacts::MakeArtifactUUID(sourceAssetUUID, kind, locator);
+        return subAssetUUIDAllocator.GetOrCreate(key);
     }
 
     Texture* ImportEmbeddedTexture(int textureIndex)
@@ -265,7 +257,7 @@ struct ModelImportContext
         }
 
         std::string textureName = fmt::format("texture_{}", textureIndex);
-        UUID artifactUUID = GetSubAssetUUID(textureName, Texture::StaticGetTypeName(), AssetArtifacts::Kind::Texture, fmt::format("{}", textureIndex));
+        UUID artifactUUID = GetSubAssetUUID(textureName, Texture::StaticGetTypeName());
         auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Texture);
         auto absolutePath = importDatabase->GetImportDatabaseRootPath() / relativePath;
         Exporters::KtxExporter::Export(
@@ -475,12 +467,7 @@ void ProcessMeshes(ModelImportContext& context)
         submeshes.push_back(std::move(submesh));
         importedMesh->SetSubmeshes(std::move(submeshes));
 
-        UUID artifactUUID = context.GetSubAssetUUID(
-            importedMesh->GetName(),
-            Mesh::StaticGetTypeName(),
-            AssetArtifacts::Kind::Mesh,
-            fmt::format("{}", meshIndex)
-        );
+        UUID artifactUUID = context.GetSubAssetUUID(importedMesh->GetName(), Mesh::StaticGetTypeName());
         importedMesh->SetUUID(artifactUUID);
         auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Mesh);
         ModelArtifact::WriteMeshBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *importedMesh);
@@ -593,7 +580,7 @@ void ProcessMaterials(ModelImportContext& context)
             blend.dstAlphaBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
             blend.alphaBlendOp = Gfx::BlendOp::Add;
             shaderConfig.depth.writeEnable = false;
-        }
+        } 
         else
         {
             mat->SetFloat("PBR", "alphaCutoff", 0.0f);
@@ -601,12 +588,7 @@ void ProcessMaterials(ModelImportContext& context)
         }
         mat->SetShaderConfig(shaderConfig);
 
-        UUID artifactUUID = context.GetSubAssetUUID(
-            mat->GetName(),
-            Material::StaticGetTypeName(),
-            AssetArtifacts::Kind::Material,
-            fmt::format("{}", materialIndex)
-        );
+        UUID artifactUUID = context.GetSubAssetUUID(mat->GetName(), Material::StaticGetTypeName());
         mat->SetUUID(artifactUUID);
         auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Material);
         JsonSerializer ser;
@@ -678,12 +660,7 @@ void ProcessAnimations(ModelImportContext& context)
         clip->duration = static_cast<float>(aiClip->mDuration);
         clip->channels = std::move(channels);
 
-        UUID artifactUUID = context.GetSubAssetUUID(
-            clip->GetName(),
-            AnimationClip::StaticGetTypeName(),
-            AssetArtifacts::Kind::AnimationClip,
-            clipName
-        );
+        UUID artifactUUID = context.GetSubAssetUUID(clip->GetName(), AnimationClip::StaticGetTypeName());
         clip->SetUUID(artifactUUID);
         animationSet->AddClip(clip.get());
 
@@ -693,12 +670,7 @@ void ProcessAnimations(ModelImportContext& context)
         context.animationClips.push_back(std::move(clip));
     }
 
-    UUID artifactUUID = context.GetSubAssetUUID(
-        animationSet->GetName(),
-        AnimationSet::StaticGetTypeName(),
-        AssetArtifacts::Kind::AnimationSet,
-        "main"
-    );
+    UUID artifactUUID = context.GetSubAssetUUID(animationSet->GetName(), AnimationSet::StaticGetTypeName());
     animationSet->SetUUID(artifactUUID);
     auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::AnimationSet);
     ModelArtifact::WriteAnimationSetBlob(context.importDatabase->GetImportDatabaseRootPath() / relativePath, *animationSet);
@@ -825,8 +797,8 @@ std::vector<std::filesystem::path> ModelImporter::Import()
     context.scene = scene;
     context.absoluteAssetPath = &absoluteAssetPath;
     context.importDatabase = importDatabase;
-    context.internalNameToUUID = internalNameToUUID;
     context.sourceAssetUUID = assetUUID;
+    context.subAssetUUIDAllocator.Reset(internalNameToUUID);
 
     ProcessMeshes(context);
     ProcessMaterials(context);

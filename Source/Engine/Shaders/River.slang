@@ -5,7 +5,7 @@ import Library.CommonUtils;
 #if CONFIG
 cull: none
 blend:
-- one oneMinusSrcAlpha
+- one srcAlpha
 depth:
     testEnable: true
     writeEnable: false
@@ -83,19 +83,26 @@ VertexOutput Vertex(VertexInput input)
 
 }
 
-
 [shader("fragment")]
 float4 Fragment(VertexOutput input) : SV_Target
 {
     float2 flowUV = input.uv + float2(-1,0) * mat.flowScale * perScene.scene.time;
-    float3 normalMap = normalize(mat.normalMap.Sample(mat._Linear_Sampler, flowUV).xyz);
+    float3 normalMap = normalize(mat.normalMap.Sample(mat._Linear_Sampler, flowUV).xyz * 2 - 1);
 
     float3 normalWS = mul(transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangetWS), normalize(input.normalWS))), normalMap);
     Light mainLight = perScene.GetMainLight();
 
-    float2 screenUV = (input.position.xy + 0.5) * perScene.camera.screenSize.zw;
-    float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV).x;
+    float2 screenUV = (input.position.xy) * perScene.camera.screenSize.zw;
+    float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV + (normalMap.xy) * 0.01).x;
 
-    float ndotl = saturate(dot(normalWS, mainLight.position.xyz)) * ndcDepth;
-    return float4((float4(0.1,0.3,1.8,0.5) * ndotl).xyz, 0.85);
+    float objectEyeDepth = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
+    float worldEyeDepth = LinearEyeDepth(ndcDepth, perScene.camera.cameraZBufferParams);
+    float eyeDepthDiff = max(worldEyeDepth - objectEyeDepth, 0);
+
+    float ripple = eyeDepthDiff < 0.1 ? 1 : 0;
+
+    float waterFog = saturate(exp(-eyeDepthDiff));
+
+    float ndotl = saturate(dot(normalWS, mainLight.position.xyz));
+    return float4((lerp(float3(0.1,0.3,1.) , 4, ripple)).xyz, ripple == 1 ? 1 : waterFog);
 }

@@ -101,6 +101,62 @@ public:
             target->SetMotionType(static_cast<JPH::EMotionType>(currentMotionType));
         }
 
+        JPH::EAllowedDOFs allowedDOFs = target->GetAllowedDOFs();
+        auto drawAxisLock = [&](const char* id, JPH::EAllowedDOFs axis)
+        {
+            bool locked = (allowedDOFs & axis) == JPH::EAllowedDOFs::None;
+            const bool wouldLockAllAxes = !locked && allowedDOFs == axis;
+            ImGui::BeginDisabled(wouldLockAllAxes);
+            const float checkboxWidth = ImGui::GetFrameHeight();
+            const float columnWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - checkboxWidth) * 0.5f);
+            if (ImGui::Checkbox(id, &locked))
+            {
+                if (locked)
+                    allowedDOFs &= ~axis;
+                else
+                    allowedDOFs |= axis;
+
+                if (allowedDOFs != JPH::EAllowedDOFs::None)
+                    target->SetAllowedDOFs(allowedDOFs);
+            }
+            ImGui::EndDisabled();
+        };
+
+        EditorGUI::SeparatorTextLabeled("Constraints");
+        if (ImGui::BeginTable("PhysicsBodyConstraints", 4, ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_BordersInnerV))
+        {
+            ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("X", ImGuiTableColumnFlags_WidthFixed, 42.0f);
+            ImGui::TableSetupColumn("Y", ImGuiTableColumnFlags_WidthFixed, 42.0f);
+            ImGui::TableSetupColumn("Z", ImGuiTableColumnFlags_WidthFixed, 42.0f);
+            ImGui::TableHeadersRow();
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted("Position");
+            ImGui::TableSetColumnIndex(1);
+            drawAxisLock("##LockPositionX", JPH::EAllowedDOFs::TranslationX);
+            ImGui::TableSetColumnIndex(2);
+            drawAxisLock("##LockPositionY", JPH::EAllowedDOFs::TranslationY);
+            ImGui::TableSetColumnIndex(3);
+            drawAxisLock("##LockPositionZ", JPH::EAllowedDOFs::TranslationZ);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted("Rotation");
+            ImGui::TableSetColumnIndex(1);
+            drawAxisLock("##LockRotationX", JPH::EAllowedDOFs::RotationX);
+            ImGui::TableSetColumnIndex(2);
+            drawAxisLock("##LockRotationY", JPH::EAllowedDOFs::RotationY);
+            ImGui::TableSetColumnIndex(3);
+            drawAxisLock("##LockRotationZ", JPH::EAllowedDOFs::RotationZ);
+
+            ImGui::EndTable();
+        }
+
         if (motionType == JPH::EMotionType::Kinematic)
         {
             bool shouldKinematicGenerateContactPointsWithNonDynamic =

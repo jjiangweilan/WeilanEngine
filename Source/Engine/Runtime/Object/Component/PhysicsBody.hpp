@@ -8,6 +8,7 @@
 #include <Jolt/Jolt.h>
 // clang-format on
 #include <Jolt/Physics/Body/BodyInterface.h>
+#include <Jolt/Physics/Body/AllowedDOFs.h>
 #include <Jolt/Physics/Body/MotionProperties.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
@@ -58,6 +59,8 @@ public:
     PhysicsBodyShapes GetShape() { return shapeType; }
     void SetLayer(PhysicsObjectLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
+    JPH::EAllowedDOFs GetAllowedDOFs() const { return allowedDOFs; }
+    void SetAllowedDOFs(JPH::EAllowedDOFs allowedDOFs);
 
     void SetCapsuleShape(float halfHeight, float radius)
     {
@@ -122,6 +125,8 @@ public:
 
     void SetLinearVelocity(const glm::vec3& velocity);
     [[LuaFn]] glm::vec3 GetLinearVelocity();
+    [[LuaFn]] void SetAngularVelocity(const glm::vec3& velocity);
+    [[LuaFn]] glm::vec3 GetAngularVelocity();
     [[LuaFn]] void AddForce(const glm::vec3& force);
     [[LuaFn]] void AddImpulse(const glm::vec3& impulse);
     [[LuaFn]] void SetGravityFactor(float f);
@@ -174,6 +179,7 @@ private:
     bool kinematicGenerateContactPointsWithNonDynamic = false;
 
     JPH::EMotionType motionType = JPH::EMotionType::Static;
+    JPH::EAllowedDOFs allowedDOFs = JPH::EAllowedDOFs::All;
     JPH::Ref<JPH::Shape> shapeRef;
     JPH::Body* body = nullptr;
     PhysicsBodyShapes shapeType = PhysicsBodyShapes::Mesh;

@@ -543,6 +543,10 @@ wl.PhysicsBody = {}
 
 ---@return wl.Float3
 function wl.PhysicsBody:GetLinearVelocity() end
+---@param velocity wl.vec3 &
+function wl.PhysicsBody:SetAngularVelocity(velocity) end
+---@return wl.Float3
+function wl.PhysicsBody:GetAngularVelocity() end
 ---@param force wl.vec3 &
 function wl.PhysicsBody:AddForce(force) end
 ---@param impulse wl.vec3 &

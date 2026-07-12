@@ -19,6 +19,7 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(PhysicsBody, layer),
     TYPE_REFLECTION_MEM(PhysicsBody, gravityFactor),
     TYPE_REFLECTION_MEM(PhysicsBody, motionType),
+    TYPE_REFLECTION_MEM(PhysicsBody, allowedDOFs),
     TYPE_REFLECTION_MEM(PhysicsBody, shapeType),
     TYPE_REFLECTION_MEM(PhysicsBody, isSensor),
     TYPE_REFLECTION_MEM(PhysicsBody, kinematicGenerateContactPointsWithNonDynamic)
@@ -36,6 +37,7 @@ void PhysicsBody::Serialize(Serializer* s) const
     s->Serialize("layer", static_cast<int>(layer));
     s->Serialize("gravityFactor", gravityFactor);
     s->Serialize("motionType", static_cast<int>(motionType));
+    s->Serialize("allowedDOFs", static_cast<int>(allowedDOFs));
     s->Serialize("shapeType", static_cast<int>(shapeType));
     s->Serialize("isSensor", isSensor);
     s->Serialize("kinematicGenerateContactPointsWithNonDynamic", kinematicGenerateContactPointsWithNonDynamic);
@@ -56,6 +58,12 @@ void PhysicsBody::Deserialize(Serializer* s)
     int motionType = 0;
     s->Deserialize("motionType", motionType);
     this->motionType = static_cast<JPH::EMotionType>(motionType);
+    int allowedDOFs = static_cast<int>(JPH::EAllowedDOFs::All);
+    s->Deserialize("allowedDOFs", allowedDOFs);
+    const JPH::EAllowedDOFs deserializedAllowedDOFs = static_cast<JPH::EAllowedDOFs>(allowedDOFs);
+    this->allowedDOFs = deserializedAllowedDOFs == JPH::EAllowedDOFs::None
+        ? JPH::EAllowedDOFs::All
+        : deserializedAllowedDOFs;
     int shapeType = 0;
     s->Deserialize("shapeType", shapeType);
     this->shapeType = static_cast<PhysicsBodyShapes>(shapeType);
@@ -81,6 +89,7 @@ std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
     clone->layer = layer;
     clone->gravityFactor = gravityFactor;
     clone->motionType = motionType;
+    clone->allowedDOFs = allowedDOFs;
     clone->shapeType = shapeType;
     clone->isSensor = isSensor;
     clone->kinematicGenerateContactPointsWithNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
@@ -180,6 +189,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
             bodyCreationSettings.mIsSensor = isSensor;
             // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
             bodyCreationSettings.mMotionType = motionType;
+            bodyCreationSettings.mAllowedDOFs = allowedDOFs;
             bodyCreationSettings.mCollideKinematicVsNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
             if (shapeType == PhysicsBodyShapes::Mesh)
             {
@@ -336,6 +346,34 @@ void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
     }
 }
 
+void PhysicsBody::SetAllowedDOFs(JPH::EAllowedDOFs newAllowedDOFs)
+{
+    if (newAllowedDOFs == JPH::EAllowedDOFs::None)
+    {
+        spdlog::warn("PhysicsBody cannot lock all position and rotation axes. Use a static body instead.");
+        return;
+    }
+
+    allowedDOFs = newAllowedDOFs;
+
+    if (body == nullptr || body->GetMotionProperties() == nullptr)
+        return;
+
+    JPH::MassProperties massProperties;
+    if (shapeType == PhysicsBodyShapes::Mesh)
+    {
+        massProperties = {1.0f, JPH::Mat44::sZero()};
+    }
+    else
+    {
+        massProperties = body->GetShape()->GetMassProperties();
+    }
+
+    body->GetMotionProperties()->SetMassProperties(allowedDOFs, massProperties);
+    if (auto bodyInterface = GetBodyInterface())
+        bodyInterface->ActivateBody(body->GetID());
+}
+
 void PhysicsBody::OnStart() {}
 
 void PhysicsBody::TransformChanged()
@@ -390,6 +428,21 @@ void PhysicsBody::Tick()
 glm::vec3 PhysicsBody::GetLinearVelocity()
 {
     auto v = body->GetLinearVelocity();
+    return {v.GetX(), v.GetY(), v.GetZ()};
+}
+
+void PhysicsBody::SetAngularVelocity(const glm::vec3& velocity)
+{
+    if (auto i = GetBodyInterface())
+    {
+        i->SetAngularVelocity(body->GetID(), {velocity.x, velocity.y, velocity.z});
+        i->ActivateBody(body->GetID());
+    }
+}
+
+glm::vec3 PhysicsBody::GetAngularVelocity()
+{
+    auto v = body->GetAngularVelocity();
     return {v.GetX(), v.GetY(), v.GetZ()};
 }
 

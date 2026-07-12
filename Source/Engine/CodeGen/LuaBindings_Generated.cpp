@@ -676,6 +676,8 @@ void BindGeneratedClasses(lua_State* L)
     LuaBinder<PhysicsBody> binder_PhysicsBody(L);
     binder_PhysicsBody.Begin("PhysicsBody")
         .BindMemFn("GetLinearVelocity", &PhysicsBody::GetLinearVelocity) // glm::vec3()
+        .BindMemFn("SetAngularVelocity", &PhysicsBody::SetAngularVelocity) // void(glm::vec3 & velocity)
+        .BindMemFn("GetAngularVelocity", &PhysicsBody::GetAngularVelocity) // glm::vec3()
         .BindMemFn("AddForce", &PhysicsBody::AddForce) // void(glm::vec3 & force)
         .BindMemFn("AddImpulse", &PhysicsBody::AddImpulse) // void(glm::vec3 & impulse)
         .BindMemFn("SetGravityFactor", &PhysicsBody::SetGravityFactor) // void(float f)
