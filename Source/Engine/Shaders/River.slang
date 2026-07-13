@@ -45,6 +45,7 @@ struct Material
 {
     [Texture] Texture2D normalMap;
     [Texture] Texture2D flowMap;
+    [Texture] Texture2D shoreMaskMap;
 
     float flowScale;
 
@@ -93,16 +94,17 @@ float4 Fragment(VertexOutput input) : SV_Target
     Light mainLight = perScene.GetMainLight();
 
     float2 screenUV = (input.position.xy) * perScene.camera.screenSize.zw;
-    float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV + (normalMap.xy) * 0.01).x;
+    float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV).x;
+    float shoreMask = mat.shoreMaskMap.Sample(mat._Linear_Sampler, input.uv + normalMap.xy * 0.005).x;
 
     float objectEyeDepth = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
     float worldEyeDepth = LinearEyeDepth(ndcDepth, perScene.camera.cameraZBufferParams);
     float eyeDepthDiff = max(worldEyeDepth - objectEyeDepth, 0);
 
-    float ripple = eyeDepthDiff < 0.1 ? 1 : 0;
+    float ripple = 1 - smoothstep(0, 0.08, shoreMask);//lerp(1, shoreMask, shoreWave));
 
     float waterFog = saturate(exp(-eyeDepthDiff));
 
     float ndotl = saturate(dot(normalWS, mainLight.position.xyz));
-    return float4((lerp(float3(0.1,0.3,1.) , 4, ripple)).xyz, ripple == 1 ? 1 : waterFog);
+    return  float4((lerp(float3(0.1,0.3,1.) , 4, ripple)).xyz, ripple == 1 ? 1 : waterFog);
 }
