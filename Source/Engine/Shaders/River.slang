@@ -1,11 +1,13 @@
 import WeilanEngine;
 import Library.PerScene;
 import Library.CommonUtils;
+import Lighting;
+import Sky_Common;
 
 #if CONFIG
 cull: none
 blend:
-- one srcAlpha
+- one zero
 depth:
     testEnable: true
     writeEnable: false
@@ -48,6 +50,7 @@ struct Material
     [Texture] Texture2D shoreMaskMap;
 
     float flowScale;
+    [Range(0, 2)] float reflectionStrength;
 
     SamplerState _Linear_Sampler;
 }
@@ -90,8 +93,7 @@ float4 Fragment(VertexOutput input) : SV_Target
     float2 flowUV = input.uv + float2(-1,0) * mat.flowScale * perScene.scene.time;
     float3 normalMap = normalize(mat.normalMap.Sample(mat._Linear_Sampler, flowUV).xyz * 2 - 1);
 
-    float3 normalWS = mul(transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangetWS), normalize(input.normalWS))), normalMap);
-    Light mainLight = perScene.GetMainLight();
+    float3 normalWS = normalize(mul(transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangetWS), normalize(input.normalWS))), normalMap));
 
     float2 screenUV = (input.position.xy) * perScene.camera.screenSize.zw;
     float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV).x;
@@ -103,8 +105,50 @@ float4 Fragment(VertexOutput input) : SV_Target
 
     float ripple = 1 - smoothstep(0, 0.08, shoreMask);//lerp(1, shoreMask, shoreWave));
 
+    float2 underWaterUV = screenUV + normalMap.xy * 0.007;
+    ;
+    float3 underWater = pass.colorCopy.Sample(mat._Linear_Sampler, underWaterUV).xyz;
+
     float waterFog = saturate(exp(-eyeDepthDiff));
 
-    float ndotl = saturate(dot(normalWS, mainLight.position.xyz));
-    return  float4((lerp(float3(0.1,0.3,1.) , 4, ripple)).xyz, ripple == 1 ? 1 : waterFog);
+    bool hasSun = perScene.scene.lightCount > 0;
+    float3 lightDir = float3(0.0, 1.0, 0.0);
+    float3 skyColor = float3(0.3, 0.5, 0.85);
+    float3 skyHorizonFalloffColor = float3(0.7, 0.75, 0.85);
+    float3 skyHorizonColor = float3(0.418, 0.394, 0.372);
+    float3 skySunColor = float3(1.0, 0.7, 0.4);
+    float3 skySunCoreColor = float3(1.0, 0.8, 0.6);
+
+    if (hasSun)
+    {
+        Light mainLight = perScene.GetMainLight();
+        lightDir = mainLight.position.xyz;
+        skyColor = mainLight.skyColor.xyz;
+        skyHorizonFalloffColor = mainLight.skyHorizonFalloffColor.xyz;
+        skyHorizonColor = mainLight.skyHorizonColor.xyz;
+        skySunColor = mainLight.skySunColor.xyz;
+        skySunCoreColor = mainLight.skySunCoreColor.xyz;
+    }
+
+    float3 viewDirection = normalize(perScene.camera.position.xyz - input.positionWS);
+    float3 reflectedDirection = normalize(reflect(-viewDirection, normalWS));
+    float3 fresnel = Fresnel_Schlick(saturate(dot(viewDirection, normalWS)), 0.02);
+    float3 skyReflection = Sky(
+        0,
+        reflectedDirection,
+        lightDir,
+        hasSun,
+        skyColor,
+        skyHorizonFalloffColor,
+        skyHorizonColor,
+        skySunColor,
+        skySunCoreColor
+    ) * 12;
+
+    float3 riverColor = lerp(float3(0.1,0.3,1.), 4, ripple);
+    riverColor += skyReflection * fresnel * mat.reflectionStrength;
+
+    float blend = ripple == 1 ? 0.9 : waterFog;
+    riverColor = riverColor * (1 - blend) + underWater * blend;
+    return float4(riverColor, 1.0);
 }
