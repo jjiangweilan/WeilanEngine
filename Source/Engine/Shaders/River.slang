@@ -106,8 +106,10 @@ float4 Fragment(VertexOutput input) : SV_Target
     float ripple = 1 - smoothstep(0, 0.08, shoreMask);//lerp(1, shoreMask, shoreWave));
 
     float2 underWaterUV = screenUV + normalMap.xy * 0.007;
-    ;
     float3 underWater = pass.colorCopy.Sample(mat._Linear_Sampler, underWaterUV).xyz;
+    float3 underWaterDirect = pass.colorCopy.Sample(mat._Linear_Sampler, screenUV).xyz;
+
+    float underWaterRefractedDepth = pass.depthCopy.Sample(mat._Linear_Sampler, underWaterUV).x;
 
     float waterFog = saturate(exp(-eyeDepthDiff));
 
@@ -149,6 +151,7 @@ float4 Fragment(VertexOutput input) : SV_Target
     riverColor += skyReflection * fresnel * mat.reflectionStrength;
 
     float blend = ripple == 1 ? 0.9 : waterFog;
+    underWater = underWaterRefractedDepth > input.position.z ? underWaterDirect : underWater;
     riverColor = riverColor * (1 - blend) + underWater * blend;
     return float4(riverColor, 1.0);
 }
