@@ -38,6 +38,7 @@ RenderPipeline::RenderPipeline()
     cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
     colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
+    taaPass = AddRenderPipelinePass<Passes::TAAPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
     ssaoPass = AddRenderPipelinePass<Passes::SSAO>();
     ssilPass = AddRenderPipelinePass<Passes::SSIL>();
@@ -496,24 +497,49 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     //     );
     // }
 
+    Gfx::ImageIdentifier postProcessColor = mainColor;
+    if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::TAA)
+    {
+        taaPass->Execute(
+            *cmd,
+            mainColor,
+            hierarchyZBufferPass->GetOutputId(),
+            motionVectorPass->GetOutputId(),
+            mainColorDescription,
+            setting->taa,
+            renderingData
+        );
+        postProcessColor = taaPass->GetOutputId();
+    }
+    else
+    {
+        taaPass->ResetHistory();
+    }
+
     if (setting->postProcess.bloom.enabled)
     {
-        bloomPass->Execute(*cmd, mainColor, mainColorDescription, setting->postProcess.bloom, renderingData);
+        bloomPass->Execute(*cmd, postProcessColor, mainColorDescription, setting->postProcess.bloom, renderingData);
     }
 
     // start post procesing
-    finalColor = mainColor;
+    finalColor = postProcessColor;
 
     if (setting->postProcess.colorGrading)
     {
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        colorGradingPass->Execute(*cmd, renderingData.mainColor, mainRTSize, setting->postProcess, renderingData);
+        colorGradingPass->Execute(
+            *cmd,
+            GetGfxDriver()->GetImageFromRenderGraph(finalColor),
+            mainRTSize,
+            setting->postProcess,
+            renderingData
+        );
         finalColor = colorGradingPass->GetOutputId();
         cmd->EndLabel(); // Color Grading
     }
 
     // FXAA
-    if (setting->fxaa)
+    if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::FXAA)
     {
         cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
         {
@@ -575,6 +601,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndLabel(); // PixelZoom
     }
 
+    glm::mat4 renderedViewProjection = perScene.cameraParameter.viewProjection;
+    glm::mat4 renderedInverseViewProjection = perScene.cameraParameter.invNDCToWorld;
+    if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::TAA)
+    {
+        perScene.cameraParameter = perScene.unjitteredCameraParameter;
+        cmd->UploadData(*perScene.camera, (uint8_t*)&perScene.cameraParameter, sizeof(GPUParameter::Camera));
+    }
+
     cmd->EndLabel(); // Render Scene
 
     if (!IsCommandBufferOverriden())
@@ -584,8 +618,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
 
     // Update camera temporal state for the next frame
-    camera.SetPreviousViewProjection(perScene.cameraParameter.viewProjection);
-    camera.SetInvPreviousViewProjection(perScene.cameraParameter.invNDCToWorld);
+    camera.SetPreviousViewProjection(renderedViewProjection);
+    camera.SetInvPreviousViewProjection(renderedInverseViewProjection);
 } // namespace Rendering
 
 PerScene::PerScene()
@@ -702,11 +736,25 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
     auto& cameraParam = perScene.cameraParameter;
     auto& sceneParam = perScene.sceneParameter;
     auto& mainLightShadowParam = perScene.mainLightShadowParameter;
-    cameraParam = RenderingUtils::CreateCameraGPUParameter(camera, screenSize);
+    auto& unjitteredCameraParam = perScene.unjitteredCameraParameter;
+    unjitteredCameraParam = RenderingUtils::CreateCameraGPUParameter(camera, screenSize);
 
     // populate previous matrices from camera component
-    cameraParam.previousViewProjection = camera.GetPreviousViewProjection();
-    cameraParam.invPreviousViewProjection = camera.GetInvPreviousViewProjection();
+    unjitteredCameraParam.previousViewProjection = camera.GetPreviousViewProjection();
+    unjitteredCameraParam.invPreviousViewProjection = camera.GetInvPreviousViewProjection();
+    cameraParam = unjitteredCameraParam;
+
+    if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::TAA)
+    {
+        glm::vec2 jitter = TAAPass::GetProjectionJitterNdc(frameIndex, screenSize, setting->taa.jitterScale);
+        glm::mat4 jitterTransform(1.0f);
+        jitterTransform[3][0] = jitter.x;
+        jitterTransform[3][1] = jitter.y;
+        cameraParam.projection = jitterTransform * cameraParam.projection;
+        cameraParam.viewProjection = cameraParam.projection * cameraParam.view;
+        cameraParam.invProjection = glm::inverse(cameraParam.projection);
+        cameraParam.invNDCToWorld = cameraParam.invView * cameraParam.invProjection;
+    }
 
     // update main light shadow parameters
     auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();

@@ -5,12 +5,17 @@
 #include "Engine/Library/Serialization/SerializationSequenceFetcher.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
+#include <algorithm>
 
 namespace Editor
 {
 const char* EditorGUI::PayloadType = "_DragDropIntenralTypeID";
 std::vector<char> EditorGUI::textArea = std::vector<char>(1024);
-void EditorGUI::AutoObjectInspector(Object* target, bool readOnly)
+void EditorGUI::AutoObjectInspector(
+    Object* target,
+    bool readOnly,
+    std::initializer_list<std::string_view> excludedKeys
+)
 {
     if (target == nullptr)
         return;
@@ -20,8 +25,15 @@ void EditorGUI::AutoObjectInspector(Object* target, bool readOnly)
     (static_cast<Serializable*>(target))->Serialize(&keySequenceFetcher);
     auto j = ser.GetJson();
     std::vector<std::string> keys = keySequenceFetcher.GetKeySequence();
-    std::erase_if(keys, [](auto& key)
-                  { return key == "gameObject" || key == "uuid" || key == "name" || key == "enabled"; });
+    std::erase_if(
+        keys,
+        [excludedKeys](const auto& key)
+        {
+            if (key == "gameObject" || key == "uuid" || key == "name" || key == "enabled")
+                return true;
+            return std::find(excludedKeys.begin(), excludedKeys.end(), key) != excludedKeys.end();
+        }
+    );
     bool valueChanged = false;
     JsonInspector(j, valueChanged, keys);
 

@@ -5,12 +5,14 @@
 struct NavDataConfig
 {
     float2 resolution = float2(0.25f); // meter
+    float maxWalkableSlopeRadians = 0.7853982f;
     int width = 256;
     int height = 256;
     float3 origin = float3(0.0f);
 
     INLINE_DEFINE_SERIALIZABLE(
         SER(resolution),
+        SER(maxWalkableSlopeRadians),
         SER(width),
         SER(height),
         SER(origin)
@@ -21,10 +23,12 @@ struct NavCell
 {
     float height = 0;
     float4 edgeSlop = float4(0);
+    bool valid = true;
 
     INLINE_DEFINE_SERIALIZABLE(
         SER(height),
-        SER(edgeSlop)
+        SER(edgeSlop),
+        SER(valid)
     )
 };
 

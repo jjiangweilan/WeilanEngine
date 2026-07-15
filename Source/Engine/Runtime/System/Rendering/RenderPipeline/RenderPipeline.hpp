@@ -30,6 +30,7 @@
 #include "Passes/ScreenSpaceShadowPass.hpp"
 #include "Passes/Shader2HumanDebugPass.hpp"
 #include "Passes/ShadingPass.hpp"
+#include "Passes/TAAPass.hpp"
 #include "PerScene.hpp"
 #include "RenderEvents.hpp"
 #include "RenderPipelineSetting.hpp"
@@ -101,6 +102,7 @@ class RenderPipeline
     Passes::CloudPass* cloudPass;
     Passes::ColorGradingPass* colorGradingPass;
     Passes::FXAAPass* fxaaPass;
+    Passes::TAAPass* taaPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;
     Passes::SSAO* ssaoPass;
     Passes::SSIL* ssilPass;

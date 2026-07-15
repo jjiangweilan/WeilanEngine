@@ -8,6 +8,7 @@
 
 #include <glm/gtx/intersect.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -110,6 +111,9 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
 
     const float originX = config.origin.x;
     const float originZ = config.origin.z;
+    const float maxWalkableSlopeRadians = std::clamp(config.maxWalkableSlopeRadians, 0.0f, glm::radians(89.0f));
+    const float minWalkableNormalDot = std::cos(maxWalkableSlopeRadians);
+    const float3 worldUp(0.0f, 1.0f, 0.0f);
 
     std::vector<JobHandle> handles;
     handles.reserve(cellCount);
@@ -127,6 +131,7 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
 
                     bool hasHit = false;
                     float nearestDistance = std::numeric_limits<float>::max();
+                    float3 nearestNormal(0.0f);
 
                     for (const BakeMesh& bakeMesh : bakeMeshes)
                     {
@@ -156,15 +161,19 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
                                     distance >= 0.0f && distance < nearestDistance)
                                 {
                                     nearestDistance = distance;
+                                    nearestNormal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
                                     hasHit = true;
                                 }
                             }
                         }
                     }
 
+                    NavCell& cell = navData.grid.cells[cellIndex(x, y)];
+                    cell.valid = false;
                     if (hasHit)
                     {
-                        navData.grid.cells[cellIndex(x, y)].height = rayOrigin.y + rayDirection.y * nearestDistance;
+                        cell.height = rayOrigin.y + rayDirection.y * nearestDistance;
+                        cell.valid = std::abs(glm::dot(nearestNormal, worldUp)) >= minWalkableNormalDot;
                     }
                 }
             ));
@@ -186,22 +195,23 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
                 [&, x, y]()
                 {
                     const int index = cellIndex(x, y);
-                    const float centerHeight = navData.grid.cells[index].height;
+                    const NavCell& centerCell = navData.grid.cells[index];
+                    const float centerHeight = centerCell.height;
 
                     float4 edgeSlop(0.0f);
-                    if (x > 0)
+                    if (centerCell.valid && x > 0 && navData.grid.cells[cellIndex(x - 1, y)].valid)
                     {
                         edgeSlop.x = std::atan((navData.grid.cells[cellIndex(x - 1, y)].height - centerHeight) / config.resolution.x);
                     }
-                    if (x + 1 < width)
+                    if (centerCell.valid && x + 1 < width && navData.grid.cells[cellIndex(x + 1, y)].valid)
                     {
                         edgeSlop.y = std::atan((navData.grid.cells[cellIndex(x + 1, y)].height - centerHeight) / config.resolution.x);
                     }
-                    if (y > 0)
+                    if (centerCell.valid && y > 0 && navData.grid.cells[cellIndex(x, y - 1)].valid)
                     {
                         edgeSlop.z = std::atan((navData.grid.cells[cellIndex(x, y - 1)].height - centerHeight) / config.resolution.y);
                     }
-                    if (y + 1 < height)
+                    if (centerCell.valid && y + 1 < height && navData.grid.cells[cellIndex(x, y + 1)].valid)
                     {
                         edgeSlop.w = std::atan((navData.grid.cells[cellIndex(x, y + 1)].height - centerHeight) / config.resolution.y);
                     }

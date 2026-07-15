@@ -24,17 +24,12 @@ void ShadowRenderer::Init()
 void ShadowRenderer::Setup(Light& light, RenderingData& renderingData)
 {
     bool reconfigShadowMap = false;
-    int cascadeCount = light.GetCascadeCount();
-    int shadowMapSizeScale = 1.0f;
+    int cascadeCount = light.IsCascadeShadowEnabled() ? light.GetCascadeCount() : 1;
+    int shadowMapSizeScale = cascadeCount;
     if (currentShadowMapInfo.cascadeCount != cascadeCount)
     {
-        currentShadowMapInfo.cascadeCount = light.GetCascadeCount();
+        currentShadowMapInfo.cascadeCount = cascadeCount;
         reconfigShadowMap = true;
-    }
-
-    if (light.IsCascadeShadowEnabled() && cascadeCount != 0)
-    {
-        shadowMapSizeScale *= cascadeCount;
     }
 
     if (reconfigShadowMap || shadowMap == nullptr)
@@ -79,56 +74,65 @@ float4x4 ShadowRenderer::GetWorldToShadowMatrix(Light& light, RenderingData& ren
         shadowDistance,
         renderingData.screenAspect
     );
-    auto vp = projection * view;
-    Frustum frustum(vp, Frustum::CornersOnly{});
-    auto corners = frustum.corners;
 
-    auto lightMatrix = light.GetGameObject()->GetWorldMatrix();
-    lightMatrix[0] = float4(glm::normalize(float3(lightMatrix[0])), 0.0);
-    lightMatrix[1] = float4(glm::normalize(float3(lightMatrix[1])), 0.0);
-    lightMatrix[2] = float4(glm::normalize(float3(lightMatrix[2])), 0.0);
+    // Calculate the cascade extent in view space so camera translation and rotation cannot resize it.
+    Frustum frustum(projection, Frustum::CornersOnly{});
+    auto corners = frustum.corners;
+    float3 frustumCenter = float3(0.0f);
+    for (const auto& corner : corners)
+    {
+        frustumCenter += corner;
+    }
+    frustumCenter /= float(corners.size());
+
+    float cascadeRadius = 0.0f;
+    for (const auto& corner : corners)
+    {
+        cascadeRadius = glm::max(cascadeRadius, glm::distance(frustumCenter, corner));
+    }
+    constexpr float frustumPadding = 2.5f;
+    cascadeRadius += frustumPadding;
+
+    auto invView = glm::inverse(view);
+    frustumCenter = invView * float4(frustumCenter, 1.0f);
+    for (auto& corner : corners)
+    {
+        corner = invView * float4(corner, 1.0f);
+    }
+
+    // Use rotation only so scale on the light or its parents cannot distort the shadow view.
+    auto lightMatrix = glm::mat4_cast(light.GetGameObject()->GetRotation());
     lightMatrix[2] = -lightMatrix[2];
-    lightMatrix[3] = float4(float3(renderingData.gpuCamera->position), 1); // no translation
+
+    auto worldToLightRotation = glm::inverse(lightMatrix);
+    float3 frustumCenterLS = worldToLightRotation * float4(frustumCenter, 1.0f);
+    float worldUnitsPerTexel = (cascadeRadius * 2.0f) / shadowMapTexelSize.z;
+    frustumCenterLS.x = glm::round(frustumCenterLS.x / worldUnitsPerTexel) * worldUnitsPerTexel;
+    frustumCenterLS.y = glm::round(frustumCenterLS.y / worldUnitsPerTexel) * worldUnitsPerTexel;
+    lightMatrix[3] = lightMatrix * float4(frustumCenterLS, 1.0f);
 
     float4x4 worldToLight = glm::inverse(lightMatrix);
-    for (int i = 0; i < corners.size(); i++)
+    float minZ = std::numeric_limits<float>::max();
+    float maxZ = std::numeric_limits<float>::lowest();
+    for (auto& corner : corners)
     {
-        corners[i] = worldToLight * glm::vec4(corners[i].x, corners[i].y, corners[i].z, 1.0f);
+        corner = worldToLight * float4(corner, 1.0f);
+        minZ = glm::min(minZ, corner.z);
+        maxZ = glm::max(maxZ, corner.z);
     }
 
-    AABB shadowFrustumAABB;
-    shadowFrustumAABB.min = float3(std::numeric_limits<float>::max());
-    shadowFrustumAABB.max = float3(std::numeric_limits<float>::lowest());
+    constexpr float casterDepthMargin = 300.0f;
+    minZ -= casterDepthMargin + frustumPadding;
+    maxZ += frustumPadding;
 
-    for (int i = 0; i < corners.size(); i++)
-    {
-        shadowFrustumAABB.min = glm::min(shadowFrustumAABB.min, corners[i]);
-        shadowFrustumAABB.max = glm::max(shadowFrustumAABB.max, corners[i]);
-    }
-
-    // prevent frustum too tight
-    shadowFrustumAABB.min -= 2.5;
-    shadowFrustumAABB.max += 2.5;
-
-    // not the best solution, but it prevents shaow pixel swimming when the camera is moving
-    {
-        shadowFrustumAABB.min.x = glm::floor(shadowFrustumAABB.min.x);
-        shadowFrustumAABB.min.y = glm::floor(shadowFrustumAABB.min.y);
-        shadowFrustumAABB.max.x = glm::ceil(shadowFrustumAABB.max.x);
-        shadowFrustumAABB.max.y = glm::ceil(shadowFrustumAABB.max.y);
-    }
-
-    shadowFrustumAABB.min.z -= 300.0f; // reserve some space for what's behind the camera
-
-    // note: we swap min max of y in this case because the ortho is not symmetric in origin, simplely negate the y axis
-    // won't work
+    // Swap the Y bounds to retain the engine's Vulkan projection orientation and use reversed Z.
     glm::mat4 proj = glm::orthoLH_ZO(
-        shadowFrustumAABB.min.x,
-        shadowFrustumAABB.max.x,
-        shadowFrustumAABB.max.y,
-        shadowFrustumAABB.min.y,
-        shadowFrustumAABB.max.z,
-        shadowFrustumAABB.min.z
+        -cascadeRadius,
+        cascadeRadius,
+        cascadeRadius,
+        -cascadeRadius,
+        maxZ,
+        minZ
     );
     auto ret = proj * worldToLight;
 
@@ -145,24 +149,37 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
         return;
     }
 
-    DrawList shadowDrawList;
-    std::vector<MeshRenderer*> renderers{};
-    if (renderingData.renderPipelineSettings->shadowFrustumCull)
+    int shadowCascadeCount = std::clamp(
+        int(renderingData.gpuMainLightShadow->shadowCascadeCount),
+        1,
+        GPUParameter::MAX_SHADOW_MAP_CASCADE_COUNT
+    );
+    bool shadowFrustumCull = renderingData.renderPipelineSettings->shadowFrustumCull;
+    float3 shadowSortPosition =
+        renderingData.mainCamera->GetGameObject()->GetPosition() +
+        mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane();
+
+    DrawList sharedShadowDrawList;
+    std::vector<DrawList> cascadeShadowDrawLists;
+    if (shadowFrustumCull)
     {
-        Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow[0]);
-        auto renderers = renderingData.scene->GetBVHScene().QueryMeshRenderersInFrustum(frustum);
-        shadowDrawList.Add(renderers);
+        cascadeShadowDrawLists.resize(shadowCascadeCount);
+        for (int cascadeIndex = 0; cascadeIndex < shadowCascadeCount; ++cascadeIndex)
+        {
+            Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow[cascadeIndex]);
+            auto renderers = renderingData.scene->GetBVHScene().QueryMeshRenderersInFrustum(frustum);
+            auto& shadowDrawList = cascadeShadowDrawLists[cascadeIndex];
+            shadowDrawList.Add(renderers);
+            shadowDrawList.Lock();
+            shadowDrawList.SortByDistance(shadowSortPosition);
+        }
     }
     else
     {
-        shadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
+        sharedShadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
+        sharedShadowDrawList.Lock();
+        sharedShadowDrawList.SortByDistance(shadowSortPosition);
     }
-
-    shadowDrawList.Lock();
-    shadowDrawList.SortByDistance(
-        renderingData.mainCamera->GetGameObject()->GetPosition() +
-        mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane()
-    );
 
     cmd.BeginLabel("Shadow Map", {0.11, 0.376, 0.729, 1.0});
     {
@@ -172,12 +189,13 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
 
             if (mainLight)
             {
-                auto shadowCascadeCount = mainLight->GetCascadeCount();
-
                 Gfx::ClearValue shadowMapClears[] = {{0.0f, 0}};
                 cmd.BeginRenderPass(pass, shadowMapClears);
                 for (int cascadeIndex = 0; cascadeIndex < shadowCascadeCount; ++cascadeIndex)
                 {
+                    auto& shadowDrawList = shadowFrustumCull
+                                               ? cascadeShadowDrawLists[cascadeIndex]
+                                               : sharedShadowDrawList;
                     Rect2D scissor{{(int)shadowMapTexelSize.z * cascadeIndex, 0}, {(uint32_t)shadowMapTexelSize.z, (uint32_t)shadowMapTexelSize.w}};
                     Gfx::Viewport viewport = Gfx::Viewport{cascadeIndex * shadowMapTexelSize.z, 0, shadowMapTexelSize.z, shadowMapTexelSize.w, 0, 1};
 

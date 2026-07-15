@@ -25,6 +25,12 @@ public:
         bool configChanged = false;
 
         configChanged |= EditorGUI::Property("Resolution", config.resolution);
+        float maxWalkableSlopeDegrees = glm::degrees(config.maxWalkableSlopeRadians);
+        if (EditorGUI::DragFloat("Max Walkable Slope", &maxWalkableSlopeDegrees, 0.1f, 0.0f, 89.0f))
+        {
+            config.maxWalkableSlopeRadians = glm::radians(maxWalkableSlopeDegrees);
+            configChanged = true;
+        }
 
         if (configChanged)
         {

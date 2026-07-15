@@ -10,6 +10,7 @@
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include "Engine/ThirdParty/imgui/imgui_internal.h"
 #include <concepts>
+#include <initializer_list>
 #include <string_view>
 
 class Material;
@@ -571,7 +572,11 @@ public:
     }
 
     static void AutoObjectInspector(const Object* target);
-    static void AutoObjectInspector(Object* target, bool readOnly = false);
+    static void AutoObjectInspector(
+        Object* target,
+        bool readOnly = false,
+        std::initializer_list<std::string_view> excludedKeys = {}
+    );
     static bool JsonInspector(nlohmann::json& j, const std::vector<std::string>& keys = {});
     static void JsonInspector(nlohmann::json& j, bool& valueChanged, const std::vector<std::string>& keys = {});
 

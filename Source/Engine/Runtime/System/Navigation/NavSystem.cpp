@@ -252,12 +252,15 @@ void NavSystem::Visualize() const
         for (int x = 0; x < config.width; ++x)
         {
             const int index = cellIndex(x, y);
+            if (!grid.cells[index].valid)
+                continue;
+
             const float3 center = cellPosition(x, y);
-            if (x + 1 < config.width)
+            if (x + 1 < config.width && grid.cells[cellIndex(x + 1, y)].valid)
             {
                 lines.push_back({center, cellPosition(x + 1, y), gridColor});
             }
-            if (y + 1 < config.height)
+            if (y + 1 < config.height && grid.cells[cellIndex(x, y + 1)].valid)
             {
                 lines.push_back({center, cellPosition(x, y + 1), gridColor});
             }
@@ -798,7 +801,8 @@ bool NavSystem::IsCellWalkable(int2 cell) const
         return false;
 
     const int index = CellIndex(cell);
-    return index >= 0 && index < static_cast<int>(runtimeCells.size()) && !runtimeCells[index].occupied;
+    return index >= 0 && index < static_cast<int>(runtimeCells.size()) && runtimeCells[index].cell.valid &&
+           !runtimeCells[index].occupied;
 }
 
 bool NavSystem::IsAreaFree(const float3& world, float radius) const

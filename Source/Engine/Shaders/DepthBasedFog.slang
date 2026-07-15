@@ -4,7 +4,7 @@ import Library.PerScene;
 
 #if CONFIG
 blend:
-    - one oneMinusSrcAlpha zero one
+    - one srcAlpha zero one
 depth:
     testEnable: False
     writeEnable: False
@@ -37,7 +37,7 @@ float4 FragmentShader(VertexOutput input) : SV_Target
     float distance = perScene.DistanceToCamera(worldPos);
 
     // float fogFactor = saturate((distance - fogStart) / (fogEnd - fogStart)); // linear
-    float fogIntensity = min(0.3, saturate(1.0 - exp(-distance * shaderInput.fogDensity))); // exponential
+    float fogIntensity = min(0.8, saturate(1.0 - exp(-distance * shaderInput.fogDensity))); // exponential
 
-    return float4(shaderInput.fogColor.xyz * fogIntensity, fogIntensity);
+    return float4(shaderInput.fogColor.xyz * fogIntensity, 1 - fogIntensity);
 }

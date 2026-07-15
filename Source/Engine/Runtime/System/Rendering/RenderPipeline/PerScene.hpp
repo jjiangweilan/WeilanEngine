@@ -8,6 +8,7 @@ struct PerScene
 {
     PerScene();
     GPUParameter::Camera cameraParameter{};
+    GPUParameter::Camera unjitteredCameraParameter{};
     GPUParameter::Scene sceneParameter{};
     GPUParameter::MainLightShadow mainLightShadowParameter{};
 

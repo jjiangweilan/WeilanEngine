@@ -11,10 +11,32 @@ class RenderPipelineSetting : public Asset
     DECLARE_SERIALIZATION()
 
 public:
-    bool fxaa = true;
+    enum class AntiAliasingMode : uint32_t
+    {
+        None = 0,
+        FXAA = 1,
+        TAA = 2
+    };
+
+    AntiAliasingMode antiAliasing = AntiAliasingMode::FXAA;
     bool frustumCull = true;
     bool shadowFrustumCull = true;
     bool useSSIL = false;
+
+    struct TAA
+    {
+        float historyWeight = 0.9f;
+        float varianceClipGamma = 1.0f;
+        float jitterScale = 1.0f;
+        float sharpness = 0.1f;
+
+        INLINE_DEFINE_SERIALIZABLE(
+            SER(historyWeight),
+            SER(varianceClipGamma),
+            SER(jitterScale),
+            SER(sharpness)
+        )
+    } taa;
 
     enum class TonemapMode : uint32_t
     {

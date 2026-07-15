@@ -27,7 +27,7 @@ void ConfigureBlitPass(Gfx::RenderPass& pass)
 
 void ConfigurePreviewSettings(Rendering::RenderPipelineSetting& setting)
 {
-    setting.fxaa = false;
+    setting.antiAliasing = Rendering::RenderPipelineSetting::AntiAliasingMode::None;
     setting.frustumCull = false;
     setting.shadowFrustumCull = false;
     setting.postProcess.colorGrading = false;
