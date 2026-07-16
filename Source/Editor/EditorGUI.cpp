@@ -68,26 +68,48 @@ bool EditorGUI::JsonInspector(nlohmann::json& j, const std::vector<std::string>&
     return valueChanged;
 }
 
-const char* EditorGUI::ShaderPicker(const char* shaderName)
+const char* EditorGUI::ShaderPicker(const char* shaderName, std::string& search)
 {
-    int currentIdx = -1;
-    for (int i = 0; i < (int)Shaders::MAX_COUNT; i++)
+    static const std::vector<std::string> shaderNames = []
     {
-        if (strcmp(shaderName, ShaderLibrary::ShaderNameMap[i]) == 0)
+        std::vector<std::string> names;
+        names.reserve((int)Shaders::MAX_COUNT);
+        for (int i = 0; i < (int)Shaders::MAX_COUNT; ++i)
         {
-            currentIdx = i;
-            break;
+            names.emplace_back(ShaderLibrary::ShaderNameMap[i]);
         }
-    }
+        return names;
+    }();
 
-    ImGui::Combo("Shader", &currentIdx, ShaderLibrary::ShaderNameMap, (int)Shaders::MAX_COUNT);
-
-    if (currentIdx != -1)
+    const char* selectedShader = nullptr;
+    const char* preview = shaderName[0] == '\0' ? "None" : shaderName;
+    if (ImGui::BeginCombo("Shader", preview))
     {
-        return ShaderLibrary::GetShaderName((Shaders)currentIdx);
+        if (ImGui::IsWindowAppearing())
+            search.clear();
+
+        int selectedIndex = -1;
+        int firstItem = -1;
+        bool selected = SearchableMenuItems(shaderNames, search, selectedIndex, firstItem);
+        if (!selected && firstItem != -1 && ImGui::IsKeyPressed(ImGuiKey_Enter))
+        {
+            selectedIndex = firstItem;
+            selected = true;
+        }
+
+        if (selected)
+        {
+            if (strcmp(shaderName, ShaderLibrary::ShaderNameMap[selectedIndex]) != 0)
+                selectedShader = ShaderLibrary::ShaderNameMap[selectedIndex];
+
+            search.clear();
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndCombo();
     }
 
-    return nullptr;
+    return selectedShader;
 }
 
 void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged, const std::vector<std::string>& keys)

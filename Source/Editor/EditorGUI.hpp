@@ -308,7 +308,7 @@ public:
         return newValue;
     }
 
-    static const char* ShaderPicker(const char* shaderName);
+    static const char* ShaderPicker(const char* shaderName, std::string& search);
 
     static bool DragDropSource(const char* text, std::function<void(Object*& obj)> onDrag, ImGuiDragDropFlags flags = 0)
     {

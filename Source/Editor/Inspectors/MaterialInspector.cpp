@@ -29,7 +29,7 @@ public:
 
         auto shader = target->GetShaderProgram();
         const char* shaderName = shader ? shader->GetName().c_str() : "";
-        if (const char* picked = EditorGUI::ShaderPicker(shaderName))
+        if (const char* picked = EditorGUI::ShaderPicker(shaderName, shaderSearch))
         {
             target->SetShader(picked);
         }
@@ -72,6 +72,8 @@ public:
     }
 
 private:
+    std::string shaderSearch;
+
     struct PropertyItem
     {
         std::string name;

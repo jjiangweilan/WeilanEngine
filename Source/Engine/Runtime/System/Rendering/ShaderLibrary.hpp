@@ -62,7 +62,7 @@
                          Do(PostProcess_PixelZoom, "PostProcess/PixelZoom"),                                                   \
                          Do(S2HDebug_Compute, "Debug/S2HDebug_Compute"),                                                       \
                          Do(Grass, "Grass"), Do(Grass_MotionVector, "Grass_MotionVector"), Do(GrassLighting, "GrassLighting"), \
-                         Do(River, "River"),
+                         Do(River, "River"), Do(Effect, "Effect"),
 
 #define _SHADER_ENUMS_PICK_FIRST(x, y) x
 #define _SHADER_ENUMS_PICK_SECOND(x, y) y
