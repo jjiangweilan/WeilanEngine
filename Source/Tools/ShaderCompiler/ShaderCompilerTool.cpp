@@ -684,7 +684,8 @@ private:
         std::string lowerName = name;
         std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
 
-        bool pointFilter = lowerName.find("point") != std::string::npos;
+        bool anisotropicFilter = lowerName.find("aniso") != std::string::npos;
+        bool pointFilter = !anisotropicFilter && lowerName.find("point") != std::string::npos;
         bool mirrorClamp = lowerName.find("mirrorclamp") != std::string::npos;
         bool clampSampleToBorder = !mirrorClamp && lowerName.find("border") != std::string::npos;
         bool clampSample = !mirrorClamp && lowerName.find("clamp") != std::string::npos;
@@ -692,7 +693,7 @@ private:
 
         std::string samplerTypeName = (typeLayout && typeLayout->getName()) ? typeLayout->getName() : "";
         config["enableCompare"] = (samplerTypeName == "SamplerComparisonState");
-        config["anisotropic"] = false;
+        config["anisotropic"] = anisotropicFilter;
 
         if (mirrorClamp)
             config["addressModeU"] = config["addressModeV"] = config["addressModeW"] = "MirrorClampToEdge";

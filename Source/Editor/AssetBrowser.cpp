@@ -63,6 +63,11 @@ void AssetBrowser::PinAsset(const AssetPath& path)
     searchSelectedPath.clear();
 }
 
+AssetPath AssetBrowser::GetCurrentDirectory() const
+{
+    return AssetPath(currentDirectory);
+}
+
 void AssetBrowser::Show(bool& isOpen)
 {
     if (isOpen)
@@ -553,9 +558,8 @@ void AssetBrowser::ShowAssetIconItem(
     // Update last selected path
     isLastSelection = lastSelectedPath == AssetPath(entry.path());
 
-    ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
+    isClicked = ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
     isHovered = ImGui::IsItemHovered();
-    isClicked = isHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
     isDoubleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
     isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 

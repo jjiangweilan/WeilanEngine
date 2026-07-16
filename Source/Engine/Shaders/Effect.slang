@@ -1,5 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
+import Library.CommonUtils;
 
 #if CONFIG
 name: Effect
@@ -8,24 +9,21 @@ depth:
     testEnable: true
     writeEnable: false
 blend:
-    - srcAlpha oneMinusSrcAlpha
+    - srcAlpha oneMinusSrcAlpha zero one
 #endif
-
-[MaterialUILayout]
-struct EffectUI
-{
-    [Color]
-    float4 albedo;
-
-    [Texture]
-    int maskMap;
-};
 
 struct MaterialInput
 {
     float4 albedo;
+    float intensity;
+
     Texture2D maskMap;
-    SamplerState samplerLinearRepeat;
+    SamplerState samplerAnisoRepeat;
+};
+
+struct TransparentPass
+{
+    Texture2D depthCopy;
 };
 
 struct VertexInput
@@ -51,6 +49,9 @@ PushConstant pushConstant;
 [Global]
 ParameterBlock<PerScene> perScene;
 
+[Pass]
+ParameterBlock<TransparentPass> pass;
+
 [Material]
 ParameterBlock<MaterialInput> material;
 
@@ -67,6 +68,12 @@ VertexOutput Vertex(VertexInput input)
 [shader("fragment")]
 float4 Fragment(VertexOutput input) : SV_Target
 {
-    float mask = material.maskMap.Sample(material.samplerLinearRepeat, input.uv).r;
-    return float4(material.albedo.rgb, mask * material.albedo.a);
+    float mask = material.maskMap.Sample(material.samplerAnisoRepeat, input.uv).r;
+
+    float sceneDepth = pass.depthCopy.Load(int3(input.position.xy, 0)).r;
+    float sceneEyeDepth = LinearEyeDepth(sceneDepth, perScene.camera.cameraZBufferParams);
+    float effectEyeDepth = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
+    float intersectionFade = smoothstep(0.0, 0.1, sceneEyeDepth - effectEyeDepth);
+
+    return float4(material.albedo.rgb * material.intensity, mask * material.albedo.a * intersectionFade);
 }

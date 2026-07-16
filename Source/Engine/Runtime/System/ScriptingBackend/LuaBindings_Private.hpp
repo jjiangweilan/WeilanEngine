@@ -582,7 +582,7 @@ public:
         // TODO: we need to determine what we can actually return here for the case where the input is a pointer.
         // It can be a raw pointer, an ObjPtr, or a value(by deference). a logic should be determined here.
         using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
-        if constexpr (std::is_integral_v<RawType>)
+        if constexpr (std::is_integral_v<RawType> && !std::is_same_v<RawType, bool>)
         {
             lua_Integer v = luaL_checkinteger(L, argOffset + idx + 1);
             return v;

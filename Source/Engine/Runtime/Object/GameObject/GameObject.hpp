@@ -78,6 +78,13 @@ class [[TrClass, LuaClass]] GameObject : public Object
     inline static const float compareEpsilon = 1e-6f;
 
 public:
+    enum class ComponentCopyMode
+    {
+        PreservePrefabSeparation,
+        EffectiveComponentsAsLocal,
+        EffectiveComponentsAsPrefab,
+    };
+
     // Constructors & Destructor
     GameObject();
     GameObject(Scene* gameScene);
@@ -99,6 +106,9 @@ public:
     ObjPtr<Component> GetComponent(const char* className);
     [[LuaFn]] ObjPtr<Component> GetComponentInHierarchy(const char* className);
     std::span<Component*> GetComponents();
+
+    template <class T>
+    std::vector<T*> GetComponents();
 
     template <class T>
     std::vector<T*> GetComponentsInChildren();
@@ -206,9 +216,17 @@ public:
     [[LuaRawFn("GetComponent", "ObjPtr<Component>(const char* className)")]]
     static int LuaGetComponent(lua_State* L);
 
-    void Copy(const GameObject& other, bool withComponent = true);
+    void Copy(
+        const GameObject& other,
+        ComponentCopyMode componentCopyMode = ComponentCopyMode::PreservePrefabSeparation
+    );
 
 private:
+    std::unique_ptr<Component> CloneComponent(Component& source);
+    void CloneEffectiveComponentsFrom(
+        const GameObject& source,
+        std::vector<std::unique_ptr<Component>>& destination
+    );
     GameObject* FindInternal(GameObject* go, std::string_view name);
 
     inline bool EqualZero(const float3& v)
@@ -250,14 +268,22 @@ T* GameObject::GetComponent()
 }
 
 template <class T>
-std::vector<T*> GameObject::GetComponentsInChildren()
+std::vector<T*> GameObject::GetComponents()
 {
     std::vector<T*> results;
-
-    if (auto comp = GetComponent<T>())
+    for (auto& component : allComponents)
     {
-        results.push_back(comp);
+        auto cast = dynamic_cast<T*>(component);
+        if (cast != nullptr)
+            results.push_back(cast);
     }
+    return results;
+}
+
+template <class T>
+std::vector<T*> GameObject::GetComponentsInChildren()
+{
+    std::vector<T*> results = GetComponents<T>();
 
     for (auto c : children)
     {

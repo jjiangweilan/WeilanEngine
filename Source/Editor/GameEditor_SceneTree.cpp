@@ -252,7 +252,11 @@ void GameEditor::ShowSceneTree(Scene& scene)
             EditorState::GetUndoManager().CaptureGameObjectCreation(
                 "Create GameObject",
                 [&scene]()
-                { return std::vector<GameObject*>{scene.CreateGameObject()}; }
+                {
+                    auto gameObject = scene.CreateGameObject();
+                    EditorState::SelectObject(gameObject);
+                    return std::vector<GameObject*>{gameObject};
+                }
             );
         }
         ImGui::EndMenu();
@@ -376,19 +380,21 @@ void GameEditor::ShowSceneTree(Scene& scene)
 
     if (ImGui::BeginPopup(gameObjectContextMenu))
     {
-        if (ImGui::Button("Create Prefab"))
+        if (ImGui::MenuItem("Create Prefab"))
         {
             auto& undoManager = EditorState::GetUndoManager();
             undoManager.BeginTransaction("Create Prefab");
             std::unique_ptr<Prefab> prefab = std::make_unique<Prefab>(sceneTreeContextObject);
 
             auto prefabName = prefab->GetGameObject()->GetName();
-            Asset* savedPrefab = AssetDatabase::Singleton()->SaveAsset(std::move(prefab), prefabName);
+            AssetPath prefabPath = assetBrowser->GetCurrentDirectory() / prefabName;
+            Asset* savedPrefab = AssetDatabase::Singleton()->SaveAsset(std::move(prefab), prefabPath);
             undoManager.TrackCreatedAsset(savedPrefab);
             undoManager.EndTransaction();
+            sceneTreeContextObject = nullptr;
         }
 
-        if (ImGui::Button("Create GameOject"))
+        if (ImGui::MenuItem("Create GameObject"))
         {
             EditorState::GetUndoManager().CaptureGameObjectCreation(
                 "Create GameObject",
@@ -396,12 +402,14 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 {
                     auto go = scene.CreateGameObject();
                     go->SetParent(sceneTreeContextObject);
+                    EditorState::SelectObject(go);
                     return std::vector<GameObject*>{go};
                 }
             );
+            sceneTreeContextObject = nullptr;
         }
 
-        if (ImGui::Button("Split Mesh Renderer"))
+        if (ImGui::MenuItem("Split Mesh Renderer"))
         {
             auto selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
             if (selected)
@@ -435,9 +443,10 @@ void GameEditor::ShowSceneTree(Scene& scene)
                     undoManager.TrackCreatedGameObject(gameObject, true);
                 undoManager.EndTransaction();
             }
+            sceneTreeContextObject = nullptr;
         }
 
-        if (ImGui::Button("Delete"))
+        if (ImGui::MenuItem("Delete"))
         {
             std::vector<GameObject*> objectsToDelete = ResolveDraggedGameObjects(sceneTreeContextObject);
             EditorState::GetUndoManager().CaptureGameObjectDeletion(
@@ -452,7 +461,6 @@ void GameEditor::ShowSceneTree(Scene& scene)
                     }
                 }
             );
-            ImGui::CloseCurrentPopup();
             sceneTreeContextObject = nullptr;
         }
         ImGui::EndPopup();
@@ -473,7 +481,11 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 EditorState::GetUndoManager().CaptureGameObjectCreation(
                     "Create GameObject",
                     [&scene]()
-                    { return std::vector<GameObject*>{scene.CreateGameObject()}; }
+                    {
+                        auto gameObject = scene.CreateGameObject();
+                        EditorState::SelectObject(gameObject);
+                        return std::vector<GameObject*>{gameObject};
+                    }
                 );
             }
             else if (ImGui::MenuItem("Cube"))

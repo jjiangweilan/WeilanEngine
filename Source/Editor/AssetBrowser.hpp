@@ -33,6 +33,7 @@ public:
     void Show(bool& isOpen);
     const char* GetWindowName() { return "Asset Browser"; }
     void PinAsset(const AssetPath& path);
+    AssetPath GetCurrentDirectory() const;
 
 private:
     enum class Mode
@@ -105,9 +106,6 @@ private:
         int itemsPerRow,
         bool isDirectory
     );
-
-    // void ChangeCurrentDirectory();
-    std::filesystem::path GetCurrentDirectory();
 
     AssetIcon* GetEditorAssetIcon(const std::filesystem::path& path);
 

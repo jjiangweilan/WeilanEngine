@@ -2,6 +2,7 @@
 #include "Engine/Library/Serialization/JsonSerializer.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/ScriptingBackend/LuaBackend.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -234,6 +235,14 @@ void GameScript::OnLoaded()
         if (luaDataCache)
         {
             LuaDeserialize(luaDataCache.get());
+
+            for (const UUID& referencedUUID : luaDataCache->GetReferencedObjects())
+            {
+                if (!referencedUUID.IsEmpty())
+                {
+                    AssetDatabase::Singleton()->LoadAssetByID(referencedUUID);
+                }
+            }
         }
     }
 

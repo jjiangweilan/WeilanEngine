@@ -157,7 +157,9 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::Shade
     samplerCreateInfo.addressModeW = MapSamplerAddressMode(samplerConfig.addressModeW);
     samplerCreateInfo.mipLodBias = 0;
     samplerCreateInfo.anisotropyEnable = samplerConfig.anisotropic;
-    samplerCreateInfo.maxAnisotropy = 0;
+    samplerCreateInfo.maxAnisotropy = samplerConfig.anisotropic
+                                          ? GetGPU()->physicalDeviceProperties.limits.maxSamplerAnisotropy
+                                          : 1.0f;
     samplerCreateInfo.compareEnable = samplerConfig.enableCompare;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     samplerCreateInfo.minLod = 0;

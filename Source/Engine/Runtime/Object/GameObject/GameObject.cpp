@@ -41,10 +41,35 @@ void GameObject::ResetTransform()
     eulerAngles = float3(0, 0, 0);
 }
 
-void GameObject::Copy(const GameObject& other, bool withComponent)
+std::unique_ptr<Component> GameObject::CloneComponent(Component& source)
+{
+    auto clone = source.Clone(*this);
+    if (clone)
+        clone->enabled = source.enabled;
+    return clone;
+}
+
+void GameObject::CloneEffectiveComponentsFrom(
+    const GameObject& source,
+    std::vector<std::unique_ptr<Component>>& destination
+)
+{
+    auto cloneComponents = [this, &destination](const std::vector<std::unique_ptr<Component>>& components)
+    {
+        for (const auto& component : components)
+        {
+            destination.push_back(component ? CloneComponent(*component) : nullptr);
+        }
+    };
+
+    cloneComponents(source.components);
+    cloneComponents(source.prefabComponents);
+}
+
+void GameObject::Copy(const GameObject& other, ComponentCopyMode componentCopyMode)
 {
     SetName(other.GetName());
-    prefab = other.prefab;
+    prefab = componentCopyMode == ComponentCopyMode::PreservePrefabSeparation ? other.prefab : nullptr;
     position = other.position;
     scale = other.scale;
     rotation = other.rotation;
@@ -53,32 +78,50 @@ void GameObject::Copy(const GameObject& other, bool withComponent)
     gameScene = nullptr;
     enabled = false;
 
-    if (withComponent)
+    for (auto& c : components)
     {
-        for (auto& c : components)
-        {
-            c->Disable();
-            c->Destroy();
-        }
-        components.clear();
+        c->Disable();
+        c->Destroy();
+    }
+    components.clear();
 
+    for (auto& c : prefabComponents)
+    {
+        c->Disable();
+        c->Destroy();
+    }
+    prefabComponents.clear();
+
+    if (componentCopyMode == ComponentCopyMode::PreservePrefabSeparation)
+    {
         for (auto& c : other.components)
         {
-            components.push_back(c->Clone(*this));
+            components.push_back(CloneComponent(*c));
         }
     }
+    else
+    {
+        auto& destination = componentCopyMode == ComponentCopyMode::EffectiveComponentsAsLocal
+                                ? components
+                                : prefabComponents;
+        CloneEffectiveComponentsFrom(other, destination);
+    }
 
+    children.clear();
     owningChildren.clear();
 
     for (GameObject* child : other.children)
     {
         auto childCopy = std::make_unique<GameObject>();
-        childCopy->Copy(*child, withComponent);
+        childCopy->Copy(*child, componentCopyMode);
         owningChildren.push_back(std::move(childCopy));
         owningChildren.back()->SetParent(this, false);
     }
 
-    ApplyPrefabComponents();
+    if (componentCopyMode == ComponentCopyMode::PreservePrefabSeparation)
+    {
+        ApplyPrefabComponents();
+    }
     UpdateAllComponents();
 }
 
@@ -157,6 +200,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("position", position);
     s->Serialize("scale", scale);
     s->Serialize("parent", parent);
+    s->Serialize("owningChildren", owningChildren);
     s->Serialize("children", children);
     s->Serialize("enabled", enabled);
     s->Serialize("prefab", prefab);
@@ -184,6 +228,7 @@ void GameObject::Deserialize(Serializer* s)
 {
     Object::Deserialize(s);
     s->Deserialize("enabled", enabled);
+    s->Deserialize("owningChildren", owningChildren);
     s->Deserialize("children", children);
     s->Deserialize("parent", parent);
     s->Deserialize("scale", scale);
@@ -996,12 +1041,7 @@ void GameObject::ApplyPrefabComponents()
         }
         prefabComponents.clear();
 
-        auto comps = prefab->GetGameObject()->GetComponents();
-        for (auto comp : comps)
-        {
-            if (comp)
-                prefabComponents.push_back(comp->Clone(*this));
-        }
+        CloneEffectiveComponentsFrom(*prefab->GetGameObject(), prefabComponents);
     }
 }
 
@@ -1020,9 +1060,8 @@ int GameObject::LuaGetComponent(lua_State* L)
         return 1;
     }
 
-    // failed to get Engine Component, try Lua Script
-    auto gameScript = go->GetComponent<GameScript>();
-    if (gameScript != nullptr)
+    // failed to get Engine Component, try Lua Scripts
+    for (auto gameScript : go->GetComponents<GameScript>())
     {
         auto& luaClassName = gameScript->GetLuaClassName();
         if (luaClassName == className)

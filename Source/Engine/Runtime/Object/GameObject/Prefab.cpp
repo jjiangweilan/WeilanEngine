@@ -13,7 +13,8 @@ Prefab::Prefab(GameObject* gameObject)
 {
     if (gameObject)
     {
-        this->gameObject = std::make_unique<GameObject>(*gameObject);
+        this->gameObject = std::make_unique<GameObject>();
+        this->gameObject->Copy(*gameObject, GameObject::ComponentCopyMode::EffectiveComponentsAsLocal);
         this->gameObject->LinkPrefab(this);
         SetDirty(true);
     }
@@ -23,12 +24,9 @@ void Prefab::SetGameObject(GameObject* gameObject)
 {
     if (gameObject)
     {
-        auto prefab = gameObject->GetPrefab();
-        gameObject->UnlinkPrefab();
-        this->gameObject->Copy(*gameObject, true);
+        this->gameObject->Copy(*gameObject, GameObject::ComponentCopyMode::EffectiveComponentsAsLocal);
         this->gameObject->LinkPrefab(this);
 
-        gameObject->LinkPrefab(prefab.Get());
         SetDirty(true);
     }
 }
@@ -36,7 +34,7 @@ void Prefab::SetGameObject(GameObject* gameObject)
 std::unique_ptr<GameObject> Prefab::Instantiate()
 {
     auto go = std::make_unique<GameObject>();
-    go->Copy(*gameObject, false);
+    go->Copy(*gameObject, GameObject::ComponentCopyMode::EffectiveComponentsAsPrefab);
     go->LinkPrefab(this);
     return std::move(go);
 }
