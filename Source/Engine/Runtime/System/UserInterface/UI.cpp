@@ -403,7 +403,10 @@ bool UI::ProcessSDLEvent(const SDL_Event& event)
     auto toGameViewPosition = [](int x, int y)
     {
         int2 gameViewOrigin = SystemInfo::Singleton().GetGameViewOrigin();
-        return Rml::Vector2i(x - gameViewOrigin.x, y - gameViewOrigin.y);
+        float2 screenResolution = SystemInfo::Singleton().GetScreenResolution();
+        float2 screenSize = SystemInfo::Singleton().GetScreenSize();
+        float2 uiCoordRemapped = float2(x - gameViewOrigin.x, y - gameViewOrigin.y) / screenSize * screenResolution;
+        return Rml::Vector2i(int(uiCoordRemapped.x), int(uiCoordRemapped.y));
     };
 
     switch (event.type)
