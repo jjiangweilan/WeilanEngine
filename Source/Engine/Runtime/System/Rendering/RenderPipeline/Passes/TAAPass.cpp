@@ -23,9 +23,12 @@ float RadicalInverse(uint32_t index, uint32_t base)
 
 TAAPass::TAAPass()
 {
-    shader = ShaderLibrary::GetShader(Shaders::PostProcess_TAA);
-    material.SetShader(shader);
-    material.SetName("TAA Material");
+    resolveShader = ShaderLibrary::GetShader(Shaders::PostProcess_TAA);
+    sharpenShader = ShaderLibrary::GetShader(Shaders::PostProcess_TAASharpen);
+    resolveMaterial.SetShader(resolveShader);
+    resolveMaterial.SetName("TAA Resolve Material");
+    sharpenMaterial.SetShader(sharpenShader);
+    sharpenMaterial.SetName("TAA Sharpen Material");
 }
 
 glm::vec2 TAAPass::GetProjectionJitterNdc(
@@ -90,35 +93,54 @@ void TAAPass::Execute(
     }
 
     Gfx::RenderImageDescriptor outputDesc(width, height, Gfx::GfxFormat::R16G16B16A16_SFloat, true);
+    Gfx::RenderImageDescriptor depthOutputDesc(width, height, Gfx::GfxFormat::R32_SFloat, true);
     cmd.AllocateAttachment(output, outputDesc);
     cmd.AllocateAttachment(historyOutput, outputDesc);
+    cmd.AllocateAttachment(historyDepthOutput, depthOutputDesc);
 
-    material.SetTexture("currentColorTex", GetGfxDriver()->GetImageFromRenderGraph(currentColor));
-    material.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectors));
-    material.SetTexture("currentDepthTex", GetGfxDriver()->GetImageFromRenderGraph(currentDepth));
-    material.SetTexture("historyColorTex", historyColor.get());
-    material.SetTexture("historyDepthTex", historyDepth.get());
-    material.SetTexture("outColorTex", GetGfxDriver()->GetImageFromRenderGraph(output));
-    material.SetTexture("outHistoryTex", GetGfxDriver()->GetImageFromRenderGraph(historyOutput));
-    material.SetVector(
+    resolveMaterial.SetTexture("currentColorTex", GetGfxDriver()->GetImageFromRenderGraph(currentColor));
+    resolveMaterial.SetTexture("motionVectorTex", GetGfxDriver()->GetImageFromRenderGraph(motionVectors));
+    resolveMaterial.SetTexture("currentDepthTex", GetGfxDriver()->GetImageFromRenderGraph(currentDepth));
+    resolveMaterial.SetTexture("historyColorTex", historyColor.get());
+    resolveMaterial.SetTexture("historyDepthTex", historyDepth.get());
+    resolveMaterial.SetTexture("outHistoryTex", GetGfxDriver()->GetImageFromRenderGraph(historyOutput));
+    resolveMaterial.SetTexture("outHistoryDepthTex", GetGfxDriver()->GetImageFromRenderGraph(historyDepthOutput));
+    resolveMaterial.SetVector(
         "rtSize",
         glm::vec4(width, height, 1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height))
     );
-    material.SetFloat("historyWeight", settings.historyWeight);
-    material.SetFloat("varianceClipGamma", settings.varianceClipGamma);
-    material.SetFloat("sharpness", settings.sharpness);
-    material.SetFloat("historyValid", historyValid ? 1.0f : 0.0f);
+    resolveMaterial.SetFloat("historyWeight", settings.historyWeight);
+    resolveMaterial.SetFloat("varianceClipGamma", settings.varianceClipGamma);
+    resolveMaterial.SetFloat("historyValid", historyValid ? 1.0f : 0.0f);
 
-    cmd.BeginLabel("Temporal Anti Aliasing", {0.22f, 0.48f, 0.82f, 1.0f});
-    auto* program = material.GetShaderProgram();
+    cmd.BeginLabel("TAA Resolve", {0.22f, 0.48f, 0.82f, 1.0f});
+    auto* program = resolveMaterial.GetShaderProgram();
     cmd.BindResource(0, renderingData.globalResource);
-    cmd.BindResource(material.GetSet(Gfx::DescriptorSetSemantics::Material), material.GetShaderResource());
+    cmd.BindResource(resolveMaterial.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMaterial.GetShaderResource());
+    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+    cmd.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+    cmd.EndLabel();
+
+    sharpenMaterial.SetTexture("inputTex", GetGfxDriver()->GetImageFromRenderGraph(historyOutput));
+    sharpenMaterial.SetTexture("outputTex", GetGfxDriver()->GetImageFromRenderGraph(output));
+    sharpenMaterial.SetVector(
+        "rtSize",
+        glm::vec4(width, height, 1.0f / static_cast<float>(width), 1.0f / static_cast<float>(height))
+    );
+    sharpenMaterial.SetFloat("sharpness", settings.sharpness);
+
+    cmd.BeginLabel("TAA Sharpen", {0.18f, 0.38f, 0.72f, 1.0f});
+    program = sharpenMaterial.GetShaderProgram();
+    cmd.BindResource(
+        sharpenMaterial.GetSet(Gfx::DescriptorSetSemantics::Material),
+        sharpenMaterial.GetShaderResource()
+    );
     cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
     cmd.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
     cmd.EndLabel();
 
     cmd.Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(historyOutput)), Gfx::ImageIdentifier(*historyColor));
-    cmd.Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(currentDepth)), Gfx::ImageIdentifier(*historyDepth));
+    cmd.Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(historyDepthOutput)), Gfx::ImageIdentifier(*historyDepth));
     historyValid = true;
 }
 

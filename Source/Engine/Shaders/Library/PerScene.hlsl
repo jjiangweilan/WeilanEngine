@@ -30,6 +30,8 @@ struct Camera
     float4 cameraZBufferParams;
     float4 cameraFrustum;// left right bottom top
     float4 screenSize;
+    // xy: current projection jitter in UV units, zw: previous projection jitter in UV units.
+    float4 temporalJitter;
     float4x4 view;
     float4x4 projection;
     float4x4 viewProjection;

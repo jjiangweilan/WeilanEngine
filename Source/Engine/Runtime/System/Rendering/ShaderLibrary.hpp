@@ -22,6 +22,7 @@
                          Do(PostProcess_SSILBilateralFilter, "PostProcess/SSILBilateralFilter"),                               \
                          Do(PostProcess_SSILTemporalAccumulation, "PostProcess/SSILTemporalAccumulation"),                     \
                          Do(PostProcess_TAA, "PostProcess/TAA"),                                                             \
+                         Do(PostProcess_TAASharpen, "PostProcess/TAASharpen"),                                               \
                          Do(PostProcess_RTGI, "PostProcess/RTGI"),                                                             \
                          Do(LightingCombine, "LightingCombine"),                                                               \
                          Do(PostProcess_Bloom, "PostProcess/Bloom"),                                                           \

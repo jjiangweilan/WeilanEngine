@@ -156,6 +156,9 @@ class RenderPipeline
 
     PerScene perScene;
     uint32_t frameIndex = 0;
+    glm::vec2 currentTemporalJitterUv{0.0f};
+    glm::vec2 previousTemporalJitterUv{0.0f};
+    Camera* temporalJitterCamera = nullptr;
 
     struct
     {

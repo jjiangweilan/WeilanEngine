@@ -17,7 +17,7 @@ enum class AssetState
 };
 ENUM_FLAGS(AssetState, int);
 
-class Asset : public Object
+class WEILAN_ENGINE_API Asset : public Object
 {
 public:
     void SetName(std::string_view name) override
@@ -38,12 +38,14 @@ public:
         name = std::move(asset.name);
     }
 
-    // asset format that is not serializable and deserializable.
-    // AssetDatabase will use LoadFromFile if this function returns true when importing asset
+    // External assets are imported from formats that the engine does not save directly.
     virtual bool IsExternalAsset() { return false; }
 
-    // return false if loading failed
+    // Custom loaders may use this for assets whose source representation is not JSON.
     virtual bool LoadFromFile(const char* path) { return false; }
+
+    // Writes the asset's source representation. The default implementation uses JSON serialization.
+    virtual bool SaveToFile(const std::filesystem::path& path) const;
 
     virtual std::vector<Asset*> GetInternalAssets() { return std::vector<Asset*>{}; }
 

@@ -52,5 +52,6 @@ float2 Fragment(Varyings input) : SV_Target
 {
     float2 currentUV = (input.currentClip.xy / input.currentClip.w) * 0.5 + 0.5;
     float2 previousUV = (input.previousClip.xy / input.previousClip.w) * 0.5 + 0.5;
-    return currentUV - previousUV;
+    float2 jitterDelta = perScene.camera.temporalJitter.xy - perScene.camera.temporalJitter.zw;
+    return currentUV - previousUV - jitterDelta;
 }

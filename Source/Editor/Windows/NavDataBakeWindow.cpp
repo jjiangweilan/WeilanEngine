@@ -1,8 +1,10 @@
 #include "NavDataBakeWindow.hpp"
 
 #include "Editor/EditorGUI.hpp"
+#include "Editor/NavDataAssetUtility.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Navigation/NavDataBaker.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
@@ -59,15 +61,26 @@ bool NavDataBakeWindow::Tick()
 
         if (ImGui::Button("Bake"))
         {
-            NavDataBaker baker;
-            baker.Bake(renderers, *navDataPtr);
-            navDataPtr->SetDirty();
+            if (EnsureNavDataCellAsset(*AssetDatabase::Singleton(), *navDataPtr) == nullptr)
+            {
+                statusMessage = "Failed to create the NavData cell BinaryAsset.";
+            }
+            else
+            {
+                NavDataBaker baker;
+                baker.Bake(renderers, *navDataPtr);
+                navDataPtr->SetDirty();
+                statusMessage.clear();
+            }
         }
 
         if (!canBake)
         {
             ImGui::EndDisabled();
         }
+
+        if (!statusMessage.empty())
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "%s", statusMessage.c_str());
     }
     ImGui::End();
     return open;

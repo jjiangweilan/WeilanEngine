@@ -66,7 +66,7 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
 
     if (bakeMeshes.empty())
     {
-        navData.grid.cells.clear();
+        navData.ClearCells();
         return;
     }
 
@@ -91,7 +91,7 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
 
     if (config.resolution.x <= 0 || config.resolution.y <= 0 || extentX <= 0 || extentZ <= 0)
     {
-        navData.grid.cells.clear();
+        navData.ClearCells();
         return;
     }
 
@@ -226,4 +226,6 @@ void NavDataBaker::Bake(std::span<MeshRenderer*> renderers, NavData& navData)
     {
         handle.Wait();
     }
+
+    navData.WriteCellsToBinary();
 }

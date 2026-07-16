@@ -59,7 +59,8 @@ float2 FragmentMain(VertexOutput input) : SV_Target
     float2 currentUV = input.uv;
     float2 previousUV = previousNDC.xy * 0.5 + 0.5;
     
-    float2 velocity = currentUV - previousUV;
+    float2 jitterDelta = perScene.camera.temporalJitter.xy - perScene.camera.temporalJitter.zw;
+    float2 velocity = currentUV - previousUV - jitterDelta;
     
     return velocity;
 }

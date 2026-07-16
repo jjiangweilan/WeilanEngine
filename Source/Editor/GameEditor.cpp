@@ -4,10 +4,12 @@
 #include "Editor/EditorState.hpp"
 #include "Editor/GameEditor_AssetDatabaseDebug.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Editor/NavDataAssetUtility.hpp"
 #include "Editor/Tools/GrassSurfacePaintTool.hpp"
 #include "Editor/Windows/CursorAtlasEditorWindow.hpp"
 #include "Editor/Windows/GrassSurfacePaintWindow.hpp"
 #include "Engine/Core/Asset.hpp"
+#include "Engine/Core/BinaryAsset.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Library/Assert.hpp"
 #include "Engine/Library/Platform/FileExplore.hpp"
@@ -548,8 +550,11 @@ void GameEditor::MainMenuBar()
             }
             if (ImGui::MenuItem("Nav Data"))
             {
-                auto navData = std::make_unique<NavData>();
-                engine->assetDatabase->SaveAsset(std::move(navData), "New NavData");
+                CreateNavDataAsset(*engine->assetDatabase, "New NavData");
+            }
+            if (ImGui::MenuItem("Binary Asset"))
+            {
+                engine->assetDatabase->SaveAsset(std::make_unique<BinaryAsset>(), "New Binary Asset");
             }
             if (ImGui::MenuItem("Cursor Atlas"))
             {

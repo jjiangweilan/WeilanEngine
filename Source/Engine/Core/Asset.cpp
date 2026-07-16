@@ -1,4 +1,23 @@
 #include "Asset.hpp"
+#include "Engine/Library/Serialization/JsonSerializer.hpp"
+#include <fstream>
+
+bool Asset::SaveToFile(const std::filesystem::path& path) const
+{
+    JsonSerializer serializer;
+    Serialize(&serializer);
+    std::vector<uint8_t> data = serializer.GetBinary();
+
+    std::ofstream output(path, std::ios::out | std::ios::binary | std::ios::trunc);
+    if (!output.is_open() || !output.good())
+        return false;
+
+    if (!data.empty())
+        output.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+
+    return output.good();
+}
+
 char AssetRegistry::RegisterAsset(
     const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
 )

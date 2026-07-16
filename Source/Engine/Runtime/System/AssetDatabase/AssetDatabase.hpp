@@ -88,7 +88,7 @@ public:
 
 private:
     AssetData* AddAssetData(std::unique_ptr<AssetData>&& newAssetData);
-    void SerializeAssetToDisk(Asset& asset, const AbsolutePath& path);
+    void SaveAssetToDisk(Asset& asset, const AbsolutePath& path);
     void LoadEngineInternal();
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     bool IsImportedSubAsset(const Asset& asset) const;

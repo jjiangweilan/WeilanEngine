@@ -80,7 +80,7 @@ void AssetDatabase::SaveAsset(Asset& asset)
 
     if (assetData != nullptr)
     {
-        SerializeAssetToDisk(asset, assetData->GetAssetAbsolutePath());
+        SaveAssetToDisk(asset, assetData->GetAssetAbsolutePath());
     }
 }
 
@@ -144,20 +144,10 @@ Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReload)
     return nullptr;
 }
 
-void AssetDatabase::SerializeAssetToDisk(Asset& asset, const AbsolutePath& path)
+void AssetDatabase::SaveAssetToDisk(Asset& asset, const AbsolutePath& path)
 {
-    JsonSerializer ser;
-    asset.Serialize(&ser);
-    auto binary = ser.GetBinary();
-    if (binary.size() != 0)
-    {
-        std::ofstream out;
-        out.open(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-        if (out.is_open() && out.good())
-        {
-            out.write((char*)binary.data(), binary.size());
-        }
-    }
+    if (!asset.SaveToFile(path))
+        spdlog::error("failed to save asset to {}", path.string());
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, const AssetPath& path)
 {
@@ -191,7 +181,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, const AssetPath& pat
             addedAssetData->SaveToDisk(projectRoot);
             Asset* asset = addedAssetData->GetAsset();
 
-            SerializeAssetToDisk(*asset, addedAssetData->GetAssetAbsolutePath());
+            SaveAssetToDisk(*asset, addedAssetData->GetAssetAbsolutePath());
 
             return asset;
         }
@@ -200,7 +190,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, const AssetPath& pat
             if (AssetData* ad = assetFileSystem.GetAssetData(finalAssetPath))
             {
                 auto asset = ad->SetAsset(std::move(a), projectRoot);
-                SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
+                SaveAssetToDisk(*asset, ad->GetAssetAbsolutePath());
             }
         }
     }

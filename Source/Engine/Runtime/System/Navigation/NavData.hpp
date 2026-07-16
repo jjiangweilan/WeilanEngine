@@ -2,6 +2,8 @@
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Library/Math.hpp"
 
+class BinaryAsset;
+
 struct NavDataConfig
 {
     float2 resolution = float2(0.25f); // meter
@@ -24,12 +26,6 @@ struct NavCell
     float height = 0;
     float4 edgeSlop = float4(0);
     bool valid = true;
-
-    INLINE_DEFINE_SERIALIZABLE(
-        SER(height),
-        SER(edgeSlop),
-        SER(valid)
-    )
 };
 
 struct NavGrid
@@ -38,16 +34,26 @@ struct NavGrid
     std::vector<NavCell> cells;
 
     INLINE_DEFINE_SERIALIZABLE(
-        SER(config),
-        SER(cells)
+        SER(config)
     )
 };
 
-class NavData : public Asset
+class WEILAN_ENGINE_API NavData : public Asset
 {
     DECLARE_ASSET();
     DECLARE_SERIALIZATION()
 
 public:
     NavGrid grid;
+
+    BinaryAsset* GetCellAsset() const;
+    void SetCellAsset(BinaryAsset* asset);
+    void ClearCells();
+    bool WriteCellsToBinary();
+    void OnLoaded() override;
+
+private:
+    bool ReadCellsFromBinary();
+
+    ObjPtr<BinaryAsset> cellAsset;
 };

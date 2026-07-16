@@ -620,6 +620,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Update camera temporal state for the next frame
     camera.SetPreviousViewProjection(renderedViewProjection);
     camera.SetInvPreviousViewProjection(renderedInverseViewProjection);
+    previousTemporalJitterUv = currentTemporalJitterUv;
 } // namespace Rendering
 
 PerScene::PerScene()
@@ -742,11 +743,20 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
     // populate previous matrices from camera component
     unjitteredCameraParam.previousViewProjection = camera.GetPreviousViewProjection();
     unjitteredCameraParam.invPreviousViewProjection = camera.GetInvPreviousViewProjection();
+    unjitteredCameraParam.temporalJitter = glm::vec4(0.0f);
     cameraParam = unjitteredCameraParam;
 
+    if (temporalJitterCamera != &camera)
+    {
+        temporalJitterCamera = &camera;
+        previousTemporalJitterUv = glm::vec2(0.0f);
+    }
+
+    currentTemporalJitterUv = glm::vec2(0.0f);
     if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::TAA)
     {
         glm::vec2 jitter = TAAPass::GetProjectionJitterNdc(frameIndex, screenSize, setting->taa.jitterScale);
+        currentTemporalJitterUv = jitter * 0.5f;
         glm::mat4 jitterTransform(1.0f);
         jitterTransform[3][0] = jitter.x;
         jitterTransform[3][1] = jitter.y;
@@ -755,6 +765,10 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
         cameraParam.invProjection = glm::inverse(cameraParam.projection);
         cameraParam.invNDCToWorld = cameraParam.invView * cameraParam.invProjection;
     }
+    cameraParam.temporalJitter = glm::vec4(
+        currentTemporalJitterUv,
+        previousTemporalJitterUv
+    );
 
     // update main light shadow parameters
     auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();

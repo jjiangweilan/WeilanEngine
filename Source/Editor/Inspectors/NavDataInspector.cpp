@@ -1,5 +1,6 @@
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Editor/Inspectors/InspectorRegistry.hpp"
+#include "Engine/Core/BinaryAsset.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 
 namespace Editor
@@ -19,6 +20,14 @@ public:
 
         EditorGUI::Text("UUID", target->GetUUID().ToString());
         EditorGUI::TextFormatted("Cells", "%zu", target->grid.cells.size());
+        BinaryAsset* cellAsset = target->GetCellAsset();
+        if (EditorGUI::ObjectField("Cell Binary Asset", cellAsset))
+        {
+            target->SetCellAsset(cellAsset);
+            target->OnLoaded();
+        }
+        if (target->GetCellAsset() == nullptr)
+            ImGui::TextDisabled("Cell BinaryAsset missing; rebake to create it.");
         ImGui::Separator();
 
         NavDataConfig config = target->grid.config;
@@ -37,8 +46,7 @@ public:
             config.resolution.x = std::max(config.resolution.x, 0.001f);
             config.resolution.y = std::max(config.resolution.y, 0.001f);
             target->grid.config = config;
-            target->grid.cells.clear();
-            target->SetDirty();
+            target->ClearCells();
         }
 
         EditorGUI::TextFormatted("Width", "%d", target->grid.config.width);
@@ -52,8 +60,7 @@ public:
 
         if (ImGui::Button("Clear Baked Cells"))
         {
-            target->grid.cells.clear();
-            target->SetDirty();
+            target->ClearCells();
         }
     }
 

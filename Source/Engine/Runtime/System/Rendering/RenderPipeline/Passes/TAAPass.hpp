@@ -36,10 +36,13 @@ public:
 private:
     void EnsureHistoryBuffers(int width, int height);
 
-    ObjPtr<Shader> shader;
-    Material material;
+    ObjPtr<Shader> resolveShader;
+    ObjPtr<Shader> sharpenShader;
+    Material resolveMaterial;
+    Material sharpenMaterial;
     Gfx::ImageIdentifier output = "TAA_Output";
     Gfx::ImageIdentifier historyOutput = "TAA_HistoryOutput";
+    Gfx::ImageIdentifier historyDepthOutput = "TAA_HistoryDepthOutput";
     std::unique_ptr<Gfx::Image> historyColor;
     std::unique_ptr<Gfx::Image> historyDepth;
     glm::int2 historySize = {0, 0};

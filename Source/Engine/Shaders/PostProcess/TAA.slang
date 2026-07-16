@@ -7,7 +7,6 @@ struct TAAParameter
     float4 rtSize;
     float historyWeight;
     float varianceClipGamma;
-    float sharpness;
     float historyValid;
 
     Texture2D<float4> currentColorTex;
@@ -15,8 +14,8 @@ struct TAAParameter
     Texture2D<float2> currentDepthTex;
     Texture2D<float4> historyColorTex;
     Texture2D<float> historyDepthTex;
-    RWTexture2D<float4> outColorTex;
     RWTexture2D<float4> outHistoryTex;
+    RWTexture2D<float> outHistoryDepthTex;
 
     SamplerState sampler_linear_clamp;
     SamplerState sampler_point_clamp;
@@ -60,10 +59,11 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     float2 uv = (float2(coord) + 0.5) * perMaterial.rtSize.zw;
     float4 currentColor = perMaterial.currentColorTex.Load(int3(coord, 0));
+    float currentDepth = perMaterial.currentDepthTex.Load(int3(coord, 0)).x;
+    perMaterial.outHistoryDepthTex[coord] = currentDepth;
 
     float3 mean = 0.0;
     float3 secondMoment = 0.0;
-    float3 neighborhoodRgb = 0.0;
     [unroll]
     for (int y = -1; y <= 1; ++y)
     {
@@ -75,12 +75,10 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             float3 sampleYCoCg = RGBToYCoCg(sampleRgb);
             mean += sampleYCoCg;
             secondMoment += sampleYCoCg * sampleYCoCg;
-            neighborhoodRgb += sampleRgb;
         }
     }
     mean /= 9.0;
     secondMoment /= 9.0;
-    neighborhoodRgb /= 9.0;
 
     float3 resolved = currentColor.rgb;
     if (perMaterial.historyValid > 0.5)
@@ -91,7 +89,6 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
         if (validHistory)
         {
-            float currentDepth = perMaterial.currentDepthTex.SampleLevel(perMaterial.sampler_point_clamp, uv, 0).x;
             float historyDepth = perMaterial.historyDepthTex.SampleLevel(perMaterial.sampler_point_clamp, previousUv, 0).x;
             bool currentGeometry = currentDepth > 0.0000001;
             bool historyGeometry = historyDepth > 0.0000001;
@@ -129,7 +126,4 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     resolved = max(resolved, 0.0);
     perMaterial.outHistoryTex[coord] = float4(resolved, currentColor.a);
-
-    float3 sharpened = resolved + saturate(perMaterial.sharpness) * (currentColor.rgb - neighborhoodRgb);
-    perMaterial.outColorTex[coord] = float4(max(sharpened, 0.0), currentColor.a);
 }
