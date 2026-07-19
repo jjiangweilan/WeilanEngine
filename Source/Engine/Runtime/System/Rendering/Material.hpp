@@ -11,9 +11,12 @@
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <atomic>
 #include <glm/glm.hpp>
+#include <span>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace Gfx
 {
@@ -123,6 +126,17 @@ public:
     void RegisterGPUMaterial();
     void UnregisterGPUMaterial();
     void UpdateGPUMaterialData();
+    void SetGPUDrivenExtraData(std::span<const uint8_t> data);
+
+    template <typename T>
+        requires std::is_trivially_copyable_v<T>
+    void SetGPUDrivenExtraData(const T& data)
+    {
+        SetGPUDrivenExtraData(std::span<const uint8_t>(
+            reinterpret_cast<const uint8_t*>(&data),
+            sizeof(T)
+        ));
+    }
 
 private:
     struct UBO
@@ -172,6 +186,7 @@ private:
     // GPU-Driven bindless
     Rendering::GPUMaterialHandle gpuMaterialHandle = Rendering::InvalidGPUHandle;
     std::atomic_bool gpuMaterialUploadNeeded = false;
+    std::vector<uint8_t> gpuExtraData;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void WriteParameterDataToBuffer(

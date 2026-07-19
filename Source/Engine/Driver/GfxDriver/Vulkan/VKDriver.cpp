@@ -415,75 +415,72 @@ void VKDriver::GenerateMipmaps(SRef<VKImage> image)
             if (image->GetDescription().mipLevels <= 1)
                 return;
 
-            VkImageSubresourceRange range;
-            range.baseArrayLayer = 0;
-            range.layerCount = image->GetDescription().GetLayer();
-            range.levelCount = 1;
-            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            auto putImageBarriers = [cmd](std::span<const VkImageMemoryBarrier2> imageBarriers)
+            {
+                if (imageBarriers.empty())
+                    return;
+
+                VkDependencyInfo dependencyInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+                dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
+                dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+                vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+            };
+
             for (uint32_t layer = 0; layer < image->GetDescription().GetLayer(); ++layer)
             {
                 for (uint32_t mip = 1; mip < image->GetDescription().mipLevels; ++mip)
                 {
-                    range.baseMipLevel = mip - 1;
-                    VkImageMemoryBarrier vkBarrier[2];
-                    vkBarrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    vkBarrier[0].pNext = VK_NULL_HANDLE;
-                    vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                    vkBarrier[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-                    vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                    vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                    vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[0].image = image->GetImage();
-                    vkBarrier[0].subresourceRange = range;
+                    VkImageSubresourceRange sourceRange{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = mip - 1,
+                        .levelCount = 1,
+                        .baseArrayLayer = layer,
+                        .layerCount = 1,
+                    };
+                    VkImageSubresourceRange destinationRange{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = mip,
+                        .levelCount = 1,
+                        .baseArrayLayer = layer,
+                        .layerCount = 1,
+                    };
 
-                    range.baseMipLevel = mip;
-                    vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                    vkBarrier[1].pNext = VK_NULL_HANDLE;
-                    vkBarrier[1].srcAccessMask = VK_ACCESS_NONE;
-                    vkBarrier[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                    vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                    vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                    vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[1].image = image->GetImage();
-                    vkBarrier[1].subresourceRange = range;
-
-                    if (mip == 1)
-                    {
-                        vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    }
-
-                    vkCmdPipelineBarrier(
-                        cmd,
-                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VK_DEPENDENCY_BY_REGION_BIT,
-                        0,
-                        VK_NULL_HANDLE,
-                        0,
-                        VK_NULL_HANDLE,
-                        2,
-                        vkBarrier
+                    auto imageBarriers = image->MakeBarrierIfNeeded(
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                        VK_ACCESS_2_TRANSFER_READ_BIT,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        sourceRange
                     );
+                    auto destinationBarriers = image->MakeBarrierIfNeeded(
+                        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                        VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        destinationRange
+                    );
+                    imageBarriers.insert(
+                        imageBarriers.end(),
+                        destinationBarriers.begin(),
+                        destinationBarriers.end()
+                    );
+                    putImageBarriers(imageBarriers);
 
                     float scale = glm::pow(0.5f, mip - 1);
                     int32_t width = image->GetDescription().width * scale;
                     int32_t height = image->GetDescription().height * scale;
-                    VkImageBlit blit;
+                    VkImageBlit blit{};
                     blit.srcSubresource = {
-                        .aspectMask = range.aspectMask,
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                         .mipLevel = mip - 1,
-                        .baseArrayLayer = range.baseArrayLayer,
-                        .layerCount = range.layerCount,
+                        .baseArrayLayer = layer,
+                        .layerCount = 1,
                     };
                     blit.srcOffsets[0] = {0, 0, 0};
                     blit.srcOffsets[1] = {width, height, 1};
                     blit.dstSubresource = {
-                        .aspectMask = range.aspectMask,
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                         .mipLevel = mip,
-                        .baseArrayLayer = range.baseArrayLayer,
-                        .layerCount = range.layerCount,
+                        .baseArrayLayer = layer,
+                        .layerCount = 1,
                     };
                     blit.dstOffsets[0] = {0, 0, 0};
                     blit.dstOffsets[1] = {width / 2, height / 2, 1};
@@ -501,43 +498,43 @@ void VKDriver::GenerateMipmaps(SRef<VKImage> image)
                 }
             }
 
-            VkImageMemoryBarrier vkBarrier[2];
-            vkBarrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            vkBarrier[0].pNext = VK_NULL_HANDLE;
-            vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            vkBarrier[0].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[0].image = image->GetImage();
-            range.baseMipLevel = 0;
-            range.levelCount = image->GetDescription().mipLevels - 1;
-            vkBarrier[0].subresourceRange = range;
+            std::vector<VkImageMemoryBarrier2> toShaderRead;
+            for (uint32_t layer = 0; layer < image->GetDescription().GetLayer(); ++layer)
+            {
+                for (uint32_t mip = 0; mip < image->GetDescription().mipLevels; ++mip)
+                {
+                    VkImageSubresourceRange range{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = mip,
+                        .levelCount = 1,
+                        .baseArrayLayer = layer,
+                        .layerCount = 1,
+                    };
+                    auto mipBarriers = image->MakeBarrierIfNeeded(
+                        VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                        VK_ACCESS_2_SHADER_READ_BIT,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                        range
+                    );
+                    toShaderRead.insert(toShaderRead.end(), mipBarriers.begin(), mipBarriers.end());
+                }
+            }
+            putImageBarriers(toShaderRead);
 
-            vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            vkBarrier[1].pNext = VK_NULL_HANDLE;
-            vkBarrier[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            vkBarrier[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-            vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[1].image = image->GetImage();
-            range.baseMipLevel = image->GetDescription().mipLevels - 1;
-            range.levelCount = 1;
-            vkBarrier[1].subresourceRange = range;
-            vkCmdPipelineBarrier(
-                cmd,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                0,
-                VK_NULL_HANDLE,
-                0,
-                VK_NULL_HANDLE,
-                2,
-                vkBarrier
+            VkImageSubresourceRange fullRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = image->GetDescription().mipLevels,
+                .baseArrayLayer = 0,
+                .layerCount = image->GetDescription().GetLayer(),
+            };
+            image->SetLayout(
+                fullRange,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT
             );
         }
     );
@@ -769,7 +766,7 @@ void VKDriver::FlushPendingCommands()
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
         firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+        VK_PIPELINE_STAGE_TRANSFER_BIT
     );
 
     // record scheduled commands
@@ -846,7 +843,7 @@ bool VKDriver::EndFrame()
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
         firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+        VK_PIPELINE_STAGE_TRANSFER_BIT
     );
     firstFrame = false;
 
@@ -1617,7 +1614,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
         VK_NULL_HANDLE, // protects by fences
-        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+        VK_PIPELINE_STAGE_TRANSFER_BIT
     );
 
     VKCommandBufferProcessor rg(1, rayTracingManager.get());

@@ -16,6 +16,7 @@
 #include <string_view>
 
 class GrassSurface;
+class Terrain;
 class WeilanEngine;
 namespace Editor
 {
@@ -53,6 +54,7 @@ public:
     EditorContext* GetEditorContext() { return editorContext.get(); }
     void SetActiveSceneEditorTool(SceneEditorTool* tool);
     void OpenGrassSurfacePaintWindow(GrassSurface* gs);
+    void OpenTerrainPaintWindow(Terrain* terrain);
 
 private:
     void EnableMultiViewport();

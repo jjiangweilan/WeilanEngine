@@ -247,29 +247,79 @@ void GPUDrivenManager::UploadMaterial(GPUMaterialHandle handle)
     );
 }
 
-GPUMaterialHandle GPUDrivenManager::RegisterMaterial(const GpuMaterial& data)
+void GPUDrivenManager::UpdateMaterialExtraData(
+    GpuMaterialDescriptor& descriptor,
+    std::span<const uint8_t> extraData
+)
+{
+    if (extraData.empty())
+    {
+        globalBufferAllocator.Free(descriptor.extraDataAlloc);
+        descriptor.materialData.extraMaterialData = InvalidTextureIndex;
+        return;
+    }
+
+    if (!descriptor.extraDataAlloc.IsValid() || descriptor.extraDataAlloc.size != extraData.size())
+    {
+        globalBufferAllocator.Free(descriptor.extraDataAlloc);
+        const bool allocated = globalBufferAllocator.Allocate(
+            extraData.size(),
+            globalDataAlignment,
+            descriptor.extraDataAlloc
+        );
+        ASSERT(allocated && "GPU-driven global buffer is out of space for material extra data");
+        if (!allocated)
+        {
+            descriptor.materialData.extraMaterialData = InvalidTextureIndex;
+            return;
+        }
+    }
+
+    descriptor.materialData.extraMaterialData = static_cast<uint32_t>(descriptor.extraDataAlloc.offset);
+    GetGfxDriver()->UploadBuffer(
+        *globalBuffer,
+        const_cast<uint8_t*>(extraData.data()),
+        extraData.size(),
+        descriptor.extraDataAlloc.offset
+    );
+}
+
+GPUMaterialHandle GPUDrivenManager::RegisterMaterial(
+    const GpuMaterial& data,
+    std::span<const uint8_t> extraData
+)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
     GPUMaterialHandle handle = materialDescriptortors.AllocateRaw();
-    globalBufferAllocator.Allocate(sizeof(GpuMaterial), globalDataAlignment, materialDescriptortors[handle].dataAlloc);
-    materialDescriptortors[handle].materialData = data;
+    auto& descriptor = materialDescriptortors[handle];
+    globalBufferAllocator.Allocate(sizeof(GpuMaterial), globalDataAlignment, descriptor.dataAlloc);
+    descriptor.materialData = data;
+    UpdateMaterialExtraData(descriptor, extraData);
     UploadMaterial(handle);
 
     return handle;
 }
 
-void GPUDrivenManager::UpdateMaterial(GPUMaterialHandle handle, const GpuMaterial& data)
+void GPUDrivenManager::UpdateMaterial(
+    GPUMaterialHandle handle,
+    const GpuMaterial& data,
+    std::span<const uint8_t> extraData
+)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    materialDescriptortors[handle].materialData = data;
+    auto& descriptor = materialDescriptortors[handle];
+    descriptor.materialData = data;
+    UpdateMaterialExtraData(descriptor, extraData);
     UploadMaterial(handle);
 }
 
 void GPUDrivenManager::UnregisterMaterial(GPUMaterialHandle handle)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    globalBufferAllocator.Free(materialDescriptortors[handle].dataAlloc);
+    auto& descriptor = materialDescriptortors[handle];
+    globalBufferAllocator.Free(descriptor.extraDataAlloc);
+    globalBufferAllocator.Free(descriptor.dataAlloc);
     materialDescriptortors.FreeRaw(static_cast<int>(handle));
 }
 

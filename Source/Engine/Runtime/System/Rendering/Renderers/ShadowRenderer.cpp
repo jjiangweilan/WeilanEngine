@@ -17,6 +17,8 @@ void ShadowRenderer::Init()
     shadowMapShader = ShaderLibrary::GetShader(Shaders::ShadowMapObject);
     shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
     shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven"});
+    shadowMapShaderTerrain = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven", "_Terrain"});
+    terrainShader = ShaderLibrary::GetShader(Shaders::Terrain);
 
     ResetShadowmap(1.0f, 4);
 }
@@ -210,11 +212,15 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
 
                     auto program = shadowMapShader->GetShaderProgram();
                     auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
+                    auto programTerrain = shadowMapShaderTerrain->GetShaderProgram();
+                    auto terrainProgram = terrainShader->GetShaderProgram();
 
                     for (auto& drawIdx : shadowDrawList.GetSortedIndices())
                     {
                         auto& draw = shadowDrawList[drawIdx];
-                        auto programUsed = program;
+                        auto programUsed = draw.material != nullptr && draw.material->GetShaderProgram() == terrainProgram
+                                               ? programTerrain
+                                               : program;
                         auto ps = draw.GetPushConstant();
                         [[unlikely]]
                         if (draw.skinned)
@@ -237,7 +243,9 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                     {
                         for (auto& group : *renderingData.gpuObjectShaderGroups)
                         {
-                            auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
+                            auto programGPUDriven = group.shaderProgram == terrainProgram
+                                                        ? programTerrain
+                                                        : shadowMapShaderGPUDriven->GetShaderProgram();
                             cmd.BindShaderProgram(programGPUDriven, *group.pipelineConfig);
 
                             // Bind global index buffer for GPU-driven rendering

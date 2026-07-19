@@ -45,7 +45,7 @@ void Prefab::Serialize(Serializer* s) const
     s->Serialize("gameObject", gameObject);
 }
 void Prefab::Deserialize(Serializer* s)
-{
+{  
 
     Asset::Deserialize(s);
     s->Deserialize("gameObject", gameObject);

@@ -6,6 +6,7 @@
 #include "Engine/Library/Allocators/VirtualTLSFAllocator.hpp"
 #include "Engine/Library/ObjectPool.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include <cstddef>
 #include <mutex>
 #include <span>
 #include <vector>
@@ -34,9 +35,15 @@ struct GpuMaterial
     glm::uvec2 normalMapTexIndex;
     glm::uvec2 metallicRoughnessTexIndex;
     glm::uvec2 emissiveMapTexIndex;
+    uint32_t extraMaterialData = InvalidTextureIndex;
     uint32_t shaderHash;
     uint32_t _pad0;
+    uint32_t _pad1;
 };
+
+static_assert(offsetof(GpuMaterial, extraMaterialData) == 76);
+static_assert(offsetof(GpuMaterial, shaderHash) == 80);
+static_assert(sizeof(GpuMaterial) == 92);
 
 struct GpuGeometry
 {
@@ -79,6 +86,7 @@ struct GpuObject
 struct GpuMaterialDescriptor
 {
     VirtualTLSFAllocator::Allocation dataAlloc;
+    VirtualTLSFAllocator::Allocation extraDataAlloc;
 
     GpuMaterial materialData;
 };
@@ -158,8 +166,15 @@ public:
     void UnregisterTexture(GPUTextureHandle handle);
 
     // Material registration (data stored in globalBuffer)
-    GPUMaterialHandle RegisterMaterial(const GpuMaterial& data);
-    void UpdateMaterial(GPUMaterialHandle handle, const GpuMaterial& data);
+    GPUMaterialHandle RegisterMaterial(
+        const GpuMaterial& data,
+        std::span<const uint8_t> extraData = {}
+    );
+    void UpdateMaterial(
+        GPUMaterialHandle handle,
+        const GpuMaterial& data,
+        std::span<const uint8_t> extraData = {}
+    );
     void UnregisterMaterial(GPUMaterialHandle handle);
 
     // Scene object registration (data stored in globalBuffer)
@@ -299,6 +314,10 @@ private:
 
     ObjectPool<GpuMaterialDescriptor> materialDescriptortors;
     void UploadMaterial(GPUMaterialHandle handle);
+    void UpdateMaterialExtraData(
+        GpuMaterialDescriptor& descriptor,
+        std::span<const uint8_t> extraData
+    );
 
     ObjectPool<GpuObjectDescriptor> objectDescriptors;
     void UploadObject(GpuObjectHandle handle);

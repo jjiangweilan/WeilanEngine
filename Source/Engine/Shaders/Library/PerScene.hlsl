@@ -203,8 +203,10 @@ struct GpuMaterial
     uint2 normalMapTexIndex;
     uint2 metallicRoughnessTexIndex;
     uint2 emissiveMapTexIndex;
+    uint extraMaterialData;
     uint shaderHash;
     uint _pad0;
+    uint _pad1;
 };
 
 // geometry data stored in globalBuffer for bindless GPU-driven rendering.
@@ -254,6 +256,10 @@ struct ObjectEntity
     float4 GetTangent() {return tangent;}
     float2 GetUV() {return uv;}
     float4 GetBone() {return bone;}
+    GpuMaterial GetMaterial(ParameterBlock<PerScene> perScene)
+    {
+        return perScene.LoadData<GpuMaterial>(renderData.materialOffset);
+    }
 
     float4x4 modelMatrix;
     float4x4 invTspModelMatrix;
@@ -263,11 +269,12 @@ struct ObjectEntity
     float2 uv;
     float4 bone;
     int skeletonOffset;
+    GpuRenderData renderData;
 
     __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint vertexIndex)
     {
         GpuObject objData = perScene.LoadData<GpuObject>(objectOffset);
-        GpuRenderData renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
+        renderData = perScene.LoadData<GpuRenderData>(objData.pRenderDataOffset, renderDataIndex);
         GpuGeometry geometry = perScene.LoadData<GpuGeometry>(renderData.geometryOffset);
 
         skeletonOffset = objData.skeletonOffset;

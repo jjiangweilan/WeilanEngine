@@ -7,6 +7,50 @@
 
 namespace Gfx
 {
+namespace
+{
+struct UploadFinalState
+{
+    VkPipelineStageFlags2 stages;
+    VkAccessFlags2 access;
+};
+
+UploadFinalState GetUploadFinalState(VkImageLayout layout)
+{
+    switch (layout)
+    {
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+            return {VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+        case VK_IMAGE_LAYOUT_GENERAL:
+            return {
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
+            };
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            return {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+            return {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        default:
+            return {
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT
+            };
+    }
+}
+
+void PutImageBarriers(VkCommandBuffer cmd, std::span<const VkImageMemoryBarrier2> imageBarriers)
+{
+    if (imageBarriers.empty())
+        return;
+
+    VkDependencyInfo dependencyInfo{VK_STRUCTURE_TYPE_DEPENDENCY_INFO};
+    dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
+    dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+    vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+}
+}
+
 VKDataUploader::VKDataUploader(VKDriver* driver) : driver(driver)
 {
     stagingBuffer = driver->Driver_CreateBuffer(
@@ -101,7 +145,7 @@ void VKDataUploader::UploadImage(
     float scale = glm::pow(0.5, mipLevel);
     pendingImageUploads.push_back(
         PendingImageUpload{
-            vkDst->GetImage(),
+            ObjPtr<VKImage>((Object*)vkDst),
             (uint32_t)(vkDst->GetDescription().width * scale),
             (uint32_t)(vkDst->GetDescription().height * scale),
             (uint32_t)glm::max((vkDst->GetDescription().depth * scale), 1.0f),
@@ -198,7 +242,7 @@ void VKDataUploader::UploadAllPendingInternal(
     {
         auto& p = pendingImageUploads[i];
 
-        VkBufferImageCopy region;
+        VkBufferImageCopy region{};
         region.bufferOffset = p.srcOffset;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
@@ -209,77 +253,56 @@ void VKDataUploader::UploadAllPendingInternal(
         region.imageOffset = VkOffset3D{0, 0, 0};
         region.imageExtent = VkExtent3D{p.width, p.height, p.depth};
 
-        bufferImageCopies.push_back(region);
+        VkImageSubresourceRange range{
+            .aspectMask = p.aspect,
+            .baseMipLevel = p.mipLevel,
+            .levelCount = 1,
+            .baseArrayLayer = p.arrayLayer,
+            .layerCount = 1,
+        };
 
-        if (i + 1 == pendingImageUploads.size() || pendingImageUploads[i + 1].dst != p.dst)
-        {
-            barriers.clear();
-            for (auto& bic : bufferImageCopies)
-            {
-                VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-                barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = p.dst;
+        auto toTransferDst = p.dst->MakeBarrierIfNeeded(
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            range
+        );
+        PutImageBarriers(takingOffCmd.cmd, toTransferDst);
 
-                VkImageSubresourceRange range;
-                range.aspectMask = bic.imageSubresource.aspectMask;
-                range.baseMipLevel = bic.imageSubresource.mipLevel;
-                range.levelCount = 1;
-                range.baseArrayLayer = bic.imageSubresource.baseArrayLayer;
-                range.layerCount = bic.imageSubresource.layerCount;
+        vkCmdCopyBufferToImage(
+            takingOffCmd.cmd,
+            stagingBuffer.handle,
+            p.dst->GetImage(),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region
+        );
 
-                barrier.subresourceRange = range;
+        const UploadFinalState finalState = GetUploadFinalState(p.finalLayout);
+        VkImageMemoryBarrier2 toFinal{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .dstStageMask = finalState.stages,
+            .dstAccessMask = finalState.access,
+            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .newLayout = p.finalLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = p.dst->GetImage(),
+            .subresourceRange = range,
+        };
+        PutImageBarriers(takingOffCmd.cmd, std::span<const VkImageMemoryBarrier2>(&toFinal, 1));
 
-                barriers.push_back(barrier);
-            }
-
-            vkCmdPipelineBarrier(
-                takingOffCmd.cmd,
-                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                0,
-                0,
-                VK_NULL_HANDLE,
-                0,
-                VK_NULL_HANDLE,
-                barriers.size(),
-                barriers.data()
-            );
-
-            vkCmdCopyBufferToImage(
-                takingOffCmd.cmd,
-                stagingBuffer.handle,
-                p.dst,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                bufferImageCopies.size(),
-                bufferImageCopies.data()
-            );
-            bufferImageCopies.clear();
-
-            for (auto& b : barriers)
-            {
-                b.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                b.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                b.newLayout = p.finalLayout;
-            }
-            vkCmdPipelineBarrier(
-                takingOffCmd.cmd,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                0,
-                0,
-                VK_NULL_HANDLE,
-                0,
-                VK_NULL_HANDLE,
-                barriers.size(),
-                barriers.data()
-            );
-        }
+        p.dst->SetLayout(
+            range,
+            p.finalLayout,
+            VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            finalState.stages,
+            finalState.access
+        );
+        takingOffCmd.imageRefs.push_back(p.dst);
     }
 
     VKDebugUtils::CmdEndLabel(takingOffCmd.cmd);

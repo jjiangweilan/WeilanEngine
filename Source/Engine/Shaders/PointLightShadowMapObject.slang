@@ -1,6 +1,9 @@
 import Library.PerScene;
 import WeilanEngine;
 import ObjectWorldPosition;
+import TerrainCommon;
+
+static extern const bool _Terrain = false;
 
 #if CONFIG
 cull: back
@@ -38,9 +41,13 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
 
     float4x4 modelMatrix = entity.GetModelMatrix();
+    GpuMaterial material = entity.GetMaterial(perScene);
     bool hasBoneWeight = false;
     float4x4 objectModelMatrix = GetObjectModelMatrix(perScene, modelMatrix, entity.skeletonOffset, entity.GetBone(), hasBoneWeight);
-    float3 positionWS = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+    float3 localPosition = entity.GetPosition();
+    if (_Terrain)
+        localPosition = ApplyTerrainDisplacement(perScene, material, localPosition, entity.GetUV());
+    float3 positionWS = mul(objectModelMatrix, float4(localPosition, 1.0)).xyz;
 
     VertexOutput output;
     output.positionWS = positionWS;

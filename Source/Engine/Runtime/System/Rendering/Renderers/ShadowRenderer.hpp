@@ -33,6 +33,8 @@ private:
     ObjPtr<Shader> shadowMapShader;
     ObjPtr<Shader> shadowMapShaderSkinned;
     ObjPtr<Shader> shadowMapShaderGPUDriven;
+    ObjPtr<Shader> shadowMapShaderTerrain;
+    ObjPtr<Shader> terrainShader;
     std::vector<std::unique_ptr<Gfx::Buffer>> cascadeBuffers;
 
     bool updateMainLightShadow = true;

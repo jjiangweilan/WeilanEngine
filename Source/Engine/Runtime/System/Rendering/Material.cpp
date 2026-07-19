@@ -6,6 +6,7 @@
 #include "Engine/MiddleLayer/FrameContext.hpp"
 #include "Engine/Runtime/System/Rendering/MaterialUploadManager.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include <algorithm>
 
 namespace
 {
@@ -70,6 +71,7 @@ void Material::Copy(const Material& src)
     textureImageViewOptions = src.textureImageViewOptions;
     bufferValues = src.bufferValues;
     enabledFeatures = src.enabledFeatures;
+    gpuExtraData = src.gpuExtraData;
 
     if (shaderResource)
     {
@@ -736,6 +738,7 @@ Rendering::GpuMaterial Material::BuildGPUMaterialData() const
     data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.emissiveMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
+    data.extraMaterialData = Rendering::InvalidTextureIndex;
     data.shaderHash = 0;
 
     auto getTexAndSamplerIndex = [&](const std::string& name) -> glm::uvec2
@@ -764,6 +767,15 @@ Rendering::GpuMaterial Material::BuildGPUMaterialData() const
     return data;
 }
 
+void Material::SetGPUDrivenExtraData(std::span<const uint8_t> data)
+{
+    if (gpuExtraData.size() == data.size() && std::equal(gpuExtraData.begin(), gpuExtraData.end(), data.begin()))
+        return;
+
+    gpuExtraData.assign(data.begin(), data.end());
+    MarkGPUMaterialUploadNeeded();
+}
+
 void Material::RegisterGPUMaterial()
 {
     if (gpuMaterialHandle != Rendering::InvalidGPUHandle)
@@ -773,7 +785,7 @@ void Material::RegisterGPUMaterial()
     if (gpuDrivenManager == nullptr)
         return;
 
-    gpuMaterialHandle = gpuDrivenManager->RegisterMaterial(BuildGPUMaterialData());
+    gpuMaterialHandle = gpuDrivenManager->RegisterMaterial(BuildGPUMaterialData(), gpuExtraData);
     gpuMaterialUploadNeeded = false;
     MaterialUploadManager::Instance().RemovePendingUpload(this);
 }
@@ -803,7 +815,7 @@ void Material::UpdateGPUMaterialData()
     if (gpuDrivenManager == nullptr)
         return;
 
-    gpuDrivenManager->UpdateMaterial(gpuMaterialHandle, BuildGPUMaterialData());
+    gpuDrivenManager->UpdateMaterial(gpuMaterialHandle, BuildGPUMaterialData(), gpuExtraData);
     gpuMaterialUploadNeeded = false;
     MaterialUploadManager::Instance().RemovePendingUpload(this);
 }

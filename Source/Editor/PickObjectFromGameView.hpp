@@ -1,5 +1,6 @@
 #pragma once
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/Terrain.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Core/JobSystem.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
@@ -123,6 +124,9 @@ public:
         bool intersected = false;
         if (mr)
         {
+            if (auto* terrain = dynamic_cast<Terrain*>(mr))
+                return terrain->Raycast(Ray{ori, dir}, outDistance, outPoint, outNormal);
+
             Ray worldRay{ori, dir};
             float aabbDistance;
             if (!RayVsAABB(worldRay, mr->GetAABB(), aabbDistance))

@@ -1,21 +1,30 @@
 #pragma once
+
 #include "Engine/Library/Math.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
-class Camera;
+class Mesh;
+
+struct GpuTerrainMaterialData
+{
+    glm::uvec2 heightTextureIndex;
+    glm::uvec2 normalTextureIndex;
+    glm::vec4 heightRangeAndSize;
+};
+
+static_assert(offsetof(GpuTerrainMaterialData, heightTextureIndex) == 0);
+static_assert(offsetof(GpuTerrainMaterialData, normalTextureIndex) == 8);
+static_assert(offsetof(GpuTerrainMaterialData, heightRangeAndSize) == 16);
+static_assert(sizeof(GpuTerrainMaterialData) == 32);
 
 class TerrainSystem
 {
 public:
-    void SetTerrainRect(const float2& origin, const float2& size);
-    void FrameUpdate(Camera& camera);
-
-private:
-    struct
-    {
-        float2 origin;
-        float2 size;
-    } terrainRect;
-    
-    void ValidateTerrain();
+    static std::unique_ptr<Mesh> CreateGridMesh(
+        const float2& size,
+        const float2& heightRange,
+        uint32_t vertexResolution
+    );
 };

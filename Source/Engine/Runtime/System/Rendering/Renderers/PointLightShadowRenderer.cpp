@@ -38,6 +38,11 @@ void PointLightShadowRenderer::Init()
 
     shadowMapShader = ShaderLibrary::GetShader(Shaders::PointLightShadowMapObject);
     shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::PointLightShadowMapObject, {"_GPUDriven"});
+    shadowMapShaderTerrain = ShaderLibrary::GetShader(
+        Shaders::PointLightShadowMapObject,
+        {"_GPUDriven", "_Terrain"}
+    );
+    terrainShader = ShaderLibrary::GetShader(Shaders::Terrain);
 
     CreateCubemapResources();
 }
@@ -149,6 +154,8 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
 
     auto program = shadowMapShader->GetShaderProgram();
     auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
+    auto programTerrain = shadowMapShaderTerrain->GetShaderProgram();
+    auto terrainProgram = terrainShader->GetShaderProgram();
 
     Gfx::Viewport viewport = {0, 0, (float)shadowMapSize, (float)shadowMapSize, 0, 1};
     Rect2D scissor{{0, 0}, {shadowMapSize, shadowMapSize}};
@@ -173,9 +180,12 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
             if (draw.skinned)
                 continue;
 
+            auto* programUsed = draw.material != nullptr && draw.material->GetShaderProgram() == terrainProgram
+                                    ? programTerrain
+                                    : program;
             auto ps = draw.GetPushConstant();
-            cmd.SetPushConstant(program, (void*)&ps);
-            cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+            cmd.SetPushConstant(programUsed, (void*)&ps);
+            cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
             cmd.Draw(draw.indexCount, 1, 0, 0);
         }
 
@@ -183,14 +193,15 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
         {
             for (auto& group : *renderingData.gpuObjectShaderGroups)
             {
-                cmd.BindShaderProgram(programGPUDriven, *group.pipelineConfig);
+                auto* programUsed = group.shaderProgram == terrainProgram ? programTerrain : programGPUDriven;
+                cmd.BindShaderProgram(programUsed, *group.pipelineConfig);
                 cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
 
                 struct PushConstant
                 {
                     uint32_t firstGpuObjectOffset;
                 } pconst = {group.firstDrawIndex};
-                cmd.SetPushConstant(programGPUDriven, &pconst);
+                cmd.SetPushConstant(programUsed, &pconst);
 
                 cmd.DrawIndexedIndirect(
                     renderingData.gpuDrivenIndirectBuffer,

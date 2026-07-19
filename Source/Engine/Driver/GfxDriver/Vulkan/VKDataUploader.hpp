@@ -90,7 +90,7 @@ private:
 
     struct PendingImageUpload
     {
-        VkImage dst;
+        ObjPtr<VKImage> dst;
         uint32_t width;
         uint32_t height;
         uint32_t depth;
@@ -108,6 +108,7 @@ private:
         VkFence fence = VK_NULL_HANDLE;
         size_t startOffset; // filled when newly created
         size_t endOffset;   // incremented as upload progresses
+        std::vector<ObjPtr<VKImage>> imageRefs;
     };
 
     InflightUploadingCmd takingOffCmd = {VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0};
@@ -142,8 +143,6 @@ private:
     std::vector<PendingBufferUpload> pendingBufferUploads = {};
     std::vector<PendingImageUpload> pendingImageUploads = {};
     std::vector<VkBufferCopy> copyRegions = {};
-    std::vector<VkImageMemoryBarrier> barriers = {};
-    std::vector<VkBufferImageCopy> bufferImageCopies = {};
     VKRawBuffer stagingBuffer = {};
 
     bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);

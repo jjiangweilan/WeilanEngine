@@ -5,9 +5,12 @@
 #include "Editor/GameEditor_AssetDatabaseDebug.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Editor/NavDataAssetUtility.hpp"
+#include "Editor/TerrainConfigAssetUtility.hpp"
 #include "Editor/Tools/GrassSurfacePaintTool.hpp"
+#include "Editor/Tools/TerrainPaintTool.hpp"
 #include "Editor/Windows/CursorAtlasEditorWindow.hpp"
 #include "Editor/Windows/GrassSurfacePaintWindow.hpp"
+#include "Editor/Windows/TerrainPaintWindow.hpp"
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Core/BinaryAsset.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
@@ -17,6 +20,7 @@
 #include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/Object/Component/PhysicsBody.hpp"
+#include "Engine/Runtime/Object/Component/Terrain.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
 #include "Engine/Runtime/System/Rendering/Tools/BRDFResponseGeneration.hpp"
@@ -75,7 +79,7 @@ static bool InspectorUndoInputEvent()
 
 static bool InspectorManagesOwnUndo(Object* object)
 {
-    return dynamic_cast<GameObject*>(object) != nullptr;
+    return dynamic_cast<GameObject*>(object) != nullptr || dynamic_cast<TerrainConfig*>(object) != nullptr;
 }
 
 static AssetPath GetInspectorAssetPath(InspectorBase* inspector)
@@ -552,6 +556,10 @@ void GameEditor::MainMenuBar()
             {
                 CreateNavDataAsset(*engine->assetDatabase, "New NavData");
             }
+            if (ImGui::MenuItem("Terrain Config"))
+            {
+                CreateTerrainConfigAsset(*engine->assetDatabase, "New Terrain");
+            }
             if (ImGui::MenuItem("Binary Asset"))
             {
                 engine->assetDatabase->SaveAsset(std::make_unique<BinaryAsset>(), "New Binary Asset");
@@ -873,6 +881,33 @@ void GameEditor::OpenGrassSurfacePaintWindow(GrassSurface* gs)
         SetActiveSceneEditorTool(tool);
         existing->SetToolActive(true);
     }
+}
+
+void GameEditor::OpenTerrainPaintWindow(Terrain* terrain)
+{
+    TerrainPaintWindow* existing = nullptr;
+    for (auto& window : activeWindows)
+    {
+        existing = dynamic_cast<TerrainPaintWindow*>(window.get());
+        if (existing != nullptr)
+            break;
+    }
+
+    if (existing != nullptr)
+    {
+        existing->SetTargetTerrain(terrain);
+    }
+    else
+    {
+        auto window = std::unique_ptr<TerrainPaintWindow>(new TerrainPaintWindow());
+        window->SetTargetTerrain(terrain);
+        window->OnOpen();
+        existing = window.get();
+        activeWindows.push_back(std::move(window));
+    }
+
+    SetActiveSceneEditorTool(existing->GetTool());
+    existing->SetToolActive(true);
 }
 
 void GameEditor::DrawInspectorWithUndo(Object* object, InspectorBase* inspector)

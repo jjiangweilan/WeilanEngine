@@ -8,6 +8,7 @@
 #include "Editor/FileIcons.hpp"
 #include "Editor/GameEditor.hpp"
 #include "Editor/NavDataAssetUtility.hpp"
+#include "Editor/TerrainConfigAssetUtility.hpp"
 #include "Editor/Windows/CursorAtlasEditorWindow.hpp"
 #include "Engine/Library/Platform/FileExplore.hpp"
 #include "Engine/Core/BinaryAsset.hpp"
@@ -490,6 +491,10 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
             if (ImGui::MenuItem("Nav Data"))
             {
                 CreateNavDataAsset(*engine->assetDatabase, path / "New NavData");
+            }
+            if (ImGui::MenuItem("Terrain Config"))
+            {
+                CreateTerrainConfigAsset(*engine->assetDatabase, path / "New Terrain");
             }
             if (ImGui::MenuItem("Binary Asset"))
             {

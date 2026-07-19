@@ -59,7 +59,6 @@ void RenderingScene::ResetRuntimeState()
     grassSurfaces.clear();
     clouds.clear();
     sceneEnvironment = nullptr;
-    terrain = nullptr;
     rayTracingInstances.clear();
     rtObjectOffsetsBuffer = nullptr;
     needsTLASRebuild = false;

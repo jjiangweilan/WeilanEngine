@@ -1,17 +1,20 @@
 #include "InternalAssetLoader.hpp"
 #include "Engine/Runtime/Object/Texture/CursorAtlas.hpp"
 #include "Engine/Runtime/System/Navigation/NavData.hpp"
+#include "Engine/Runtime/Module/Terrain/TerrainConfig.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
 #include <fstream>
 #include <typeindex>
 
-DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,prefab,fgraph,renderPipeline,nav,cursorAtlas")
+DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,prefab,fgraph,renderPipeline,nav,cursorAtlas,TerrainConfig")
 
 class Material;
 const std::vector<std::type_index>& InternalAssetLoader::GetImportTypes()
 {
-    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject), typeid(NavData), typeid(CursorAtlas)};
+    static std::vector<std::type_index> types = {
+        typeid(Material), typeid(Scene), typeid(GameObject), typeid(NavData), typeid(CursorAtlas), typeid(TerrainConfig)
+    };
     return types;
 }
 

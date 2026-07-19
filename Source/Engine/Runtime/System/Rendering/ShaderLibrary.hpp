@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-#define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"),                               \
+#define SHADER_ENUMS(Do) Do(DeferredPBRShading, "DeferredPBRShading"), Do(SceneLit, "SceneLit"), Do(Terrain, "Terrain"),       \
                          Do(PlaneGrid, "PlaneGrid"),                                                                           \
                          Do(ImGui, "ImGui"), Do(RmlUi, "RmlUi"), Do(LineShader, "LineShader"),                                 \
                          Do(TriangleShader, "TriangleShader"),                                                                 \
