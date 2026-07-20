@@ -5,7 +5,28 @@
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
+#include <vector>
+
+namespace
+{
+constexpr uint32_t PointClampSamplerIndex = 4;
+constexpr uint32_t AnisotropicRepeatSamplerIndex = 10;
+constexpr uint32_t TerrainLayerTableEntryCount = 256;
+
+uint32_t GetTextureIndex(Texture* texture)
+{
+    if (texture == nullptr || texture->GetGPUTextureHandle() == Rendering::InvalidGPUHandle)
+        return Rendering::InvalidTextureIndex;
+    return static_cast<uint32_t>(texture->GetGPUTextureHandle());
+}
+
+bool IsLayerTextureAvailable(Texture* texture)
+{
+    return GetTextureIndex(texture) != Rendering::InvalidTextureIndex;
+}
+} // namespace
 
 DEFINE_OBJECT(MeshRenderer, Terrain, "F9F80900-D99F-45F4-A41D-B3414B3CCB0F");
 
@@ -137,19 +158,70 @@ void Terrain::RefreshMaterial()
     const float2 size = config->GetSize();
     Texture* heightTexture = config->GetHeightTexture();
     Texture* normalTexture = config->GetGeometryNormalTexture();
-    uint32_t heightTextureIndex = Rendering::InvalidTextureIndex;
-    uint32_t normalTextureIndex = Rendering::InvalidTextureIndex;
-    if (heightTexture != nullptr && heightTexture->GetGPUTextureHandle() != Rendering::InvalidGPUHandle)
-        heightTextureIndex = static_cast<uint32_t>(heightTexture->GetGPUTextureHandle());
-    if (normalTexture != nullptr && normalTexture->GetGPUTextureHandle() != Rendering::InvalidGPUHandle)
-        normalTextureIndex = static_cast<uint32_t>(normalTexture->GetGPUTextureHandle());
+    Texture* layerIDTexture = config->GetLayerIDTexture();
+    Texture* layerWeightTexture = config->GetLayerWeightTexture();
+
+    std::vector<std::pair<uint32_t, GpuTerrainLayerData>> packedLayers;
+    packedLayers.reserve(config->GetLayers().size());
+    for (const TerrainLayer& layer : config->GetLayers())
+    {
+        if (layer.id >= TerrainConfig::MaxTerrainLayers || layer.tileSize.x <= 0.0f || layer.tileSize.y <= 0.0f ||
+            !IsLayerTextureAvailable(layer.albedoRoughnessTexture.Get()) ||
+            !IsLayerTextureAvailable(layer.normalTexture.Get()) ||
+            !IsLayerTextureAvailable(layer.heightTexture.Get()) ||
+            !IsLayerTextureAvailable(layer.metallicTexture.Get()))
+            continue;
+
+        packedLayers.emplace_back(layer.id, GpuTerrainLayerData{
+            .albedoRoughnessTextureIndex = glm::uvec2(
+                GetTextureIndex(layer.albedoRoughnessTexture.Get()),
+                AnisotropicRepeatSamplerIndex
+            ),
+            .normalTextureIndex = glm::uvec2(
+                GetTextureIndex(layer.normalTexture.Get()),
+                AnisotropicRepeatSamplerIndex
+            ),
+            .heightTextureIndex = glm::uvec2(
+                GetTextureIndex(layer.heightTexture.Get()),
+                AnisotropicRepeatSamplerIndex
+            ),
+            .metallicTextureIndex = glm::uvec2(
+                GetTextureIndex(layer.metallicTexture.Get()),
+                AnisotropicRepeatSamplerIndex
+            ),
+            .tileSize = glm::max(layer.tileSize, glm::vec2(0.001f)),
+            .parallaxDepth = glm::max(layer.parallaxDepth, 0.0f),
+            .padding = 0,
+        });
+    }
+
+    constexpr uint32_t layerTableOffset = sizeof(GpuTerrainMaterialData);
+    constexpr uint32_t layerDataOffset = layerTableOffset + TerrainLayerTableEntryCount * sizeof(uint32_t);
+    std::vector<uint8_t> extraData(
+        layerDataOffset + packedLayers.size() * sizeof(GpuTerrainLayerData),
+        0
+    );
+    auto* layerTable = reinterpret_cast<uint32_t*>(extraData.data() + layerTableOffset);
+    std::fill_n(layerTable, TerrainLayerTableEntryCount, Rendering::InvalidTextureIndex);
+    for (size_t index = 0; index < packedLayers.size(); ++index)
+    {
+        const uint32_t dataOffset = layerDataOffset + static_cast<uint32_t>(index * sizeof(GpuTerrainLayerData));
+        layerTable[packedLayers[index].first] = dataOffset;
+        std::memcpy(extraData.data() + dataOffset, &packedLayers[index].second, sizeof(GpuTerrainLayerData));
+    }
 
     const GpuTerrainMaterialData terrainData{
-        .heightTextureIndex = glm::uvec2(heightTextureIndex, 5),
-        .normalTextureIndex = glm::uvec2(normalTextureIndex, 5),
+        .heightTextureIndex = glm::uvec2(GetTextureIndex(heightTexture), 5),
+        .normalTextureIndex = glm::uvec2(GetTextureIndex(normalTexture), 5),
         .heightRangeAndSize = glm::vec4(range.x, range.y, size.x, size.y),
+        .layerIDTextureIndex = glm::uvec2(GetTextureIndex(layerIDTexture), PointClampSamplerIndex),
+        .layerWeightTextureIndex = glm::uvec2(GetTextureIndex(layerWeightTexture), PointClampSamplerIndex),
+        .layerTableOffset = layerTableOffset,
+        .layerCount = static_cast<uint32_t>(packedLayers.size()),
+        .padding = glm::uvec2(0),
     };
-    terrainMaterial->SetGPUDrivenExtraData(terrainData);
+    std::memcpy(extraData.data(), &terrainData, sizeof(terrainData));
+    terrainMaterial->SetGPUDrivenExtraData(extraData);
     SetMaterial(terrainMaterial.get());
 }
 
@@ -238,8 +310,8 @@ bool Terrain::Raycast(
                 closestNormal = glm::normalize(glm::cross(b - a, c - a));
             }
         };
-        testTriangle(p0, p2, p1);
-        testTriangle(p1, p2, p3);
+        testTriangle(p0, p2, p3);
+        testTriangle(p0, p3, p1);
         if (closest < std::numeric_limits<float>::max())
             break;
 

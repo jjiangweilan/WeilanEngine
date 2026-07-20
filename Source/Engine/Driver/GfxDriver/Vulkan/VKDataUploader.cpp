@@ -241,6 +241,9 @@ void VKDataUploader::UploadAllPendingInternal(
     for (size_t i = 0; i < pendingImageUploads.size(); ++i)
     {
         auto& p = pendingImageUploads[i];
+        VKImage* dst = p.dst;
+        if (dst == nullptr)
+            continue;
 
         VkBufferImageCopy region{};
         region.bufferOffset = p.srcOffset;
@@ -261,7 +264,7 @@ void VKDataUploader::UploadAllPendingInternal(
             .layerCount = 1,
         };
 
-        auto toTransferDst = p.dst->MakeBarrierIfNeeded(
+        auto toTransferDst = dst->MakeBarrierIfNeeded(
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,
             VK_ACCESS_2_TRANSFER_WRITE_BIT,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -272,7 +275,7 @@ void VKDataUploader::UploadAllPendingInternal(
         vkCmdCopyBufferToImage(
             takingOffCmd.cmd,
             stagingBuffer.handle,
-            p.dst->GetImage(),
+            dst->GetImage(),
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             1,
             &region
@@ -289,12 +292,12 @@ void VKDataUploader::UploadAllPendingInternal(
             .newLayout = p.finalLayout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = p.dst->GetImage(),
+            .image = dst->GetImage(),
             .subresourceRange = range,
         };
         PutImageBarriers(takingOffCmd.cmd, std::span<const VkImageMemoryBarrier2>(&toFinal, 1));
 
-        p.dst->SetLayout(
+        dst->SetLayout(
             range,
             p.finalLayout,
             VK_PIPELINE_STAGE_2_TRANSFER_BIT,

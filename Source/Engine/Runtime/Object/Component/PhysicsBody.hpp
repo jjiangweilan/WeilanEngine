@@ -18,6 +18,7 @@
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 
 class PhysicsScene;
+class TerrainConfig;
 
 enum class PhysicsBodyShapes
 {
@@ -25,7 +26,8 @@ enum class PhysicsBodyShapes
     Sphere,
     Mesh,
     Capsule,
-    Compound
+    Compound,
+    Terrain
 };
 
 enum class PhysicsContactEvent
@@ -140,6 +142,8 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() const override;
     void Tick() override;
+    void IdleTick() override;
+    void PrePhysicsTick() override;
 
     void RegisterLuaCallback(PhysicsContactEvent event, GameScript* gameScript, const char* luaCallbackName);
 
@@ -184,6 +188,8 @@ private:
     JPH::Body* body = nullptr;
     PhysicsBodyShapes shapeType = PhysicsBodyShapes::Mesh;
     glm::vec3 shapeGameObjectScale = glm::vec3(1.0f);
+    ObjPtr<TerrainConfig> terrainShapeConfig;
+    uint64_t terrainShapeRevision = 0;
 
     std::function<bool()> recreateShape = nullptr;
     std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
@@ -205,6 +211,11 @@ private:
     bool SetAsSphere();
     bool SetAsCapsule();
     bool SetAsMeshRenderer();
+    bool SetAsTerrain();
     bool SetAsBox();
     bool SetAsCompound();
+    bool RebuildTerrainShape();
+    void RefreshTerrainShapeIfNeeded();
+    void ClearPhysicsBody();
+    TerrainConfig* FindTerrainConfig();
 };

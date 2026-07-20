@@ -86,7 +86,8 @@ struct PerScene
     // Global sampler table: index = addressMode*2 + filterMode
     // addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3, MirrorClampToEdge=4(fallback)
     // filterMode:  Nearest=0, Linear=1
-    SamplerState globalSamplers[10];
+    // Indices 0-9 follow the address/filter table; index 10 is anisotropic repeat.
+    SamplerState globalSamplers[11];
 
     ByteAddressBuffer globalBuffer;
     ByteAddressBuffer globalDynamicBuffer;
@@ -99,7 +100,7 @@ struct PerScene
 
     SamplerState GetGlobalSampler(uint index)
     {
-        return globalSamplers[min(index, 9u)];
+        return globalSamplers[min(index, 10u)];
     }
 
     T LoadData<T>(uint byteOffset)

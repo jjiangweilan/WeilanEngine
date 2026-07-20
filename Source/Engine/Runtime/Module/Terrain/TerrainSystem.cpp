@@ -39,7 +39,7 @@ std::unique_ptr<Mesh> TerrainSystem::CreateGridMesh(
             const uint32_t v1 = v0 + 1;
             const uint32_t v2 = (z + 1) * vertexResolution + x;
             const uint32_t v3 = v2 + 1;
-            indices.insert(indices.end(), {v0, v2, v1, v1, v2, v3});
+            indices.insert(indices.end(), {v0, v2, v3, v0, v3, v1});
         }
     }
 

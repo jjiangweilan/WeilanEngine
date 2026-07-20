@@ -14,7 +14,7 @@ static extern const bool _GPUDriven = true;
 struct SceneLitUI
 {
     [Color, Group("Surface")]
-    float3 baseColorFactor;
+    float4 baseColorFactor;
 
     [Range(0, 1), Group("Surface")]
     float roughness;

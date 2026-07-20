@@ -35,7 +35,7 @@ public:
         }
 
         /** Shape **/
-        const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule", "Compound"};
+        const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule", "Compound", "Terrain"};
         int currentShapeIndex = static_cast<int>(target->GetShape());
         glm::vec4 bodyScale = target->GetBodyScale();
         if (EditorGUI::ComboLabeled("Shape", &currentShapeIndex, shapes, IM_ARRAYSIZE(shapes)))
@@ -48,8 +48,10 @@ public:
                 target->SetShape(PhysicsBodyShapes::Mesh);
             else if (currentShapeIndex == 3)
                 target->SetShape(PhysicsBodyShapes::Capsule);
-            else if (currentItenIndex == 4)
+            else if (currentShapeIndex == 4)
                 target->SetShape(PhysicsBodyShapes::Compound);
+            else if (currentShapeIndex == 5)
+                target->SetShape(PhysicsBodyShapes::Terrain);
         }
 
         /** Position **/
@@ -96,10 +98,12 @@ public:
         JPH::EMotionType motionType = target->GetMotionType();
         int currentMotionType = static_cast<int>(motionType);
         const char* motionTypes[] = {"Static", "Kinematic", "Dynamic"};
+        ImGui::BeginDisabled(target->GetShape() == PhysicsBodyShapes::Terrain);
         if (EditorGUI::ComboLabeled("Motion Type", &currentMotionType, motionTypes, IM_ARRAYSIZE(motionTypes)))
         {
             target->SetMotionType(static_cast<JPH::EMotionType>(currentMotionType));
         }
+        ImGui::EndDisabled();
 
         JPH::EAllowedDOFs allowedDOFs = target->GetAllowedDOFs();
         auto drawAxisLock = [&](const char* id, JPH::EAllowedDOFs axis)

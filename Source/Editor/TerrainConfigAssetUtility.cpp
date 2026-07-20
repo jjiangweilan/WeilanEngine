@@ -25,6 +25,17 @@ TerrainConfig* CreateTerrainConfigAsset(AssetDatabase& assetDatabase, const Asse
     terrainConfig->SetHeightDataAsset(heightAsset);
     terrainConfig->InitializeFlatHeightMap();
     assetDatabase.SaveAsset(*heightAsset);
+
+    const AssetPath layerControlPath = configPath.GetParentPath() /
+                                       AssetPath(configPath.GetFileNameWithoutExtension() + " Layer Controls");
+    Asset* savedLayerControlAsset = assetDatabase.SaveAsset(std::make_unique<BinaryAsset>(), layerControlPath);
+    BinaryAsset* layerControlAsset = dynamic_cast<BinaryAsset*>(savedLayerControlAsset);
+    if (layerControlAsset != nullptr)
+    {
+        terrainConfig->SetLayerControlDataAsset(layerControlAsset);
+        terrainConfig->InitializeLayerControlMaps();
+        assetDatabase.SaveAsset(*layerControlAsset);
+    }
     assetDatabase.SaveAsset(*terrainConfig);
     return terrainConfig;
 }

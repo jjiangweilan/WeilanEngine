@@ -282,12 +282,13 @@ private:
     // Global descriptor set (set 0)
     std::unique_ptr<Gfx::ShaderResource> globalDescriptorSet;
 
-    // Global sampler table (matches PerScene.hlsl globalSamplers[10])
+    // Global sampler table (matches PerScene.hlsl globalSamplers[11])
     // Layout: index = addressMode * 2 + filterMode
     //   addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3
     //   filterMode:  Nearest=0, Linear=1
     //   Indices 8/9 are fallback for MirrorClampToEdge (maps to ClampToEdge)
-    static constexpr int GlobalSamplerCount = 10;
+    //   Index 10 is anisotropic repeat.
+    static constexpr int GlobalSamplerCount = 11;
     std::unique_ptr<Gfx::Sampler> globalSamplers[GlobalSamplerCount];
 
     // GPUDriven config buffer

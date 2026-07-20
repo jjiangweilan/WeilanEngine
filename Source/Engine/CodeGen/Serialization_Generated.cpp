@@ -4,9 +4,35 @@
 #include "Engine/Library/Serialization/Serializer.hpp"
 #include "Serialization_Generated.hpp"
 
+#include "../Runtime/Module/Terrain/TerrainConfig.hpp"
 #include "../Runtime/Object/Component/GrassSurface.hpp"
 #include "../Runtime/System/Rendering/SceneEnvironmentData.hpp"
 #include "../Runtime/System/Rendering/RenderPipeline/Passes/FogPassParameters.hpp"
+
+void Serialize(Serializer* s, const TerrainLayer* val)
+{
+    s->Serialize("id", val->id);
+    s->Serialize("name", val->name);
+    s->Serialize("albedoRoughnessTexture", val->albedoRoughnessTexture);
+    s->Serialize("normalTexture", val->normalTexture);
+    s->Serialize("heightTexture", val->heightTexture);
+    s->Serialize("metallicTexture", val->metallicTexture);
+    s->Serialize("tileSize", val->tileSize);
+    s->Serialize("parallaxDepth", val->parallaxDepth);
+}
+
+void Deserialize(Serializer* s, TerrainLayer* val)
+{
+    s->Deserialize("id", val->id);
+    s->Deserialize("name", val->name);
+    s->Deserialize("albedoRoughnessTexture", val->albedoRoughnessTexture);
+    s->Deserialize("normalTexture", val->normalTexture);
+    s->Deserialize("heightTexture", val->heightTexture);
+    s->Deserialize("metallicTexture", val->metallicTexture);
+    s->Deserialize("tileSize", val->tileSize);
+    s->Deserialize("parallaxDepth", val->parallaxDepth);
+}
+
 
 void Serialize(Serializer* s, const GrassPatch* val)
 {

@@ -31,17 +31,19 @@ GPUDrivenManager::GPUDrivenManager()
     globalDescriptorSet->SetBuffer("globalBuffer", globalBuffer.get());
     globalDescriptorSet->SetBuffer("globalDynamicBuffer", globalDynamicBuffer.get());
 
-    // Create global sampler table matching PerScene.hlsl globalSamplers[10].
+    // Create global sampler table matching PerScene.hlsl globalSamplers[11].
     // Layout: index = addressMode * 2 + filterMode
     //   addressMode: Repeat=0, MirroredRepeat=1, ClampToEdge=2, ClampToBorder=3
     //   filterMode:  Nearest=0, Linear=1
     //   Indices 8 and 9 are fallbacks for MirrorClampToEdge (unsupported), mapped to ClampToEdge.
+    //   Index 10 is linear anisotropic repeat.
     using AM = Gfx::SamplerAddressMode;
     using FM = Gfx::FilterMode;
     struct SamplerDesc
     {
         AM addr;
         FM filter;
+        bool anisotropic = false;
     };
     const SamplerDesc descs[GlobalSamplerCount] = {
         {AM::Repeat, FM::Nearest},         // 0 point_repeat
@@ -54,6 +56,7 @@ GPUDrivenManager::GPUDrivenManager()
         {AM::ClampToBorder, FM::Linear},   // 7 linear_border
         {AM::ClampToEdge, FM::Nearest},    // 8 fallback for MirrorClampToEdge (Nearest)
         {AM::ClampToEdge, FM::Linear},     // 9 fallback for MirrorClampToEdge (Linear)
+        {AM::Repeat, FM::Linear, true},     // 10 anisotropic_repeat
     };
     for (int i = 0; i < GlobalSamplerCount; ++i)
     {
@@ -63,6 +66,7 @@ GPUDrivenManager::GPUDrivenManager()
         ci.addressModeW = descs[i].addr;
         ci.minFilter = descs[i].filter;
         ci.magFilter = descs[i].filter;
+        ci.anisotropic = descs[i].anisotropic;
         globalSamplers[i] = GetGfxDriver()->CreateSampler(ci);
         globalDescriptorSet->SetSampler("globalSamplers", i, globalSamplers[i].get());
     }

@@ -3,8 +3,10 @@
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/Component/GameScript.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
+#include "Engine/Runtime/Object/Component/Terrain.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
 #include "Engine/Runtime/System/SceneManager/Scene.hpp"
+#include "Jolt/Physics/Collision/Shape/HeightFieldShape.h"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
 
 using namespace JPH;
@@ -135,9 +137,10 @@ void PhysicsBody::SetLayer(PhysicsObjectLayer layer)
 {
     this->layer = layer;
 
-    if (auto interface = GetBodyInterface())
+    if (body != nullptr)
     {
-        interface->SetObjectLayer(body->GetID(), static_cast<JPH::ObjectLayer>(layer));
+        if (auto interface = GetBodyInterface())
+            interface->SetObjectLayer(body->GetID(), static_cast<JPH::ObjectLayer>(layer));
     }
 }
 
@@ -155,68 +158,59 @@ JPH::BodyInterface* PhysicsBody::GetBodyInterface()
 bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
 {
     auto result = shape.Create();
-    if (result.IsValid())
+    if (!result.IsValid())
+        return false;
+
+    shapeRef = result.Get();
+    if (body)
     {
-        shapeRef = result.Get();
-        if (body)
+        if (auto interface = GetBodyInterface())
         {
-            if (result.IsValid())
-            {
-                if (auto interface = GetBodyInterface())
-                {
-                    interface->SetShape(
-                        body->GetID(),
-                        result.Get(),
-                        false,
-                        (static_cast<int>(layer) & static_cast<int>(PhysicsObjectLayers::Dynamic)) == 1
-                            ? EActivation::Activate
-                            : EActivation::DontActivate
-                    );
-                }
-            }
-        }
-        else
-        {
-            glm::vec3 position = gameObject->GetPosition();
-            glm::quat rot = gameObject->GetRotation();
-            BodyCreationSettings bodyCreationSettings(
-                shapeRef,
-                RVec3{position.x + bodyOffset.x, position.y + bodyOffset.y, position.z + bodyOffset.z},
-                Quat{rot.x, rot.y, rot.z, rot.w},
-                motionType,
-                static_cast<ObjectLayer>(layer)
+            interface->SetShape(
+                body->GetID(),
+                result.Get(),
+                false,
+                (static_cast<int>(layer) & static_cast<int>(PhysicsObjectLayers::Dynamic)) == 1
+                    ? EActivation::Activate
+                    : EActivation::DontActivate
             );
-            bodyCreationSettings.mIsSensor = isSensor;
-            // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
-            bodyCreationSettings.mMotionType = motionType;
-            bodyCreationSettings.mAllowedDOFs = allowedDOFs;
-            bodyCreationSettings.mCollideKinematicVsNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
-            if (shapeType == PhysicsBodyShapes::Mesh)
-            {
-                bodyCreationSettings.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
-                bodyCreationSettings.mMassPropertiesOverride = {1.0, JPH::Mat44::sZero()};
-            }
-
-            auto& physicsWorld = GetScene()->GetPhysicsScene();
-            auto& bodyInterface = physicsWorld.GetBodyInterface();
-
-            if (body != nullptr)
-            {
-                bodyInterface.RemoveBody(body->GetID());
-                bodyInterface.DestroyBody(body->GetID());
-            }
-
-            body = bodyInterface.CreateBody(bodyCreationSettings);
-            bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
-            SetGravityFactor(gravityFactor);
-            body->SetUserData(reinterpret_cast<std::intptr_t>(this));
-
-            auto& physicsScene = GetScene()->GetPhysicsScene();
-            physicsScene.AddPhysicsBody(*this);
-            physicsScene.GetBodyInterface().ActivateBody(body->GetID());
         }
     }
-    return false;
+    else
+    {
+        glm::vec3 position = gameObject->GetPosition();
+        glm::quat rot = gameObject->GetRotation();
+        BodyCreationSettings bodyCreationSettings(
+            shapeRef,
+            RVec3{position.x + bodyOffset.x, position.y + bodyOffset.y, position.z + bodyOffset.z},
+            Quat{rot.x, rot.y, rot.z, rot.w},
+            motionType,
+            static_cast<ObjectLayer>(layer)
+        );
+        bodyCreationSettings.mIsSensor = isSensor;
+        // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
+        bodyCreationSettings.mMotionType = motionType;
+        bodyCreationSettings.mAllowedDOFs = allowedDOFs;
+        bodyCreationSettings.mCollideKinematicVsNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
+        if (shapeType == PhysicsBodyShapes::Mesh)
+        {
+            bodyCreationSettings.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+            bodyCreationSettings.mMassPropertiesOverride = {1.0, JPH::Mat44::sZero()};
+        }
+
+        auto& physicsWorld = GetScene()->GetPhysicsScene();
+        auto& bodyInterface = physicsWorld.GetBodyInterface();
+
+        body = bodyInterface.CreateBody(bodyCreationSettings);
+        bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
+        SetGravityFactor(gravityFactor);
+        body->SetUserData(reinterpret_cast<std::intptr_t>(this));
+
+        auto& physicsScene = GetScene()->GetPhysicsScene();
+        physicsScene.AddPhysicsBody(*this);
+        physicsScene.GetBodyInterface().ActivateBody(body->GetID());
+    }
+    return true;
 }
 
 PhysicsBody::~PhysicsBody()
@@ -254,15 +248,17 @@ void PhysicsBody::Init()
             }
         case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
         case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
+        case PhysicsBodyShapes::Terrain: SetAsTerrain(); break;
     }
 }
 
 void PhysicsBody::SetGravityFactor(float f)
 {
     gravityFactor = f;
-    if (auto i = GetBodyInterface())
+    if (body != nullptr)
     {
-        i->SetGravityFactor(body->GetID(), f);
+        if (auto i = GetBodyInterface())
+            i->SetGravityFactor(body->GetID(), f);
     }
 }
 
@@ -330,6 +326,12 @@ bool PhysicsBody::SetAsCapsule()
 
 void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
 {
+    if (shapeType == PhysicsBodyShapes::Terrain && motionType != JPH::EMotionType::Static)
+    {
+        spdlog::warn("Terrain physics shapes only support Static motion");
+        return;
+    }
+
     if (GameLoop::IsPlaying())
     {
         if (this->motionType == JPH::EMotionType::Static && motionType != JPH::EMotionType::Static)
@@ -342,8 +344,12 @@ void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
     this->motionType = motionType;
     if (auto interface = GetBodyInterface())
     {
-        interface->SetMotionType(body->GetID(), motionType, EActivation::DontActivate);
+        if (body)
+            interface->SetMotionType(body->GetID(), motionType, EActivation::DontActivate);
     }
+
+    if (shapeType == PhysicsBodyShapes::Terrain && body == nullptr)
+        SetAsTerrain();
 }
 
 void PhysicsBody::SetAllowedDOFs(JPH::EAllowedDOFs newAllowedDOFs)
@@ -423,6 +429,16 @@ void PhysicsBody::Tick()
         GetBodyInterface()
             ->SetPositionAndRotation(body->GetID(), worldPos, {rot.w, rot.x, rot.y, rot.z}, JPH::EActivation::Activate);
     }
+}
+
+void PhysicsBody::IdleTick()
+{
+    RefreshTerrainShapeIfNeeded();
+}
+
+void PhysicsBody::PrePhysicsTick()
+{
+    RefreshTerrainShapeIfNeeded();
 }
 
 glm::vec3 PhysicsBody::GetLinearVelocity()
@@ -541,9 +557,20 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
 
 void PhysicsBody::SetShape(PhysicsBodyShapes shape)
 {
-    this->shapeType = shape;
+    if (shape == PhysicsBodyShapes::Terrain && motionType != JPH::EMotionType::Static)
+    {
+        spdlog::warn("Terrain physics shapes only support Static motion");
+        return;
+    }
 
-    if (GetScene() != nullptr && GetBody() != nullptr)
+    this->shapeType = shape;
+    if (shape != PhysicsBodyShapes::Terrain)
+    {
+        terrainShapeConfig = nullptr;
+        terrainShapeRevision = 0;
+    }
+
+    if (GetScene() != nullptr && (GetBody() != nullptr || IsActiveInScene()))
     {
         switch (shape)
         {
@@ -552,8 +579,114 @@ void PhysicsBody::SetShape(PhysicsBodyShapes shape)
             case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
             case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
             case PhysicsBodyShapes::Compound: SetAsCompound(); break;
+            case PhysicsBodyShapes::Terrain: SetAsTerrain(); break;
         }
     }
+}
+
+TerrainConfig* PhysicsBody::FindTerrainConfig()
+{
+    Terrain* terrain = gameObject != nullptr ? gameObject->GetComponent<Terrain>() : nullptr;
+    return terrain != nullptr ? terrain->GetTerrainConfig() : nullptr;
+}
+
+bool PhysicsBody::SetAsTerrain()
+{
+    recreateShape = [this]() { return RebuildTerrainShape(); };
+    return RecreateShape();
+}
+
+bool PhysicsBody::RebuildTerrainShape()
+{
+    TerrainConfig* config = FindTerrainConfig();
+    terrainShapeConfig = config;
+    terrainShapeRevision = config != nullptr ? config->GetHeightRevision() : 0;
+
+    if (motionType != JPH::EMotionType::Static || config == nullptr || !config->HasValidHeightData())
+    {
+        ClearPhysicsBody();
+        return false;
+    }
+
+    const glm::vec3 objectScale = gameObject->GetScale();
+    if (glm::any(glm::lessThanEqual(objectScale, glm::vec3(0.0f))))
+    {
+        spdlog::warn("Terrain physics shapes require a positive GameObject scale");
+        ClearPhysicsBody();
+        return false;
+    }
+
+    const uint32_t resolution = config->GetVertexResolution();
+    const float2 terrainSize = config->GetSize();
+    std::vector<float> heightSamples(static_cast<size_t>(resolution) * resolution);
+    for (uint32_t z = 0; z < resolution; ++z)
+    {
+        const float v = static_cast<float>(z) / static_cast<float>(resolution - 1);
+        for (uint32_t x = 0; x < resolution; ++x)
+        {
+            const float u = static_cast<float>(x) / static_cast<float>(resolution - 1);
+            heightSamples[static_cast<size_t>(z) * resolution + x] =
+                config->SampleHeight(float2(u, v)) * objectScale.y;
+        }
+    }
+
+    const float scaledWidth = terrainSize.x * objectScale.x;
+    const float scaledDepth = terrainSize.y * objectScale.z;
+    JPH::HeightFieldShapeSettings settings(
+        heightSamples.data(),
+        JPH::Vec3(-scaledWidth * 0.5f, 0.0f, -scaledDepth * 0.5f),
+        JPH::Vec3(
+            scaledWidth / static_cast<float>(resolution - 1),
+            1.0f,
+            scaledDepth / static_cast<float>(resolution - 1)
+        ),
+        resolution
+    );
+    if (!SetShape(settings))
+    {
+        ClearPhysicsBody();
+        return false;
+    }
+
+    UpdateBodyPositionAndRotation();
+    return true;
+}
+
+void PhysicsBody::RefreshTerrainShapeIfNeeded()
+{
+    if (shapeType != PhysicsBodyShapes::Terrain)
+        return;
+
+    TerrainConfig* config = FindTerrainConfig();
+    const uint64_t revision = config != nullptr ? config->GetHeightRevision() : 0;
+    if (terrainShapeConfig.Get() == config && terrainShapeRevision == revision)
+        return;
+
+    if (!recreateShape)
+        SetAsTerrain();
+    else
+        RecreateShape();
+}
+
+void PhysicsBody::ClearPhysicsBody()
+{
+    if (body == nullptr)
+    {
+        shapeRef = nullptr;
+        return;
+    }
+
+    Scene* scene = GetScene();
+    if (scene != nullptr)
+    {
+        auto& physicsScene = scene->GetPhysicsScene();
+        physicsScene.RemovePhysicsBody(*this);
+        auto& bodyInterface = physicsScene.GetBodyInterface();
+        bodyInterface.RemoveBody(body->GetID());
+        bodyInterface.DestroyBody(body->GetID());
+    }
+    body = nullptr;
+    shapeRef = nullptr;
 }
 
 bool PhysicsBody::SetAsCompound()

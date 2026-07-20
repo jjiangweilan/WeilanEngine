@@ -17,6 +17,11 @@ namespace
 constexpr uint8_t HeightMapMagic[] = {'W', 'T', 'H', 'M'};
 constexpr uint32_t HeightMapVersion = 1;
 constexpr size_t HeightMapHeaderSize = 20;
+constexpr uint8_t LayerControlMagic[] = {'W', 'T', 'L', 'C'};
+constexpr uint32_t LayerControlVersion = 1;
+constexpr size_t LayerControlHeaderSize = 20;
+constexpr TerrainLayerControlSample DefaultLayerIDs = {0, 255, 255, 255};
+constexpr TerrainLayerControlSample DefaultLayerWeights = {255, 0, 0, 0};
 
 void AppendUInt32(std::vector<uint8_t>& output, uint32_t value)
 {
@@ -61,6 +66,9 @@ void TerrainConfig::Serialize(Serializer* serializer) const
     serializer->Serialize("roughness", roughness);
     serializer->Serialize("metallic", metallic);
     serializer->Serialize("heightDataAsset", heightDataAsset);
+    serializer->Serialize("layerControlResolution", layerControlResolution);
+    serializer->Serialize("layerControlDataAsset", layerControlDataAsset);
+    serializer->Serialize("layers", layers);
 }
 
 void TerrainConfig::Deserialize(Serializer* serializer)
@@ -74,16 +82,28 @@ void TerrainConfig::Deserialize(Serializer* serializer)
     serializer->Deserialize("roughness", roughness);
     serializer->Deserialize("metallic", metallic);
     serializer->Deserialize("heightDataAsset", heightDataAsset);
+    serializer->Deserialize("layerControlResolution", layerControlResolution);
+    serializer->Deserialize("layerControlDataAsset", layerControlDataAsset);
+    serializer->Deserialize("layers", layers);
+    layerControlResolution = glm::clamp(
+        layerControlResolution,
+        MinLayerControlResolution,
+        MaxLayerControlResolution
+    );
+    SanitizeLayers();
 }
 
 void TerrainConfig::OnLoaded()
 {
     heightTexture.reset();
     geometryNormalTexture.reset();
+    layerIDTexture.reset();
+    layerWeightTexture.reset();
     gridMesh.reset();
     ++meshRevision;
     ++materialRevision;
     ReadHeightData();
+    ReadLayerControlData();
 }
 
 void TerrainConfig::SetSize(const float2& value)
@@ -94,6 +114,7 @@ void TerrainConfig::SetSize(const float2& value)
     RebuildGeometryNormalMap();
     UploadGeometryNormalTexture();
     InvalidateMesh();
+    ++heightRevision;
     ++materialRevision;
     SetDirty();
 }
@@ -120,6 +141,7 @@ bool TerrainConfig::SetHeightRange(const float2& value, bool preserveWorldHeight
     RebuildGeometryNormalMap();
     UploadGeometryNormalTexture();
     InvalidateMesh();
+    ++heightRevision;
     ++materialRevision;
     SetDirty();
     if (heightDataAsset != nullptr)
@@ -181,6 +203,7 @@ bool TerrainConfig::ResizeHeightMap(uint32_t resolution)
         RecreateHeightTexture();
     if (recreateNormalTexture)
         RecreateGeometryNormalTexture();
+    ++heightRevision;
     ++materialRevision;
     SetDirty();
     return CommitHeightData();
@@ -192,6 +215,7 @@ bool TerrainConfig::SetVertexResolution(uint32_t resolution)
         return false;
     vertexResolution = resolution;
     InvalidateMesh();
+    ++heightRevision;
     SetDirty();
     return true;
 }
@@ -219,6 +243,258 @@ void TerrainConfig::SetHeightDataAsset(BinaryAsset* asset)
     SetDirty();
 }
 
+void TerrainConfig::SetLayerControlDataAsset(BinaryAsset* asset)
+{
+    if (layerControlDataAsset.Get() == asset)
+        return;
+    layerControlDataAsset = asset;
+    ReadLayerControlData();
+    ++materialRevision;
+    SetDirty();
+}
+
+bool TerrainConfig::InitializeLayerControlMaps()
+{
+    if (layerControlDataAsset == nullptr)
+        return false;
+
+    const size_t sampleCount = static_cast<size_t>(layerControlResolution) * layerControlResolution;
+    layerIDSamples.assign(sampleCount, DefaultLayerIDs);
+    layerWeightSamples.assign(sampleCount, DefaultLayerWeights);
+    if (layerIDTexture != nullptr || layerWeightTexture != nullptr)
+        RecreateLayerControlTextures();
+    ++materialRevision;
+    return CommitLayerControlData();
+}
+
+bool TerrainConfig::ReadLayerControlData()
+{
+    layerIDSamples.clear();
+    layerWeightSamples.clear();
+    layerIDTexture.reset();
+    layerWeightTexture.reset();
+    BinaryAsset* binary = layerControlDataAsset.Get();
+    if (binary == nullptr)
+        return false;
+
+    const std::vector<uint8_t>& data = binary->GetData();
+    auto reject = [this](const char* reason)
+    {
+        spdlog::warn("TerrainConfig {} layer control maps rejected: {}", GetName(), reason);
+        layerIDSamples.clear();
+        layerWeightSamples.clear();
+        layerIDTexture.reset();
+        layerWeightTexture.reset();
+        return false;
+    };
+
+    if (data.size() < LayerControlHeaderSize ||
+        !std::equal(std::begin(LayerControlMagic), std::end(LayerControlMagic), data.begin()))
+        return reject("invalid header");
+
+    size_t offset = sizeof(LayerControlMagic);
+    const uint32_t version = ReadUInt32(data, offset);
+    const uint32_t width = ReadUInt32(data, offset);
+    const uint32_t height = ReadUInt32(data, offset);
+    const uint32_t sampleCount = ReadUInt32(data, offset);
+    if (version != LayerControlVersion)
+        return reject("unsupported version");
+    if (width != layerControlResolution || height != layerControlResolution)
+        return reject("dimensions do not match config");
+
+    const uint64_t expectedCount = static_cast<uint64_t>(width) * height;
+    const uint64_t expectedPayloadSize = expectedCount * sizeof(TerrainLayerControlSample) * 2;
+    if (sampleCount != expectedCount)
+        return reject("invalid sample count");
+    if (LayerControlHeaderSize + expectedPayloadSize != data.size())
+        return reject("invalid payload size");
+
+    layerIDSamples.resize(sampleCount);
+    layerWeightSamples.resize(sampleCount);
+    const size_t mapByteSize = static_cast<size_t>(sampleCount) * sizeof(TerrainLayerControlSample);
+    std::memcpy(layerIDSamples.data(), data.data() + offset, mapByteSize);
+    offset += mapByteSize;
+    std::memcpy(layerWeightSamples.data(), data.data() + offset, mapByteSize);
+    ++materialRevision;
+    return true;
+}
+
+bool TerrainConfig::CommitLayerControlData()
+{
+    BinaryAsset* binary = layerControlDataAsset.Get();
+    if (binary == nullptr || !HasValidLayerControlData())
+        return false;
+
+    const size_t mapByteSize = layerIDSamples.size() * sizeof(TerrainLayerControlSample);
+    std::vector<uint8_t> data;
+    data.reserve(LayerControlHeaderSize + mapByteSize * 2);
+    data.insert(data.end(), std::begin(LayerControlMagic), std::end(LayerControlMagic));
+    AppendUInt32(data, LayerControlVersion);
+    AppendUInt32(data, layerControlResolution);
+    AppendUInt32(data, layerControlResolution);
+    AppendUInt32(data, static_cast<uint32_t>(layerIDSamples.size()));
+    const uint8_t* idBytes = reinterpret_cast<const uint8_t*>(layerIDSamples.data());
+    data.insert(data.end(), idBytes, idBytes + mapByteSize);
+    const uint8_t* weightBytes = reinterpret_cast<const uint8_t*>(layerWeightSamples.data());
+    data.insert(data.end(), weightBytes, weightBytes + mapByteSize);
+    binary->SetData(std::move(data));
+    SetDirty();
+    return true;
+}
+
+bool TerrainConfig::HasValidLayerControlData() const
+{
+    const size_t expectedCount = static_cast<size_t>(layerControlResolution) * layerControlResolution;
+    return layerIDSamples.size() == expectedCount && layerWeightSamples.size() == expectedCount;
+}
+
+bool TerrainConfig::ResizeLayerControlMaps(uint32_t resolution)
+{
+    if (resolution < MinLayerControlResolution || resolution > MaxLayerControlResolution ||
+        resolution == layerControlResolution)
+        return false;
+
+    std::vector<TerrainLayerControlSample> resizedIDs(static_cast<size_t>(resolution) * resolution);
+    std::vector<TerrainLayerControlSample> resizedWeights(static_cast<size_t>(resolution) * resolution);
+    if (HasValidLayerControlData())
+    {
+        const uint32_t oldResolution = layerControlResolution;
+        for (uint32_t y = 0; y < resolution; ++y)
+        {
+            const uint32_t oldY = static_cast<uint32_t>(std::lround(
+                static_cast<double>(y) * (oldResolution - 1) / (resolution - 1)
+            ));
+            for (uint32_t x = 0; x < resolution; ++x)
+            {
+                const uint32_t oldX = static_cast<uint32_t>(std::lround(
+                    static_cast<double>(x) * (oldResolution - 1) / (resolution - 1)
+                ));
+                const size_t sourceIndex = static_cast<size_t>(oldY) * oldResolution + oldX;
+                const size_t destinationIndex = static_cast<size_t>(y) * resolution + x;
+                resizedIDs[destinationIndex] = layerIDSamples[sourceIndex];
+                resizedWeights[destinationIndex] = layerWeightSamples[sourceIndex];
+            }
+        }
+    }
+    else
+    {
+        std::fill(resizedIDs.begin(), resizedIDs.end(), DefaultLayerIDs);
+        std::fill(resizedWeights.begin(), resizedWeights.end(), DefaultLayerWeights);
+    }
+
+    const bool recreateTextures = layerIDTexture != nullptr || layerWeightTexture != nullptr;
+    layerControlResolution = resolution;
+    layerIDSamples = std::move(resizedIDs);
+    layerWeightSamples = std::move(resizedWeights);
+    if (recreateTextures)
+        RecreateLayerControlTextures();
+    ++materialRevision;
+    SetDirty();
+    return CommitLayerControlData();
+}
+
+bool TerrainConfig::SetLayerControlSamples(
+    std::span<const TerrainLayerControlSample> ids,
+    std::span<const TerrainLayerControlSample> weights
+)
+{
+    const size_t expectedCount = static_cast<size_t>(layerControlResolution) * layerControlResolution;
+    if (ids.size() != expectedCount || weights.size() != expectedCount)
+        return false;
+    layerIDSamples.assign(ids.begin(), ids.end());
+    layerWeightSamples.assign(weights.begin(), weights.end());
+    UploadLayerIDTexture();
+    UploadLayerWeightTexture();
+    ++materialRevision;
+    SetDirty();
+    return true;
+}
+
+void TerrainConfig::ApplyLayerControlValues(std::span<const TerrainLayerControlValue> values)
+{
+    if (!HasValidLayerControlData())
+        return;
+
+    bool changed = false;
+    for (const TerrainLayerControlValue& value : values)
+    {
+        if (value.index >= layerIDSamples.size())
+            continue;
+        if (layerIDSamples[value.index] == value.ids && layerWeightSamples[value.index] == value.weights)
+            continue;
+        layerIDSamples[value.index] = value.ids;
+        layerWeightSamples[value.index] = value.weights;
+        changed = true;
+    }
+    if (!changed)
+        return;
+
+    UploadLayerIDTexture();
+    UploadLayerWeightTexture();
+}
+
+uint32_t TerrainConfig::AddLayer()
+{
+    bool usedIDs[MaxTerrainLayers]{};
+    for (const TerrainLayer& layer : layers)
+    {
+        if (layer.id < MaxTerrainLayers)
+            usedIDs[layer.id] = true;
+    }
+    for (uint32_t id = 0; id < MaxTerrainLayers; ++id)
+    {
+        if (!usedIDs[id])
+        {
+            TerrainLayer layer;
+            layer.id = id;
+            layer.name = "Terrain Layer " + std::to_string(id);
+            layers.push_back(std::move(layer));
+            ++materialRevision;
+            SetDirty();
+            return id;
+        }
+    }
+    return InvalidTerrainLayerID;
+}
+
+bool TerrainConfig::SetLayer(const TerrainLayer& layer)
+{
+    if (layer.id >= MaxTerrainLayers)
+        return false;
+    auto found = std::find_if(layers.begin(), layers.end(), [&layer](const TerrainLayer& candidate)
+    {
+        return candidate.id == layer.id;
+    });
+    if (found == layers.end())
+        return false;
+    *found = layer;
+    ++materialRevision;
+    SetDirty();
+    return true;
+}
+
+bool TerrainConfig::RemoveLayer(uint32_t id)
+{
+    auto found = std::find_if(layers.begin(), layers.end(), [id](const TerrainLayer& layer)
+    {
+        return layer.id == id;
+    });
+    if (found == layers.end())
+        return false;
+    layers.erase(found);
+    ++materialRevision;
+    SetDirty();
+    return true;
+}
+
+void TerrainConfig::SetLayers(const std::vector<TerrainLayer>& value)
+{
+    layers = value;
+    SanitizeLayers();
+    ++materialRevision;
+    SetDirty();
+}
+
 bool TerrainConfig::InitializeFlatHeightMap()
 {
     if (heightDataAsset == nullptr)
@@ -233,6 +509,7 @@ bool TerrainConfig::InitializeFlatHeightMap()
         RecreateHeightTexture();
     if (geometryNormalTexture != nullptr)
         RecreateGeometryNormalTexture();
+    ++heightRevision;
     ++materialRevision;
     return CommitHeightData();
 }
@@ -243,6 +520,7 @@ bool TerrainConfig::ReadHeightData()
     geometryNormalSamples.clear();
     heightTexture.reset();
     geometryNormalTexture.reset();
+    ++heightRevision;
     BinaryAsset* binary = heightDataAsset.Get();
     if (binary == nullptr)
         return false;
@@ -351,6 +629,7 @@ void TerrainConfig::ApplyHeightValues(std::span<const TerrainHeightValue> values
         );
         UploadHeightTexture();
         UploadGeometryNormalTexture();
+        ++heightRevision;
     }
 }
 
@@ -400,6 +679,20 @@ Texture* TerrainConfig::GetGeometryNormalTexture()
         RecreateGeometryNormalTexture();
     }
     return geometryNormalTexture.get();
+}
+
+Texture* TerrainConfig::GetLayerIDTexture()
+{
+    if (layerIDTexture == nullptr && HasValidLayerControlData())
+        RecreateLayerIDTexture();
+    return layerIDTexture.get();
+}
+
+Texture* TerrainConfig::GetLayerWeightTexture()
+{
+    if (layerWeightTexture == nullptr && HasValidLayerControlData())
+        RecreateLayerWeightTexture();
+    return layerWeightTexture.get();
 }
 
 Mesh* TerrainConfig::GetGridMesh()
@@ -523,6 +816,101 @@ void TerrainConfig::UploadGeometryNormalTexture()
         geometryNormalSamples.size() * sizeof(TerrainGeometryNormalSample)
     );
     geometryNormalTexture->GetGfxImage()->SetData(bytes);
+}
+
+void TerrainConfig::RecreateLayerControlTextures()
+{
+    RecreateLayerIDTexture();
+    RecreateLayerWeightTexture();
+}
+
+void TerrainConfig::RecreateLayerIDTexture()
+{
+    layerIDTexture.reset();
+    if (!HasValidLayerControlData())
+        return;
+
+    TextureDescription description{};
+    description.img.width = layerControlResolution;
+    description.img.height = layerControlResolution;
+    description.img.depth = 1;
+    description.img.mipLevels = 1;
+    description.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    description.img.isCubemap = false;
+    description.img.format = Gfx::GfxFormat::R8G8B8A8_UNorm;
+    const size_t byteSize = layerIDSamples.size() * sizeof(TerrainLayerControlSample);
+    description.data = new uint8_t[byteSize];
+    std::memcpy(description.data, layerIDSamples.data(), byteSize);
+    description.keepData = false;
+    layerIDTexture = std::make_unique<Texture>(description);
+    layerIDTexture->SetName(GetName() + " Layer ID Map");
+}
+
+void TerrainConfig::RecreateLayerWeightTexture()
+{
+    layerWeightTexture.reset();
+    if (!HasValidLayerControlData())
+        return;
+
+    TextureDescription description{};
+    description.img.width = layerControlResolution;
+    description.img.height = layerControlResolution;
+    description.img.depth = 1;
+    description.img.mipLevels = 1;
+    description.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    description.img.isCubemap = false;
+    description.img.format = Gfx::GfxFormat::R8G8B8A8_UNorm;
+    const size_t byteSize = layerWeightSamples.size() * sizeof(TerrainLayerControlSample);
+    description.data = new uint8_t[byteSize];
+    std::memcpy(description.data, layerWeightSamples.data(), byteSize);
+    description.keepData = false;
+    layerWeightTexture = std::make_unique<Texture>(description);
+    layerWeightTexture->SetName(GetName() + " Layer Weight Map");
+}
+
+void TerrainConfig::UploadLayerIDTexture()
+{
+    if (!HasValidLayerControlData() || layerIDTexture == nullptr)
+        return;
+    std::span<uint8_t> bytes(
+        reinterpret_cast<uint8_t*>(layerIDSamples.data()),
+        layerIDSamples.size() * sizeof(TerrainLayerControlSample)
+    );
+    layerIDTexture->GetGfxImage()->SetData(bytes);
+}
+
+void TerrainConfig::UploadLayerWeightTexture()
+{
+    if (!HasValidLayerControlData() || layerWeightTexture == nullptr)
+        return;
+    std::span<uint8_t> bytes(
+        reinterpret_cast<uint8_t*>(layerWeightSamples.data()),
+        layerWeightSamples.size() * sizeof(TerrainLayerControlSample)
+    );
+    layerWeightTexture->GetGfxImage()->SetData(bytes);
+}
+
+void TerrainConfig::SanitizeLayers()
+{
+    bool usedIDs[MaxTerrainLayers]{};
+    std::vector<TerrainLayer> sanitized;
+    sanitized.reserve(layers.size());
+    for (TerrainLayer& layer : layers)
+    {
+        if (layer.id >= MaxTerrainLayers)
+        {
+            spdlog::warn("TerrainConfig {} discarded terrain layer with invalid ID {}", GetName(), layer.id);
+            continue;
+        }
+        if (usedIDs[layer.id])
+        {
+            spdlog::warn("TerrainConfig {} discarded duplicate terrain layer ID {}", GetName(), layer.id);
+            continue;
+        }
+        usedIDs[layer.id] = true;
+        sanitized.push_back(std::move(layer));
+    }
+    layers = std::move(sanitized);
 }
 
 void TerrainConfig::InvalidateMesh()

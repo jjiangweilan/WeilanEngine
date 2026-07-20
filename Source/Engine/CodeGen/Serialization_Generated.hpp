@@ -3,6 +3,10 @@
 
 class Serializer;
 
+struct TerrainLayer;
+void Serialize(Serializer* s, const TerrainLayer* val);
+void Deserialize(Serializer* s, TerrainLayer* val);
+
 struct GrassPatch;
 void Serialize(Serializer* s, const GrassPatch* val);
 void Deserialize(Serializer* s, GrassPatch* val);
