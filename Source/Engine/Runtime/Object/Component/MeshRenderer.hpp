@@ -85,6 +85,8 @@ public:
     bool IsRayTracingEnabled() const { return isRayTracingEnabled; }
     void SetForwardRenderer(bool enabled);
     bool IsForwardRenderer() const { return isForwardRenderer; }
+    void SetCastShadows(bool enabled) { castShadows = enabled; }
+    bool CastsShadows() const { return castShadows; }
     MotionState* FlushMotionState();
     void CommitMotionState();
     bool HasMotionState() const { return motionState != nullptr; }
@@ -131,6 +133,7 @@ private:
     bool isRayTracingEnabled = true;
     bool isGPUObject = true;
     bool isForwardRenderer = false;
+    bool castShadows = true;
 
     /**** Runtime Data *******/
     bool isRayTracingInitialized = false;

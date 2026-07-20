@@ -53,6 +53,12 @@ public:
             meshRenderer->SetForwardRenderer(forwardRenderer);
         }
 
+        bool castShadows = meshRenderer->CastsShadows();
+        if (ImGui::Checkbox("Cast Shadows", &castShadows))
+        {
+            meshRenderer->SetCastShadows(castShadows);
+        }
+
         bool gpuObject = meshRenderer->IsActiveGPUObject();
         if (ImGui::Checkbox("GPU Object", &gpuObject))
         {

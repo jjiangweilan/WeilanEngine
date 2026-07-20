@@ -983,7 +983,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             {
                 auto geometryDescriptor = renderer->GetGpuGeometry(static_cast<int>(renderDataListIndex));
                 auto& config = mat->GetShaderConfig();
-                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset), previousSkeletonOffset});
+                flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset), previousSkeletonOffset, renderer->CastsShadows()});
             }
         }
     }
@@ -997,7 +997,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
                 // prioritize motion objects
                 bool aHasMotion = a.motionState != nullptr;
                 bool bHasMotion = b.motionState != nullptr;
-                return std::tie(aHasMotion, a.shaderProgram, a.pipelineConfigHash) < std::tie(bHasMotion, b.shaderProgram, b.pipelineConfigHash); });
+                return std::tie(aHasMotion, a.shaderProgram, a.pipelineConfigHash, a.castsShadows) < std::tie(bHasMotion, b.shaderProgram, b.pipelineConfigHash, b.castsShadows); });
 
     // 3. Build the indirect command buffers and shader groups in a single pass
     bool currentHasMotion = false;
@@ -1006,6 +1006,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     size_t currentConfigHash = 0;
     uint32_t currentGroupStart = 0;
     uint32_t currentDynamicMotionDataStart = 0;
+    bool currentCastsShadows = true;
 
     // dispatching each draw into their group in a sequential stable way
     // dynamicMotionDatas are accessed by positional corespondence, so be careful
@@ -1014,11 +1015,11 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
         const auto& info = flatDrawInfos[i];
 
         bool infoHasMotion = info.motionState != nullptr;
-        if (info.shaderProgram != currentShader || info.pipelineConfigHash != currentConfigHash || infoHasMotion != currentHasMotion)
+        if (info.shaderProgram != currentShader || info.pipelineConfigHash != currentConfigHash || infoHasMotion != currentHasMotion || info.castsShadows != currentCastsShadows)
         {
             if (currentShader != nullptr && currentConfig != nullptr)
             {
-                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion});
+                gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(i - currentGroupStart), currentHasMotion, currentCastsShadows});
             }
 
             currentHasMotion = infoHasMotion;
@@ -1027,6 +1028,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             currentConfigHash = currentConfig != nullptr ? currentConfig->GetHash() : 0;
             currentGroupStart = static_cast<uint32_t>(i);
             currentDynamicMotionDataStart = static_cast<uint32_t>(dynamicMotionDatas.size());
+            currentCastsShadows = info.castsShadows;
         }
 
         if (infoHasMotion)
@@ -1044,7 +1046,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
     // Push the final group
     if (currentShader != nullptr)
     {
-        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion});
+        gpuObjectShaderGroups.push_back({currentShader, currentConfig, currentGroupStart, currentDynamicMotionDataStart, static_cast<uint32_t>(flatDrawInfos.size() - currentGroupStart), currentHasMotion, currentCastsShadows});
     }
 
     auto& gpuDriven = GPUDrivenManager::Instance();

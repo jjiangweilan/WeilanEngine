@@ -19,7 +19,8 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     MeshRenderer,
     TYPE_REFLECTION_MEM(MeshRenderer, meshes),
     TYPE_REFLECTION_MEM(MeshRenderer, materials),
-    TYPE_REFLECTION_MEM(MeshRenderer, isForwardRenderer)
+    TYPE_REFLECTION_MEM(MeshRenderer, isForwardRenderer),
+    TYPE_REFLECTION_MEM(MeshRenderer, castShadows)
 );
 
 DEFINE_SERIALIZATION(
@@ -32,7 +33,8 @@ DEFINE_SERIALIZATION(
     SER(wantsToEnableSkinning),
     // SER(isRayTracingEnabled),
     SER(isGPUObject),
-    SER(isForwardRenderer)
+    SER(isForwardRenderer),
+    SER(castShadows)
 );
 
 void MeshRenderer::SetMesh(Mesh* mesh)
@@ -148,6 +150,7 @@ std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
     clone->isRayTracingEnabled = isRayTracingEnabled;
     clone->isGPUObject = isGPUObject;
     clone->isForwardRenderer = isForwardRenderer;
+    clone->castShadows = castShadows;
 
     if (IsEnabled())
     {

@@ -59,6 +59,7 @@ struct GPUObjectShaderGroup
     uint32_t firstDynamicMotionDataIndex = 0;
     uint32_t drawCount = 0;
     bool hasMotion = false;
+    bool castsShadows = true;
 };
 
 struct GPUDynamicMotionData

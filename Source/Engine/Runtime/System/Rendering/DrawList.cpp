@@ -192,6 +192,19 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->transparentIndex = this->size();
 }
 
+void DrawList::AddShadowCasters(std::span<MeshRenderer*> meshRenderers)
+{
+    for (auto r : meshRenderers)
+        if (r && r->IsActiveInScene() && r->CastsShadows() && !r->IsActiveGPUObject())
+        {
+            this->Add(*r);
+        }
+
+    this->opaqueIndex = 0;
+    this->alphaTestIndex = this->size();
+    this->transparentIndex = this->size();
+}
+
 void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::optional<Gfx::PolygonMode> polygonModeOverride, std::optional<Gfx::PipelineConfig::PipelineConfig_t::Stencil> stencilOverride, const std::vector<Gfx::DynamicBinding>* passBindings, bool bindMeshVertexBuffers) const
 {
     bool previouslySet = false;

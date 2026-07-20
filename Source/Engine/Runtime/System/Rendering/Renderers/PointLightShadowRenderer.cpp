@@ -147,7 +147,7 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
         return;
 
     DrawList shadowDrawList;
-    shadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
+    shadowDrawList.AddShadowCasters(renderingData.scene->GetRenderingScene().GetMeshRenderers());
     shadowDrawList.Lock();
 
     cmd.BeginLabel("Point Light Shadow Map", {0.2f, 0.6f, 0.2f, 1.0f});
@@ -193,6 +193,9 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
         {
             for (auto& group : *renderingData.gpuObjectShaderGroups)
             {
+                if (!group.castsShadows)
+                    continue;
+
                 auto* programUsed = group.shaderProgram == terrainProgram ? programTerrain : programGPUDriven;
                 cmd.BindShaderProgram(programUsed, *group.pipelineConfig);
                 cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);

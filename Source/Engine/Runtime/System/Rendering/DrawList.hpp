@@ -45,6 +45,7 @@ public:
     int alphaTestIndex;
     int transparentIndex;
     void Add(std::span<MeshRenderer*> meshRenderers);
+    void AddShadowCasters(std::span<MeshRenderer*> meshRenderers);
     void Add(MeshRenderer& meshRenderer);
     void Sort(const glm::vec3& cameraPos);
     void SortByDistance(const glm::vec3& cameraPos);

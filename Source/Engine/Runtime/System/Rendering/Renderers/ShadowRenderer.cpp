@@ -171,14 +171,14 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
             Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow[cascadeIndex]);
             auto renderers = renderingData.scene->GetBVHScene().QueryMeshRenderersInFrustum(frustum);
             auto& shadowDrawList = cascadeShadowDrawLists[cascadeIndex];
-            shadowDrawList.Add(renderers);
+            shadowDrawList.AddShadowCasters(renderers);
             shadowDrawList.Lock();
             shadowDrawList.SortByDistance(shadowSortPosition);
         }
     }
     else
     {
-        sharedShadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
+        sharedShadowDrawList.AddShadowCasters(renderingData.scene->GetRenderingScene().GetMeshRenderers());
         sharedShadowDrawList.Lock();
         sharedShadowDrawList.SortByDistance(shadowSortPosition);
     }
@@ -243,6 +243,9 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                     {
                         for (auto& group : *renderingData.gpuObjectShaderGroups)
                         {
+                            if (!group.castsShadows)
+                                continue;
+
                             auto programGPUDriven = group.shaderProgram == terrainProgram
                                                         ? programTerrain
                                                         : shadowMapShaderGPUDriven->GetShaderProgram();

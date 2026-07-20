@@ -131,6 +131,7 @@ class RenderPipeline
         uint32_t firstInstance;
         uint32_t objectOffset;
         uint32_t previousSkeletonOffset = InvalidTextureIndex;
+        bool castsShadows = true;
     };
 
     /**
