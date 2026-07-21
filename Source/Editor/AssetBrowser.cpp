@@ -871,15 +871,14 @@ void AssetBrowser::ShowAssetIconItem(
     constexpr float iconLabelHeight = 40.0f;
     constexpr float iconLabelGap = 4.0f;
     const ImVec2 tileSize{iconSize, iconSize + iconLabelGap + iconLabelHeight};
-    ImGui::InvisibleButton("##tile", tileSize);
+    const bool isClicked = ImGui::InvisibleButton("##tile", tileSize);
 
     const ImVec2 tileMin = ImGui::GetItemRectMin();
     const ImVec2 tileMax = ImGui::GetItemRectMax();
     ImVec2 iconMin = tileMin;
     ImVec2 iconMax{tileMin.x + iconSize, tileMin.y + iconSize};
     const bool isHovered = ImGui::IsItemHovered();
-    const bool isClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
-    const bool isDoubleClicked = isClicked && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+    const bool isDoubleClicked = isHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
     const bool isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
     const AssetPath itemPath(entry.path());
     const float2 tileMinPosition{tileMin.x, tileMin.y};
