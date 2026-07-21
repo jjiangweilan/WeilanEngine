@@ -555,10 +555,13 @@ void GameEditor::SceneTree(
     if (go->GetChildren().empty())
         nodeFlags |= ImGuiTreeNodeFlags_Leaf;
 
+    bool isActiveInScene = go->IsActiveInScene();
     bool hasPrefab = go->HasPrefab();
 
     auto& editorConfig = EditorConfig::GetInstance();
-    if (hasPrefab)
+    if (!isActiveInScene)
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    else if (hasPrefab)
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(editorConfig.GetSceneTreeGameObjectColor()));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{:p}", go->GetName(), (void*)go).c_str(), nodeFlags);
     ImVec2 itemRectMin = ImGui::GetItemRectMin();
@@ -570,7 +573,7 @@ void GameEditor::SceneTree(
         sceneViewHightedGameObjectCandidate = go;
     }
 
-    if (hasPrefab)
+    if (!isActiveInScene || hasPrefab)
         ImGui::PopStyleColor();
 
     EditorGUI::DragDropSource(go->GetName().c_str(), go);
