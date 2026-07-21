@@ -120,14 +120,7 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("skySunCoreColor", skySunCoreColor);
     s->Deserialize("skyboxIntensity", skyboxIntensity);
     s->Deserialize("useHDRISkybox", useHDRISkybox);
-    s->Deserialize(
-        "hdriSkybox",
-        nullptr,
-        [this](void* data)
-        {
-            SetHDRISkybox(static_cast<Texture*>(data));
-        }
-    );
+    s->Deserialize("hdriSkybox", hdriSkybox);
     s->Deserialize("hdriSkyboxRotationDegrees", hdriSkyboxRotationDegrees);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
