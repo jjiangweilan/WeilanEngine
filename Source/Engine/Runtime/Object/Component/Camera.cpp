@@ -90,18 +90,12 @@ glm::mat4 Camera::GetViewMatrix() const
 
 void Camera::SetDiffuseEnv(Texture* cubemap)
 {
-    if (cubemap)
-        diffuseEnv = cubemap->GetSRef<Texture>();
-    else
-        diffuseEnv = nullptr;
+    diffuseEnv = cubemap;
 }
 
 void Camera::SetSpecularEnv(Texture* cubemap)
 {
-    if (cubemap)
-        specularEnv = cubemap->GetSRef<Texture>();
-    else
-        specularEnv = nullptr;
+    specularEnv = cubemap;
 }
 
 const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
@@ -230,7 +224,7 @@ void Camera::Deserialize(Serializer* s)
         {
             if (Texture* tex = (Texture*)data)
             {
-                diffuseEnv = tex->GetSRef<Texture>();
+                diffuseEnv = tex;
             }
         }
     );
@@ -242,7 +236,7 @@ void Camera::Deserialize(Serializer* s)
         {
             if (Texture* tex = (Texture*)data)
             {
-                specularEnv = tex->GetSRef<Texture>();
+                specularEnv = tex;
             }
         }
     );

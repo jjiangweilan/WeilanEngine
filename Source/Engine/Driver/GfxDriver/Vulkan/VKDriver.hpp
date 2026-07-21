@@ -111,15 +111,10 @@ public:
     void SetGPUProfilerEnabled(bool enabled) override;
     const IProfiler& GetGPUProfiler() override { return profiler; }
 
-    void GenerateMipmaps(Gfx::Image& image) override
-    {
-        GenerateMipmaps(static_cast<VKImage&>(image).GetSRef<VKImage>());
-    }
+    void GenerateMipmaps(Gfx::Image& image) override;
     void InitGfxImage(Gfx::Image& image, glm::vec4 color) override;
     bool BeginFrame() override;
     bool EndFrame() override;
-
-    void GenerateMipmaps(SRef<VKImage> image);
 
     Gfx::Image* GetImageFromRenderGraph(const Gfx::ImageIdentifier& id) override;
 

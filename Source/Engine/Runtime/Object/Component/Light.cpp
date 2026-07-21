@@ -42,7 +42,7 @@ void Light::SetLightType(LightType type)
 
 void Light::SetHDRISkybox(Texture* texture)
 {
-    hdriSkybox = texture ? texture->GetSRef<Texture>() : nullptr;
+    hdriSkybox = texture;
 }
 
 void Light::OnAwake()

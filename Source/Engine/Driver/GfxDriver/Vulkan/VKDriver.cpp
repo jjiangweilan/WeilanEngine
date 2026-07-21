@@ -403,11 +403,11 @@ bool VKDriver::IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages)
     return false;
 }
 
-void VKDriver::GenerateMipmaps(SRef<VKImage> image)
+void VKDriver::GenerateMipmaps(Gfx::Image& image)
 {
     std::scoped_lock lock(driverMutex);
     internalPendingCommands.push_back(
-        [imageRef = image](VkCommandBuffer cmd)
+        [imageRef = ObjPtr<VKImage>(&static_cast<VKImage&>(image))](VkCommandBuffer cmd)
         {
             auto image = imageRef.Get();
             if (image == nullptr)
@@ -544,7 +544,7 @@ void VKDriver::InitGfxImage(Gfx::Image& image, glm::vec4 color)
 {
     std::scoped_lock lock(driverMutex);
     internalPendingCommands.push_back(
-        [imageRef = static_cast<VKImage&>(image).GetSRef<VKImage>(), color](VkCommandBuffer cmd)
+        [imageRef = ObjPtr<VKImage>(&static_cast<VKImage&>(image)), color](VkCommandBuffer cmd)
         {
             auto* image = imageRef.Get();
             if (image == nullptr)

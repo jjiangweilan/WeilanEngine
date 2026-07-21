@@ -5,7 +5,6 @@
 #include "Engine/Library/Serialization/Serializable.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Library/UUID.hpp"
-#include "SafeReferenceable.hpp"
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
@@ -194,7 +193,7 @@ private:
 };
 
 using ObjectTypeID = UUID;
-class WEILAN_ENGINE_API Object : public Serializable, public SafeReferenceable<Object>
+class WEILAN_ENGINE_API Object : public Serializable
 {
 public:
     static const ObjectTypeID& StaticGetObjectTypeID();

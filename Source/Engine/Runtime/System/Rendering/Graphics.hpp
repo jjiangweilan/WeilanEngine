@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Core/SafeReferenceable.hpp"
+#include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/BufferIdentifier.hpp"
 #include "Engine/Library/Math/Geometry/Geometry.hpp"
 #include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
@@ -65,8 +65,8 @@ private:
 
     struct DrawMeshCmd
     {
-        SRef<Mesh> mesh;
-        SRef<Material> material;
+        ObjPtr<Mesh> mesh;
+        ObjPtr<Material> material;
         glm::mat4 model;
         int submeshIndex;
     };

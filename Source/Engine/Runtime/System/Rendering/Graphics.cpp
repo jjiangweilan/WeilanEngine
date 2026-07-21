@@ -30,9 +30,7 @@ void Graphics::DrawLines(const std::vector<Line>& lines)
 
 void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
 {
-    GetSingleton().drawCmds.push_back(
-        DrawMeshCmd{mesh.GetSRef<Mesh>(), material.GetSRef<Material>(), model, submeshIndex}
-    );
+    GetSingleton().drawCmds.push_back(DrawMeshCmd{&mesh, &material, model, submeshIndex});
 }
 
 void Graphics::DrawTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)

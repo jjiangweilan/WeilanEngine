@@ -47,8 +47,8 @@ public:
 
     void SetDiffuseEnv(Texture* cubemap);
     void SetSpecularEnv(Texture* cubemap);
-    const SRef<Texture>& GetDiffuseEnv() { return diffuseEnv; }
-    const SRef<Texture>& GetSpecularEnv() { return specularEnv; }
+    const ObjPtr<Texture>& GetDiffuseEnv() { return diffuseEnv; }
+    const ObjPtr<Texture>& GetSpecularEnv() { return specularEnv; }
 
     static RefPtr<Camera> mainCamera;
 
@@ -110,8 +110,8 @@ public:
     void OnDrawGizmos() override;
 
 private:
-    SRef<Texture> diffuseEnv = nullptr;
-    SRef<Texture> specularEnv = nullptr;
+    ObjPtr<Texture> diffuseEnv = nullptr;
+    ObjPtr<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     glm::mat4 previousViewProjection = glm::mat4(1.0f);
