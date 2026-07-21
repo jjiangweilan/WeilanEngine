@@ -40,12 +40,44 @@ private:
     {
         Tree,
         Icon
-    } mode = Mode::Tree;
+    } mode = Mode::Icon;
 
     WeilanEngine* engine;
     GameEditor* gameEditor;
     int currentDragDropAssetFileDepth = 0;
-    AssetPath lastSelectedPath;
+
+    struct VisibleIconItem
+    {
+        AssetPath path;
+        float2 min;
+        float2 max;
+    };
+
+    struct MarqueeSelection
+    {
+        bool active = false;
+        bool hasDragged = false;
+        float2 start;
+        float2 current;
+    } marqueeSelection;
+
+    std::vector<AssetPath> selectedPaths;
+    AssetPath activeSelectedPath;
+    std::vector<VisibleIconItem> visibleIconItems;
+
+    bool IsSelected(const AssetPath& path) const;
+    void ClearSelection();
+    void ReplaceSelection(const AssetPath& path);
+    void AddSelection(const AssetPath& path);
+    void RemoveSelection(const AssetPath& path);
+    void SetActiveSelection(const AssetPath& path);
+    void SelectFromClick(const AssetPath& path);
+    void SelectActiveAssetInEditor();
+    bool MarqueeIntersects(const float2& min, const float2& max) const;
+    bool WillBeSelected(const AssetPath& path, const float2& min, const float2& max) const;
+    void ApplyMarqueeSelection();
+    void RequestReimport(const std::vector<AssetPath>& paths);
+    void RequestDelete(const std::vector<AssetPath>& paths);
 
     // Change File Name //
     bool changeFileName = false;
@@ -93,8 +125,6 @@ private:
         std::function<void()> onLeftClick = nullptr,
         std::function<void()> onRightClick = nullptr
     );
-
-    void UpdateLastSelection(const std::filesystem::path& path) { this->lastSelectedPath = path; }
 
     /**
      * @brief Helper function to show individual asset icon items in grid layout

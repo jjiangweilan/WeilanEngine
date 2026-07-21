@@ -14,6 +14,7 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 #include <string_view>
+#include <utility>
 
 class GrassSurface;
 class Terrain;
@@ -159,7 +160,7 @@ public:
         std::string text;
         std::function<void()> f;
         std::function<void()> cancel;
-        bool show;
+        bool show = false;
         bool open = false;
 
     public:
@@ -189,15 +190,24 @@ public:
 
                 if (ImGui::Button("Yes"))
                 {
-                    f();
+                    std::function<void()> confirm = std::move(f);
+                    open = false;
+                    ImGui::CloseCurrentPopup();
+                    if (confirm)
+                    {
+                        confirm();
+                    }
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("No"))
                 {
-                    if (cancel != nullptr)
-                        cancel();
-                    else
-                        ImGui::CloseCurrentPopup();
+                    std::function<void()> onCancel = std::move(cancel);
+                    open = false;
+                    ImGui::CloseCurrentPopup();
+                    if (onCancel)
+                    {
+                        onCancel();
+                    }
                 }
                 ImGui::EndPopup();
             }

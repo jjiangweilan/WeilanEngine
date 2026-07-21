@@ -52,6 +52,223 @@ AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     currentDirectory = engine->GetProjectAssetPath();
 }
 
+bool AssetBrowser::IsSelected(const AssetPath& path) const
+{
+    return std::find(selectedPaths.begin(), selectedPaths.end(), path) != selectedPaths.end();
+}
+
+void AssetBrowser::ClearSelection()
+{
+    selectedPaths.clear();
+    activeSelectedPath = {};
+}
+
+void AssetBrowser::ReplaceSelection(const AssetPath& path)
+{
+    selectedPaths.clear();
+    selectedPaths.push_back(path);
+    activeSelectedPath = path;
+}
+
+void AssetBrowser::AddSelection(const AssetPath& path)
+{
+    if (!IsSelected(path))
+    {
+        selectedPaths.push_back(path);
+    }
+    activeSelectedPath = path;
+}
+
+void AssetBrowser::RemoveSelection(const AssetPath& path)
+{
+    auto selected = std::find(selectedPaths.begin(), selectedPaths.end(), path);
+    if (selected == selectedPaths.end())
+    {
+        return;
+    }
+
+    selectedPaths.erase(selected);
+    if (activeSelectedPath == path)
+    {
+        activeSelectedPath = selectedPaths.empty() ? AssetPath{} : selectedPaths.back();
+    }
+}
+
+void AssetBrowser::SetActiveSelection(const AssetPath& path)
+{
+    if (IsSelected(path))
+    {
+        activeSelectedPath = path;
+    }
+}
+
+void AssetBrowser::SelectActiveAssetInEditor()
+{
+    if (activeSelectedPath.empty() || std::filesystem::is_directory(activeSelectedPath.ToAbsolutePath()))
+    {
+        return;
+    }
+
+    if (Asset* asset = engine->assetDatabase->LoadAsset(activeSelectedPath))
+    {
+        EditorState::SelectObject(asset);
+    }
+}
+
+void AssetBrowser::SelectFromClick(const AssetPath& path)
+{
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.KeyAlt)
+    {
+        RemoveSelection(path);
+    }
+    else if (io.KeyShift)
+    {
+        AddSelection(path);
+    }
+    else
+    {
+        ReplaceSelection(path);
+    }
+
+    SelectActiveAssetInEditor();
+}
+
+bool AssetBrowser::MarqueeIntersects(const float2& min, const float2& max) const
+{
+    if (!marqueeSelection.active || !marqueeSelection.hasDragged)
+    {
+        return false;
+    }
+
+    const float selectionMinX = std::min(marqueeSelection.start.x, marqueeSelection.current.x);
+    const float selectionMinY = std::min(marqueeSelection.start.y, marqueeSelection.current.y);
+    const float selectionMaxX = std::max(marqueeSelection.start.x, marqueeSelection.current.x);
+    const float selectionMaxY = std::max(marqueeSelection.start.y, marqueeSelection.current.y);
+    return max.x >= selectionMinX && min.x <= selectionMaxX &&
+           max.y >= selectionMinY && min.y <= selectionMaxY;
+}
+
+bool AssetBrowser::WillBeSelected(const AssetPath& path, const float2& min, const float2& max) const
+{
+    const bool isSelected = IsSelected(path);
+    if (!marqueeSelection.active || !marqueeSelection.hasDragged)
+    {
+        return isSelected;
+    }
+
+    const bool intersects = MarqueeIntersects(min, max);
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.KeyAlt)
+    {
+        return isSelected && !intersects;
+    }
+    if (io.KeyShift)
+    {
+        return isSelected || intersects;
+    }
+    return intersects;
+}
+
+void AssetBrowser::ApplyMarqueeSelection()
+{
+    std::vector<AssetPath> intersectedPaths;
+    for (const VisibleIconItem& item : visibleIconItems)
+    {
+        if (MarqueeIntersects(item.min, item.max))
+        {
+            intersectedPaths.push_back(item.path);
+        }
+    }
+
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.KeyAlt)
+    {
+        for (const AssetPath& path : intersectedPaths)
+        {
+            RemoveSelection(path);
+        }
+    }
+    else
+    {
+        if (!io.KeyShift)
+        {
+            ClearSelection();
+        }
+
+        for (const AssetPath& path : intersectedPaths)
+        {
+            AddSelection(path);
+        }
+    }
+
+    SelectActiveAssetInEditor();
+}
+
+void AssetBrowser::RequestReimport(const std::vector<AssetPath>& paths)
+{
+    if (paths.empty())
+    {
+        return;
+    }
+
+    const std::string prompt = paths.size() == 1
+                                   ? fmt::format("Reimport '{}'?", paths.front().GetFileName())
+                                   : fmt::format("Reimport {} selected items?", paths.size());
+    gameEditor->endPopup.Show(
+        prompt,
+        [this, paths]()
+        {
+            gameEditor->endEvents.Register(
+                [paths]()
+                {
+                    for (const AssetPath& path : paths)
+                    {
+                        const std::filesystem::path absolutePath = path.ToAbsolutePath();
+                        if (std::filesystem::is_directory(absolutePath))
+                        {
+                            ReimportFolderRecursively(absolutePath);
+                        }
+                        else if (AssetDatabase::Singleton()->CanImport(path))
+                        {
+                            AssetDatabase::Singleton()->Reimport(path);
+                        }
+                    }
+                }
+            );
+        }
+    );
+}
+
+void AssetBrowser::RequestDelete(const std::vector<AssetPath>& paths)
+{
+    if (paths.empty())
+    {
+        return;
+    }
+
+    const std::string prompt = paths.size() == 1
+                                   ? fmt::format("Delete '{}'?", paths.front().GetFileName())
+                                   : fmt::format("Delete {} selected items?", paths.size());
+    gameEditor->endPopup.Show(
+        prompt,
+        [this, paths]()
+        {
+            gameEditor->endEvents.Register(
+                [this, paths]()
+                {
+                    for (const AssetPath& path : paths)
+                    {
+                        AssetDatabase::Singleton()->Remove(path);
+                    }
+                    ClearSelection();
+                    searchSelectedPath.clear();
+                }
+            );
+        }
+    );
+}
+
 void AssetBrowser::PinAsset(const AssetPath& path)
 {
     if (path.empty() || path.IsInternal())
@@ -59,7 +276,7 @@ void AssetBrowser::PinAsset(const AssetPath& path)
 
     std::filesystem::path absolutePath = path.ToAbsolutePath();
     currentDirectory = absolutePath.parent_path();
-    lastSelectedPath = path;
+    ReplaceSelection(path);
     searchQuery.clear();
     searchSelectedPath.clear();
 }
@@ -104,7 +321,12 @@ void AssetBrowser::Show(bool& isOpen)
         ShowInternalAssets();
         ImGui::Separator();
 
+        const bool wasSearching = !searchQuery.empty();
         ShowSearchBar();
+        if (!wasSearching && !searchQuery.empty())
+        {
+            ClearSelection();
+        }
 
         if (!searchQuery.empty())
         {
@@ -181,9 +403,8 @@ void AssetBrowser::ShowInternalAssets()
 void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 {
 
-    // Need access to GameEditor's endEvents and endPopup
+    // Need access to GameEditor's deferred events.
     auto& endEvents = gameEditor->endEvents;
-    auto& endPopup = gameEditor->endPopup;
 
     for (auto entry : std::filesystem::directory_iterator(path))
     {
@@ -226,39 +447,12 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 
                 if (ImGui::MenuItem("Reimport Folder"))
                 {
-                    endEvents.Register(
-                        [folder = entry.path()]()
-                        {
-                            ReimportFolderRecursively(folder);
-                        }
-                    );
+                    RequestReimport({AssetPath(entry.path())});
                 }
 
                 if (ImGui::MenuItem("Delete Folder"))
                 {
-                    if (!std::filesystem::is_empty(entry.path()))
-                    {
-                        endPopup.Show(
-                            "Folder is not empty, delete all?",
-                            [entry]()
-                            {
-                                AssetDatabase::Singleton()->Remove(
-                                    AssetPath(entry.path())
-                                );
-                            }
-                        );
-                    }
-                    else
-                    {
-                        endEvents.Register(
-                            [this, entry]()
-                            {
-                                AssetDatabase::Singleton()->Remove(
-                                    AssetPath(entry.path())
-                                );
-                            }
-                        );
-                    }
+                    RequestDelete({AssetPath(entry.path())});
                 }
 
                 if (ImGui::MenuItem("Change File Name"))
@@ -314,12 +508,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                 AssetPath assetPath(entry.path());
                 if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
                 {
-                    endEvents.Register(
-                        [assetPath]()
-                        {
-                            AssetDatabase::Singleton()->Reimport(assetPath);
-                        }
-                    );
+                    RequestReimport({assetPath});
                 }
 
                 if (ImGui::MenuItem("Change File Name"))
@@ -329,14 +518,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 
                 if (ImGui::MenuItem("Delete"))
                 {
-                    endEvents.Register(
-                        [entry]()
-                        {
-                            AssetDatabase::Singleton()->Remove(
-                                std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
-                            );
-                        }
-                    );
+                    RequestDelete({AssetPath(entry.path())});
                 }
                 ImGui::EndPopup();
             }
@@ -374,23 +556,18 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
 {
     const float iconSize = iconSizeSlider; // Use the slider value instead of fixed size
     const float iconPadding = 8.0f;        // Padding between icons
-    const float labelHeight = 40.0f;       // Height for the text label below icon
     const float totalItemWidth = iconSize + iconPadding * 2;
-    const float totalItemHeight = iconSize + labelHeight + iconPadding * 2;
     bool openCreateMenuPopup = false;
 
     // Calculate how many icons fit horizontally
     ImVec2 contentRegion = ImGui::GetContentRegionAvail();
     int itemsPerRow = std::max(1, (int)(contentRegion.x / totalItemWidth));
 
-    // Access to GameEditor's endEvents and endPopup
-    auto& endEvents = gameEditor->endEvents;
-    auto& endPopup = gameEditor->endPopup;
-
     // Navigation breadcrumb
     if (ImGui::Button("Up") && path != engine->GetProjectAssetPath())
     {
         currentDirectory = path.parent_path();
+        ClearSelection();
     }
     ImGui::SameLine();
     ImGui::Text("Current: %s", std::filesystem::relative(path, engine->GetProjectAssetPath()).string().c_str());
@@ -400,19 +577,17 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
     // Begin child region for scrolling
     if (ImGui::BeginChild("IconGrid", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        ImVec2 directoryCursorStart = ImGui::GetCursorPos();
-        ImVec2 browserRegionMax = ImGui::GetWindowContentRegionMax();
-        ImVec2 clickRegionSize = browserRegionMax - directoryCursorStart;
-
-        ImGui::SetNextItemAllowOverlap();
-        ImGui::InvisibleButton("right-click context menu", clickRegionSize);
-
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        visibleIconItems.clear();
+        const ImVec2 mousePosition = ImGui::GetMousePos();
+        if (marqueeSelection.active)
         {
-            openCreateMenuPopup = true;
+            marqueeSelection.current = {mousePosition.x, mousePosition.y};
+            const float2 dragDelta = marqueeSelection.current - marqueeSelection.start;
+            if (glm::length(dragDelta) > 4.0f)
+            {
+                marqueeSelection.hasDragged = true;
+            }
         }
-
-        ImGui::SetCursorPos(directoryCursorStart);
 
         int currentColumn = 0;
 
@@ -456,6 +631,69 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         for (const auto& entry : files)
         {
             ShowAssetIconItem(entry, iconSize, currentColumn, itemsPerRow, false);
+        }
+
+        const bool mouseOverItem = std::any_of(
+            visibleIconItems.begin(),
+            visibleIconItems.end(),
+            [mousePosition](const VisibleIconItem& item)
+            {
+                return mousePosition.x >= item.min.x && mousePosition.x <= item.max.x &&
+                       mousePosition.y >= item.min.y && mousePosition.y <= item.max.y;
+            }
+        );
+        const ImVec2 childWindowPosition = ImGui::GetWindowPos();
+        const ImVec2 childContentMin = childWindowPosition + ImGui::GetWindowContentRegionMin();
+        const ImVec2 childContentMax = childWindowPosition + ImGui::GetWindowContentRegionMax();
+        const bool mouseInContent = mousePosition.x >= childContentMin.x && mousePosition.x <= childContentMax.x &&
+                                    mousePosition.y >= childContentMin.y && mousePosition.y <= childContentMax.y;
+        const bool gridHovered = ImGui::IsWindowHovered() && mouseInContent;
+
+        if (gridHovered && !mouseOverItem && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            openCreateMenuPopup = true;
+        }
+
+        if (!marqueeSelection.active && gridHovered && !mouseOverItem &&
+            ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            marqueeSelection.active = true;
+            marqueeSelection.hasDragged = false;
+            marqueeSelection.start = {mousePosition.x, mousePosition.y};
+            marqueeSelection.current = marqueeSelection.start;
+        }
+
+        if (marqueeSelection.active)
+        {
+            if (marqueeSelection.hasDragged)
+            {
+                const ImVec2 selectionMin{
+                    std::min(marqueeSelection.start.x, marqueeSelection.current.x),
+                    std::min(marqueeSelection.start.y, marqueeSelection.current.y)
+                };
+                const ImVec2 selectionMax{
+                    std::max(marqueeSelection.start.x, marqueeSelection.current.x),
+                    std::max(marqueeSelection.start.y, marqueeSelection.current.y)
+                };
+                ImDrawList* drawList = ImGui::GetWindowDrawList();
+                drawList->AddRectFilled(selectionMin, selectionMax, IM_COL32(60, 130, 240, 40));
+                drawList->AddRect(selectionMin, selectionMax, IM_COL32(60, 130, 240, 200), 0.0f, 0, 1.5f);
+            }
+
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+            {
+                if (marqueeSelection.hasDragged)
+                {
+                    ApplyMarqueeSelection();
+                }
+                else if (!ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt)
+                {
+                    ClearSelection();
+                }
+
+                marqueeSelection.active = false;
+                marqueeSelection.hasDragged = false;
+            }
         }
     }
     ImGui::EndChild();
@@ -516,9 +754,8 @@ void AssetBrowser::ShowAssetIconItem(
     const std::filesystem::directory_entry& entry, float iconSize, int& currentColumn, int itemsPerRow, bool isDirectory
 )
 {
-    // Access to GameEditor's endEvents and endPopup here since we can't pass them as parameters
+    // Access to GameEditor's endEvents here since we can't pass it as a parameter
     auto& endEvents = gameEditor->endEvents;
-    auto& endPopup = gameEditor->endPopup;
 
     ImGui::PushID(entry.path().string().c_str());
 
@@ -533,9 +770,6 @@ void AssetBrowser::ShowAssetIconItem(
         ImGui::SameLine();
     }
 
-    // Begin group for the entire icon + label
-    ImGui::BeginGroup();
-
     // Get icon
     Gfx::Image* iconImage = nullptr;
 
@@ -548,33 +782,40 @@ void AssetBrowser::ShowAssetIconItem(
         iconImage = FileIcons::Instance().GetIconImage(entry.path());
     }
 
-    // Draw icon background
-    //  And create invisible button for interaction
-    ImVec2 cursorPos = ImGui::GetCursorPos();
-    ImVec2 iconMin = ImGui::GetCursorScreenPos();
-    ImVec2 iconMax = ImVec2(iconMin.x + iconSize, iconMin.y + iconSize);
+    constexpr float iconLabelFontSize = 14.0f;
+    constexpr float iconLabelHeight = 40.0f;
+    constexpr float iconLabelGap = 4.0f;
+    const ImVec2 tileSize{iconSize, iconSize + iconLabelGap + iconLabelHeight};
+    ImGui::InvisibleButton("##tile", tileSize);
 
-    bool isHovered = false;
-    bool isClicked = false;
-    bool isDoubleClicked = false;
-    bool isRightClicked = false;
-    bool isLastSelection = false;
+    const ImVec2 tileMin = ImGui::GetItemRectMin();
+    const ImVec2 tileMax = ImGui::GetItemRectMax();
+    ImVec2 iconMin = tileMin;
+    ImVec2 iconMax{tileMin.x + iconSize, tileMin.y + iconSize};
+    const bool isHovered = ImGui::IsItemHovered();
+    const bool isClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+    const bool isDoubleClicked = isClicked && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+    const bool isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
+    const AssetPath itemPath(entry.path());
+    const float2 tileMinPosition{tileMin.x, tileMin.y};
+    const float2 tileMaxPosition{tileMax.x, tileMax.y};
+    const bool willBeSelected = WillBeSelected(itemPath, tileMinPosition, tileMaxPosition);
+    const bool isActive = activeSelectedPath == itemPath;
 
-    // Update last selected path
-    isLastSelection = lastSelectedPath == AssetPath(entry.path());
+    visibleIconItems.push_back({itemPath, tileMinPosition, tileMaxPosition});
 
-    isClicked = ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
-    isHovered = ImGui::IsItemHovered();
-    isDoubleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
-    isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
-
-    // Draw icon background
-    ImU32 bgColor = isHovered ? IM_COL32(140, 140, 140, 100) : IM_COL32(70, 70, 70, 100);
-    if (isLastSelection)
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    if (willBeSelected)
     {
-        bgColor = IM_COL32(140, 140, 140, 200);
+        drawList->AddRectFilled(tileMin, tileMax, IM_COL32(60, 130, 240, 90), 4.0f);
     }
-    ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, bgColor, 4.0f);
+    else if (isHovered)
+    {
+        drawList->AddRectFilled(tileMin, tileMax, IM_COL32(140, 140, 140, 70), 4.0f);
+    }
+
+    const ImU32 iconBackgroundColor = isHovered ? IM_COL32(140, 140, 140, 100) : IM_COL32(70, 70, 70, 100);
+    drawList->AddRectFilled(iconMin, iconMax, iconBackgroundColor, 4.0f);
 
     // Draw text icon for now (until we can properly access texture system)
     if (iconImage)
@@ -589,14 +830,9 @@ void AssetBrowser::ShowAssetIconItem(
     // File/folder name label
     std::string filename = entry.path().filename().string();
 
-    // Display asset path
-    float textWidth = iconMax.x - iconMin.x;
-    ImVec2 labelPos = ImVec2(cursorPos.x, cursorPos.y + iconSize + 4);
-    ImGui::SetCursorPos(labelPos);
-    constexpr float iconLabelFontSize = 14.0f;
-    constexpr float iconLabelHeight = 40.0f;
-    ImVec2 labelScreenPos = ImGui::GetCursorScreenPos();
-    ImGui::GetWindowDrawList()->AddText(
+    const float textWidth = iconSize;
+    const ImVec2 labelScreenPos{tileMin.x, tileMin.y + iconSize + iconLabelGap};
+    drawList->AddText(
         ImGui::GetFont(),
         iconLabelFontSize,
         labelScreenPos,
@@ -605,9 +841,15 @@ void AssetBrowser::ShowAssetIconItem(
         nullptr,
         textWidth
     );
-    ImGui::Dummy(ImVec2(textWidth, iconLabelHeight));
 
-    ImGui::EndGroup();
+    if (isActive && willBeSelected)
+    {
+        drawList->AddRect(tileMin, tileMax, IM_COL32(60, 130, 240, 255), 4.0f, 0, 2.0f);
+    }
+    else if (isHovered)
+    {
+        drawList->AddRect(tileMin, tileMax, IM_COL32(180, 180, 180, 160), 4.0f, 0, 1.0f);
+    }
 
     // Handle interactions
     if (isDoubleClicked)
@@ -616,34 +858,17 @@ void AssetBrowser::ShowAssetIconItem(
         {
             // Navigate into directory
             currentDirectory = entry.path();
+            ClearSelection();
         }
         else
         {
-            // Load and select asset
-            Asset* asset = engine->assetDatabase->LoadAsset(
-                std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
-            );
-            if (asset)
-            {
-                EditorState::SelectObject(asset);
-                UpdateLastSelection(entry.path());
-            }
+            SetActiveSelection(itemPath);
+            SelectActiveAssetInEditor();
         }
     }
     else if (isClicked)
     {
-        // Single click selection
-        if (!isDirectory)
-        {
-            Asset* asset = engine->assetDatabase->LoadAsset(
-                std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
-            );
-            if (asset)
-            {
-                EditorState::SelectObject(asset);
-                UpdateLastSelection(entry.path());
-            }
-        }
+        SelectFromClick(itemPath);
     }
 
     // Handle drag and drop
@@ -683,90 +908,57 @@ void AssetBrowser::ShowAssetIconItem(
     // Context menu
     if (isRightClicked)
     {
+        if (IsSelected(itemPath))
+        {
+            SetActiveSelection(itemPath);
+        }
+        else
+        {
+            ReplaceSelection(itemPath);
+        }
+        SelectActiveAssetInEditor();
         ImGui::OpenPopup("ItemContextMenu");
-        UpdateLastSelection(entry.path());
     }
 
     if (ImGui::BeginPopup("ItemContextMenu"))
     {
+        const std::vector<AssetPath> contextSelection = selectedPaths;
         if (isDirectory)
         {
             if (ImGui::MenuItem("Create Folder"))
             {
                 AssetDatabase::Singleton()->CreateFolderAtPath(entry.path());
             }
-
-            if (ImGui::MenuItem("Reimport Folder"))
-            {
-                endEvents.Register(
-                    [folder = entry.path()]()
-                    {
-                        ReimportFolderRecursively(folder);
-                    }
-                );
-            }
-
-            if (ImGui::MenuItem("Delete Folder"))
-            {
-                if (!std::filesystem::is_empty(entry.path()))
-                {
-                    endPopup.Show(
-                        "Folder is not empty, delete all?",
-                        [entry]()
-                        {
-                            AssetDatabase::Singleton()->Remove(
-                                AssetPath(entry.path())
-                            );
-                        }
-                    );
-                }
-                else
-                {
-                    endEvents.Register(
-                        [this, entry]()
-                        {
-                            AssetDatabase::Singleton()->Remove(
-                                AssetPath(entry.path())
-                            );
-                        }
-                    );
-                }
-            }
-
-            if (ImGui::MenuItem("Rename"))
-            {
-                ActivateFileNameField(entry.path());
-            }
         }
-        else
+
+        if (ImGui::MenuItem("Rename"))
         {
-            AssetPath assetPath(entry.path());
-            if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
-            {
-                endEvents.Register(
-                    [assetPath]()
-                    {
-                        AssetDatabase::Singleton()->Reimport(assetPath);
-                    }
-                );
-            }
+            ActivateFileNameField(activeSelectedPath);
+        }
 
-            if (ImGui::MenuItem("Delete"))
+        const bool canReimport = std::any_of(
+            contextSelection.begin(),
+            contextSelection.end(),
+            [](const AssetPath& path)
             {
-                endEvents.Register(
-                    [entry]()
-                    {
-                        AssetDatabase::Singleton()->Remove(
-                            std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
-                        );
-                    }
-                );
+                return std::filesystem::is_directory(path.ToAbsolutePath()) ||
+                       AssetDatabase::Singleton()->CanImport(path);
             }
+        );
+        const std::string reimportLabel = contextSelection.size() > 1
+                                              ? fmt::format("Reimport Selected ({})", contextSelection.size())
+                                              : "Reimport";
+        if (canReimport && ImGui::MenuItem(reimportLabel.c_str()))
+        {
+            RequestReimport(contextSelection);
+        }
 
-            if (ImGui::MenuItem("Rename"))
-            {
-                ActivateFileNameField(entry.path());
-            }
+        const std::string deleteLabel = contextSelection.size() > 1
+                                            ? fmt::format("Delete Selected ({})", contextSelection.size())
+                                            : "Delete";
+        if (ImGui::MenuItem(deleteLabel.c_str()))
+        {
+            RequestDelete(contextSelection);
         }
 
         ImGui::EndPopup();
@@ -867,7 +1059,12 @@ void AssetBrowser::ShowIconSizeSlider()
     // Update the display mode based on slider changes
     if (sliderChanged)
     {
-        mode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
+        const Mode newMode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
+        if (newMode != mode)
+        {
+            ClearSelection();
+            mode = newMode;
+        }
     }
 }
 
@@ -914,9 +1111,6 @@ void AssetBrowser::ShowSearchResults()
     }
 
     ImGui::BeginChild("SearchResults", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-
-    auto& endEvents = gameEditor->endEvents;
-    auto& endPopup = gameEditor->endPopup;
 
     for (const auto& entry : results)
     {
@@ -984,23 +1178,11 @@ void AssetBrowser::ShowSearchResults()
             AssetPath assetPath(entry.path());
             if (AssetDatabase::Singleton()->CanImport(assetPath) && ImGui::MenuItem("Reimport"))
             {
-                endEvents.Register(
-                    [assetPath]()
-                    {
-                        AssetDatabase::Singleton()->Reimport(assetPath);
-                    }
-                );
+                RequestReimport({assetPath});
             }
             if (ImGui::MenuItem("Delete"))
             {
-                endEvents.Register(
-                    [entry]()
-                    {
-                        AssetDatabase::Singleton()->Remove(
-                            std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
-                        );
-                    }
-                );
+                RequestDelete({assetPath});
             }
             if (ImGui::MenuItem("Rename"))
             {
@@ -1051,7 +1233,26 @@ void AssetBrowser::ShowChangeFileNameField()
             auto dir = changeFileNameTarget.ToFilesystemPath().parent_path();
             auto finalPath = dir / fileNameCache;
             finalPath.replace_extension(fileNameExtCache);
-            AssetDatabase::Singleton()->Rename(changeFileNameTarget, AssetPath(finalPath));
+            const AssetPath oldPath = changeFileNameTarget;
+            const AssetPath renamedPath(finalPath);
+            AssetDatabase::Singleton()->Rename(oldPath, renamedPath);
+
+            for (AssetPath& selectedPath : selectedPaths)
+            {
+                if (selectedPath == oldPath)
+                {
+                    selectedPath = renamedPath;
+                }
+            }
+            if (activeSelectedPath == oldPath)
+            {
+                activeSelectedPath = renamedPath;
+            }
+            if (!searchSelectedPath.empty() && AssetPath(searchSelectedPath) == oldPath)
+            {
+                searchSelectedPath = renamedPath.ToAbsolutePath();
+            }
+            changeFileNameTarget = renamedPath;
             ImGui::CloseCurrentPopup();
         }
         if (ImGui::Selectable("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
