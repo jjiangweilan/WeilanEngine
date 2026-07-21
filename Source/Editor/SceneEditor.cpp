@@ -224,6 +224,7 @@ void SceneEditor::LoadEditorState(const nlohmann::json& editorState)
     {
         const auto& sceneViewState = editorState["sceneView"];
         showGizmos = sceneViewState.value("showGizmos", showGizmos);
+        showTransformGizmos = sceneViewState.value("showTransformGizmos", showTransformGizmos);
         editorWorldSpaceGrid.show = sceneViewState.value("showGrid", editorWorldSpaceGrid.show);
         showSelectionOutline = sceneViewState.value("selectionOutline", showSelectionOutline);
         showHoverHighlightOutline = sceneViewState.value("hoverHighlightOutline", showHoverHighlightOutline);
@@ -247,6 +248,7 @@ void SceneEditor::SaveEditorState(nlohmann::json& editorState) const
 
     auto& sceneViewState = editorState["sceneView"];
     sceneViewState["showGizmos"] = showGizmos;
+    sceneViewState["showTransformGizmos"] = showTransformGizmos;
     sceneViewState["showGrid"] = editorWorldSpaceGrid.show;
     sceneViewState["selectionOutline"] = showSelectionOutline;
     sceneViewState["hoverHighlightOutline"] = showHoverHighlightOutline;
@@ -555,6 +557,13 @@ bool SceneEditor::Tick()
         if (ImGui::BeginMenu("View"))
         {
             ImGui::MenuItem("Show Gizmos", nullptr, &showGizmos);
+            if (ImGui::MenuItem("Show Transform Gizmos", nullptr, &showTransformGizmos) &&
+                !showTransformGizmos && gizmoTransformTransactionActive)
+            {
+                EditorState::GetUndoManager().EndTransaction();
+                gizmoTransformTransactionActive = false;
+                gizmoTransformTransactionSelection.clear();
+            }
             ImGui::MenuItem("Toggle Grid", nullptr, &editorWorldSpaceGrid.show);
             ImGui::MenuItem("Selection Outline", nullptr, &showSelectionOutline);
             ImGui::MenuItem("Hover Highlight Outline", nullptr, &showHoverHighlightOutline);
@@ -745,10 +754,12 @@ bool SceneEditor::Tick()
 
         bool anyItemHovered = ImGui::IsAnyItemHovered();
         auto selected = EditorState::GetMainSelectedObject();
+        bool transformGizmoConsumesInput = showTransformGizmos && selected != nullptr &&
+                                           (ImGuizmo::IsOver() || ImGuizmo::IsUsing());
 
         // --- Rect selection: track drag start ---
         if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused() && !toolConsumedInput &&
-            !anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) &&
+            !anyItemHovered && !transformGizmoConsumesInput &&
             !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
         {
             rectSelect.isActive = true;
@@ -813,7 +824,7 @@ bool SceneEditor::Tick()
                 }
             }
             else if (rectSelect.pendingClick && !toolConsumedInput && !anyItemHovered &&
-                     (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) &&
+                     !transformGizmoConsumesInput &&
                      !hoveringViewGizmo && !gizmoManager->AnyGizmoActive() &&
                      mainCam && scene)
             {
@@ -899,7 +910,7 @@ bool SceneEditor::Tick()
                 proj[1] *= -1;
 
                 GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
-                if (go)
+                if (go && showTransformGizmos)
                 {
                     auto selectedObjects = EditorState::GetSelectedObjects();
                     std::vector<GameObject*> selectedGameObjects;

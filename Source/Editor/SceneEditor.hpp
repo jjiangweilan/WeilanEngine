@@ -59,6 +59,7 @@ private:
     bool isVisible = false;
     bool pixelZoomEnabled = false;
     bool showGizmos = true;
+    bool showTransformGizmos = true;
     bool showSelectionOutline = true;
     bool showHoverHighlightOutline = false;
     std::list<PendingDelete> pendingDeleteSceneImages;
