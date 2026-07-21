@@ -2,6 +2,7 @@
 #include "Component.hpp"
 #include <glm/glm.hpp>
 class GameObject;
+class Texture;
 enum class LightType
 {
     Directional,
@@ -28,6 +29,9 @@ class Light : public Component
     glm::vec4 skySunColor = glm::vec4(1.0f, 0.7f, 0.4f, 1.0f);
     glm::vec4 skySunCoreColor = glm::vec4(1.0f, 0.8f, 0.6f, 1.0f);
     float skyboxIntensity = 1.0f;
+    bool useHDRISkybox = false;
+    ObjPtr<Texture> hdriSkybox = nullptr;
+    float hdriSkyboxRotationDegrees = 0.0f;
     float ambientScale = 1.0f;
     float range = 10.0f; // valid when it's a point light
     float intensity = 1.0f;
@@ -77,11 +81,17 @@ public:
     glm::vec3 GetSkySunColor() const { return skySunColor; }
     glm::vec3 GetSkySunCoreColor() const { return skySunCoreColor; }
     float GetSkyboxIntensity() const { return skyboxIntensity; }
+    bool IsHDRISkyboxEnabled() const { return useHDRISkybox; }
+    const ObjPtr<Texture>& GetHDRISkybox() const { return hdriSkybox; }
+    float GetHDRISkyboxRotationDegrees() const { return hdriSkyboxRotationDegrees; }
 
     float GetAmbientScale() const { return ambientScale; }
 
     void SetAmbientScale(float scale) { this->ambientScale = scale; }
     void SetSkyboxIntensity(float intensity) { skyboxIntensity = intensity; }
+    void SetHDRISkyboxEnabled(bool enabled) { useHDRISkybox = enabled; }
+    void SetHDRISkybox(Texture* texture);
+    void SetHDRISkyboxRotationDegrees(float rotationDegrees) { hdriSkyboxRotationDegrees = rotationDegrees; }
 
     void SetLightColor(glm::vec3 lightColor)
     {

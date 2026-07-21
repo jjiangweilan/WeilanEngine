@@ -1,34 +1,6 @@
 import Library.PerScene;
 import WeilanEngine;
-// https://www.shadertoy.com/view/wslyWs
-float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
-{
-    const float SC = 1e5;
-
-    // Calculate sky plane
-    float dist = (SC - ro.y) / rd.y; 
-    float2 p = (ro + dist * rd).xz;
-    p *= 1.2 / SC;
-
-    float3 skyCol = float3(0.3, 0.5, 0.85) - rd.y * rd.y * 0.5;
-    skyCol = lerp(skyCol, 0.85 * float3(0.7, 0.75, 0.85), pow(1.0 - max(rd.y, 0.0), 4.0));
-
-    // from iq's shader, https://www.shadertoy.com/view/MdX3Rr
-    // sun
-    if (hasSun)
-    {
-        float sundot = clamp(dot(rd, lightDir), 0.0, 1.0);
-        float3 sun = 0.25 * float3(1.0, 0.7, 0.4) * pow(sundot, 5.0);
-        sun += 0.25 * float3(1.0, 0.8, 0.6) * pow(sundot, 64.0);
-        sun += 0.2 * float3(1.0, 0.8, 0.6) * pow(sundot, 512.0);
-        skyCol += sun;
-    }
-
-    // horizon
-    skyCol = lerp(skyCol, 0.68 * float3(.418, .394, .372), pow(1.0 - max(rd.y, 0.0), 16.0));
-
-    return skyCol * 0.45;
-}
+import Sky_Common;
 
 // Convert cubemap face and UV coordinates to 3D direction
 float3 CubemapUVToDirection(uint face, float2 uv)
@@ -96,10 +68,7 @@ void main(uint3 dispatchThreadID : SV_DispatchThreadID)
     // Get direction for this cubemap pixel
     float3 direction = CubemapUVToDirection(face, uv);
     
-    // Shade the sky
-    bool hasSun = perScene.scene.lightCount > 0;
-    float3 lightDir = hasSun ? perScene.scene.lights[0].position.xyz : float3(0.0, 1.0, 0.0);
-    float3 skyColor = saturate(Sky(float3(0.0, 0.0, 0.0), direction, lightDir, hasSun));
+    float3 skyColor = Sky(perScene, float3(0.0), direction);
     
     // Write to output cubemap
     computeInput.outputCubemap[uint3(pixelCoord, face)] = float4(skyColor, 1.0);

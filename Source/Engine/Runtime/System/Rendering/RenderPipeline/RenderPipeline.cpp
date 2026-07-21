@@ -793,6 +793,10 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
         auto& lights = renderingData.lights;
 
         sceneParam.lightCount = lights.size();
+        sceneParam.mainLightIndex = InvalidTextureIndex;
+        sceneParam.skyboxTextureIndex = InvalidTextureIndex;
+        sceneParam.useHDRISkybox = 0;
+        sceneParam.skyboxRotationRadians = 0.0f;
         for (int i = 0; i < lights.size(); ++i)
         {
             sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
@@ -809,11 +813,9 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
             {
                 case LightType::Directional:
                     {
-                        mainLight = lights[i];
-                        renderingData.mainLightIndex = i;
-                        sceneParam.lights[i].position = {-mainLight->GetLightDirection(), 0};
+                        sceneParam.lights[i].position = {-lights[i]->GetLightDirection(), 0};
 
-                        if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
+                        if (mainLight == nullptr || lights[i]->GetIntensity() > mainLight->GetIntensity())
                         {
                             mainLight = lights[i];
                             renderingData.mainLightIndex = i;
@@ -840,6 +842,25 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
 
         if (mainLight)
         {
+            sceneParam.mainLightIndex = static_cast<uint32_t>(renderingData.mainLightIndex);
+            sceneParam.useHDRISkybox = mainLight->IsHDRISkyboxEnabled() ? 1u : 0u;
+            sceneParam.skyboxRotationRadians = glm::radians(mainLight->GetHDRISkyboxRotationDegrees());
+
+            if (sceneParam.useHDRISkybox != 0)
+            {
+                Texture* skyboxTexture = mainLight->GetHDRISkybox().Get();
+                if (skyboxTexture != nullptr)
+                {
+                    const auto& textureDescription = skyboxTexture->GetDescription().img;
+                    auto textureHandle = skyboxTexture->GetGPUTextureHandle();
+                    if (!textureDescription.isCubemap && textureDescription.layers == 1 &&
+                        textureDescription.depth == 1 && textureHandle != InvalidGPUHandle)
+                    {
+                        sceneParam.skyboxTextureIndex = static_cast<uint32_t>(textureHandle);
+                    }
+                }
+            }
+
             state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
 
             auto mainLight = renderingData.GetMainLight();

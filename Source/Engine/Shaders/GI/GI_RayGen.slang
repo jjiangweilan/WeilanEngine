@@ -143,19 +143,7 @@ void ComputeMain(uint3 groupID : SV_GroupID, uint groupIndex : SV_GroupIndex)
             }
             else
             {
-                bool hasSun = perScene.scene.lightCount > 0;
-                Light mainLight = perScene.GetMainLight();
-                rayContribution += currentThroughput * Sky(
-                    currentOrigin,
-                    rayDir,
-                    mainLight.position.xyz,
-                    hasSun,
-                    mainLight.skyColor.xyz,
-                    mainLight.skyHorizonFalloffColor.xyz,
-                    mainLight.skyHorizonColor.xyz,
-                    mainLight.skySunColor.xyz,
-                    mainLight.skySunCoreColor.xyz
-                ) * mainLight.skyboxIntensity;
+                rayContribution += currentThroughput * Sky(perScene, currentOrigin, rayDir);
                 break;
             }
         }

@@ -42,25 +42,5 @@ VertexOutput Vert(VertexInput input)
 [shader("fragment")]
 float4 Frag(VertexOutput input) : SV_Target
 {
-    bool hasSun = perScene.scene.lightCount > 0;
-    float3 lightDir = float3(0.0, 1.0, 0.0);
-    float3 skyColor = float3(0.3, 0.5, 0.85);
-    float3 skyHorizonFalloffColor = float3(0.7, 0.75, 0.85);
-    float3 skyHorizonColor = float3(0.418, 0.394, 0.372);
-    float3 skySunColor = float3(1.0, 0.7, 0.4);
-    float3 skySunCoreColor = float3(1.0, 0.8, 0.6);
-    float lightIntensity = 1.0;
-
-    if (hasSun)
-    {
-        Light light = perScene.scene.lights[0];
-        lightDir = light.position.xyz;
-        skyColor = light.skyColor.xyz;
-        skyHorizonFalloffColor = light.skyHorizonFalloffColor.xyz;
-        skyHorizonColor = light.skyHorizonColor.xyz;
-        skySunColor = light.skySunColor.xyz;
-        skySunCoreColor = light.skySunCoreColor.xyz;
-    }
-
-    return float4(Sky(0, normalize(input.positionOS.xyz), lightDir, hasSun, skyColor, skyHorizonFalloffColor, skyHorizonColor, skySunColor, skySunCoreColor) * 12, 0.0);
+    return float4(Sky(perScene, 0, input.positionOS.xyz), 0.0);
 }

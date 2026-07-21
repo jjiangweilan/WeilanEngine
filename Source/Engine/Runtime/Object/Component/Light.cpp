@@ -1,6 +1,7 @@
 #include "Light.hpp"
 #include "Engine/Library/TypeReflection.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
+#include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Component, Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
@@ -15,6 +16,9 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(Light, skySunColor),
     TYPE_REFLECTION_MEM(Light, skySunCoreColor),
     TYPE_REFLECTION_MEM(Light, skyboxIntensity),
+    TYPE_REFLECTION_MEM(Light, useHDRISkybox),
+    TYPE_REFLECTION_MEM(Light, hdriSkybox),
+    TYPE_REFLECTION_MEM(Light, hdriSkyboxRotationDegrees),
     TYPE_REFLECTION_MEM(Light, range),
     TYPE_REFLECTION_MEM(Light, intensity),
     TYPE_REFLECTION_MEM(Light, pointLightTerm1),
@@ -34,6 +38,11 @@ Light::~Light() {}
 void Light::SetLightType(LightType type)
 {
     this->lightType = type;
+}
+
+void Light::SetHDRISkybox(Texture* texture)
+{
+    hdriSkybox = texture ? texture->GetSRef<Texture>() : nullptr;
 }
 
 void Light::OnAwake()
@@ -78,6 +87,9 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("skySunColor", skySunColor);
     s->Serialize("skySunCoreColor", skySunCoreColor);
     s->Serialize("skyboxIntensity", skyboxIntensity);
+    s->Serialize("useHDRISkybox", useHDRISkybox);
+    s->Serialize("hdriSkybox", hdriSkybox);
+    s->Serialize("hdriSkyboxRotationDegrees", hdriSkyboxRotationDegrees);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
     s->Serialize("pointLightTerm1", pointLightTerm1);
@@ -107,6 +119,16 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("skySunColor", skySunColor);
     s->Deserialize("skySunCoreColor", skySunCoreColor);
     s->Deserialize("skyboxIntensity", skyboxIntensity);
+    s->Deserialize("useHDRISkybox", useHDRISkybox);
+    s->Deserialize(
+        "hdriSkybox",
+        nullptr,
+        [this](void* data)
+        {
+            SetHDRISkybox(static_cast<Texture*>(data));
+        }
+    );
+    s->Deserialize("hdriSkyboxRotationDegrees", hdriSkyboxRotationDegrees);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
     s->Deserialize("pointLightTerm1", pointLightTerm1);
@@ -150,6 +172,9 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
     clone->skySunColor = skySunColor;
     clone->skySunCoreColor = skySunCoreColor;
     clone->skyboxIntensity = skyboxIntensity;
+    clone->useHDRISkybox = useHDRISkybox;
+    clone->hdriSkybox = hdriSkybox;
+    clone->hdriSkyboxRotationDegrees = hdriSkyboxRotationDegrees;
 
     return clone;
 }

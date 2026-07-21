@@ -67,6 +67,10 @@ struct Scene
     float time;
     float frameIndex;
     float previousTime;
+    uint32_t mainLightIndex;
+    uint32_t skyboxTextureIndex;
+    uint32_t useHDRISkybox;
+    float skyboxRotationRadians;
     Light lights[MAX_LIGHT_COUNT];
 };
 
@@ -122,25 +126,26 @@ struct PerScene
     {
         return globalDynamicBuffer.Load<T>(byteOffset + index * sizeof(T));
     }
-Light GetMainLight()
-{
-    if (scene.lightCount > 0)
+    Light GetMainLight()
     {
-        return scene.lights[0];
+        if (scene.mainLightIndex < uint32_t(scene.lightCount))
+        {
+            return scene.lights[scene.mainLightIndex];
+        }
+        Light l;
+        l.lightColor = float4(0);
+        l.intensity = 0;
+        l.position = float4(0);
+        l.ambientScale = 0;
+        l.range = 0;
+        l.pointLightTerm1 = 0;
+        l.pointLightTerm2 = 0;
+        l.skyboxIntensity = 0;
+        return l;
     }
-    Light l;
-    l.lightColor = float4(0);
-    l.intensity = 0;
-    l.position = float4(0);
-    l.ambientScale = 0;
-    l.range = 0;
-    l.pointLightTerm1 = 0;
-    l.pointLightTerm2 = 0;
-    l.skyboxIntensity = 0;
-    return l;
-}
 
-float3 UvToWorldRay(float2 uv)    {
+    float3 UvToWorldRay(float2 uv)
+    {
         float4 clipPos = float4(uv * 2.0 - 1.0, camera.cameraZBufferParams.x, 1.0);
         float4 worldPos = mul(camera.invNDCToWorld, clipPos);
         worldPos /= worldPos.w;

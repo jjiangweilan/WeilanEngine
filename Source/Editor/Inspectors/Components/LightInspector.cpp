@@ -69,34 +69,57 @@ public:
                 light->SetSkyboxIntensity(skyboxIntensity);
             }
 
-            glm::vec3 skyColor = light->GetSkyColor();
-            if (ImGui::ColorEdit3("Sky Color", &skyColor[0]))
+            bool useHDRISkybox = light->IsHDRISkyboxEnabled();
+            if (EditorGUI::Checkbox("Use HDRI Skybox", &useHDRISkybox))
             {
-                light->SetSkyColor(skyColor);
+                light->SetHDRISkyboxEnabled(useHDRISkybox);
             }
 
-            glm::vec3 skyHorizonFalloffColor = light->GetSkyHorizonFalloffColor();
-            if (ImGui::ColorEdit3("Sky Horizon Falloff", &skyHorizonFalloffColor[0]))
+            if (useHDRISkybox)
             {
-                light->SetSkyHorizonFalloffColor(skyHorizonFalloffColor);
-            }
+                Texture* hdriSkybox = light->GetHDRISkybox().Get();
+                if (EditorGUI::ObjectField("HDRI Skybox", hdriSkybox))
+                {
+                    light->SetHDRISkybox(hdriSkybox);
+                }
 
-            glm::vec3 skyHorizonColor = light->GetSkyHorizonColor();
-            if (ImGui::ColorEdit3("Sky Horizon", &skyHorizonColor[0]))
-            {
-                light->SetSkyHorizonColor(skyHorizonColor);
+                float hdriRotation = light->GetHDRISkyboxRotationDegrees();
+                if (EditorGUI::DragFloat("HDRI Rotation", &hdriRotation, 0.1f))
+                {
+                    light->SetHDRISkyboxRotationDegrees(hdriRotation);
+                }
             }
-
-            glm::vec3 skySunColor = light->GetSkySunColor();
-            if (ImGui::ColorEdit3("Sky Sun", &skySunColor[0]))
+            else
             {
-                light->SetSkySunColor(skySunColor);
-            }
+                glm::vec3 skyColor = light->GetSkyColor();
+                if (ImGui::ColorEdit3("Sky Color", &skyColor[0]))
+                {
+                    light->SetSkyColor(skyColor);
+                }
 
-            glm::vec3 skySunCoreColor = light->GetSkySunCoreColor();
-            if (ImGui::ColorEdit3("Sky Sun Core", &skySunCoreColor[0]))
-            {
-                light->SetSkySunCoreColor(skySunCoreColor);
+                glm::vec3 skyHorizonFalloffColor = light->GetSkyHorizonFalloffColor();
+                if (ImGui::ColorEdit3("Sky Horizon Falloff", &skyHorizonFalloffColor[0]))
+                {
+                    light->SetSkyHorizonFalloffColor(skyHorizonFalloffColor);
+                }
+
+                glm::vec3 skyHorizonColor = light->GetSkyHorizonColor();
+                if (ImGui::ColorEdit3("Sky Horizon", &skyHorizonColor[0]))
+                {
+                    light->SetSkyHorizonColor(skyHorizonColor);
+                }
+
+                glm::vec3 skySunColor = light->GetSkySunColor();
+                if (ImGui::ColorEdit3("Sky Sun", &skySunColor[0]))
+                {
+                    light->SetSkySunColor(skySunColor);
+                }
+
+                glm::vec3 skySunCoreColor = light->GetSkySunCoreColor();
+                if (ImGui::ColorEdit3("Sky Sun Core", &skySunCoreColor[0]))
+                {
+                    light->SetSkySunCoreColor(skySunCoreColor);
+                }
             }
         }
 

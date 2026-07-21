@@ -113,39 +113,10 @@ float4 Fragment(VertexOutput input) : SV_Target
 
     float waterFog = saturate(exp(-eyeDepthDiff));
 
-    bool hasSun = perScene.scene.lightCount > 0;
-    float3 lightDir = float3(0.0, 1.0, 0.0);
-    float3 skyColor = float3(0.3, 0.5, 0.85);
-    float3 skyHorizonFalloffColor = float3(0.7, 0.75, 0.85);
-    float3 skyHorizonColor = float3(0.418, 0.394, 0.372);
-    float3 skySunColor = float3(1.0, 0.7, 0.4);
-    float3 skySunCoreColor = float3(1.0, 0.8, 0.6);
-
-    if (hasSun)
-    {
-        Light mainLight = perScene.GetMainLight();
-        lightDir = mainLight.position.xyz;
-        skyColor = mainLight.skyColor.xyz;
-        skyHorizonFalloffColor = mainLight.skyHorizonFalloffColor.xyz;
-        skyHorizonColor = mainLight.skyHorizonColor.xyz;
-        skySunColor = mainLight.skySunColor.xyz;
-        skySunCoreColor = mainLight.skySunCoreColor.xyz;
-    }
-
     float3 viewDirection = normalize(perScene.camera.position.xyz - input.positionWS);
     float3 reflectedDirection = normalize(reflect(-viewDirection, normalWS));
     float3 fresnel = Fresnel_Schlick(saturate(dot(viewDirection, normalWS)), 0.02);
-    float3 skyReflection = Sky(
-        0,
-        reflectedDirection,
-        lightDir,
-        hasSun,
-        skyColor,
-        skyHorizonFalloffColor,
-        skyHorizonColor,
-        skySunColor,
-        skySunCoreColor
-    ) * 12;
+    float3 skyReflection = Sky(perScene, 0, reflectedDirection);
 
     float3 riverColor = lerp(float3(0.1,0.3,1.), 4, ripple);
     riverColor += skyReflection * fresnel * mat.reflectionStrength;

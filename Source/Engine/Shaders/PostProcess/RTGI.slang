@@ -87,19 +87,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             }
             else
             {
-                bool hasSun = perScene.scene.lightCount > 0;
-                Light mainLight = perScene.GetMainLight();
-                rayRadiance += currentThroughput * Sky(
-                    rayOrigin,
-                    rayDir,
-                    hasSun ? mainLight.position.xyz : float3(0.0, 1.0, 0.0),
-                    hasSun,
-                    hasSun ? mainLight.skyColor.xyz : float3(0.3, 0.5, 0.85),
-                    hasSun ? mainLight.skyHorizonFalloffColor.xyz : float3(0.7, 0.75, 0.85),
-                    hasSun ? mainLight.skyHorizonColor.xyz : float3(0.418, 0.394, 0.372),
-                    hasSun ? mainLight.skySunColor.xyz : float3(1.0, 0.7, 0.4),
-                    hasSun ? mainLight.skySunCoreColor.xyz : float3(1.0, 0.8, 0.6)
-                ) * (hasSun ? mainLight.skyboxIntensity : 1.0) * 20;
+                rayRadiance += currentThroughput * Sky(perScene, rayOrigin, rayDir);
                 break;
             }
         }
