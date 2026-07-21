@@ -170,8 +170,80 @@ bool AssetBrowser::WillBeSelected(const AssetPath& path, const float2& min, cons
     return intersects;
 }
 
+const AssetBrowser::VisibleIconItem* AssetBrowser::FindVisibleIconItem(const AssetPath& path) const
+{
+    auto item = std::find_if(
+        visibleIconItems.begin(),
+        visibleIconItems.end(),
+        [&path](const VisibleIconItem& visibleItem)
+        { return visibleItem.path == path; }
+    );
+    return item == visibleIconItems.end() ? nullptr : &*item;
+}
+
+AssetPath AssetBrowser::ResolveMarqueeActivePath() const
+{
+    if (!marqueeSelection.active || !marqueeSelection.hasDragged)
+    {
+        return activeSelectedPath;
+    }
+
+    auto willRemainSelected = [this](const AssetPath& path)
+    {
+        const VisibleIconItem* item = FindVisibleIconItem(path);
+        return item != nullptr && WillBeSelected(path, item->min, item->max);
+    };
+
+    if (!marqueeSelection.lastHoveredPath.empty() && willRemainSelected(marqueeSelection.lastHoveredPath))
+    {
+        return marqueeSelection.lastHoveredPath;
+    }
+    if (!activeSelectedPath.empty() && willRemainSelected(activeSelectedPath))
+    {
+        return activeSelectedPath;
+    }
+
+    for (auto selected = selectedPaths.rbegin(); selected != selectedPaths.rend(); ++selected)
+    {
+        if (willRemainSelected(*selected))
+        {
+            return *selected;
+        }
+    }
+
+    for (auto item = visibleIconItems.rbegin(); item != visibleIconItems.rend(); ++item)
+    {
+        if (WillBeSelected(item->path, item->min, item->max))
+        {
+            return item->path;
+        }
+    }
+
+    return {};
+}
+
+void AssetBrowser::DrawActiveSelectionOutline() const
+{
+    const AssetPath activePath = ResolveMarqueeActivePath();
+    const VisibleIconItem* activeItem = FindVisibleIconItem(activePath);
+    if (activeItem == nullptr)
+    {
+        return;
+    }
+
+    ImGui::GetWindowDrawList()->AddRect(
+        {activeItem->min.x, activeItem->min.y},
+        {activeItem->max.x, activeItem->max.y},
+        IM_COL32(60, 130, 240, 255),
+        4.0f,
+        0,
+        2.0f
+    );
+}
+
 void AssetBrowser::ApplyMarqueeSelection()
 {
+    const AssetPath nextActivePath = ResolveMarqueeActivePath();
     std::vector<AssetPath> intersectedPaths;
     for (const VisibleIconItem& item : visibleIconItems)
     {
@@ -200,6 +272,15 @@ void AssetBrowser::ApplyMarqueeSelection()
         {
             AddSelection(path);
         }
+    }
+
+    if (!nextActivePath.empty() && IsSelected(nextActivePath))
+    {
+        activeSelectedPath = nextActivePath;
+    }
+    else
+    {
+        activeSelectedPath = selectedPaths.empty() ? AssetPath{} : selectedPaths.back();
     }
 
     SelectActiveAssetInEditor();
@@ -661,6 +742,7 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
             marqueeSelection.hasDragged = false;
             marqueeSelection.start = {mousePosition.x, mousePosition.y};
             marqueeSelection.current = marqueeSelection.start;
+            marqueeSelection.lastHoveredPath = {};
         }
 
         if (marqueeSelection.active)
@@ -693,8 +775,11 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
 
                 marqueeSelection.active = false;
                 marqueeSelection.hasDragged = false;
+                marqueeSelection.lastHoveredPath = {};
             }
         }
+
+        DrawActiveSelectionOutline();
     }
     ImGui::EndChild();
 
@@ -800,9 +885,12 @@ void AssetBrowser::ShowAssetIconItem(
     const float2 tileMinPosition{tileMin.x, tileMin.y};
     const float2 tileMaxPosition{tileMax.x, tileMax.y};
     const bool willBeSelected = WillBeSelected(itemPath, tileMinPosition, tileMaxPosition);
-    const bool isActive = activeSelectedPath == itemPath;
 
     visibleIconItems.push_back({itemPath, tileMinPosition, tileMaxPosition});
+    if (marqueeSelection.active && marqueeSelection.hasDragged && isHovered)
+    {
+        marqueeSelection.lastHoveredPath = itemPath;
+    }
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     if (willBeSelected)
@@ -842,11 +930,7 @@ void AssetBrowser::ShowAssetIconItem(
         textWidth
     );
 
-    if (isActive && willBeSelected)
-    {
-        drawList->AddRect(tileMin, tileMax, IM_COL32(60, 130, 240, 255), 4.0f, 0, 2.0f);
-    }
-    else if (isHovered)
+    if (isHovered)
     {
         drawList->AddRect(tileMin, tileMax, IM_COL32(180, 180, 180, 160), 4.0f, 0, 1.0f);
     }

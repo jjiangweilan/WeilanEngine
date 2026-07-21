@@ -59,6 +59,7 @@ private:
         bool hasDragged = false;
         float2 start;
         float2 current;
+        AssetPath lastHoveredPath;
     } marqueeSelection;
 
     std::vector<AssetPath> selectedPaths;
@@ -75,6 +76,9 @@ private:
     void SelectActiveAssetInEditor();
     bool MarqueeIntersects(const float2& min, const float2& max) const;
     bool WillBeSelected(const AssetPath& path, const float2& min, const float2& max) const;
+    const VisibleIconItem* FindVisibleIconItem(const AssetPath& path) const;
+    AssetPath ResolveMarqueeActivePath() const;
+    void DrawActiveSelectionOutline() const;
     void ApplyMarqueeSelection();
     void RequestReimport(const std::vector<AssetPath>& paths);
     void RequestDelete(const std::vector<AssetPath>& paths);
