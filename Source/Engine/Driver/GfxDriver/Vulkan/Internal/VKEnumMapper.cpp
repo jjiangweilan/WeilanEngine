@@ -55,6 +55,7 @@ VkFormat MapFormat(GfxFormat format)
         case GfxFormat::R16_UNorm: return VK_FORMAT_R16_UNORM;
         case GfxFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         case GfxFormat::A2B10G10R10_UNorm: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+        case GfxFormat::E5B9G9R9_UFloat_Pack32: return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
         case GfxFormat::R8_UNorm: return VK_FORMAT_R8_UNORM;
         case GfxFormat::R8G8_UNorm: return VK_FORMAT_R8G8_UNORM;
         case GfxFormat::R8_UInt: return VK_FORMAT_R8_UINT;
@@ -116,6 +117,7 @@ GfxFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_R16_UNORM: return GfxFormat::R16_UNorm;
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return GfxFormat::B10G11R11_UFloat_Pack32;
         case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return GfxFormat::A2B10G10R10_UNorm;
+        case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: return GfxFormat::E5B9G9R9_UFloat_Pack32;
         case VK_FORMAT_R8_UNORM: return GfxFormat::R8_UNorm;
         case VK_FORMAT_R8G8_UNORM: return GfxFormat::R8G8_UNorm;
         case VK_FORMAT_R8_UINT: return GfxFormat::R8_UInt;

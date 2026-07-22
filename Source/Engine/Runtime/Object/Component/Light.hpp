@@ -30,6 +30,7 @@ class Light : public Component
     glm::vec4 skySunColor = glm::vec4(1.0f, 0.7f, 0.4f, 1.0f);
     glm::vec4 skySunCoreColor = glm::vec4(1.0f, 0.8f, 0.6f, 1.0f);
     float skyboxIntensity = 1.0f;
+    float skyboxGIContribution = 1.0f;
     bool useHDRISkybox = false;
     ObjPtr<Texture> hdriSkybox = nullptr;
     float hdriSkyboxRotationDegrees = 0.0f;
@@ -90,6 +91,7 @@ public:
     glm::vec3 GetLinearSkySunColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skySunColor)); }
     glm::vec3 GetLinearSkySunCoreColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skySunCoreColor)); }
     float GetSkyboxIntensity() const { return skyboxIntensity; }
+    float GetSkyboxGIContribution() const { return skyboxGIContribution; }
     bool IsHDRISkyboxEnabled() const { return useHDRISkybox; }
     const ObjPtr<Texture>& GetHDRISkybox() const { return hdriSkybox; }
     float GetHDRISkyboxRotationDegrees() const { return hdriSkyboxRotationDegrees; }
@@ -98,6 +100,7 @@ public:
 
     void SetAmbientScale(float scale) { this->ambientScale = scale; }
     void SetSkyboxIntensity(float intensity) { skyboxIntensity = intensity; }
+    void SetSkyboxGIContribution(float contribution) { skyboxGIContribution = contribution; }
     void SetHDRISkyboxEnabled(bool enabled) { useHDRISkybox = enabled; }
     void SetHDRISkybox(Texture* texture);
     void SetHDRISkyboxRotationDegrees(float rotationDegrees) { hdriSkyboxRotationDegrees = rotationDegrees; }

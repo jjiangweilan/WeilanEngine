@@ -800,6 +800,7 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
             sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLinearLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
             sceneParam.lights[i].skyboxIntensity = lights[i]->GetSkyboxIntensity();
+            sceneParam.lights[i].skyboxGIContribution = lights[i]->GetSkyboxGIContribution();
             sceneParam.lights[i].skyColor = glm::vec4(lights[i]->GetLinearSkyColor(), 1.0);
             sceneParam.lights[i].skyHorizonFalloffColor =
                 glm::vec4(lights[i]->GetLinearSkyHorizonFalloffColor(), 1.0);

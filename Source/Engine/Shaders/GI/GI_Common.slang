@@ -183,7 +183,7 @@ float3 IndirectRayHitLight(
     }
     else
     {
-        return Sky(scene, rayOrigin, rayDir);
+        return SkyForGI(scene, rayOrigin, rayDir);
     }
 }
 

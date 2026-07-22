@@ -16,7 +16,7 @@ DisplayTransformPass::DisplayTransformPass()
 
 void DisplayTransformPass::OnInit(RenderingData* renderingData)
 {
-    tonyMcMapfaceLUT = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/tony_mc_mapface.ktx");
+    tonyMcMapfaceLUT = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/tony_mc_mapface.ktx2");
     if (!tonyMcMapfaceLUT)
     {
         SPDLOG_ERROR("Tony McMapface LUT could not be loaded; using ACES for Tony requests");
@@ -25,9 +25,11 @@ void DisplayTransformPass::OnInit(RenderingData* renderingData)
     {
         const auto& desc = tonyMcMapfaceLUT->GetDescription().img;
         if (desc.width != 48 || desc.height != 48 || desc.depth != 48 || desc.mipLevels != 1 ||
-            desc.format != Gfx::GfxFormat::R8G8B8A8_UNorm)
+            desc.format != Gfx::GfxFormat::E5B9G9R9_UFloat_Pack32)
         {
-            SPDLOG_ERROR("Tony McMapface LUT must be a single-level 48x48x48 R8G8B8A8_UNorm texture; using ACES");
+            SPDLOG_ERROR(
+                "Tony McMapface LUT must be a single-level 48x48x48 E5B9G9R9_UFloat_Pack32 texture; using ACES"
+            );
             tonyMcMapfaceLUT = nullptr;
         }
     }

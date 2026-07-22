@@ -116,6 +116,8 @@ GfxFormat MapStringToGfxFormat(std::string_view name)
         return GfxFormat::B10G11R11_UFloat_Pack32;
     else if (name == "A2B10G10R10_UNorm")
         return GfxFormat::A2B10G10R10_UNorm;
+    else if (name == "E5B9G9R9_UFloat_Pack32")
+        return GfxFormat::E5B9G9R9_UFloat_Pack32;
     else if (name == "R16G16B16_UNorm")
         return GfxFormat::R16G16B16_UNorm;
     else if (name == "R16G16B16_SNorm")
@@ -216,6 +218,8 @@ const char* MapGfxFormatToString(GfxFormat format)
         return "B10G11R11_UFloat_Pack32";
     else if (format == GfxFormat::A2B10G10R10_UNorm)
         return "A2B10G10R10_UNorm";
+    else if (format == GfxFormat::E5B9G9R9_UFloat_Pack32)
+        return "E5B9G9R9_UFloat_Pack32";
     else if (format == GfxFormat::R16G16B16_UNorm)
         return "R16G16B16_UNorm";
     else if (format == GfxFormat::R16G16B16_SNorm)
@@ -248,6 +252,7 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
     {
         case GfxFormat::B10G11R11_UFloat_Pack32: return 4;
         case GfxFormat::A2B10G10R10_UNorm : return 4;
+        case GfxFormat::E5B9G9R9_UFloat_Pack32: return 4;
         case GfxFormat::BC7_UNorm_Block: return 1;
         case GfxFormat::BC7_SRGB_UNorm_Block: return 1;
         case GfxFormat::BC3_Unorm_Block: return 1;

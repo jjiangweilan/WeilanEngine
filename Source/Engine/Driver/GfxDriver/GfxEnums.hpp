@@ -130,6 +130,7 @@ enum class GfxFormat
     R8_UNorm,
     R8G8_UNorm,
     R8_UInt,
+    E5B9G9R9_UFloat_Pack32,
     Invalid
 };
 

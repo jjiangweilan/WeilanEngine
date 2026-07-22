@@ -40,12 +40,11 @@ float3 ProceduralSky(
     return skyCol * 0.45;
 }
 
-float3 Sky(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirection)
+float3 EvaluateSky(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirection)
 {
     float3 rd = normalize(rayDirection);
     bool hasMainLight = perScene.scene.mainLightIndex < uint32_t(perScene.scene.lightCount);
     Light mainLight = perScene.GetMainLight();
-    float skyboxIntensity = hasMainLight ? mainLight.skyboxIntensity : 1.0;
 
     if (perScene.scene.useHDRISkybox != 0)
     {
@@ -66,7 +65,7 @@ float3 Sky(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirect
         float halfTexelV = 0.5 / max(float(height), 1.0);
         uv.y = clamp(uv.y, halfTexelV, 1.0 - halfTexelV);
 
-        return skyboxTexture.SampleLevel(perScene.GetGlobalSampler(1), uv, 0.0).rgb * skyboxIntensity;
+        return skyboxTexture.SampleLevel(perScene.GetGlobalSampler(1), uv, 0.0).rgb;
     }
 
     float3 lightDir = hasMainLight ? mainLight.position.xyz : float3(0.0, 1.0, 0.0);
@@ -86,5 +85,19 @@ float3 Sky(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirect
         skyHorizonColor,
         skySunColor,
         skySunCoreColor
-    ) * skyboxIntensity;
+    );
+}
+
+float3 Sky(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirection)
+{
+    bool hasMainLight = perScene.scene.mainLightIndex < uint32_t(perScene.scene.lightCount);
+    float skyboxIntensity = hasMainLight ? perScene.GetMainLight().skyboxIntensity : 1.0;
+    return EvaluateSky(perScene, rayOrigin, rayDirection) * skyboxIntensity;
+}
+
+float3 SkyForGI(ParameterBlock<PerScene> perScene, float3 rayOrigin, float3 rayDirection)
+{
+    bool hasMainLight = perScene.scene.mainLightIndex < uint32_t(perScene.scene.lightCount);
+    float skyboxGIContribution = hasMainLight ? perScene.GetMainLight().skyboxGIContribution : 1.0;
+    return EvaluateSky(perScene, rayOrigin, rayDirection) * skyboxGIContribution;
 }

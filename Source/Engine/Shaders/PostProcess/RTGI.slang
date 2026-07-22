@@ -87,7 +87,7 @@ void ComputeMain(uint3 dispatchThreadID : SV_DispatchThreadID)
             }
             else
             {
-                rayRadiance += currentThroughput * Sky(perScene, rayOrigin, rayDir);
+                rayRadiance += currentThroughput * SkyForGI(perScene, rayOrigin, rayDir);
                 break;
             }
         }

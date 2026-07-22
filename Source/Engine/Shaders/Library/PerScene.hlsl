@@ -12,6 +12,7 @@ struct Light
     float pointLightTerm1;
     float pointLightTerm2;
     float skyboxIntensity;
+    float skyboxGIContribution;
     float4 skyColor;
     float4 skyHorizonFalloffColor;
     float4 skyHorizonColor;
@@ -141,6 +142,7 @@ struct PerScene
         l.pointLightTerm1 = 0;
         l.pointLightTerm2 = 0;
         l.skyboxIntensity = 0;
+        l.skyboxGIContribution = 0;
         return l;
     }
 

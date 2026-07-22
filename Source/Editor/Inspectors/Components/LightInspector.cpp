@@ -17,6 +17,7 @@ public:
         float intensity = light->GetIntensity();
         float ambientScale = light->GetAmbientScale();
         float skyboxIntensity = light->GetSkyboxIntensity();
+        float skyboxGIContribution = light->GetSkyboxGIContribution();
         int lightType = static_cast<int>(light->GetLightType());
         float shadowDistance = light->GetShadowDistance();
         const char* lightTypes[] = {"Directional", "Point"};
@@ -67,6 +68,11 @@ public:
             if (EditorGUI::DragFloat("Skybox Intensity", &skyboxIntensity))
             {
                 light->SetSkyboxIntensity(skyboxIntensity);
+            }
+
+            if (EditorGUI::DragFloat("Skybox Contribution to GI", &skyboxGIContribution))
+            {
+                light->SetSkyboxGIContribution(skyboxGIContribution);
             }
 
             bool useHDRISkybox = light->IsHDRISkyboxEnabled();

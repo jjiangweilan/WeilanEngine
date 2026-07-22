@@ -14,7 +14,7 @@
 #include <spdlog/spdlog.h>
 
 // extensions comes from supported format in stb_image.h and ktx
-DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
+DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,ktx2,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
@@ -478,7 +478,7 @@ void Texture::SaveAsCubemap(const char* filename)
             f.read(fileData.data(), fileSize);
 
             auto ext = fpath.extension();
-            if (ext == ".ktx")
+            if (ext == ".ktx" || ext == ".ktx2")
             {
                 spdlog::error("not implemented");
                 return;
@@ -488,7 +488,7 @@ void Texture::SaveAsCubemap(const char* filename)
                 auto& exts = Texture::StaticGetExtensions();
                 for (auto& e : exts)
                 {
-                    if (e != ".ktx" && e == ext)
+                    if (e != ".ktx" && e != ".ktx2" && e == ext)
                     {
                         uint8_t* data = (uint8_t*)fileData.data();
                         size_t byteSize = fileData.size();
@@ -539,7 +539,7 @@ bool Texture::LoadFromFile(const char* path)
             std::string s = ss.str();
 
             auto ext = fpath.extension();
-            if (ext == ".ktx")
+            if (ext == ".ktx" || ext == ".ktx2")
             {
                 LoadKtxTexture((uint8_t*)s.data(), s.size());
             }
@@ -548,7 +548,7 @@ bool Texture::LoadFromFile(const char* path)
                 auto& exts = Texture::StaticGetExtensions();
                 for (auto& e : exts)
                 {
-                    if (e != ".ktx" && e == ext)
+                    if (e != ".ktx" && e != ".ktx2" && e == ext)
                     {
                         LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size(), Gfx::GfxFormat::Invalid);
                         break;
