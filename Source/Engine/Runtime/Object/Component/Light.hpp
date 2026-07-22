@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 #include <glm/glm.hpp>
 class GameObject;
 class Texture;
@@ -80,6 +81,14 @@ public:
     glm::vec3 GetSkyHorizonColor() const { return skyHorizonColor; }
     glm::vec3 GetSkySunColor() const { return skySunColor; }
     glm::vec3 GetSkySunCoreColor() const { return skySunCoreColor; }
+    glm::vec3 GetLinearSkyColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skyColor)); }
+    glm::vec3 GetLinearSkyHorizonFalloffColor() const
+    {
+        return ColorSpace::SRGBToLinear(glm::vec3(skyHorizonFalloffColor));
+    }
+    glm::vec3 GetLinearSkyHorizonColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skyHorizonColor)); }
+    glm::vec3 GetLinearSkySunColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skySunColor)); }
+    glm::vec3 GetLinearSkySunCoreColor() const { return ColorSpace::SRGBToLinear(glm::vec3(skySunCoreColor)); }
     float GetSkyboxIntensity() const { return skyboxIntensity; }
     bool IsHDRISkyboxEnabled() const { return useHDRISkybox; }
     const ObjPtr<Texture>& GetHDRISkybox() const { return hdriSkybox; }
@@ -96,7 +105,7 @@ public:
     void SetLightColor(glm::vec3 lightColor)
     {
         this->lightColor = glm::vec4(lightColor, 1.0);
-        this->linearLightColor = glm::vec4(glm::pow(lightColor, glm::vec3(2.2f)), 1.0f);
+        this->linearLightColor = glm::vec4(ColorSpace::SRGBToLinear(lightColor), 1.0f);
     }
 
     void SetSkyColor(glm::vec3 color) { skyColor = glm::vec4(color, 1.0f); }

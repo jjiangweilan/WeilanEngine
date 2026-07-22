@@ -3,6 +3,7 @@
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Library/Serialization/SerializationSequenceFetcher.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <algorithm>
@@ -368,9 +369,10 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
                         {
                             if (IsColorAttribute(member))
                             {
-                                if (ImGui::ColorEdit4(member.name.c_str(), &val[0]))
+                                glm::vec4 displayColor = ColorSpace::LinearToSRGB(val);
+                                if (ImGui::ColorEdit4(member.name.c_str(), &displayColor[0]))
                                 {
-                                    material.SetVector("", member.name, val);
+                                    material.SetVector("", member.name, ColorSpace::SRGBToLinear(displayColor));
                                 }
                             }
                             else if (EditorGUI::DragFloat4(member.name.c_str(), &val[0]))
@@ -382,9 +384,10 @@ void EditorGUI::DrawMaterial(Material& material, const std::vector<std::string>&
                         {
                             if (IsColorAttribute(member))
                             {
-                                if (ImGui::ColorPicker3(member.name.c_str(), &val[0]))
+                                glm::vec4 displayColor = ColorSpace::LinearToSRGB(val);
+                                if (ImGui::ColorPicker3(member.name.c_str(), &displayColor[0]))
                                 {
-                                    material.SetVector("", member.name, val);
+                                    material.SetVector("", member.name, ColorSpace::SRGBToLinear(displayColor));
                                 }
                             }
                             else if (EditorGUI::DragFloat3(member.name.c_str(), &val[0]))

@@ -2,6 +2,21 @@
 #include "Engine/Library/Assert.hpp"
 namespace Gfx
 {
+bool IsSRGBFormat(GfxFormat format)
+{
+    switch (format)
+    {
+        case GfxFormat::B8G8R8A8_SRGB:
+        case GfxFormat::R8G8B8A8_SRGB:
+        case GfxFormat::R8G8B8_SRGB:
+        case GfxFormat::R8G8_SRGB:
+        case GfxFormat::R8_SRGB:
+        case GfxFormat::BC7_SRGB_UNorm_Block:
+        case GfxFormat::BC3_SRGB_Block: return true;
+        default: return false;
+    }
+}
+
 bool HasWriteAccessMask(AccessMaskFlags flags)
 {
     if (HasFlag(flags, AccessMask::Shader_Write) || HasFlag(flags, AccessMask::Color_Attachment_Write) ||

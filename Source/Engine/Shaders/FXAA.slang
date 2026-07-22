@@ -1,8 +1,8 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
+import ColorSpace;
 
 #define WEIGHT_TRANSPARENT_PIXEL 1
-#define SOURCE_IN_GAMMA_SPACE 1
 #define FXAA_GATHER4_ALPHA 0
 #define FxaaTexOff(t, p, o, r) t.Sample(perMaterial.sampler_linear_clamp, p + (o * r))
 #define FxaaSat(x) clamp(x, 0.0, 1.0)
@@ -29,9 +29,7 @@ ParameterBlock<PerMaterial> perMaterial;
 
 float FxaaLuma(float4 rgb) 
 {
-#if SOURCE_IN_GAMMA_SPACE == 0
-    rgb = pow(rgb, float4(2.2f));
-#endif
+    rgb = LinearToSRGB(rgb);
 
 #if WEIGHT_TRANSPARENT_PIXEL
     // multiply with the alpha improve the situation but doesn't solve it. Better solution is needed
@@ -256,4 +254,3 @@ float4 FragmentMain(VertexOutput output) : SV_Target
 {
     return FxaaPixelShader(output.uv, perMaterial.source, float2(1.0/p.sourceSize.x, 1.0/p.sourceSize.y), 0.75, 0.125, 0.0625);
 }
-

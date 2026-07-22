@@ -16,7 +16,7 @@
 #include "Engine/Runtime/System/Rendering/Renderers/ShadowRenderer.hpp"
 #include "Passes/BloomPass.hpp"
 #include "Passes/CloudPass.hpp"
-#include "Passes/ColorGradingPass.hpp"
+#include "Passes/DisplayTransformPass.hpp"
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/FXAAPass.hpp"
 #include "Passes/GI.hpp"
@@ -100,7 +100,7 @@ class RenderPipeline
     Passes::ReflectionProbeUpdate* reflectionProbeUpdate;
     Passes::ShadingPass* shadingPass;
     Passes::CloudPass* cloudPass;
-    Passes::ColorGradingPass* colorGradingPass;
+    Passes::DisplayTransformPass* displayTransformPass;
     Passes::FXAAPass* fxaaPass;
     Passes::TAAPass* taaPass;
     Passes::ScreenSpaceShadowPass* screenSpaceShadowPass;

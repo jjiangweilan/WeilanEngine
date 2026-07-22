@@ -8,6 +8,7 @@
 #include "Engine/Runtime/System/Rendering/EnumStringMapping.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 #include "MaterialAttributeParser.hpp"
 #include "Engine/ThirdParty/imgui/imgui.h"
 #include <map>
@@ -205,10 +206,14 @@ private:
 
             if (info.isColor)
             {
+                val = ColorSpace::LinearToSRGB(val);
                 if (member.rowCount == 3)
                     changed = ImGui::ColorEdit3(member.name.c_str(), &val[0]);
                 else if (member.rowCount == 4)
                     changed = ImGui::ColorEdit4(member.name.c_str(), &val[0]);
+
+                if (changed)
+                    val = ColorSpace::SRGBToLinear(val);
             }
             else
             {

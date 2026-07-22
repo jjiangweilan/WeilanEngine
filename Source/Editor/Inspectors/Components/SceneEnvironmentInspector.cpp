@@ -3,6 +3,7 @@
 #include "Engine/Runtime/Object/Component/SceneEnvironment.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Editor/EditorGUI.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 
 namespace Editor
 {
@@ -26,7 +27,9 @@ public:
         {
             auto& fog = sceneEnvironment->data.fogPassParameters;
             EditorGUI::Checkbox("Enabled", &fog.enabled);
-            ImGui::ColorEdit4("Fog Color", &fog.fogColor[0]);
+            glm::vec4 displayFogColor = ColorSpace::LinearToSRGB(fog.fogColor);
+            if (ImGui::ColorEdit4("Fog Color", &displayFogColor[0]))
+                fog.fogColor = ColorSpace::SRGBToLinear(displayFogColor);
             EditorGUI::DragFloat("Fog Density", &fog.fogDensity, 0.01f, 0.0f);
         }
     }

@@ -1,15 +1,16 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
 
-struct ColorGradingInput
+struct DisplayTransformInput
 {
     uint4 flags;
     float4 hsv;
+    float4 exposure;
 };
 
 struct PerMaterial
 {
-    ConstantBuffer<ColorGradingInput> settings;
+    ConstantBuffer<DisplayTransformInput> settings;
     Sampler2D mainColor;
 #if GPU_RESOURCE
     Sampler3D tonyMcMapfaceLUT;
@@ -70,12 +71,15 @@ float3 ApplyHueValueSaturation(float3 color)
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float4 color = perMaterial.mainColor.SampleLevel(input.uv, 0);
+    color.rgb *= exp2(perMaterial.settings.exposure.x);
 
     float3 tonemapped;
     if (perMaterial.settings.flags.x == 1) {
         tonemapped = TonyMcMapface(color.xyz);
-    } else {
+    } else if (perMaterial.settings.flags.x == 0) {
         tonemapped = ACESFilm(color.xyz);
+    } else {
+        tonemapped = saturate(color.xyz);
     }
 
     tonemapped = ApplyHueValueSaturation(tonemapped);

@@ -2,6 +2,7 @@
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/Module/Terrain/TerrainConfig.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 #include <iterator>
 
 namespace Editor
@@ -214,9 +215,13 @@ public:
 
         EditorGUI::SeparatorTextLabeled("Surface");
         float3 baseColor = target->GetBaseColor();
+        float3 displayBaseColor = ColorSpace::LinearToSRGB(baseColor);
         float roughness = target->GetRoughness();
         float metallic = target->GetMetallic();
-        bool surfaceChanged = ImGui::ColorEdit3("Base Color", &baseColor.x);
+        bool colorChanged = ImGui::ColorEdit3("Base Color", &displayBaseColor.x);
+        if (colorChanged)
+            baseColor = ColorSpace::SRGBToLinear(displayBaseColor);
+        bool surfaceChanged = colorChanged;
         surfaceChanged |= ImGui::SliderFloat("Roughness", &roughness, 0.01f, 0.99f);
         surfaceChanged |= ImGui::SliderFloat("Metallic", &metallic, 0.0f, 1.0f);
         if (surfaceChanged)

@@ -41,10 +41,17 @@ void main()
 layout(location = 0) out vec4 fColor;
 layout(set=0, binding=0) uniform sampler2D sTexture_clamp_point;
 layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+vec3 SRGBToLinear(vec3 value)
+{
+    bvec3 lower = lessThanEqual(value, vec3(0.04045));
+    vec3 low = value / 12.92;
+    vec3 high = pow((value + 0.055) / 1.055, vec3(2.4));
+    return mix(high, low, lower);
+}
 void main()
 {
     vec4 col = In.Color;
-    fColor = vec4(pow(col.xyz, vec3(2.2)), col.a) * texture(sTexture_clamp_point, In.UV.st);
+    fColor = vec4(SRGBToLinear(col.xyz), col.a) * texture(sTexture_clamp_point, In.UV.st);
 }
 #endif
 )";

@@ -134,6 +134,7 @@ enum class GfxFormat
 };
 
 GfxFormat GetGfxFormat(int channelBits, int channels, bool linear);
+bool IsSRGBFormat(GfxFormat format);
 
 GfxFormat MapStringToGfxFormat(std::string_view name);
 const char* MapGfxFormatToString(GfxFormat format);

@@ -365,19 +365,30 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
     else
     {
         uint8_t* data;
-        size_t s = texDesc.img.GetByteSize();
 
         elementSize = sizeof(uint8_t);
-        Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
-            (uint8_t*)loaded,
-            width,
-            height,
-            1,
-            (int)texDesc.img.mipLevels,
-            desiredChannels,
-            data,
-            mippedDataByteSize
-        );
+        if (format == Gfx::GfxFormat::Invalid || Gfx::IsSRGBFormat(format))
+            Libs::Image::GenerateBoxFilteredMipmapSRGB8(
+                loaded,
+                width,
+                height,
+                1,
+                static_cast<int>(texDesc.img.mipLevels),
+                desiredChannels,
+                data,
+                mippedDataByteSize
+            );
+        else
+            Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
+                loaded,
+                width,
+                height,
+                1,
+                static_cast<int>(texDesc.img.mipLevels),
+                desiredChannels,
+                data,
+                mippedDataByteSize
+            );
         texDesc.data = (uint8_t*)data;
         stbi_image_free(loaded);
     }

@@ -41,13 +41,15 @@ public:
     enum class TonemapMode : uint32_t
     {
         ACES = 0,
-        TonyMcMapface = 1
+        TonyMcMapface = 1,
+        None = 2
     };
 
     struct PostProcess
     {
         bool colorGrading = true;
-        uint32_t tonemapMode = (uint32_t)TonemapMode::ACES;
+        uint32_t tonemapMode = (uint32_t)TonemapMode::TonyMcMapface;
+        float exposureEV = 0.0f;
         bool hueValueSaturation = false;
         float hue = 0.0f;
         float saturation = 1.0f;
@@ -72,6 +74,7 @@ public:
         INLINE_DEFINE_SERIALIZABLE(
             SER(colorGrading),
             SER(tonemapMode),
+            SER(exposureEV),
             SER(hueValueSaturation),
             SER(hue),
             SER(saturation),

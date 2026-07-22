@@ -3,6 +3,7 @@
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Engine/Runtime/Object/Component/GrassSurface.hpp"
 #include "Engine/Runtime/Object/Graphics/Mesh.hpp"
+#include "Engine/Library/ColorSpace.hpp"
 #include <algorithm>
 
 namespace Editor
@@ -22,9 +23,21 @@ public:
         }
 
         auto& group = grassSurface->grassPatchGroup;
+        auto editLinearColor3 = [](const char* label, glm::vec3& linearColor)
+        {
+            glm::vec3 displayColor = ColorSpace::LinearToSRGB(linearColor);
+            if (ImGui::ColorEdit3(label, &displayColor[0]))
+                linearColor = ColorSpace::SRGBToLinear(displayColor);
+        };
+        auto editLinearColor4 = [](const char* label, glm::vec4& linearColor)
+        {
+            glm::vec4 displayColor = ColorSpace::LinearToSRGB(linearColor);
+            if (ImGui::ColorEdit4(label, &displayColor[0]))
+                linearColor = ColorSpace::SRGBToLinear(displayColor);
+        };
 
         EditorGUI::SeparatorTextLabeled("Grass Config");
-        ImGui::ColorEdit3("Albedo", &group.config.albedo[0]);
+        editLinearColor3("Albedo", group.config.albedo);
         if (EditorGUI::DragFloat("Scale", &group.config.scale, 0.01f, 0.01f))
         {
             group.config.scale = glm::max(group.config.scale, 0.01f);
@@ -58,12 +71,12 @@ public:
         }
 
         EditorGUI::SeparatorTextLabeled("Color Ramp");
-        ImGui::ColorEdit4("Ramp 1 Bottom", &group.config.grassColorRamp_Bottom[0]);
-        ImGui::ColorEdit4("Ramp 1 Top", &group.config.grassColorRamp_Top[0]);
-        ImGui::ColorEdit4("Ramp 2 Bottom", &group.config.grassColorRamp2_Bottom[0]);
-        ImGui::ColorEdit4("Ramp 2 Top", &group.config.grassColorRamp2_Top[0]);
-        ImGui::ColorEdit4("Ramp 3 Bottom", &group.config.grassColorRamp3_Bottom[0]);
-        ImGui::ColorEdit4("Ramp 3 Top", &group.config.grassColorRamp3_Top[0]);
+        editLinearColor4("Ramp 1 Bottom", group.config.grassColorRamp_Bottom);
+        editLinearColor4("Ramp 1 Top", group.config.grassColorRamp_Top);
+        editLinearColor4("Ramp 2 Bottom", group.config.grassColorRamp2_Bottom);
+        editLinearColor4("Ramp 2 Top", group.config.grassColorRamp2_Top);
+        editLinearColor4("Ramp 3 Bottom", group.config.grassColorRamp3_Bottom);
+        editLinearColor4("Ramp 3 Top", group.config.grassColorRamp3_Top);
         ImGui::DragFloat("Hue Shift 0", &group.config.hueShift_0, 0.01f, -1.0f, 1.0f, "%.2f");
         ImGui::DragFloat("Hue Shift 1", &group.config.hueShift_1, 0.01f, -1.0f, 1.0f, "%.2f");
 

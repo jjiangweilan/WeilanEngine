@@ -26,7 +26,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 9;
+constexpr uint64_t ModelImporterVersion = 10;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
@@ -199,7 +199,7 @@ struct ModelImportContext
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<ObjPtr<GameObject>> roots;
     std::vector<ImportDatabase::ArtifactRecord> artifacts;
-    std::unordered_map<int, Texture*> embeddedTextureByIndex;
+    std::unordered_map<uint64_t, Texture*> embeddedTextureBySourceAndColorSpace;
 
     UUID GetSubAssetUUID(std::string_view name, std::string_view typeName)
     {
@@ -207,10 +207,11 @@ struct ModelImportContext
         return subAssetUUIDAllocator.GetOrCreate(key);
     }
 
-    Texture* ImportEmbeddedTexture(int textureIndex)
+    Texture* ImportEmbeddedTexture(int textureIndex, bool linearFormat)
     {
-        auto iter = embeddedTextureByIndex.find(textureIndex);
-        if (iter != embeddedTextureByIndex.end())
+        const uint64_t cacheKey = (static_cast<uint64_t>(textureIndex) << 1) | (linearFormat ? 1ull : 0ull);
+        auto iter = embeddedTextureBySourceAndColorSpace.find(cacheKey);
+        if (iter != embeddedTextureBySourceAndColorSpace.end())
         {
             return iter->second;
         }
@@ -256,7 +257,7 @@ struct ModelImportContext
             }
         }
 
-        std::string textureName = fmt::format("texture_{}", textureIndex);
+        std::string textureName = fmt::format("texture_{}_{}", textureIndex, linearFormat ? "linear" : "srgb");
         UUID artifactUUID = GetSubAssetUUID(textureName, Texture::StaticGetTypeName());
         auto relativePath = AssetArtifacts::MakeArtifactPath(artifactUUID, AssetArtifacts::Kind::Texture);
         auto absolutePath = importDatabase->GetImportDatabaseRootPath() / relativePath;
@@ -271,7 +272,7 @@ struct ModelImportContext
             1,
             false,
             false,
-            Gfx::GfxFormat::R8G8B8A8_SRGB,
+            linearFormat ? Gfx::GfxFormat::R8G8B8A8_UNorm : Gfx::GfxFormat::R8G8B8A8_SRGB,
             true
         );
 
@@ -280,12 +281,20 @@ struct ModelImportContext
         textureAsset->SetName(textureName);
         Texture* texturePtr = textureAsset.get();
         embeddedTextures.push_back(std::move(textureAsset));
-        embeddedTextureByIndex[textureIndex] = texturePtr;
-        artifacts.push_back({artifactUUID, sourceAssetUUID, std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Texture)), textureName, relativePath, false, fmt::format("texture/{}", textureIndex)});
+        embeddedTextureBySourceAndColorSpace[cacheKey] = texturePtr;
+        artifacts.push_back(
+            {artifactUUID,
+             sourceAssetUUID,
+             std::string(AssetArtifacts::ToString(AssetArtifacts::Kind::Texture)),
+             textureName,
+             relativePath,
+             false,
+             fmt::format("texture/{}/{}", textureIndex, linearFormat ? "linear" : "srgb")}
+        );
         return texturePtr;
     }
 
-    Texture* TryImportEmbeddedTexture(const aiString& textureName)
+    Texture* TryImportEmbeddedTexture(const aiString& textureName, bool linearFormat)
     {
         if (textureName.length == 0 || textureName.C_Str()[0] != '*')
         {
@@ -293,7 +302,7 @@ struct ModelImportContext
         }
 
         int textureIndex = std::atoi(textureName.C_Str() + 1);
-        return ImportEmbeddedTexture(textureIndex);
+        return ImportEmbeddedTexture(textureIndex, linearFormat);
     }
 };
 
@@ -476,7 +485,15 @@ void ProcessMeshes(ModelImportContext& context)
     }
 }
 
-bool ExtractTexture(ModelImportContext& context, std::unique_ptr<Material>& mat, aiMaterial* material, aiTextureType type, const char* bindingName, const char* keyword)
+bool ExtractTexture(
+    ModelImportContext& context,
+    std::unique_ptr<Material>& mat,
+    aiMaterial* material,
+    aiTextureType type,
+    const char* bindingName,
+    const char* keyword,
+    bool linearFormat
+)
 {
     if (material->GetTextureCount(type) == 0)
     {
@@ -485,7 +502,7 @@ bool ExtractTexture(ModelImportContext& context, std::unique_ptr<Material>& mat,
 
     aiString texName;
     material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
-    if (Texture* embeddedTexture = context.TryImportEmbeddedTexture(texName))
+    if (Texture* embeddedTexture = context.TryImportEmbeddedTexture(texName, linearFormat))
     {
         mat->RawSetTexture(bindingName, embeddedTexture);
     }
@@ -499,6 +516,16 @@ bool ExtractTexture(ModelImportContext& context, std::unique_ptr<Material>& mat,
                 "ModelImporter: failed to load external texture '{}' for material binding '{}'.",
                 texturePath.string(),
                 bindingName
+            );
+        }
+        else if (Gfx::IsSRGBFormat(tex->GetDescription().img.format) == linearFormat)
+        {
+            spdlog::warn(
+                "ModelImporter: external texture '{}' has {} color space, but material binding '{}' requires {}.",
+                texturePath.string(),
+                Gfx::IsSRGBFormat(tex->GetDescription().img.format) ? "sRGB" : "linear",
+                bindingName,
+                linearFormat ? "linear" : "sRGB"
             );
         }
         mat->RawSetTexture(bindingName, tex);
@@ -542,10 +569,18 @@ void ProcessMaterials(ModelImportContext& context)
         material->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
         material->Get(AI_MATKEY_TWOSIDED, twoSided);
 
-        ExtractTexture(context, mat, material, aiTextureType_DIFFUSE, "baseColorTex", "_BaseColorMap");
-        ExtractTexture(context, mat, material, aiTextureType_NORMALS, "normalMap", "_NormalMap");
-        ExtractTexture(context, mat, material, aiTextureType_METALNESS, "metallicRoughnessMap", "_MetallicRoughnessMap");
-        if (ExtractTexture(context, mat, material, aiTextureType_EMISSIVE, "emissiveMap", "_EmissiveMap"))
+        ExtractTexture(context, mat, material, aiTextureType_DIFFUSE, "baseColorTex", "_BaseColorMap", false);
+        ExtractTexture(context, mat, material, aiTextureType_NORMALS, "normalMap", "_NormalMap", true);
+        ExtractTexture(
+            context,
+            mat,
+            material,
+            aiTextureType_METALNESS,
+            "metallicRoughnessMap",
+            "_MetallicRoughnessMap",
+            true
+        );
+        if (ExtractTexture(context, mat, material, aiTextureType_EMISSIVE, "emissiveMap", "_EmissiveMap", false))
         {
             emissive = {1, 1, 1, 1};
         }

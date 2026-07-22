@@ -1,6 +1,7 @@
 #include "Editor/EditorState.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetDatabase.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
+#include "Engine/Library/Utils.hpp"
 #include "Editor/Inspectors/Inspector.hpp"
 #include "Editor/Inspectors/InspectorHelper_Image.hpp"
 
@@ -50,7 +51,13 @@ public:
         ImGui::NewLine();
         auto meta = AssetDatabase::Singleton()->GetAssetMeta(*target);
         auto options = meta.value("importOption", nlohmann::json::object());
-        bool linearFormat = options.value("linearFormat", false);
+        std::string colorSpace;
+        if (options.contains("colorSpace"))
+            colorSpace = options.value("colorSpace", "linear");
+        else if (options.contains("linearFormat"))
+            colorSpace = options.value("linearFormat", true) ? "linear" : "srgb";
+        else
+            colorSpace = Gfx::IsSRGBFormat(target->GetDescription().img.format) ? "srgb" : "linear";
         bool generateMipmap = options.value("generateMipmap", false);
         bool convertToIrradianceCubemap = options.value("convertToIrradianceCubemap", false);
         bool converToCubemap = options.value("convertToCubemap", false);
@@ -58,8 +65,27 @@ public:
 
         EditorGUI::SeparatorTextLabeled("Import Options");
         bool metaChanged = false;
-        metaChanged |= EditorGUI::Checkbox("Linear Format", &linearFormat);
-        metaChanged |= EditorGUI::Checkbox("Generate Mipmap", &generateMipmap);
+        const std::string extension =
+            Utils::strToLower(AssetDatabase::Singleton()->GetAssetPath(target->GetUUID()).GetExtension());
+        const bool isKtx = extension == ".ktx" || extension == ".ktx2";
+        if (isKtx)
+        {
+            EditorGUI::Text("Color Space (KTX)", colorSpace == "srgb" ? "sRGB" : "Linear");
+            ImGui::BeginDisabled();
+            EditorGUI::Checkbox("Generate Mipmap", &generateMipmap);
+            ImGui::EndDisabled();
+        }
+        else
+        {
+            int colorSpaceIndex = colorSpace == "srgb" ? 1 : 0;
+            static const char* colorSpaceNames[] = {"Linear", "sRGB"};
+            if (ImGui::Combo("Color Space", &colorSpaceIndex, colorSpaceNames, 2))
+            {
+                colorSpace = colorSpaceIndex == 0 ? "linear" : "srgb";
+                metaChanged = true;
+            }
+            metaChanged |= EditorGUI::Checkbox("Generate Mipmap", &generateMipmap);
+        }
         metaChanged |= EditorGUI::Checkbox("Convert To Cubemap", &converToCubemap);
         metaChanged |= EditorGUI::Checkbox("Convert To Irradiance Cubemap", &convertToIrradianceCubemap);
         metaChanged |= EditorGUI::Checkbox("Convert To Reflectance Cubemap", &convertToReflectanceCubemap);
@@ -69,7 +95,8 @@ public:
             meta["importOption"]["convertToCubemap"] = converToCubemap;
             meta["importOption"]["convertToIrradianceCubemap"] = convertToIrradianceCubemap;
             meta["importOption"]["convertToReflectanceCubemap"] = convertToReflectanceCubemap;
-            meta["importOption"]["linearFormat"] = linearFormat;
+            meta["importOption"].erase("linearFormat");
+            meta["importOption"]["colorSpace"] = colorSpace;
         }
         if (metaChanged)
             AssetDatabase::Singleton()->SetAssetMeta(*target, meta);

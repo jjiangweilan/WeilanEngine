@@ -1,4 +1,6 @@
 #pragma once
+#include "Engine/Library/ColorSpace.hpp"
+#include <algorithm>
 #include "glm/ext/scalar_constants.hpp"
 #include <cmath>
 #include <glm/glm.hpp>
@@ -6,8 +8,8 @@
 namespace Libs::Image
 {
 
-template <class T>
-void GenerateBoxFilteredMipmap(
+template <class T, class Decode, class Encode>
+void GenerateBoxFilteredMipmapImpl(
     uint8_t* source,
     int width,
     int height,
@@ -15,7 +17,9 @@ void GenerateBoxFilteredMipmap(
     int levels,
     int channels,
     uint8_t*& output,
-    size_t& outputByteSize
+    size_t& outputByteSize,
+    Decode decode,
+    Encode encode
 )
 {
     outputByteSize = 0;
@@ -68,31 +72,43 @@ void GenerateBoxFilteredMipmap(
                         int y = std::min(2 * k, preLevelHeight - 1);
                         int samples = 1;
 
-                        double sum = data[preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c];
+                        double sum = decode(
+                            data[preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c],
+                            c
+                        );
                         if (y + 1 < preLevelHeight)
                         {
-                            double top = data
-                                [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + x) * channels + c];
+                            double top = decode(
+                                data[preLevelLayerOffset + preLevelOffset +
+                                     ((y + 1) * preLevelWidth + x) * channels + c],
+                                c
+                            );
                             sum += top;
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth)
                         {
-                            double right = data
-                                [preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + (x + 1)) * channels + c];
+                            double right = decode(
+                                data[preLevelLayerOffset + preLevelOffset +
+                                     (y * preLevelWidth + (x + 1)) * channels + c],
+                                c
+                            );
                             sum += right;
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth && y + 1 < preLevelHeight)
                         {
-                            double diag = data
-                                [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + (x + 1)) * channels +
-                                 c];
+                            double diag = decode(
+                                data[preLevelLayerOffset + preLevelOffset +
+                                     ((y + 1) * preLevelWidth + (x + 1)) * channels + c],
+                                c
+                            );
                             sum += diag;
                             samples += 1;
                         }
 
-                        data[curLevelLayerOffset + curLevelOffset + (k * lw + j) * channels + c] = sum / samples;
+                        data[curLevelLayerOffset + curLevelOffset + (k * lw + j) * channels + c] =
+                            encode(sum / samples, c);
                     }
                 }
             }
@@ -104,6 +120,67 @@ void GenerateBoxFilteredMipmap(
         preLevelWidth = lw;
         preLevelHeight = lh;
     }
+}
+
+template <class T>
+void GenerateBoxFilteredMipmap(
+    uint8_t* source,
+    int width,
+    int height,
+    int layers,
+    int levels,
+    int channels,
+    uint8_t*& output,
+    size_t& outputByteSize
+)
+{
+    GenerateBoxFilteredMipmapImpl<T>(
+        source,
+        width,
+        height,
+        layers,
+        levels,
+        channels,
+        output,
+        outputByteSize,
+        [](T value, int) { return static_cast<double>(value); },
+        [](double value, int) { return static_cast<T>(value); }
+    );
+}
+
+inline void GenerateBoxFilteredMipmapSRGB8(
+    uint8_t* source,
+    int width,
+    int height,
+    int layers,
+    int levels,
+    int channels,
+    uint8_t*& output,
+    size_t& outputByteSize
+)
+{
+    GenerateBoxFilteredMipmapImpl<uint8_t>(
+        source,
+        width,
+        height,
+        layers,
+        levels,
+        channels,
+        output,
+        outputByteSize,
+        [](uint8_t value, int channel)
+        {
+            const double normalized = static_cast<double>(value) / 255.0;
+            return channel < 3 ? static_cast<double>(ColorSpace::SRGBToLinear(static_cast<float>(normalized)))
+                               : normalized;
+        },
+        [](double value, int channel)
+        {
+            const float encoded = channel < 3 ? ColorSpace::LinearToSRGB(static_cast<float>(value))
+                                              : static_cast<float>(value);
+            return static_cast<uint8_t>(std::lround(std::clamp(encoded, 0.0f, 1.0f) * 255.0f));
+        }
+    );
 }
 
 void GenerateIrradianceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output);

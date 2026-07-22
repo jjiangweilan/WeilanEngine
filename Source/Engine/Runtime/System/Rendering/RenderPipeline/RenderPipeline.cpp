@@ -36,7 +36,7 @@ RenderPipeline::RenderPipeline()
     reflectionProbeUpdate = AddRenderPipelinePass<ReflectionProbeUpdate>();
     shadingPass = AddRenderPipelinePass<Passes::ShadingPass>();
     cloudPass = AddRenderPipelinePass<Passes::CloudPass>();
-    colorGradingPass = AddRenderPipelinePass<Passes::ColorGradingPass>();
+    displayTransformPass = AddRenderPipelinePass<Passes::DisplayTransformPass>();
     fxaaPass = AddRenderPipelinePass<Passes::FXAAPass>();
     taaPass = AddRenderPipelinePass<Passes::TAAPass>();
     screenSpaceShadowPass = AddRenderPipelinePass<Passes::ScreenSpaceShadowPass>();
@@ -524,19 +524,16 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // start post procesing
     finalColor = postProcessColor;
 
-    if (setting->postProcess.colorGrading)
-    {
-        cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        colorGradingPass->Execute(
-            *cmd,
-            GetGfxDriver()->GetImageFromRenderGraph(finalColor),
-            mainRTSize,
-            setting->postProcess,
-            renderingData
-        );
-        finalColor = colorGradingPass->GetOutputId();
-        cmd->EndLabel(); // Color Grading
-    }
+    cmd->BeginLabel("Display Transform", &labelColors.passColor[0]);
+    displayTransformPass->Execute(
+        *cmd,
+        GetGfxDriver()->GetImageFromRenderGraph(finalColor),
+        mainRTSize,
+        setting->postProcess,
+        renderingData
+    );
+    finalColor = displayTransformPass->GetOutputId();
+    cmd->EndLabel(); // Display Transform
 
     // FXAA
     if (setting->antiAliasing == RenderPipelineSetting::AntiAliasingMode::FXAA)
@@ -803,11 +800,12 @@ void RenderPipeline::UpdateSceneInfo(Gfx::CommandBuffer* cmd, Scene& scene, Came
             sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLinearLightColor(), 1.0);
             sceneParam.lights[i].intensity = lights[i]->GetIntensity();
             sceneParam.lights[i].skyboxIntensity = lights[i]->GetSkyboxIntensity();
-            sceneParam.lights[i].skyColor = glm::vec4(lights[i]->GetSkyColor(), 1.0);
-            sceneParam.lights[i].skyHorizonFalloffColor = glm::vec4(lights[i]->GetSkyHorizonFalloffColor(), 1.0);
-            sceneParam.lights[i].skyHorizonColor = glm::vec4(lights[i]->GetSkyHorizonColor(), 1.0);
-            sceneParam.lights[i].skySunColor = glm::vec4(lights[i]->GetSkySunColor(), 1.0);
-            sceneParam.lights[i].skySunCoreColor = glm::vec4(lights[i]->GetSkySunCoreColor(), 1.0);
+            sceneParam.lights[i].skyColor = glm::vec4(lights[i]->GetLinearSkyColor(), 1.0);
+            sceneParam.lights[i].skyHorizonFalloffColor =
+                glm::vec4(lights[i]->GetLinearSkyHorizonFalloffColor(), 1.0);
+            sceneParam.lights[i].skyHorizonColor = glm::vec4(lights[i]->GetLinearSkyHorizonColor(), 1.0);
+            sceneParam.lights[i].skySunColor = glm::vec4(lights[i]->GetLinearSkySunColor(), 1.0);
+            sceneParam.lights[i].skySunCoreColor = glm::vec4(lights[i]->GetLinearSkySunCoreColor(), 1.0);
             auto model = lights[i]->GetGameObject()->GetWorldMatrix();
             switch (lights[i]->GetLightType())
             {

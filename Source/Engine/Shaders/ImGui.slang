@@ -1,4 +1,5 @@
 import WeilanEngine;
+import ColorSpace;
 #if CONFIG
 blend:
 - srcAlpha oneMinusSrcAlpha
@@ -58,12 +59,12 @@ float4 FragmentMain(VOut input) : SV_Target
 {
     if (p.useClampSampler > 0.0f)
     {
-        let color = float4(pow(input.color.xyz, 2.2f), input.color.a) * perMaterial.texture.Sample(perMaterial.sampler_linear_clamp, input.uv);
+        let color = SRGBToLinear(input.color) * perMaterial.texture.Sample(perMaterial.sampler_linear_clamp, input.uv);
         return color;
     }
     else
     {
-        let color = float4(pow(input.color.xyz, 2.2f), input.color.a) * perMaterial.texture.Sample(perMaterial.sampler_linear, input.uv);
+        let color = SRGBToLinear(input.color) * perMaterial.texture.Sample(perMaterial.sampler_linear, input.uv);
         return color;
     }
 }

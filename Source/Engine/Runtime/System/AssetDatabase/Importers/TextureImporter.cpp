@@ -15,6 +15,7 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 #include <limits>
+#include <optional>
 #include <spdlog/spdlog.h>
 #include <string_view>
 
@@ -37,6 +38,83 @@ uint64_t ComputeContentHash(const std::filesystem::path& path)
     std::vector<char> fileData(fileSize);
     f.read(fileData.data(), static_cast<std::streamsize>(fileSize));
     return XXH3_64bits(fileData.data(), fileData.size());
+}
+
+struct KtxColorDescription
+{
+    bool srgb = false;
+    uint32_t levels = 1;
+};
+
+bool IsVkSRGBFormat(VkFormat format)
+{
+    switch (format)
+    {
+        case VK_FORMAT_R8_SRGB:
+        case VK_FORMAT_R8G8_SRGB:
+        case VK_FORMAT_R8G8B8_SRGB:
+        case VK_FORMAT_B8G8R8_SRGB:
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        case VK_FORMAT_B8G8R8A8_SRGB:
+        case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
+        case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+        case VK_FORMAT_BC1_RGBA_SRGB_BLOCK:
+        case VK_FORMAT_BC2_SRGB_BLOCK:
+        case VK_FORMAT_BC3_SRGB_BLOCK:
+        case VK_FORMAT_BC7_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return true;
+        default: return false;
+    }
+}
+
+std::optional<KtxColorDescription> ReadKtxColorDescription(const std::filesystem::path& path)
+{
+    ktxTexture2* texture = nullptr;
+    const KTX_error_code result =
+        ktxTexture2_CreateFromNamedFile(path.string().c_str(), KTX_TEXTURE_CREATE_NO_FLAGS, &texture);
+    if (result != KTX_SUCCESS)
+    {
+        spdlog::error("failed to inspect KTX texture {}: {}", path.string(), ktxErrorString(result));
+        return std::nullopt;
+    }
+
+    const khr_df_transfer_e transfer = ktxTexture2_GetOETF_e(texture);
+    const bool dfdSRGB = transfer == KHR_DF_TRANSFER_SRGB;
+    const bool dfdKnown = dfdSRGB || transfer == KHR_DF_TRANSFER_LINEAR;
+    const VkFormat vkFormat = ktxTexture2_GetVkFormat(texture);
+    const bool formatKnown = vkFormat != VK_FORMAT_UNDEFINED;
+    const bool formatSRGB = formatKnown && IsVkSRGBFormat(vkFormat);
+
+    if (formatKnown && dfdKnown && formatSRGB != dfdSRGB)
+    {
+        spdlog::warn(
+            "KTX texture {} has conflicting Vulkan format and DFD transfer function; Vulkan format controls sampling",
+            path.string()
+        );
+    }
+
+    KtxColorDescription description{
+        .srgb = formatKnown ? formatSRGB : dfdSRGB,
+        .levels = texture->numLevels,
+    };
+    ktxTexture_Destroy(ktxTexture(texture));
+    return description;
 }
 } // namespace
 
@@ -121,6 +199,9 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         generateMipmap = false;
     }
 
+    const std::string extension = Utils::strToLower(absoluteAssetPath.extension().string());
+    const bool isKtx = extension == ".ktx" || extension == ".ktx2";
+
     std::filesystem::path importedAssetPath;
     if (!importDatabase->TryGetArtifactPath(assetUUID.ToString(), AssetArtifacts::Kind::Texture, importedAssetPath))
     {
@@ -134,7 +215,7 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         return {};
     }
 
-    if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
+    if (!isKtx)
     {
         std::error_code fileSizeError;
         uintmax_t fileSize = std::filesystem::file_size(absoluteAssetPath, fileSizeError);
@@ -177,12 +258,29 @@ std::vector<std::filesystem::path> TextureImporter::Import()
         bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
         bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
 
-        if (!option.contains("linearFormat"))
+        std::string colorSpace;
+        if (option.contains("colorSpace"))
         {
-            linearFormat = IsLinearFormat(is16Bit, isHDR);
+            colorSpace = option.value("colorSpace", "linear");
+            if (colorSpace != "linear" && colorSpace != "srgb")
+            {
+                spdlog::warn("invalid colorSpace '{}' for {}; inferring from texture semantics", colorSpace, absoluteAssetPath.string());
+                colorSpace = IsLinearFormat(is16Bit, isHDR) ? "linear" : "srgb";
+            }
         }
+        else if (option.contains("linearFormat"))
+            colorSpace = option.value("linearFormat", true) ? "linear" : "srgb";
         else
-            linearFormat = option.value("linearFormat", true);
+            colorSpace = IsLinearFormat(is16Bit, isHDR) ? "linear" : "srgb";
+        if ((is16Bit || isHDR) && colorSpace == "srgb")
+        {
+            spdlog::warn(
+                "texture {} uses a high-precision format without an sRGB Vulkan variant; importing as linear",
+                absoluteAssetPath.string()
+            );
+            colorSpace = "linear";
+        }
+        linearFormat = colorSpace == "linear";
 
         int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 
@@ -266,9 +364,14 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             }
             else
             {
-                Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
-                    loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
-                );
+                if (linearFormat)
+                    Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
+                        loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
+                    );
+                else
+                    Libs::Image::GenerateBoxFilteredMipmapSRGB8(
+                        loaded.get(), width, height, layers, mipLevels, desiredChannels, mippedData, mippedDataByteSize
+                    );
             }
             loaded = UniqueImagePtr(mippedData, NewDeleter);
         }
@@ -300,6 +403,25 @@ std::vector<std::filesystem::path> TextureImporter::Import()
     }
     else
     {
+        const auto ktxDescription = ReadKtxColorDescription(absoluteAssetPath);
+        if (!ktxDescription)
+            return {};
+
+        linearFormat = !ktxDescription->srgb;
+        generateMipmap = ktxDescription->levels > 1;
+        std::optional<bool> metadataSRGB;
+        if (option.contains("colorSpace"))
+            metadataSRGB = option.value("colorSpace", "linear") == "srgb";
+        else if (option.contains("linearFormat"))
+            metadataSRGB = !option.value("linearFormat", true);
+        if (metadataSRGB && *metadataSRGB != ktxDescription->srgb)
+        {
+            spdlog::warn(
+                "texture metadata color space disagrees with KTX header for {}; the KTX header is authoritative",
+                absoluteAssetPath.string()
+            );
+        }
+
         std::ofstream outf(
             importDatabase->GetImportDatabaseRootPath() / importedAssetPath,
             std::ios::trunc | std::ios::out | std::ios::binary
@@ -316,7 +438,8 @@ std::vector<std::filesystem::path> TextureImporter::Import()
             return {};
         }
     }
-    option["linearFormat"] = linearFormat;
+    option.erase("linearFormat");
+    option["colorSpace"] = linearFormat ? "linear" : "srgb";
     option["generateMipmap"] = generateMipmap;
     option["convertToIrradianceCubemap"] = converToIrradianceCubemap;
     option["convertToReflectanceCubemap"] = convertToReflectanceCubemap;

@@ -3,6 +3,67 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <ktx.h>
+#include <vulkan/vulkan.h>
+#include <ktxvulkan.h>
+
+namespace
+{
+struct ImportedPpm
+{
+    khr_df_transfer_e transfer = KHR_DF_TRANSFER_UNSPECIFIED;
+    nlohmann::json meta;
+};
+
+ImportedPpm ImportPpm(const nlohmann::json& meta, const std::string& fileName)
+{
+    const std::filesystem::path testRoot =
+        std::filesystem::temp_directory_path() / ("WeilanEngine_TextureColorSpaceTest_" + UUID().ToString());
+    const std::filesystem::path sourcePath = testRoot / fileName;
+    const std::filesystem::path importRoot = testRoot / "Imported";
+    const UUID assetUUID;
+    ImportedPpm imported;
+
+    std::filesystem::create_directories(testRoot);
+    {
+        std::ofstream source(sourcePath, std::ios::binary);
+        source << "P6\n1 1\n255\n";
+        const uint8_t pixel[] = {128, 64, 32};
+        source.write(reinterpret_cast<const char*>(pixel), sizeof(pixel));
+    }
+
+    {
+        ImportDatabase importDatabase;
+        importDatabase.Init(importRoot);
+
+        TextureImporter importer;
+        importer.Setup(importDatabase, assetUUID, sourcePath, meta);
+        importer.Import();
+        imported.meta = importer.GetMeta();
+
+        std::filesystem::path artifactPath;
+        EXPECT_TRUE(importDatabase.TryGetArtifactPath(assetUUID.ToString(), AssetArtifacts::Kind::Texture, artifactPath));
+        ktxTexture2* texture = nullptr;
+        EXPECT_EQ(
+            ktxTexture2_CreateFromNamedFile(
+                (importRoot / artifactPath).string().c_str(),
+                KTX_TEXTURE_CREATE_NO_FLAGS,
+                &texture
+            ),
+            KTX_SUCCESS
+        );
+        if (texture)
+        {
+            imported.transfer = ktxTexture2_GetOETF_e(texture);
+            ktxTexture_Destroy(ktxTexture(texture));
+        }
+    }
+
+    std::error_code error;
+    std::filesystem::remove_all(testRoot, error);
+    return imported;
+}
+} // namespace
 
 TEST(TextureImporterTest, CorruptPngDoesNotRegisterImportStateOrArtifact)
 {
@@ -84,4 +145,50 @@ TEST(TextureImporterTest, CorruptReimportPreservesPreviousStateAndArtifact)
 
     std::error_code error;
     std::filesystem::remove_all(testRoot, error);
+}
+
+TEST(TextureImporterTest, ExplicitColorSpacePersistsInKtxTransferFunction)
+{
+    const nlohmann::json srgbMeta = {
+        {"importOption", {{"colorSpace", "srgb"}, {"generateMipmap", false}}}
+    };
+    const nlohmann::json linearMeta = {
+        {"importOption", {{"colorSpace", "linear"}, {"generateMipmap", false}}}
+    };
+
+    EXPECT_EQ(ImportPpm(srgbMeta, "texture.ppm").transfer, KHR_DF_TRANSFER_SRGB);
+    EXPECT_EQ(ImportPpm(linearMeta, "texture.ppm").transfer, KHR_DF_TRANSFER_LINEAR);
+}
+
+TEST(TextureImporterTest, LegacyLinearFormatMigratesDeterministically)
+{
+    const nlohmann::json legacySRGB = {
+        {"importOption", {{"linearFormat", false}, {"generateMipmap", false}}}
+    };
+    const nlohmann::json legacyLinear = {
+        {"importOption", {{"linearFormat", true}, {"generateMipmap", false}}}
+    };
+
+    const ImportedPpm srgb = ImportPpm(legacySRGB, "texture.ppm");
+    const ImportedPpm linear = ImportPpm(legacyLinear, "texture.ppm");
+    EXPECT_EQ(srgb.transfer, KHR_DF_TRANSFER_SRGB);
+    EXPECT_EQ(linear.transfer, KHR_DF_TRANSFER_LINEAR);
+    EXPECT_EQ(srgb.meta["importOption"]["colorSpace"], "srgb");
+    EXPECT_EQ(linear.meta["importOption"]["colorSpace"], "linear");
+    EXPECT_FALSE(srgb.meta["importOption"].contains("linearFormat"));
+    EXPECT_FALSE(linear.meta["importOption"].contains("linearFormat"));
+}
+
+TEST(TextureImporterTest, MissingColorSpaceIsInferredFromSemanticName)
+{
+    const nlohmann::json meta = {
+        {"importOption", {{"generateMipmap", false}}}
+    };
+
+    const ImportedPpm baseColor = ImportPpm(meta, "basecolor.ppm");
+    const ImportedPpm normal = ImportPpm(meta, "normal.ppm");
+    EXPECT_EQ(baseColor.transfer, KHR_DF_TRANSFER_SRGB);
+    EXPECT_EQ(normal.transfer, KHR_DF_TRANSFER_LINEAR);
+    EXPECT_EQ(baseColor.meta["importOption"]["colorSpace"], "srgb");
+    EXPECT_EQ(normal.meta["importOption"]["colorSpace"], "linear");
 }

@@ -37,7 +37,7 @@
                          Do(PrimitiveShape, "PrimitiveShape"),                                                                 \
                          Do(SimpleForwardLit, "SimpleForwardLit"),                                                             \
                          Do(SimpleColor, "SimpleColor"), Do(Skybox, "Skybox"),                                                 \
-                         Do(ColorGrading, "ColorGrading"),                                                                     \
+                         Do(DisplayTransform, "DisplayTransform"),                                                           \
                          Do(InterleavedGradientNoise, "InterleavedGradientNoise"),                                             \
                          Do(BlueNoise, "BlueNoise"),                                                                           \
                          Do(Particle, "Particles/Particle"), Do(Blit, "Blit"),                                                 \

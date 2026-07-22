@@ -10,10 +10,10 @@ class Texture;
 
 namespace Rendering::Passes
 {
-class ColorGradingPass : public RenderPipelinePass
+class DisplayTransformPass : public RenderPipelinePass
 {
 public:
-    ColorGradingPass();
+    DisplayTransformPass();
 
     void Execute(
         Gfx::CommandBuffer& cmd,
@@ -23,22 +23,23 @@ public:
         const RenderingData& renderingData
     );
 
-    const Gfx::ImageIdentifier& GetOutputId() const { return colorGradingId; }
+    const Gfx::ImageIdentifier& GetOutputId() const { return outputId; }
 
     void OnInit(RenderingData* renderingData) override;
 
 private:
-    struct ColorGradingInput
+    struct DisplayTransformInput
     {
         glm::uvec4 flags;
         glm::vec4 hsv;
+        glm::vec4 exposure;
     };
 
-    Gfx::ImageIdentifier colorGradingId = Gfx::ImageIdentifier("Color Grading");
-    Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("Color Grading");
-    ObjPtr<Shader> colorGradingShader;
+    Gfx::ImageIdentifier outputId = Gfx::ImageIdentifier("Display Transform");
+    Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("Display Transform");
+    ObjPtr<Shader> displayTransformShader;
     Material mat;
     ObjPtr<Texture> tonyMcMapfaceLUT;
-    PipelineGPUBuffer colorGradingInputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("ColorGrading", PipelineGPUBufferUsage::Uniform);
+    PipelineGPUBuffer inputBuffer = PipelineGPUBufferAllocator::RequestGPUBuffer("DisplayTransform", PipelineGPUBufferUsage::Uniform);
 };
 } // namespace Rendering::Passes
