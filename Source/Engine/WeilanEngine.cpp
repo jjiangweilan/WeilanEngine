@@ -38,10 +38,19 @@
 #include <algorithm>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
-WeilanEngine::WeilanEngine() {};
+
+WeilanEngine* WeilanEngine::activeInstance = nullptr;
+
+WeilanEngine::WeilanEngine()
+{
+    activeInstance = this;
+}
 
 WeilanEngine::~WeilanEngine()
 {
+    if (activeInstance == this)
+        activeInstance = nullptr;
+
 #ifdef WEILAN_ENABLE_MCP
     mcpServer = nullptr;
 #endif
@@ -419,6 +428,32 @@ int2 WeilanEngine::GetSystemWindowSize()
     int w, h;
     SDL_GetWindowSize(mainWindow.handle, &w, &h);
     return int2{w, h};
+}
+
+void WeilanEngine::SetGameWindowPosition(int32_t x, int32_t y)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    if (!activeInstance || !activeInstance->presentGameColorOnly || !activeInstance->interopDriver)
+        return;
+
+    activeInstance->interopDriver->SetWindowPosition(x, y);
+#else
+    (void)x;
+    (void)y;
+#endif
+}
+
+float2 WeilanEngine::GetGameWindowPosition()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    if (!activeInstance || !activeInstance->presentGameColorOnly || !activeInstance->interopDriver)
+        return {0.0f, 0.0f};
+
+    auto position = activeInstance->interopDriver->GetWindowPosition();
+    return {static_cast<float>(position.x), static_cast<float>(position.y)};
+#else
+    return {0.0f, 0.0f};
+#endif
 }
 
 int2 WeilanEngine::GetBottomAlignedGameWindowPosition(int2 size) const

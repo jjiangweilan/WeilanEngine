@@ -216,6 +216,18 @@ void D3D11InteropDriver::Resize(uint32_t width, uint32_t height)
     CreateHitTestStagingTextures();
 }
 
+void D3D11InteropDriver::SetWindowPosition(int32_t x, int32_t y)
+{
+    SetWindowPos(m_hwnd, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+WindowPosition D3D11InteropDriver::GetWindowPosition() const
+{
+    RECT windowRect{};
+    GetWindowRect(m_hwnd, &windowRect);
+    return {windowRect.left, windowRect.top};
+}
+
 void D3D11InteropDriver::CreateHitTestStagingTextures()
 {
     for (auto& readback : m_hitTestReadbacks)

@@ -16,6 +16,8 @@ public:
 
     void Initialize(void* windowHandle, uint32_t width, uint32_t height) override;
     void Resize(uint32_t width, uint32_t height) override;
+    void SetWindowPosition(int32_t x, int32_t y) override;
+    WindowPosition GetWindowPosition() const override;
     void* GetSharedHandle() override;
     void* GetFenceHandle() override;
     void Wait(uint64_t value) override;

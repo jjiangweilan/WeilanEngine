@@ -47,6 +47,8 @@ public:
     void SetSystemWindowSize(int2 size);
     int2 GetSystemWindowSize();
     void PresentGameOnly(bool enable, int2 size);
+    static void SetGameWindowPosition(int32_t x, int32_t y);
+    static float2 GetGameWindowPosition();
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
     {
@@ -91,6 +93,8 @@ private:
     std::filesystem::path projectAssetPath;
 
     ObjPtr<Shader> blitShader;
+
+    static WeilanEngine* activeInstance;
 
     void InitAssetDatabase();
     void DeinitAssetDatabase();

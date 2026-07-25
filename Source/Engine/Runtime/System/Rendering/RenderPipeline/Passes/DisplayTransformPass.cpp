@@ -63,7 +63,7 @@ void DisplayTransformPass::Execute(
     DisplayTransformInput input {
         .flags = {mode, settings.colorGrading && settings.hueValueSaturation ? 1u : 0u, 0u, 0u},
         .hsv = {settings.hue, settings.saturation, settings.value, 0.0f},
-        .exposure = {settings.exposureEV, 0.0f, 0.0f, 0.0f},
+        .adjustments = {settings.exposureEV, settings.gamma, 0.0f, 0.0f},
     };
     renderingData.pipelineAllocator->AllocateBuffer(inputBuffer, sizeof(DisplayTransformInput));
     inputBuffer.Write(&input, sizeof(DisplayTransformInput));

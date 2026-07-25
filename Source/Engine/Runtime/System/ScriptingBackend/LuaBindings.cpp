@@ -1,4 +1,5 @@
 #include "LuaBindings.hpp"
+#include "Engine/WeilanEngine.hpp"
 #include "Engine/Core/Time.hpp"
 #include "Engine/Game/Input.hpp"
 #include "Engine/Runtime/Object/Component/AnimationPlayer.hpp"
@@ -37,6 +38,13 @@ void LuaBindings::BindClasses(lua_State* L)
     lua_newtable(L);
 
     // clang-format off
+        LuaBinder<WeilanEngine> weilanEngine(L);
+        weilanEngine
+            .Begin("WeilanEngine")
+            .BindStaticFn("SetGameWindowPosition", &WeilanEngine::SetGameWindowPosition) // void(int32_t x, int32_t y)
+            .BindStaticFn("GetGameWindowPosition", &WeilanEngine::GetGameWindowPosition) // float2()
+            .End();
+
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript", false)

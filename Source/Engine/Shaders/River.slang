@@ -97,13 +97,11 @@ float4 Fragment(VertexOutput input) : SV_Target
 
     float2 screenUV = (input.position.xy) * perScene.camera.screenSize.zw;
     float ndcDepth = pass.depthCopy.Sample(mat._Linear_Sampler, screenUV).x;
-    float shoreMask = mat.shoreMaskMap.Sample(mat._Linear_Sampler, input.uv + normalMap.xy * 0.005).x;
+    // float shoreMask = mat.shoreMaskMap.Sample(mat._Linear_Sampler, input.uv + normalMap.xy * 0.005).x;
 
     float objectEyeDepth = LinearEyeDepth(input.position.z, perScene.camera.cameraZBufferParams);
     float worldEyeDepth = LinearEyeDepth(ndcDepth, perScene.camera.cameraZBufferParams);
     float eyeDepthDiff = max(worldEyeDepth - objectEyeDepth, 0);
-
-    float ripple = 1 - smoothstep(0, 0.08, shoreMask);//lerp(1, shoreMask, shoreWave));
 
     float2 underWaterUV = screenUV + normalMap.xy * 0.007;
     float3 underWater = pass.colorCopy.Sample(mat._Linear_Sampler, underWaterUV).xyz;
@@ -118,10 +116,10 @@ float4 Fragment(VertexOutput input) : SV_Target
     float3 fresnel = Fresnel_Schlick(saturate(dot(viewDirection, normalWS)), 0.02);
     float3 skyReflection = Sky(perScene, 0, reflectedDirection);
 
-    float3 riverColor = lerp(float3(0.1,0.3,1.), 4, ripple);
+    float3 riverColor = float3(0.1,0.3,1.);
     riverColor += skyReflection * fresnel * mat.reflectionStrength;
 
-    float blend = ripple == 1 ? 0.9 : waterFog;
+    float blend = waterFog;
     underWater = underWaterRefractedDepth > input.position.z ? underWaterDirect : underWater;
     riverColor = riverColor * (1 - blend) + underWater * blend;
     return float4(riverColor, 1.0);

@@ -667,6 +667,15 @@ wl.UI = {}
 function wl.UI.ClearRmlUiCache() end
 function wl.UI.ReloadRmlUiResources() end
 
+---@class wl.WeilanEngine
+wl.WeilanEngine = {}
+
+---@param x number
+---@param y number
+function wl.WeilanEngine.SetGameWindowPosition(x, y) end
+---@return wl.Float2
+function wl.WeilanEngine.GetGameWindowPosition() end
+
 ---@class wl.GameScript
 wl.GameScript = {}
 

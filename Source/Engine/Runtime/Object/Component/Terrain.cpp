@@ -1,4 +1,5 @@
 #include "Terrain.hpp"
+#include "Engine/MiddleLayer/EngineInternalResources.hpp"
 #include "Engine/Runtime/Module/Terrain/TerrainConfig.hpp"
 #include "Engine/Runtime/Module/Terrain/TerrainSystem.hpp"
 #include "Engine/Runtime/Object/GameObject/GameObject.hpp"
@@ -25,6 +26,11 @@ uint32_t GetTextureIndex(Texture* texture)
 bool IsLayerTextureAvailable(Texture* texture)
 {
     return GetTextureIndex(texture) != Rendering::InvalidTextureIndex;
+}
+
+Texture* ResolveLayerTexture(Texture* texture)
+{
+    return texture != nullptr ? texture : &EngineInternalResources::GetBlackTexture();
 }
 } // namespace
 
@@ -165,28 +171,32 @@ void Terrain::RefreshMaterial()
     packedLayers.reserve(config->GetLayers().size());
     for (const TerrainLayer& layer : config->GetLayers())
     {
+        Texture* albedoRoughnessTexture = ResolveLayerTexture(layer.albedoRoughnessTexture.Get());
+        Texture* layerNormalTexture = ResolveLayerTexture(layer.normalTexture.Get());
+        Texture* layerHeightTexture = ResolveLayerTexture(layer.heightTexture.Get());
+        Texture* metallicTexture = ResolveLayerTexture(layer.metallicTexture.Get());
         if (layer.id >= TerrainConfig::MaxTerrainLayers || layer.tileSize.x <= 0.0f || layer.tileSize.y <= 0.0f ||
-            !IsLayerTextureAvailable(layer.albedoRoughnessTexture.Get()) ||
-            !IsLayerTextureAvailable(layer.normalTexture.Get()) ||
-            !IsLayerTextureAvailable(layer.heightTexture.Get()) ||
-            !IsLayerTextureAvailable(layer.metallicTexture.Get()))
+            !IsLayerTextureAvailable(albedoRoughnessTexture) ||
+            !IsLayerTextureAvailable(layerNormalTexture) ||
+            !IsLayerTextureAvailable(layerHeightTexture) ||
+            !IsLayerTextureAvailable(metallicTexture))
             continue;
 
         packedLayers.emplace_back(layer.id, GpuTerrainLayerData{
             .albedoRoughnessTextureIndex = glm::uvec2(
-                GetTextureIndex(layer.albedoRoughnessTexture.Get()),
+                GetTextureIndex(albedoRoughnessTexture),
                 AnisotropicRepeatSamplerIndex
             ),
             .normalTextureIndex = glm::uvec2(
-                GetTextureIndex(layer.normalTexture.Get()),
+                GetTextureIndex(layerNormalTexture),
                 AnisotropicRepeatSamplerIndex
             ),
             .heightTextureIndex = glm::uvec2(
-                GetTextureIndex(layer.heightTexture.Get()),
+                GetTextureIndex(layerHeightTexture),
                 AnisotropicRepeatSamplerIndex
             ),
             .metallicTextureIndex = glm::uvec2(
-                GetTextureIndex(layer.metallicTexture.Get()),
+                GetTextureIndex(metallicTexture),
                 AnisotropicRepeatSamplerIndex
             ),
             .tileSize = glm::max(layer.tileSize, glm::vec2(0.001f)),

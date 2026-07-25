@@ -32,7 +32,7 @@ private:
     {
         glm::uvec4 flags;
         glm::vec4 hsv;
-        glm::vec4 exposure;
+        glm::vec4 adjustments;
     };
 
     Gfx::ImageIdentifier outputId = Gfx::ImageIdentifier("Display Transform");

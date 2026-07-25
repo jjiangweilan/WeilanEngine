@@ -50,6 +50,7 @@ public:
         bool colorGrading = true;
         uint32_t tonemapMode = (uint32_t)TonemapMode::TonyMcMapface;
         float exposureEV = 0.0f;
+        float gamma = 1.0f;
         bool hueValueSaturation = false;
         float hue = 0.0f;
         float saturation = 1.0f;
@@ -75,6 +76,7 @@ public:
             SER(colorGrading),
             SER(tonemapMode),
             SER(exposureEV),
+            SER(gamma),
             SER(hueValueSaturation),
             SER(hue),
             SER(saturation),

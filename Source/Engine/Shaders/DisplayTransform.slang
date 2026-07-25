@@ -6,7 +6,7 @@ struct DisplayTransformInput
 {
     uint4 flags;
     float4 hsv;
-    float4 exposure;
+    float4 adjustments;
 };
 
 struct PerMaterial
@@ -72,7 +72,7 @@ float3 ApplyHueValueSaturation(float3 color)
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float4 color = perMaterial.mainColor.SampleLevel(input.uv, 0);
-    color.rgb *= exp2(perMaterial.settings.exposure.x);
+    color.rgb *= exp2(perMaterial.settings.adjustments.x);
 
     float3 tonemapped;
     if (perMaterial.settings.flags.x == 1) {
@@ -85,5 +85,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 
     tonemapped = ApplyHueValueSaturation(tonemapped);
 
-    return float4(tonemapped, color.a);
+    let displayColor = pow(tonemapped, perMaterial.settings.adjustments.y);
+
+    return float4(displayColor, color.a);
 }

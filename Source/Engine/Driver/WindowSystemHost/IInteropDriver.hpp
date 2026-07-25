@@ -3,6 +3,12 @@
 
 namespace WindowSystemHost
 {
+    struct WindowPosition
+    {
+        int32_t x;
+        int32_t y;
+    };
+
     class IInteropDriver
     {
     public:
@@ -14,6 +20,12 @@ namespace WindowSystemHost
 
         // Resizes the underlying swapchain/buffers
         virtual void Resize(uint32_t width, uint32_t height) = 0;
+
+        // Moves the target window to the specified virtual-desktop coordinates.
+        virtual void SetWindowPosition(int32_t x, int32_t y) = 0;
+
+        // Returns the target window position in virtual-desktop coordinates.
+        virtual WindowPosition GetWindowPosition() const = 0;
 
         // Returns the shared NT handle for the texture/swapchain backbuffer
         virtual void* GetSharedHandle() = 0;
