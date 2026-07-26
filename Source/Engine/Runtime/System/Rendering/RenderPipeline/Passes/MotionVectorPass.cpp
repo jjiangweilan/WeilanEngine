@@ -11,6 +11,8 @@ MotionVectorPass::MotionVectorPass()
     staticMaterial.SetShader(staticShader);
 
     dynamicShader = ShaderLibrary::GetShader(Shaders::PostProcess_DynamicMotionVector);
+    treeMotionShader = ShaderLibrary::GetShader(Shaders::TreeMotionVector);
+    treeDynamicMotionShader = ShaderLibrary::GetShader(Shaders::TreeMotionVector, {"_ObjectMotion"});
 
     Gfx::SubpassAttachment attachments[] = {
         {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
@@ -88,10 +90,23 @@ void MotionVectorPass::DrawDynamicAndGrassMotionVectors(
     std::span<GrassSurface*> grassSurfaces
 )
 {
-    bool hasDynamic = dynamicMotionDataOffset != InvalidTextureIndex && indirectCommandBuffer && !gpuObjectShaderGroups.empty();
+    bool hasIndirectDraws = indirectCommandBuffer && !gpuObjectShaderGroups.empty();
+    bool hasDynamic = dynamicMotionDataOffset != InvalidTextureIndex && hasIndirectDraws;
+    bool hasTree = false;
+    if (hasIndirectDraws)
+    {
+        for (const auto& group : gpuObjectShaderGroups)
+        {
+            if (group.shaderProgram->GetName() == ShaderLibrary::GetShaderName(Shaders::TreeSceneLit))
+            {
+                hasTree = true;
+                break;
+            }
+        }
+    }
     bool hasGrass = grassSurfaceRenderer != nullptr && !grassSurfaces.empty();
 
-    if (!hasDynamic && !hasGrass)
+    if (!hasDynamic && !hasTree && !hasGrass)
         return;
 
     cmd.BeginLabel("MotionVector Dynamic", {0.1f, 0.7f, 0.7f, 1.0f});
@@ -103,15 +118,10 @@ void MotionVectorPass::DrawDynamicAndGrassMotionVectors(
     Gfx::ClearValue clears[] = {{0.0f, 0.0f, 0.0f, 0.0f}, {0, 0}};
     cmd.BeginRenderPass(attachments, clears);
 
-    cmd.BindResource(dynamicShader->GetSet(Gfx::DescriptorSetSemantics::Global), renderingData.globalResource);
-
-    // GPU-driven dynamic motion vectors
-    if (hasDynamic)
+    // GPU-driven object and procedural tree motion vectors.
+    if (hasIndirectDraws && (hasDynamic || hasTree))
     {
         cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
-
-        auto* shaderProgram = dynamicShader->GetShaderProgram();
-        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
 
         struct PushConstant
         {
@@ -121,11 +131,26 @@ void MotionVectorPass::DrawDynamicAndGrassMotionVectors(
 
         for (const auto& group : gpuObjectShaderGroups)
         {
-            if (!group.hasMotion)
+            bool isTree = group.shaderProgram->GetName() == ShaderLibrary::GetShaderName(Shaders::TreeSceneLit);
+            if (!group.hasMotion && !isTree)
                 continue;
 
+            Shader* motionShader = isTree
+                                       ? (group.hasMotion
+                                              ? treeDynamicMotionShader.Get()
+                                              : treeMotionShader.Get())
+                                       : dynamicShader.Get();
+            auto* shaderProgram = motionShader->GetShaderProgram();
+            cmd.BindResource(
+                motionShader->GetSet(Gfx::DescriptorSetSemantics::Global),
+                renderingData.globalResource
+            );
+            cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+
             pconst.firstGpuObjectOffset = group.firstDrawIndex;
-            pconst.firstDynamicMotionDataByteOffset = dynamicMotionDataOffset + group.firstDynamicMotionDataIndex * sizeof(GPUDynamicMotionData);
+            pconst.firstDynamicMotionDataByteOffset = group.hasMotion
+                                                          ? dynamicMotionDataOffset + group.firstDynamicMotionDataIndex * sizeof(GPUDynamicMotionData)
+                                                          : 0;
             cmd.SetPushConstant(shaderProgram, &pconst);
             cmd.DrawIndexedIndirect(
                 indirectCommandBuffer,

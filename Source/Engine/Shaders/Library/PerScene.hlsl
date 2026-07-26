@@ -204,6 +204,10 @@ struct GpuMaterial
 {
     float4 baseColorFactor;
     float4 emissive;
+    // xy: world-space XZ direction, z: strength, w: speed.
+    float4 windDirectionStrengthSpeed;
+    // x: spatial frequency, y: local base height, z: bend height.
+    float4 windFrequencyHeights;
     float roughness;
     float metallic;
     float alphaCutoff;

@@ -18,6 +18,7 @@ void ShadowRenderer::Init()
     shadowMapShaderSkinned = ShaderLibrary::GetShader(Shaders::ShadowMapObjectSkinned);
     shadowMapShaderGPUDriven = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven"});
     shadowMapShaderTerrain = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven", "_Terrain"});
+    shadowMapShaderTree = ShaderLibrary::GetShader(Shaders::ShadowMapObject, {"_GPUDriven", "_TreeWind"});
     terrainShader = ShaderLibrary::GetShader(Shaders::Terrain);
 
     ResetShadowmap(1.0f, 4);
@@ -214,13 +215,17 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                     auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
                     auto programTerrain = shadowMapShaderTerrain->GetShaderProgram();
                     auto terrainProgram = terrainShader->GetShaderProgram();
+                    auto programTree = shadowMapShaderTree->GetShaderProgram();
 
                     for (auto& drawIdx : shadowDrawList.GetSortedIndices())
                     {
                         auto& draw = shadowDrawList[drawIdx];
-                        auto programUsed = draw.material != nullptr && draw.material->GetShaderProgram() == terrainProgram
+                        auto materialProgram = draw.material != nullptr ? draw.material->GetShaderProgram() : nullptr;
+                        bool isTree = materialProgram != nullptr &&
+                                      materialProgram->GetName() == ShaderLibrary::GetShaderName(Shaders::TreeSceneLit);
+                        auto programUsed = materialProgram == terrainProgram
                                                ? programTerrain
-                                               : program;
+                                               : isTree ? programTree : program;
                         auto ps = draw.GetPushConstant();
                         [[unlikely]]
                         if (draw.skinned)
@@ -246,9 +251,13 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                             if (!group.castsShadows)
                                 continue;
 
+                            bool isTree = group.shaderProgram->GetName() ==
+                                          ShaderLibrary::GetShaderName(Shaders::TreeSceneLit);
                             auto programGPUDriven = group.shaderProgram == terrainProgram
                                                         ? programTerrain
-                                                        : shadowMapShaderGPUDriven->GetShaderProgram();
+                                                        : isTree
+                                                              ? programTree
+                                                              : shadowMapShaderGPUDriven->GetShaderProgram();
                             cmd.BindShaderProgram(programGPUDriven, *group.pipelineConfig);
 
                             // Bind global index buffer for GPU-driven rendering

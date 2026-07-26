@@ -28,6 +28,10 @@ struct GpuMaterial
 {
     glm::vec4 baseColorFactor;
     glm::vec4 emissive;
+    // xy: world-space XZ direction, z: strength, w: speed.
+    glm::vec4 windDirectionStrengthSpeed;
+    // x: spatial frequency, y: local base height, z: bend height.
+    glm::vec4 windFrequencyHeights;
     float roughness;
     float metallic;
     float alphaCutoff;
@@ -41,9 +45,11 @@ struct GpuMaterial
     uint32_t _pad1;
 };
 
-static_assert(offsetof(GpuMaterial, extraMaterialData) == 76);
-static_assert(offsetof(GpuMaterial, shaderHash) == 80);
-static_assert(sizeof(GpuMaterial) == 92);
+static_assert(offsetof(GpuMaterial, windDirectionStrengthSpeed) == 32);
+static_assert(offsetof(GpuMaterial, windFrequencyHeights) == 48);
+static_assert(offsetof(GpuMaterial, extraMaterialData) == 108);
+static_assert(offsetof(GpuMaterial, shaderHash) == 112);
+static_assert(sizeof(GpuMaterial) == 124);
 
 struct GpuGeometry
 {

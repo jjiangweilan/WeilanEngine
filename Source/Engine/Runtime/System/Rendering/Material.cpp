@@ -10,6 +10,8 @@
 
 namespace
 {
+constexpr std::string_view TreeSceneLitShaderName = "TreeSceneLit";
+
 std::string ResolveShaderNameAlias(std::string_view shaderName)
 {
     if (shaderName == "SceneLitSkinned")
@@ -17,6 +19,7 @@ std::string ResolveShaderNameAlias(std::string_view shaderName)
 
     return std::string(shaderName);
 }
+
 } // namespace
 
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
@@ -327,6 +330,9 @@ void Material::SetShader(Shader* shader)
 {
     if (this->shaderInUse.Get() != shader)
     {
+        if (shader != nullptr && shader->GetName() == TreeSceneLitShaderName)
+            InitializeTreeWindDefaults();
+
         needRequestNewShader = false;
         this->shaderName = shader->GetName();
         SetShaderNoProtection(shader);
@@ -339,6 +345,9 @@ void Material::SetShader(std::string_view shaderName)
     std::string resolvedShaderName = ResolveShaderNameAlias(shaderName);
     if (shaderInUse == nullptr || this->shaderName != resolvedShaderName)
     {
+        if (resolvedShaderName == TreeSceneLitShaderName)
+            InitializeTreeWindDefaults();
+
         auto shaderFeatures = &ShaderLibrary::QueryShaderFeatures(resolvedShaderName.c_str());
 
         if (shaderFeatures)
@@ -363,6 +372,22 @@ void Material::SetShaderNoProtection(ObjPtr<Shader> shaderProgram)
     this->shaderInUse = shaderProgram;
     uploadNeeded = true;
     shaderConfig = shaderInUse->GetShaderProgram()->GetDefaultShaderConfig();
+}
+
+void Material::InitializeTreeWindDefaults()
+{
+    if (!ubo.vectors.contains("windDirection"))
+        SetVector("windDirection", {1.0f, 0.0f, 0.0f, 0.0f});
+    if (!ubo.floats.contains("windStrength"))
+        SetFloat("windStrength", 0.15f);
+    if (!ubo.floats.contains("windSpeed"))
+        SetFloat("windSpeed", 1.0f);
+    if (!ubo.floats.contains("windFrequency"))
+        SetFloat("windFrequency", 0.25f);
+    if (!ubo.floats.contains("windBaseHeight"))
+        SetFloat("windBaseHeight", 0.0f);
+    if (!ubo.floats.contains("windBendHeight"))
+        SetFloat("windBendHeight", 4.0f);
 }
 
 void Material::Serialize(Serializer* s) const
@@ -731,6 +756,19 @@ Rendering::GpuMaterial Material::BuildGPUMaterialData() const
 
     data.baseColorFactor = getVector("baseColorFactor");
     data.emissive = getVector("emissive");
+    const glm::vec4 windDirection = getVector("windDirection");
+    data.windDirectionStrengthSpeed = {
+        windDirection.x,
+        windDirection.y,
+        getFloat("windStrength"),
+        getFloat("windSpeed")
+    };
+    data.windFrequencyHeights = {
+        getFloat("windFrequency"),
+        getFloat("windBaseHeight"),
+        getFloat("windBendHeight"),
+        0.0f
+    };
     data.roughness = getFloat("roughness");
     data.metallic = getFloat("metallic");
     data.alphaCutoff = getFloat("alphaCutoff");

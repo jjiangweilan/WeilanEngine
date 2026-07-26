@@ -1,6 +1,7 @@
 import WeilanEngine;
 import Library.PerScene;
 import SceneLit; // use it's Vertex function
+import SceneLitFragment;
 import Lighting; // use it's lighting function
 
 [shader("vertex")]

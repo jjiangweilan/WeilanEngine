@@ -38,6 +38,7 @@ private:
     ObjPtr<Shader> shadowMapShader;
     ObjPtr<Shader> shadowMapShaderGPUDriven;
     ObjPtr<Shader> shadowMapShaderTerrain;
+    ObjPtr<Shader> shadowMapShaderTree;
     ObjPtr<Shader> terrainShader;
 
     float currentFarPlane = 10.0f;

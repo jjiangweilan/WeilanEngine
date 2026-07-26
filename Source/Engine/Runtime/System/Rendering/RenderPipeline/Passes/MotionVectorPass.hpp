@@ -58,6 +58,8 @@ private:
     Gfx::RenderPass staticRenderPass = Gfx::RenderPass(1, 1);
 
     ObjPtr<Shader> dynamicShader;
+    ObjPtr<Shader> treeMotionShader;
+    ObjPtr<Shader> treeDynamicMotionShader;
 
     Gfx::ImageIdentifier motionVector = "MotionVector";
     bool debugView = false;

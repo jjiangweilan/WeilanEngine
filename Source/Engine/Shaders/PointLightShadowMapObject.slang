@@ -2,8 +2,10 @@ import Library.PerScene;
 import WeilanEngine;
 import ObjectWorldPosition;
 import TerrainCommon;
+import TreeWind;
 
 static extern const bool _Terrain = false;
+static extern const bool _TreeWind = false;
 
 #if CONFIG
 cull: back
@@ -47,7 +49,9 @@ VertexOutput VertexMain(uint vertexIndex : SV_VertexID, uint drawIndex : SV_Draw
     float3 localPosition = entity.GetPosition();
     if (_Terrain)
         localPosition = ApplyTerrainDisplacement(perScene, material, localPosition, entity.GetUV());
-    float3 positionWS = mul(objectModelMatrix, float4(localPosition, 1.0)).xyz;
+    float3 positionWS = _TreeWind
+                            ? ApplyTreeWind(localPosition, objectModelMatrix, material, perScene.scene.time)
+                            : mul(objectModelMatrix, float4(localPosition, 1.0)).xyz;
 
     VertexOutput output;
     output.positionWS = positionWS;

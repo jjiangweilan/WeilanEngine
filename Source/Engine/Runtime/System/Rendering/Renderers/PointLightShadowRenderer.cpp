@@ -42,6 +42,10 @@ void PointLightShadowRenderer::Init()
         Shaders::PointLightShadowMapObject,
         {"_GPUDriven", "_Terrain"}
     );
+    shadowMapShaderTree = ShaderLibrary::GetShader(
+        Shaders::PointLightShadowMapObject,
+        {"_GPUDriven", "_TreeWind"}
+    );
     terrainShader = ShaderLibrary::GetShader(Shaders::Terrain);
 
     CreateCubemapResources();
@@ -155,6 +159,7 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
     auto program = shadowMapShader->GetShaderProgram();
     auto programGPUDriven = shadowMapShaderGPUDriven->GetShaderProgram();
     auto programTerrain = shadowMapShaderTerrain->GetShaderProgram();
+    auto programTree = shadowMapShaderTree->GetShaderProgram();
     auto terrainProgram = terrainShader->GetShaderProgram();
 
     Gfx::Viewport viewport = {0, 0, (float)shadowMapSize, (float)shadowMapSize, 0, 1};
@@ -180,9 +185,12 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
             if (draw.skinned)
                 continue;
 
-            auto* programUsed = draw.material != nullptr && draw.material->GetShaderProgram() == terrainProgram
+            auto* materialProgram = draw.material != nullptr ? draw.material->GetShaderProgram() : nullptr;
+            bool isTree = materialProgram != nullptr &&
+                          materialProgram->GetName() == ShaderLibrary::GetShaderName(Shaders::TreeSceneLit);
+            auto* programUsed = materialProgram == terrainProgram
                                     ? programTerrain
-                                    : program;
+                                    : isTree ? programTree : program;
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(programUsed, (void*)&ps);
             cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
@@ -196,7 +204,11 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
                 if (!group.castsShadows)
                     continue;
 
-                auto* programUsed = group.shaderProgram == terrainProgram ? programTerrain : programGPUDriven;
+                bool isTree = group.shaderProgram->GetName() ==
+                              ShaderLibrary::GetShaderName(Shaders::TreeSceneLit);
+                auto* programUsed = group.shaderProgram == terrainProgram
+                                        ? programTerrain
+                                        : isTree ? programTree : programGPUDriven;
                 cmd.BindShaderProgram(programUsed, *group.pipelineConfig);
                 cmd.BindIndexBuffer(GPUDrivenManager::Instance().GetGlobalBuffer(), 0, Gfx::IndexBufferType::UInt32);
 

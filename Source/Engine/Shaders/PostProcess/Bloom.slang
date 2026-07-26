@@ -64,7 +64,7 @@ float4 DownsampleBox13Tap(Texture2D tex, SamplerState s, float2 uv, float2 texel
     o += (F + G + L + K) * div.y;
     o += (G + H + M + L) * div.y;
 
-    return o;
+    return clamp(o, 0, 3);
 }
 
 float4 UpsampleTent(Texture2D tex, SamplerState s, float2 uv, float2 texelSize, float4 sampleScale)
