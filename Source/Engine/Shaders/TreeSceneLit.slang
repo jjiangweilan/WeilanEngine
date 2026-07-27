@@ -102,12 +102,6 @@ struct TreeVertexOutput
     float3 worldPosition = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
     matrix<float, 3, 3> model33 = hasBoneWeight ? (float3x3)modelMatrix : (float3x3)invTspModelMatrix;
 
-    float3 viewDirectionWS =
-        normalize(worldPosition - perScene.camera.position.xyz);
-    float3 trueNormal = entity.GetColor(perScene, 0).xyz;
-    float3 trueNormalWS = mul((float3x3)invTspModelMatrix, trueNormal * 2 - 1);
-    float billboardFade = abs(dot(viewDirectionWS, trueNormalWS));
-
     TreeVertexOutput output = (TreeVertexOutput)0;
     output.base.position = mul(perScene.camera.viewProjection, float4(worldPosition, 1.0f));
     output.base.positionWS = worldPosition;
@@ -117,6 +111,20 @@ struct TreeVertexOutput
     output.base.uv = entity.GetUV();
     output.base.objectOffset = drawExtra.objectOffset;
     output.base.renderDataIndex = drawExtra.renderDataIndex;
+
+    float3 viewDirectionWS =
+        normalize(worldPosition - perScene.camera.position.xyz);
+    float3 trueNormal = entity.GetColor(perScene, 0).xyz * 2 - 1;
+    // blender attribute export fix
+    trueNormal = float3(
+        trueNormal.x,
+        trueNormal.z,
+        -trueNormal.y
+    );
+
+    float3 trueNormalWS = normalize(mul((float3x3)invTspModelMatrix, trueNormal));
+    float billboardFade = saturate(abs(dot(viewDirectionWS, trueNormalWS)));
+
     output.billboardFade = billboardFade;
     return output;
 }
@@ -131,6 +139,5 @@ TreeVertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_Dra
 FragmentOutput FragmentMain(TreeVertexOutput input)
 {
     FragmentOutput output = SceneLitFragment(input.base, _AlphaClip);
-    output.albedo = input.billboardFade;
     return output;
 }
