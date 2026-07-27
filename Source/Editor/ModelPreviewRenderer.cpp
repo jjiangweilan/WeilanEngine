@@ -232,7 +232,7 @@ bool ModelPreviewRenderer::RenderPreview(PreviewEntry& entry, Gfx::CommandBuffer
     cmd.BindResource(0, entry.blitMaterial->GetShaderResource());
     cmd.BindShaderProgram(
         entry.blitShader->GetShaderProgram(),
-        entry.blitShader->GetShaderProgram()->GetDefaultShaderConfig()
+        entry.blitShader->GetShaderProgram()->GetDefaultPipelineConfig()
     );
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();

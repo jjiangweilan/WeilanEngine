@@ -86,7 +86,7 @@ void ContactShadowPass::Execute(
 
         auto* prog = shader->GetShaderProgram();
         cmd.BindResource(0, mat.GetShaderResource());
-        cmd.BindShaderProgram(prog, prog->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(prog, prog->GetDefaultPipelineConfig());
         cmd.SetPushConstant(prog, &ps);
 
         // Dispatch: (x,y,z) = (waveCountX, waveCountY, waveCountZ)

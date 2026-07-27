@@ -33,7 +33,7 @@ void GenerateBRDFResponseTexture(const char* path)
     glm::vec4 texelSize = {1.0f / imgDesc.width, 1.0f / imgDesc.height, imgDesc.width, imgDesc.height};
     cmd->SetPushConstant(program, &texelSize);
     cmd->SetTexture("_Dst", *dst);
-    cmd->BindShaderProgram(program, program->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(program, program->GetDefaultPipelineConfig());
     cmd->Dispatch(glm::ceil(imgDesc.width / 8), glm::ceil(imgDesc.height / 8), 1);
 
     Gfx::BufferImageCopyRegion regions[] = {

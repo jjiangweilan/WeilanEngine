@@ -71,7 +71,7 @@ void DisplayTransformPass::Execute(
 
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd.BeginRenderPass(pass, clears);
-    cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader, shader->GetDefaultPipelineConfig());
     cmd.BindResource(0, mat.GetShaderResource());
 
     cmd.Draw(6, 1, 0, 0);

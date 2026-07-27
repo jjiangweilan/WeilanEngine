@@ -4,7 +4,7 @@
 #include "Engine/Driver/GfxDriver/Buffer.hpp"
 #include "Engine/Driver/GfxDriver/GfxDriver.hpp"
 #include "Engine/Driver/GfxDriver/Image.hpp"
-#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Driver/GfxDriver/PipelineConfig.hpp"
 #include "Engine/Runtime/Object/Texture/Texture.hpp"
 #include "Engine/Runtime/System/Rendering/GPUDriven/GPUDrivenManager.hpp"
 #include "Engine/Runtime/System/Rendering/Shader.hpp"
@@ -94,12 +94,12 @@ public:
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    const Gfx::PipelineConfig& GetShaderConfig();
+    const Gfx::PipelineConfig& GetPipelineConfig();
 
-    void SetShaderConfig(const Gfx::PipelineConfig::PipelineConfig_t& shaderConfig)
+    void SetPipelineConfig(const Gfx::PipelineConfig::PipelineConfig_t& pipelineConfig)
     {
-        overrideShaderConfig = true;
-        this->shaderConfig = shaderConfig;
+        overridePipelineConfig = true;
+        this->pipelineConfig = pipelineConfig;
     }
 
     void OnLoaded() override;
@@ -167,8 +167,8 @@ private:
     std::string shaderName;
     const ShaderFeatures* shaderFeatures = nullptr;
     ObjPtr<Shader> shaderInUse = nullptr;
-    Gfx::PipelineConfig shaderConfig;
-    bool overrideShaderConfig = false;
+    Gfx::PipelineConfig pipelineConfig;
+    bool overridePipelineConfig = false;
     Gfx::DescriptorSetSemantics targetDescriptorSet = Gfx::DescriptorSetSemantics::Material;
 
     // std::unordered_map<std::string, UBO> ubos;

@@ -44,7 +44,7 @@ void SSIL::GeometryPass::Execute(
     int dispatchY = (halfResSize.y + 7) / 8;
 
     cmd->BindResource(1, mat.GetShaderResource());
-    cmd->BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd->Dispatch(dispatchX, dispatchY, 1);
 }
 
@@ -98,7 +98,7 @@ void SSIL::BilateralFilterPass::Execute(
     int dispatchY = (highResTexSize.y + 7) / 8;
 
     cmd->BindResource(1, mat.GetShaderResource());
-    cmd->BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd->Dispatch(dispatchX, dispatchY, 1);
 }
 
@@ -208,7 +208,7 @@ void SSIL::Execute(
         auto* smoothNormalProgram = smoothNormalMat.GetShaderProgram();
         cmd->BindResource(0, renderingData.globalResource);
         cmd->BindResource(smoothNormalMat.GetSet(Gfx::DescriptorSetSemantics::Material), smoothNormalMat.GetShaderResource());
-        cmd->BindShaderProgram(smoothNormalProgram, smoothNormalProgram->GetDefaultShaderConfig());
+        cmd->BindShaderProgram(smoothNormalProgram, smoothNormalProgram->GetDefaultPipelineConfig());
         cmd->Dispatch((fullWidth + 7) / 8, (fullHeight + 7) / 8, 1);
     }
 
@@ -263,7 +263,7 @@ void SSIL::Execute(
         auto shaderProgram = mat.GetShaderProgram();
         cmd->BindResource(0, renderingData.globalResource);
         cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-        cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
         cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
     }
 
@@ -326,7 +326,7 @@ void SSIL::Execute(
         temporalAccumulationMat.GetSet(Gfx::DescriptorSetSemantics::Material),
         temporalAccumulationMat.GetShaderResource()
     );
-    cmd->BindShaderProgram(temporalProgram, temporalProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(temporalProgram, temporalProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((fullWidth + 7) / 8, (fullHeight + 7) / 8, 1);
 
     cmd->EndLabel();

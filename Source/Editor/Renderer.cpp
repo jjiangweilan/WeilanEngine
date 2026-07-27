@@ -153,12 +153,12 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
     uint32_t globalIdxOffset = 0;
     uint32_t globalVtxOffset = 0;
 
-    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd.BindIndexBuffer(indexBuffer.get(), 0, Gfx::IndexBufferType::UInt16);
 
     BindTexture(cmd, &fontImage->GetDefaultImageView());
 
-    // cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
+    // cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultPipelineConfig());
     // cmdBuf->BindResource(imGuiData.generalShaderRes);
     // cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16);
     //

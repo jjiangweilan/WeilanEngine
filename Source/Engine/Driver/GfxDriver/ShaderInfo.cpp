@@ -118,7 +118,7 @@
 //    nlohmann::json& typeJson,
 //    nlohmann::json& root,
 //    const std::string& memberName,
-//    const ShaderConfig& config
+//    const PipelineConfig& config
 //)
 //{
 //    data.type = MapShaderDataType(typeJson);
@@ -188,7 +188,7 @@
 //    }
 //}
 //
-//void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root, const ShaderConfig& config)
+//void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root, const PipelineConfig& config)
 //{
 //    out.clear();
 //    out.resize(inputsJson.size());
@@ -205,7 +205,7 @@
 //    }
 //}
 //
-//void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root, const ShaderConfig& config)
+//void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root, const PipelineConfig& config)
 //{
 //    out.clear();
 //    for (auto& outputJson : outputsJson)
@@ -223,7 +223,7 @@
 //    ShaderStage::Flag stage,
 //    nlohmann::json& pushConstantsJson,
 //    nlohmann::json& root,
-//    const ShaderConfig& config
+//    const PipelineConfig& config
 //)
 //{
 //    for (auto& pushConstantJson : pushConstantsJson)
@@ -277,7 +277,7 @@
 //    return SamplerFilterMode::Point;
 //}
 //
-//void Process(ShaderStageInfo& out, nlohmann::json& sr, const ShaderConfig& config)
+//void Process(ShaderStageInfo& out, nlohmann::json& sr, const PipelineConfig& config)
 //{
 //    out.name = sr.at("spvPath");
 //    ASSERT(sr["entryPoints"].size() == 1);
@@ -319,7 +319,7 @@
 //    ShaderStage::Flag stage,
 //    nlohmann::json& bindingsJson,
 //    nlohmann::json& root,
-//    const ShaderConfig& config
+//    const PipelineConfig& config
 //)
 //{
 //    for (auto& bindingJson : bindingsJson)

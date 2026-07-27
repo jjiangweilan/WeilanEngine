@@ -561,7 +561,7 @@ void TerrainPaintTool::DrawBrush(Gfx::CommandBuffer& cmd)
         lineShader.GetSet(Gfx::DescriptorSetSemantics::Material),
         std::vector<Gfx::DynamicBinding>{Gfx::DynamicBinding("lineData", lineBuffer)}
     );
-    cmd.BindShaderProgram(lineProgram, lineProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(lineProgram, lineProgram->GetDefaultPipelineConfig());
     cmd.Draw(static_cast<uint32_t>(lines.size() * 2), 1, 0, 0);
 }
 

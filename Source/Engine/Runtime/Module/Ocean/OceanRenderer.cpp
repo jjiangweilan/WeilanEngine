@@ -96,12 +96,12 @@ void OceanRenderer::DrawPatches(Gfx::CommandBuffer& cmd, Material& waveMaterial,
     );
     if (renderPipelineSettings->debugDraw.wireframe)
     {
-        auto config = *shader->GetDefaultShaderConfig();
+        auto config = *shader->GetDefaultPipelineConfig();
         config.polygonMode = Gfx::PolygonMode::Line;
         cmd.BindShaderProgram(shader, config);
     }
     else
-        cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(shader, shader->GetDefaultPipelineConfig());
     for (auto& patchLodData : patchLodDatas)
     {
         auto submesh = patchLodData.patch->GetSubmesh(0);

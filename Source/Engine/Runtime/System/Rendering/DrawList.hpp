@@ -1,6 +1,6 @@
 #pragma once
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
-#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Driver/GfxDriver/PipelineConfig.hpp"
 #include "Engine/Runtime/Object/Component/MeshRenderer.hpp"
 #include "Engine/Runtime/System/Rendering/Material.hpp"
 #include <glm/glm.hpp>
@@ -15,7 +15,7 @@ struct SceneObjectDrawData
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
     bool skinned = false;
     Shader* shader = nullptr;
-    const Gfx::PipelineConfig* shaderConfig = nullptr;
+    const Gfx::PipelineConfig* pipelineConfig = nullptr;
     Material* material = nullptr;
     int materialSet = 0;
     int passSet = -1;

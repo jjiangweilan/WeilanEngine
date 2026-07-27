@@ -52,14 +52,15 @@ public:
         }
 
         {
-            auto cfgPtr = target->GetShaderConfig();
+            auto cfgPtr = target->GetPipelineConfig();
             int cullMode = (int)cfgPtr->cullMode;
             static const char* CullModeNames[] = {"None", "Front", "Back", "Both"};
             if (ImGui::Combo("Cull Mode", &cullMode, CullModeNames, (int)Gfx::CullMode::MAX_COUNT - 1))
             {
-                Gfx::PipelineConfig::PipelineConfig_t newCfg = *target->GetShaderConfig();
+                Gfx::PipelineConfig::PipelineConfig_t newCfg = *target->GetPipelineConfig();
                 newCfg.cullMode = (Gfx::CullMode)cullMode;
-                target->SetShaderConfig(newCfg);
+                target->SetPipelineConfig(newCfg);
+                target->SetDirty(true);
             }
         }
 

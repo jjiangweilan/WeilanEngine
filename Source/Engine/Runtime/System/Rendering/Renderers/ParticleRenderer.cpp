@@ -17,7 +17,7 @@ void ParticleRenderer::Draw(Gfx::CommandBuffer& cmd, const ParticleDraw& draw)
 
         cmd.BindIndexBuffer(draw.instancingMesh->GetIndexBuffer(), 0, draw.instancingMesh->GetIndexBufferType());
         cmd.BindVertexBuffer(draw.instancingMesh->GetGfxVertexBufferBindings(), 0);
-        cmd.BindShaderProgram(particleShader, particleShader->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(particleShader, particleShader->GetDefaultPipelineConfig());
         cmd.BindResource(parameterSetIdx, draw.particleShaderParameters);
         cmd.SetPushConstant(particleShader, (void*)&draw.rootTransform[0]);
         cmd.DrawIndexed(draw.instancingMesh->GetIndexCount(), draw.particleCount, 0, 0, 0);

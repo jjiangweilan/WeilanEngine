@@ -1002,7 +1002,7 @@ void RenderPipeline::BuildGPUObjectDrawData(Gfx::CommandBuffer& cmd, RenderingSc
             if (mat)
             {
                 auto geometryDescriptor = renderer->GetGpuGeometry(static_cast<int>(renderDataListIndex));
-                auto& config = mat->GetShaderConfig();
+                auto& config = mat->GetPipelineConfig();
                 flatDrawInfos.push_back({mat->GetShaderProgram(), &config, motionState, config.GetHash(), geometryDescriptor.geometry.indexCount, static_cast<uint32_t>(geometryDescriptor.geometry.indexOffset / sizeof(uint32_t)), static_cast<uint32_t>(renderDataListIndex), static_cast<uint32_t>(gpuObjectDescriptor.dataAlloc.offset), previousSkeletonOffset, renderer->CastsShadows()});
             }
         }

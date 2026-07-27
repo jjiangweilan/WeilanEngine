@@ -222,7 +222,7 @@ void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
             cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
             cmd.BindVertexBuffer(bindings, 0);
             cmd.SetPushConstant(shader, &drawMesh.model);
-            cmd.BindShaderProgram(shader, mat->GetShaderConfig());
+            cmd.BindShaderProgram(shader, mat->GetPipelineConfig());
             cmd.BindResource(mat->GetSet(Gfx::DescriptorSetSemantics::Material), mat->GetShaderResource());
             cmd.DrawIndexed(submesh->GetIndexCount(), 1, 0, 0, 0);
         }
@@ -239,7 +239,7 @@ void Graphics::DrawLinesCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     int lineSet = lineShader.GetSet(Gfx::DescriptorSetSemantics::Material);
 
     cmd.BindResource(lineSet, std::vector<Gfx::DynamicBinding>{Gfx::DynamicBinding("lineData", drawLine.lineBuffer)});
-    cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultPipelineConfig());
     cmd.Draw(static_cast<uint32_t>(drawLine.lines.size() * 2), 1, 0, 0);
 }
 
@@ -258,7 +258,7 @@ void Graphics::DrawCubeCommand(Gfx::CommandBuffer& cmd, DrawCubeCmd& draw)
     cmd.BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());
     cmd.BindVertexBuffer(cube->GetGfxVertexBufferBindings(), 0);
     cmd.SetPushConstant(program, &m);
-    cmd.BindShaderProgram(program, mat->GetShaderConfig());
+    cmd.BindShaderProgram(program, mat->GetPipelineConfig());
     cmd.DrawIndexed(cube->GetIndexCount(), 1, 0, 0, 0);
 }
 
@@ -279,10 +279,10 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     cmd.BindIndexBuffer(cylinder->GetIndexBuffer(), 0, cylinder->GetIndexBufferType());
     cmd.BindVertexBuffer(cylinder->GetGfxVertexBufferBindings(), 0);
     cmd.SetPushConstant(program, &cylinderMatrix);
-    const Gfx::PipelineConfig& config = mat->GetShaderConfig();
+    const Gfx::PipelineConfig& config = mat->GetPipelineConfig();
     if (config->polygonMode != Gfx::PolygonMode::Line)
     {
-        auto config = *mat->GetShaderConfig();
+        auto config = *mat->GetPipelineConfig();
         cmd.BindShaderProgram(program, config);
     }
     else
@@ -327,7 +327,7 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
 
     Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetTriangleShader().GetShaderProgram();
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
-    cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultPipelineConfig());
     cmd.Draw(3, 1, 0, 0);
 }
 
@@ -339,7 +339,7 @@ void Graphics::DrawPlaneCommand(Gfx::CommandBuffer& cmd, DrawPlaneCmd& draw)
     static auto GetConfig = []()
     {
         Material* mat = EngineInternalResources::GetDefaultMaterial();
-        const Gfx::PipelineConfig& config = mat->GetShaderConfig();
+        const Gfx::PipelineConfig& config = mat->GetPipelineConfig();
         auto config_v = *config;
         config_v.cullMode = Gfx::CullMode::None;  // Because the plane is single sided
         return config_v;

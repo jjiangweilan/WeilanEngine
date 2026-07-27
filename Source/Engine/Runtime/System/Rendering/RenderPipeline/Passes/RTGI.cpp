@@ -65,7 +65,7 @@ void RTGI::Execute(
 
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-    cmd->BindShaderProgram(rtProgram, rtProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(rtProgram, rtProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     cmd->EndLabel();

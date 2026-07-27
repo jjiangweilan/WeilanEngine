@@ -26,7 +26,7 @@ void GeometryRendering::DrawWireBox(Gfx::CommandBuffer& cmd, const Box& box)
 
         Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
         cmd.SetPushConstant(lineShaderProgram, (void*)&data);
-        cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultPipelineConfig());
         cmd.Draw(2, 1, 0, 0);
     }
 }

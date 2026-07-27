@@ -40,7 +40,7 @@ void PixelZoomPass::Execute(
     cmd.BeginRenderPass(attachments, clears);
     cmd.SetPushConstant(shader->GetShaderProgram(), &pc);
     cmd.BindResource(0, resource.get());
-    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();
 }

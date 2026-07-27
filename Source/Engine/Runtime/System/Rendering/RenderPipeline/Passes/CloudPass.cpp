@@ -23,7 +23,7 @@ void CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, RenderingData& re
     volumetricCloud
         ->SetTexture("depthMap", renderingData.depthCopy, Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth});
     volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
-    cmd.BindShaderProgram(volumetricCloud->GetShader()->GetShaderProgram(), volumetricCloud->GetShaderConfig());
+    cmd.BindShaderProgram(volumetricCloud->GetShader()->GetShaderProgram(), volumetricCloud->GetPipelineConfig());
     cmd.BindResource(
         volumetricCloud->GetSet(Gfx::DescriptorSetSemantics::Material),
         volumetricCloud->GetShaderResource()

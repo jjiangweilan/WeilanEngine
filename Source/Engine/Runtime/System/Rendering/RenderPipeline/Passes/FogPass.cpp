@@ -23,7 +23,7 @@ void FogPass::Execute(Gfx::CommandBuffer& cmd, Gfx::ImageIdentifier& outputColor
         cmd.BeginRenderPass(color, clears);
 
         auto shaderProgram = shader->GetShaderProgram();
-        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
         cmd.BindResource(1, {
                                 Gfx::DynamicBinding("shaderInput", *fogInputBuffer),
                                 Gfx::DynamicBinding("depthTexture", depthCopy),

@@ -171,7 +171,7 @@ void RmlUiRenderer::RenderGeometry(
     pushConstant.usePointFilter = usePointFilter;
 
     Gfx::VertexBufferBinding vertexBinding[] = {{geometry->block->vertexBuffer.get(), geometry->vertexOffset}};
-    activeCmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+    activeCmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
     activeCmd->BindVertexBuffer(vertexBinding, 0);
     activeCmd->BindIndexBuffer(geometry->block->indexBuffer.get(), geometry->indexOffset, Gfx::IndexBufferType::UInt32);
     activeCmd->SetPushConstant(shaderProgram, &pushConstant);

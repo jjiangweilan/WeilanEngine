@@ -64,7 +64,7 @@ void LightingCombinePass::Execute(
     );
     auto shaderProgram = mat.GetShaderProgram();
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-    cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     cmd->EndLabel();

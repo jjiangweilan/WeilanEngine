@@ -421,7 +421,7 @@
 //
 //     RGraph::DrawData drawDataOverride;
 //     drawDataOverride.shader = feedbackPassData.shader->GetDefaultShaderProgram().Get();
-//     drawDataOverride.shaderConfig = &feedbackPassData.shader->GetDefaultShaderConfig();
+//     drawDataOverride.pipelineConfig = &feedbackPassData.shader->GetDefaultPipelineConfig();
 //     drawDataOverride.shaderResource = feedbackPassData.resource.Get();
 //     drawDataOverride.scissor = Rect2D{{0, 0}, {g.feedbackTex->width, g.feedbackTex->height}};
 //     g.feedbackPass->OverrideDrawData(drawDataOverride);

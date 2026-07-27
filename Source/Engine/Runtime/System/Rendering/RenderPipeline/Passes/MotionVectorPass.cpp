@@ -72,7 +72,7 @@ void MotionVectorPass::DrawStaticMotionVectors(
 
     auto shaderProgram = staticMaterial.GetShaderProgram();
     cmd.BindResource(staticMaterial.GetSet(Gfx::DescriptorSetSemantics::Material), staticMaterial.GetShaderResource());
-    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
     cmd.Draw(6, 1, 0, 0);
 
     cmd.EndRenderPass();
@@ -145,7 +145,7 @@ void MotionVectorPass::DrawDynamicAndGrassMotionVectors(
                 motionShader->GetSet(Gfx::DescriptorSetSemantics::Global),
                 renderingData.globalResource
             );
-            cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
 
             pconst.firstGpuObjectOffset = group.firstDrawIndex;
             pconst.firstDynamicMotionDataByteOffset = group.hasMotion

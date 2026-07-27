@@ -8,7 +8,7 @@
 #include "Image.hpp"
 #include "RenderGraph.hpp"
 #include "RenderPass.hpp"
-#include "ShaderConfig.hpp"
+#include "PipelineConfig.hpp"
 #include "ShaderResource.hpp"
 #include "VertexBufferBinding.hpp"
 #include <memory>

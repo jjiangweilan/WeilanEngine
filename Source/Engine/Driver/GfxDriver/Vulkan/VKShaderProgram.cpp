@@ -625,7 +625,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     if (HasFlag(pipelineInfo.shaderDynamicStateFlags, ShaderDynamicState::DepthBiasEnable))
         dynamicState.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE);
 
-    // TODO: these dynamic states need to be handled, some of them are currently compared in ShaderConfig, we need to
+    // TODO: these dynamic states need to be handled, some of them are currently compared in PipelineConfig, we need to
     // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_BLEND_CONSTANTS,
     // VK_DYNAMIC_STATE_DEPTH_BOUNDS,
     // VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK,

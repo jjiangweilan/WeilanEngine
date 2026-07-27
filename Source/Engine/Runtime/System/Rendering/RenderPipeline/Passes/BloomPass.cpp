@@ -71,7 +71,7 @@ void BloomPass::Execute(
     }
 
     auto shaderProgram = shader->GetShaderProgram();
-    auto& shaderConfig = shaderProgram->GetDefaultShaderConfig();
+    auto& pipelineConfig = shaderProgram->GetDefaultPipelineConfig();
 
     glm::vec4 params = {settings.threshold, settings.intensity, settings.knee, settings.scatter};
 
@@ -85,7 +85,7 @@ void BloomPass::Execute(
         renderingData.pipelineAllocator->AllocateBuffer(pipelineGPUBuffer, sizeof(BloomInput));
         pipelineGPUBuffer.Write(&inputData, sizeof(BloomInput));
 
-        cmd.BindShaderProgram(shaderProgram, shaderConfig);
+        cmd.BindShaderProgram(shaderProgram, pipelineConfig);
         cmd.BindResource(0, {Gfx::DynamicBinding("buffer", *pipelineGPUBuffer.GetBuffer()), Gfx::DynamicBinding("src", src), Gfx::DynamicBinding("dst", dst)});
         cmd.Dispatch((w + 7) / 8, (h + 7) / 8, 1);
     };

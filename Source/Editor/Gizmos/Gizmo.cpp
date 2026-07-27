@@ -34,7 +34,7 @@ public:
             dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
-        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultPipelineConfig());
         cmd.Draw(6, 1, 0, 0);
     }
 
@@ -85,7 +85,7 @@ public:
             dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
-        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultPipelineConfig());
         cmd.Draw(6, 1, 0, 0);
     }
 
@@ -139,7 +139,7 @@ public:
             dynamicBindings
         );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
-        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultPipelineConfig());
         cmd.Draw(6, 1, 0, 0);
     }
 

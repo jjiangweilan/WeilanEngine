@@ -36,7 +36,7 @@ void Shader2HumanDebugPass::Execute(
     auto* mergeProgram = mergeMat.GetShaderProgram();
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(mergeMat.GetSet(Gfx::DescriptorSetSemantics::Material), mergeMat.GetShaderResource());
-    cmd->BindShaderProgram(mergeProgram, mergeProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(mergeProgram, mergeProgram->GetDefaultPipelineConfig());
     
     int width = screenSize.x;
     int height = screenSize.y;

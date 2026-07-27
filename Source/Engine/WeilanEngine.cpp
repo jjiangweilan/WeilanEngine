@@ -185,7 +185,7 @@ void WeilanEngine::StartEngine()
                 };
 
                 cmd->BeginRenderPass(attachments, clears);
-                cmd->BindShaderProgram(blitShader->GetShaderProgram(), blitShader->GetShaderProgram()->GetDefaultShaderConfig());
+                cmd->BindShaderProgram(blitShader->GetShaderProgram(), blitShader->GetShaderProgram()->GetDefaultPipelineConfig());
                 cmd->BindResource(blitShader->GetSet("perMaterial"), bindings);
                 cmd->Draw(6, 1, 0, 0);
                 cmd->EndRenderPass();

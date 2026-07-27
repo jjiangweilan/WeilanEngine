@@ -40,7 +40,7 @@ void RayTracingTestPass::Execute(
     auto shaderProgram = shader->GetShaderProgram();
     cmd.BindResource(0, perSceneResource);
     cmd.BindResource(1, dynamicBindings);
-    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
     cmd.Draw(6, 1, 0, 0);
 
     cmd.EndRenderPass();

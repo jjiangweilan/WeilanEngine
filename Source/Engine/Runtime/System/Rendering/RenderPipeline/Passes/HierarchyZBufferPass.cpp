@@ -47,7 +47,7 @@ void HierarchyZBufferPass::Execute(
         mip0Material.SetVector("dstTexelSize", glm::vec4(1.0f / width, 1.0f / height, width, height));
 
         auto shaderProgram = mip0Material.GetShaderProgram();
-        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
         cmd.BindResource(mip0Material.GetSet(Gfx::DescriptorSetSemantics::Material), mip0Material.GetShaderResource());
         cmd.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
     }
@@ -82,7 +82,7 @@ void HierarchyZBufferPass::Execute(
         mat.SetVector("dstTexelSize", glm::vec4(1.0f / dstW, 1.0f / dstH, dstW, dstH));
 
         auto shaderProgram = mat.GetShaderProgram();
-        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
         cmd.BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
         cmd.Dispatch((dstW + 7) / 8, (dstH + 7) / 8, 1);
 

@@ -216,7 +216,7 @@ void GameView::Render(
             cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
             cmd.BindShaderProgram(
                 editorFinalColorBlitShader->GetShaderProgram(),
-                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
+                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultPipelineConfig()
             );
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();

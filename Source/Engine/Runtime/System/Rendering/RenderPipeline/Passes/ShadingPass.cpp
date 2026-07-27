@@ -80,7 +80,7 @@ void ShadingPass::Execute(
         gpuResource->SetImage("pointLightShadowMap"_shaderBinding, pointLightShadowMap);
 
     cmd.BindResource(1, gpuResource.get());
-    cmd.BindShaderProgram(shadingShader, MakeStencilReadConfig(*shadingShader->GetDefaultShaderConfig(), 1));
+    cmd.BindShaderProgram(shadingShader, MakeStencilReadConfig(*shadingShader->GetDefaultPipelineConfig(), 1));
     cmd.Draw(6, 1, 0, 0);
 }
 
@@ -102,7 +102,7 @@ void ShadingPass::ExecuteGrassLighting(
     grassLightingResource->SetImage("shadowMap"_shaderBinding, shadowMap);
     grassLightingResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusion);
     cmd.BindResource(materialSet, grassLightingResource.get());
-    cmd.BindShaderProgram(grassLightingProgram, MakeStencilReadConfig(*grassLightingProgram->GetDefaultShaderConfig(), 2));
+    cmd.BindShaderProgram(grassLightingProgram, MakeStencilReadConfig(*grassLightingProgram->GetDefaultPipelineConfig(), 2));
     cmd.Draw(6, 1, 0, 0);
 }
 

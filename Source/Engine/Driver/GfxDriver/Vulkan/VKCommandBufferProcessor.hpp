@@ -146,8 +146,8 @@ private:
         VkPipeline lastBindedPipeline = VK_NULL_HANDLE;
         VKShaderProgram* pendingBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;        // shader that is actually binded
-        PipelineConfig shaderConfig;
-        PipelineConfig pendingShaderConfig;
+        PipelineConfig pipelineConfig;
+        PipelineConfig pendingPipelineConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         VKBuffer* vertexBufferBindings[8];
         VkBuffer resolvedVertexBuffers[8];

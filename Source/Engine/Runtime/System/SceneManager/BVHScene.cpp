@@ -416,9 +416,9 @@ void BVHScene::BVHDebug()
     Material& mat = GetBVHDebugMaterial();
     Frustum frustum = scene->GetMainCamera()->GetFrustum();
 
-    auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
+    auto config = *mat.GetShaderProgram()->GetDefaultPipelineConfig();
     config.polygonMode = Gfx::PolygonMode::Line;
-    mat.SetShaderConfig(config);
+    mat.SetPipelineConfig(config);
 
     auto drawAABB = [&](const AABB& aabb)
     {

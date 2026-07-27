@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Driver/GfxDriver/PipelineConfig.hpp"
 #include "Engine/Driver/GfxDriver/GfxEnums.hpp"
 #include "Engine/Driver/GfxDriver/ShaderPipelineInfo.hpp"
 #include "Engine/Driver/GfxDriver/VertexAttributes.hpp"

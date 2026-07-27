@@ -69,7 +69,7 @@ void DepthAwareBilateralUpsampler::Execute(Gfx::CommandBuffer& cmd)
     int dispatchY = (highResTexSize.y + 7) / 8;
 
     cmd.BindResource(1, resource.GetShaderResource());
-    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd.Dispatch(dispatchX, dispatchY, 1);
 }
 } // namespace Rendering::Passes

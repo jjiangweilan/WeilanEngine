@@ -117,7 +117,7 @@ void TAAPass::Execute(
     auto* program = resolveMaterial.GetShaderProgram();
     cmd.BindResource(0, renderingData.globalResource);
     cmd.BindResource(resolveMaterial.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMaterial.GetShaderResource());
-    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(program, program->GetDefaultPipelineConfig());
     cmd.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
     cmd.EndLabel();
 
@@ -135,7 +135,7 @@ void TAAPass::Execute(
         sharpenMaterial.GetSet(Gfx::DescriptorSetSemantics::Material),
         sharpenMaterial.GetShaderResource()
     );
-    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(program, program->GetDefaultPipelineConfig());
     cmd.Dispatch((width + 7) / 8, (height + 7) / 8, 1);
     cmd.EndLabel();
 

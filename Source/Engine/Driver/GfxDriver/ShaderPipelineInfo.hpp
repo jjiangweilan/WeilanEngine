@@ -1,6 +1,6 @@
 #pragma once
 #include "ResourceHandle.hpp"
-#include "ShaderConfig.hpp"
+#include "PipelineConfig.hpp"
 #include "ShaderPipelineInfo.hpp"
 #include "VertexAttributes.hpp"
 #include <cinttypes>

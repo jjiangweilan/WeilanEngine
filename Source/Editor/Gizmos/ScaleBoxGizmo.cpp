@@ -139,7 +139,7 @@ void ScaleBoxGizmo::Draw(Gfx::CommandBuffer& cmd)
         cmd.BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());
         cmd.BindVertexBuffer(cube->GetGfxVertexBufferBindings(), 0);
         cmd.SetPushConstant(program, &finalM);
-        cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(program, program->GetDefaultPipelineConfig());
         cmd.DrawIndexed(cube->GetIndexCount(), 1, 0, 0, 0);
     }
 

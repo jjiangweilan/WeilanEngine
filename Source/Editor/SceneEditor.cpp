@@ -485,7 +485,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
             cmd.BindShaderProgram(
                 editorFinalColorBlitShader->GetShaderProgram(),
-                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
+                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultPipelineConfig()
             );
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
@@ -1298,7 +1298,7 @@ void SceneEditor::RenderObjectToOutlineRT(Gfx::CommandBuffer& cmd, GameObject*& 
         cmd.BindResource(0, renderPipeline->GetPerSceneGPUResource());
         cmd.BindShaderProgram(
             outlineRawColorPassShader->GetShaderProgram(),
-            outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
+            outlineRawColorPassShader->GetShaderProgram()->GetDefaultPipelineConfig()
         );
         for (auto& draw : drawList)
         {
@@ -1372,7 +1372,7 @@ void SceneEditor::DrawOutlineAndGizmos(Gfx::CommandBuffer& cmd, Gfx::Image* scen
             cmd.BindResource(0, outlineGPUResource.get());
             cmd.BindShaderProgram(
                 outlineFullScreenPassShader->GetShaderProgram(),
-                outlineFullScreenPassShader->GetShaderProgram()->GetDefaultShaderConfig()
+                outlineFullScreenPassShader->GetShaderProgram()->GetDefaultPipelineConfig()
             );
             cmd.Draw(6, 1, 0, 0);
         }

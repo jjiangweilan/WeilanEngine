@@ -52,7 +52,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     cmd->SetTexture("_Dst", *dstCuebmap);
     glm::vec4 texelSize = {1.0f / irradianceMapSize, 1.0f / irradianceMapSize, irradianceMapSize, irradianceMapSize};
     cmd->SetPushConstant(compute->GetShaderProgram(), &texelSize);
-    cmd->BindShaderProgram(compute->GetShaderProgram(), compute->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(compute->GetShaderProgram(), compute->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd->Dispatch(irradianceMapSize / 8, irradianceMapSize / 8, 6);
 
     auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
@@ -137,7 +137,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         Shader* shaderProgram = nullptr;//  compute->GetShaderProgram({ "LIGHT_IBL" });
         cmd->BindResource(2, mat->GetShaderResource());
         cmd->SetPushConstant(shaderProgram->GetShaderProgram(), &pc);
-        cmd->BindShaderProgram(shaderProgram->GetShaderProgram(), shaderProgram->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd->BindShaderProgram(shaderProgram->GetShaderProgram(), shaderProgram->GetShaderProgram()->GetDefaultPipelineConfig());
         cmd->Dispatch(glm::ceil(mipCubemapSize / 8.0f), glm::ceil(mipCubemapSize / 8), 6);
     }
 

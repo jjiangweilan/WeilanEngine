@@ -83,7 +83,7 @@ void Cloud::UpdateNoiseTexture()
     int dispatchX = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().width / 8.0f);
     int dispatchY = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().height / 8.0f);
     int dispatchZ = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().depth / 8.0f);
-    cmd->BindShaderProgram(noiseGenerator->GetShaderProgram(), noiseGenerator->GetShaderConfig());
+    cmd->BindShaderProgram(noiseGenerator->GetShaderProgram(), noiseGenerator->GetPipelineConfig());
     cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
 
     cmd->BindResource(
@@ -95,7 +95,7 @@ void Cloud::UpdateNoiseTexture()
     dispatchZ = glm::ceil(cloudNoise.highFrequencyNoise->GetDescription().depth / 8.0f);
     cmd->BindShaderProgram(
         highFrequencyNoiseGenerator->GetShaderProgram(),
-        highFrequencyNoiseGenerator->GetShaderConfig()
+        highFrequencyNoiseGenerator->GetPipelineConfig()
     );
     cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
 
@@ -124,7 +124,7 @@ Gfx::Image* Cloud::UpdateDebugImage(int debugImageIndex)
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd->BeginRenderPass(debugRenderPass, clears);
     cmd->BindResource(debugImageMaterial->GetSet(Gfx::DescriptorSetSemantics::Material), debugImageMaterial->GetShaderResource());
-    cmd->BindShaderProgram(debugImageMaterial->GetShaderProgram(), debugImageMaterial->GetShaderConfig());
+    cmd->BindShaderProgram(debugImageMaterial->GetShaderProgram(), debugImageMaterial->GetPipelineConfig());
     cmd->Draw(6, 1, 0, 0);
     cmd->EndRenderPass();
 

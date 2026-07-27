@@ -18,7 +18,7 @@ std::atomic_uint32_t ShaderProgram::globalShaderID = 0;
 //            alphaBlendOp == other.alphaBlendOp && colorWriteMask == other.colorWriteMask;
 // }
 //
-// bool ShaderConfig::operator==(const ShaderConfig& other) const noexcept
+// bool PipelineConfig::operator==(const PipelineConfig& other) const noexcept
 // {
 //     return cullMode == other.cullMode && depth.writeEnable == other.depth.writeEnable &&
 //            depth.testEnable == other.depth.testEnable && depth.compOp == other.depth.compOp &&

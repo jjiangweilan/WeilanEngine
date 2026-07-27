@@ -96,9 +96,9 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 //         //  mat->SetShader(shader);
 //
 //         nlohmann::json& matJson = jsonData["materials"][i];
-//         auto config = *mat->GetShaderConfig();
+//         auto config = *mat->GetPipelineConfig();
 //         config.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
-//         mat->SetShaderConfig(config);
+//         mat->SetPipelineConfig(config);
 //
 //         // baseColorFactor
 //         std::array<float, 3> baseColorFactor =

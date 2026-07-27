@@ -51,7 +51,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.objectSet = material->GetSet(Gfx::DescriptorSetSemantics::Object);
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = shader.Get();
-                        drawData.shaderConfig = &material->GetShaderConfig();
+                        drawData.pipelineConfig = &material->GetPipelineConfig();
                         drawData.model = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
                         uint32_t indexOffset = submesh.GetGPUMeshIndexOffset();
@@ -99,7 +99,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = shader;
-                        drawData.shaderConfig = &material->GetShaderConfig();
+                        drawData.pipelineConfig = &material->GetPipelineConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.model = modelMatrix;
                         uint32_t indexOffset = submesh.GetGPUMeshIndexOffset();
@@ -146,9 +146,9 @@ void DrawList::Sort(const glm::vec3& cameraPos)
         sorted.end(),
         [this](int val)
         {
-            return (*this->at(val).shaderConfig)->color.blends.empty()
+            return (*this->at(val).pipelineConfig)->color.blends.empty()
                        ? true
-                       : !(*this->at(val).shaderConfig)->color.blends[0].blendEnable;
+                       : !(*this->at(val).pipelineConfig)->color.blends[0].blendEnable;
         }
     );
     this->transparentIndex = std::distance(sorted.begin(), transparentIter);
@@ -234,7 +234,7 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
             bool configModified = polygonModeOverride.has_value() || stencilOverride.has_value();
             if (configModified)
             {
-                auto modifiedConfig = **draw.shaderConfig;
+                auto modifiedConfig = **draw.pipelineConfig;
                 if (polygonModeOverride.has_value())
                     modifiedConfig.polygonMode = polygonModeOverride.value();
                 if (stencilOverride.has_value())
@@ -243,7 +243,7 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to, std::o
             }
             else
             {
-                cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+                cmd.BindShaderProgram(shaderProgram, *draw.pipelineConfig);
             }
 
             auto ps = draw.GetPushConstant();

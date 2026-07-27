@@ -14,12 +14,12 @@ void GizmoDrawMesh::Draw(Gfx::CommandBuffer& cmd)
             Gfx::ShaderProgram* program = material->GetShaderProgram();
             cmd.BindResource(material->GetSet(Gfx::DescriptorSetSemantics::Material), material->GetShaderResource());
             cmd.SetPushConstant(program, &modelMatrix);
-            cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(program, program->GetDefaultPipelineConfig());
         }
         else
         {
             cmd.SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
-            cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
         }
         cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
     }

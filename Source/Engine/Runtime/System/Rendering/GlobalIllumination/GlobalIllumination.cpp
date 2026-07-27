@@ -196,7 +196,7 @@ public:
             cmd.BindResource(2, reprojectMaterial.GetShaderResource());
             cmd.BindShaderProgram(
                 octahedralRemapShader->GetShaderProgram(),
-                octahedralRemapShader->GetShaderProgram()->GetDefaultShaderConfig()
+                octahedralRemapShader->GetShaderProgram()->GetDefaultPipelineConfig()
             );
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
@@ -248,7 +248,7 @@ private:
                 {
                     cmd.BindResource(3, draw.objectResource);
                 }
-                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
                 auto ps = draw.GetPushConstant();
                 cmd.SetPushConstant(shaderProgram, (void*)&ps);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);

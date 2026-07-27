@@ -237,7 +237,7 @@ void GrassSurfacePaintTool::DrawWireCircle(Gfx::CommandBuffer& cmd, const glm::v
     int lineSet = lineShader.GetSet(Gfx::DescriptorSetSemantics::Material);
 
     cmd.BindResource(lineSet, std::vector<Gfx::DynamicBinding>{Gfx::DynamicBinding("lineData", lineBuffer)});
-    cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultPipelineConfig());
     cmd.Draw(static_cast<uint32_t>(lines.size() * 2), 1, 0, 0);
 }
 

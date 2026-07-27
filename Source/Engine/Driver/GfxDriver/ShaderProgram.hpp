@@ -3,7 +3,7 @@
 #include "CompiledSpv.hpp"
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Library/DynamicArray.hpp"
-#include "ShaderConfig.hpp"
+#include "PipelineConfig.hpp"
 #include <string>
 namespace Gfx
 {
@@ -19,7 +19,7 @@ class ShaderProgram : public Object
 public:
     ShaderProgram(bool isCompute) : isCompute(isCompute), shaderID(globalShaderID++) {}
     virtual ~ShaderProgram() {};
-    virtual const PipelineConfig& GetDefaultShaderConfig() = 0;
+    virtual const PipelineConfig& GetDefaultPipelineConfig() = 0;
     virtual const std::string& GetName() const = 0;
     virtual const ShaderPipelineInfo& GetShaderInfo() = 0;
     virtual int GetBindingNum(Gfx::DescriptorSetSemantics descriptorSet, std::string_view name) = 0;

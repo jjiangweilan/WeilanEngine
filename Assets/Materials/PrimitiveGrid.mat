@@ -1,8 +1,8 @@
 {
  "name": "PrimitiveGrid",
- "overrideShaderConfig": false,
+ "overridePipelineConfig": false,
  "shader": "3213bd4e-0cbf-4ca7-868a-33bf27c24345",
- "shaderConfig": null,
+ "pipelineConfig": null,
  "ubo": {},
  "uuid": "f56af1a5-ba66-545d-8ebb-5e984f12b29a"
 }

@@ -193,7 +193,7 @@ void PointLightShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& r
                                     : isTree ? programTree : program;
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(programUsed, (void*)&ps);
-            cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(programUsed, programUsed->GetDefaultPipelineConfig());
             cmd.Draw(draw.indexCount, 1, 0, 0);
         }
 

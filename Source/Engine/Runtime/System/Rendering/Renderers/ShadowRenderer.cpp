@@ -239,7 +239,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
                         {
                             cmd.SetPushConstant(programUsed, (void*)&ps);
                         }
-                        cmd.BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
+                        cmd.BindShaderProgram(programUsed, programUsed->GetDefaultPipelineConfig());
 
                         cmd.Draw(draw.indexCount, 1, 0, 0);
                     }

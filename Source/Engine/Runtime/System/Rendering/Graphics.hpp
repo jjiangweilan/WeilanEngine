@@ -2,7 +2,7 @@
 #include "Engine/Core/Ptr.hpp"
 #include "Engine/Driver/GfxDriver/BufferIdentifier.hpp"
 #include "Engine/Library/Math/Geometry/Geometry.hpp"
-#include "Engine/Driver/GfxDriver/ShaderConfig.hpp"
+#include "Engine/Driver/GfxDriver/PipelineConfig.hpp"
 #include "Engine/Library/DynamicArray.hpp"
 #include "Engine/Library/Math.hpp"
 #include "Engine/Runtime/System/Rendering/RenderingData.hpp"

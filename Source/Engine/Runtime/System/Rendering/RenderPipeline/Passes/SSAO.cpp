@@ -95,7 +95,7 @@ void SSAO::Execute(
         cmd->BeginRenderPass(pass, clears);
         auto shaderProgram = mat.GetShaderProgram();
         cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-        cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
         cmd->Draw(6, 1, 0, 0);
         cmd->EndRenderPass();
         cmd->EndLabel();

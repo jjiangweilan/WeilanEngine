@@ -19,7 +19,7 @@ void DepthDownSampler::Execute(Gfx::CommandBuffer& cmd)
     resource.SetTexture("src", GetGfxDriver()->GetImageFromRenderGraph(srcDepth));
     resource.SetTexture("dst", GetGfxDriver()->GetImageFromRenderGraph(dstDepth));
     resource.SetVector("dstTexelSize", glm::vec4(1.0f / dstWidth, 1.0f / dstHeight, dstWidth, dstHeight));
-    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultPipelineConfig());
     cmd.BindResource(resource.GetSet(Gfx::DescriptorSetSemantics::Material), resource.GetShaderResource());
     cmd.Dispatch((dstWidth + 7) / 8, (dstHeight + 7) / 8, 1);
     cmd.EndLabel();

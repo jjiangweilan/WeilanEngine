@@ -1,8 +1,8 @@
 {
  "name": "new material",
- "overrideShaderConfig": false,
+ "overridePipelineConfig": false,
+ "pipelineConfig": null,
  "shader": "00000000-0000-0000-0000-000000000000",
- "shaderConfig": null,
  "shaderName": "",
  "ubo": {},
  "uuid": "51e69448-60b1-52bb-9c31-da0380c8c2f7"

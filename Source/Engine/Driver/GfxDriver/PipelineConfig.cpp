@@ -1,8 +1,10 @@
-#include "ShaderConfig.hpp"
+#include "PipelineConfig.hpp"
 #include "Engine/Library/Hash.hpp"
 Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
 {
     PipelineConfig_t config;
+    if (j == nullptr)
+        return config;
 
     // Basic settings
     config.cullMode = static_cast<CullMode>(j.value("cullMode", static_cast<int>(CullMode::Back)));

@@ -591,22 +591,22 @@ void ProcessMaterials(ModelImportContext& context)
         mat->SetFloat("PBR", "metallic", metallic);
         mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
 
-        auto shaderConfig = *mat->GetShader()->GetShaderProgram()->GetDefaultShaderConfig();
-        shaderConfig.cullMode = twoSided ? Gfx::CullMode::None : Gfx::CullMode::Back;
+        auto pipelineConfig = *mat->GetShader()->GetShaderProgram()->GetDefaultPipelineConfig();
+        pipelineConfig.cullMode = twoSided ? Gfx::CullMode::None : Gfx::CullMode::Back;
         std::string alphaModel = alphaMode.C_Str();
-        shaderConfig.depth.testEnable = true;
-        if (shaderConfig.color.blends.empty())
+        pipelineConfig.depth.testEnable = true;
+        if (pipelineConfig.color.blends.empty())
         {
-            shaderConfig.color.blends.push_back({});
+            pipelineConfig.color.blends.push_back({});
         }
         if (alphaModel == "MASK")
         {
             mat->EnableFeature("_AlphaClip");
-            shaderConfig.color.blends[0].blendEnable = false;
+            pipelineConfig.color.blends[0].blendEnable = false;
         }
         else if (alphaModel == "BLEND")
         {
-            auto& blend = shaderConfig.color.blends[0];
+            auto& blend = pipelineConfig.color.blends[0];
             blend.blendEnable = true;
             blend.srcColorBlendFactor = Gfx::BlendFactor::Src_Alpha;
             blend.dstColorBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
@@ -614,14 +614,14 @@ void ProcessMaterials(ModelImportContext& context)
             blend.srcAlphaBlendFactor = Gfx::BlendFactor::Src_Alpha;
             blend.dstAlphaBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
             blend.alphaBlendOp = Gfx::BlendOp::Add;
-            shaderConfig.depth.writeEnable = false;
+            pipelineConfig.depth.writeEnable = false;
         } 
         else
         {
             mat->SetFloat("PBR", "alphaCutoff", 0.0f);
-            shaderConfig.color.blends[0].blendEnable = false;
+            pipelineConfig.color.blends[0].blendEnable = false;
         }
-        mat->SetShaderConfig(shaderConfig);
+        mat->SetPipelineConfig(pipelineConfig);
 
         UUID artifactUUID = context.GetSubAssetUUID(mat->GetName(), Material::StaticGetTypeName());
         mat->SetUUID(artifactUUID);

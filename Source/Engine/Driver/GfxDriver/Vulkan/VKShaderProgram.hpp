@@ -57,10 +57,10 @@ public:
     bool HasVariableDescriptorCount(DescriptorSetSlot slot) const;
     uint32_t GetMaxVariableDescriptorCount(DescriptorSetSlot slot) const;
 
-    // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
+    // std::shared_ptr<const PipelineConfig> GetDefaultPipelineConfig() override;
 
     int GetBindingNum(Gfx::DescriptorSetSemantics descriptorSet, std::string_view name) override;
-    const PipelineConfig& GetDefaultShaderConfig() override { return defaultPipelineConfig; };
+    const PipelineConfig& GetDefaultPipelineConfig() override { return defaultPipelineConfig; };
     const ShaderPipelineInfo& GetShaderInfo() override { return pipelineInfo; }
     const std::string& GetName() const override { return name; }
     bool HasSet(int set) const { return set >= 0 && set < pipelineInfo.descriptorSets.size(); }
@@ -97,7 +97,7 @@ private:
     // descriptor pool take a pointer to these value so these can't be temp values
     DescriptorSetBindings descriptorSetBindings = {};
 
-    // void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
+    // void CreateShaderPipeline(std::shared_ptr<const PipelineConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayout();
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
     void CleanUpInvalidCaches();

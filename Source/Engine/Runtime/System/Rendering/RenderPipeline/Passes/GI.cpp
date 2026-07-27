@@ -237,7 +237,7 @@ void GI::Execute(
 
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(rayGenMat.GetSet(Gfx::DescriptorSetSemantics::Material), rayGenMat.GetShaderResource());
-    cmd->BindShaderProgram(rayGenProgram, rayGenProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(rayGenProgram, rayGenProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((rayWidth + 7) / 8, (rayHeight + 7) / 8, 1);
 
     cmd->EndLabel(); // GI_RayGen
@@ -269,7 +269,7 @@ void GI::Execute(
 
     auto* probePackProgram = probePackMat.GetShaderProgram();
     cmd->BindResource(probePackMat.GetSet(Gfx::DescriptorSetSemantics::Material), probePackMat.GetShaderResource());
-    cmd->BindShaderProgram(probePackProgram, probePackProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(probePackProgram, probePackProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
     cmd->EndLabel(); // GI_ProbePack
@@ -294,7 +294,7 @@ void GI::Execute(
     auto* disocclusionProgram = disocclusionMat.GetShaderProgram();
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(disocclusionMat.GetSet(Gfx::DescriptorSetSemantics::Material), disocclusionMat.GetShaderResource());
-    cmd->BindShaderProgram(disocclusionProgram, disocclusionProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(disocclusionProgram, disocclusionProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
     cmd->EndLabel(); // GI_Disocclusion
@@ -339,7 +339,7 @@ void GI::Execute(
     auto* giProgram = mat.GetShaderProgram();
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-    cmd->BindShaderProgram(giProgram, giProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(giProgram, giProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
     cmd->EndLabel(); // GI_SH
@@ -382,7 +382,7 @@ void GI::Execute(
     auto* blurProgram = blurMat.GetShaderProgram();
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(blurMat.GetSet(Gfx::DescriptorSetSemantics::Material), blurMat.GetShaderResource());
-    cmd->BindShaderProgram(blurProgram, blurProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(blurProgram, blurProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
     cmd->Blit(Gfx::ImageIdentifier(*GetGfxDriver()->GetImageFromRenderGraph(giBlurredSH0)), Gfx::ImageIdentifier(*historySH0));
@@ -466,7 +466,7 @@ void GI::Execute(
                     Gfx::DynamicBinding("outSH2Tex", postBlurOutputSH2),
                 }
             );
-            cmd->BindShaderProgram(postBlurProgram, postBlurProgram->GetDefaultShaderConfig());
+            cmd->BindShaderProgram(postBlurProgram, postBlurProgram->GetDefaultPipelineConfig());
             cmd->Dispatch((probeWidth + 7) / 8, (probeHeight + 7) / 8, 1);
 
             postBlurSH0 = postBlurOutputSH0;
@@ -513,7 +513,7 @@ void GI::Execute(
     auto* resolveProgram = resolveMat.GetShaderProgram();
     cmd->BindResource(0, renderingData.globalResource);
     cmd->BindResource(resolveMat.GetSet(Gfx::DescriptorSetSemantics::Material), resolveMat.GetShaderResource());
-    cmd->BindShaderProgram(resolveProgram, resolveProgram->GetDefaultShaderConfig());
+    cmd->BindShaderProgram(resolveProgram, resolveProgram->GetDefaultPipelineConfig());
     cmd->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
 
     cmd->EndLabel(); // GI_Resolve

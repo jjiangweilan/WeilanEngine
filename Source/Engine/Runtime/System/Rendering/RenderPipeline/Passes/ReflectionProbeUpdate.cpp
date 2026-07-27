@@ -26,7 +26,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
 
     cmd.BindResource((int)Gfx::DescriptorSetSemantics::Global, shaderResource);
 
-    cmd.BindShaderProgram(iblGenerator->GetShaderProgram(), iblGenerator->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(iblGenerator->GetShaderProgram(), iblGenerator->GetShaderProgram()->GetDefaultPipelineConfig());
 
     int dispatchX = (totalPixelCount + 63) / 64.0f;
     cmd.Dispatch(dispatchX, 1, 1);
@@ -71,7 +71,7 @@ void ReflectionProbeUpdate::MipmapGeneration(Gfx::CommandBuffer& cmd, uint32_t w
     const int cubeFaces = 6;
     auto program = spdShader->GetShaderProgram();
     cmd.BindResource(0, spdInput.get());
-    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(program, program->GetDefaultPipelineConfig());
     cmd.Dispatch(dispatchThreadGroupCountXY[0], dispatchThreadGroupCountXY[1], cubeFaces);
 }
 
@@ -80,7 +80,7 @@ void ReflectionProbeUpdate::DrawSkyboxOnProbe(Gfx::CommandBuffer& cmd, Gfx::Imag
     cmd.BindResource(0, &globalSet);
     cmd.BindResource(1, baseMat.GetShaderResource());
 
-    cmd.BindShaderProgram(baseMat.GetShaderProgram(), baseMat.GetShaderConfig());
+    cmd.BindShaderProgram(baseMat.GetShaderProgram(), baseMat.GetPipelineConfig());
     cmd.Dispatch(probe.GetDescription().width / 8, probe.GetDescription().height / 8, 6);
 }
 

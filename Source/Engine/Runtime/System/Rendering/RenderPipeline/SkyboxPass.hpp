@@ -25,7 +25,7 @@ struct SkyboxPass : public RenderPipelinePass
         cmd->BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());
         cmd->BindShaderProgram(
             skyboxShader->GetShaderProgram(),
-            skyboxShader->GetShaderProgram()->GetDefaultShaderConfig()
+            skyboxShader->GetShaderProgram()->GetDefaultPipelineConfig()
         );
         cmd->DrawIndexed(cube->GetIndexCount(), 1, 0, 0, 0);
         cmd->EndLabel();

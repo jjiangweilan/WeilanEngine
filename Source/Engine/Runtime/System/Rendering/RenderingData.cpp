@@ -18,7 +18,7 @@ Gfx::Image* InterleavedGradientNoise::GetNoiseTexture() const
         cmd->BindResource(0, interleavedGradientNoiseMat.GetShaderResource());
         cmd->BindShaderProgram(
             interleavedGradientNoiseShader->GetShaderProgram(),
-            interleavedGradientNoiseShader->GetShaderProgram()->GetDefaultShaderConfig()
+            interleavedGradientNoiseShader->GetShaderProgram()->GetDefaultPipelineConfig()
         );
         cmd->Dispatch((interleavedGradientNoiseDesc.width + 7) / 8, (interleavedGradientNoiseDesc.height + 7) / 8, 1);
         GetGfxDriver()->ExecuteCommandBuffer(*cmd);
@@ -43,7 +43,7 @@ Gfx::Image* BlueNoise::GetNoiseTexture() const
         cmd->BindResource(0, blueNoiseMat.GetShaderResource());
         cmd->BindShaderProgram(
             blueNoiseShader->GetShaderProgram(),
-            blueNoiseShader->GetShaderProgram()->GetDefaultShaderConfig()
+            blueNoiseShader->GetShaderProgram()->GetDefaultPipelineConfig()
         );
         cmd->Dispatch((blueNoiseDesc.width + 7) / 8, (blueNoiseDesc.height + 7) / 8, 1);
         GetGfxDriver()->ExecuteCommandBuffer(*cmd);

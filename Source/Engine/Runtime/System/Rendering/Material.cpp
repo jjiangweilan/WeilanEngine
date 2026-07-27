@@ -31,8 +31,8 @@ TYPE_REFLECTION_MEMBER_VARIABLES(
     TYPE_REFLECTION_MEM(Material, textureValues),
     TYPE_REFLECTION_MEM(Material, textureSamplerIndices),
     TYPE_REFLECTION_MEM(Material, enabledFeatures),
-    TYPE_REFLECTION_MEM(Material, overrideShaderConfig),
-    TYPE_REFLECTION_MEM(Material, shaderConfig)
+    TYPE_REFLECTION_MEM(Material, overridePipelineConfig),
+    TYPE_REFLECTION_MEM(Material, pipelineConfig)
 )
 
 Material::Material(std::string_view shaderName)
@@ -66,8 +66,8 @@ void Material::Copy(const Material& src)
     shaderName = src.shaderName;
     shaderFeatures = src.shaderFeatures;
     shaderInUse = src.shaderInUse;
-    shaderConfig = src.shaderConfig;
-    overrideShaderConfig = src.overrideShaderConfig;
+    pipelineConfig = src.pipelineConfig;
+    overridePipelineConfig = src.overridePipelineConfig;
     targetDescriptorSet = src.targetDescriptorSet;
     textureValues = src.textureValues;
     textureSamplerIndices = src.textureSamplerIndices;
@@ -371,7 +371,7 @@ void Material::SetShaderNoProtection(ObjPtr<Shader> shaderProgram)
 {
     this->shaderInUse = shaderProgram;
     uploadNeeded = true;
-    shaderConfig = shaderInUse->GetShaderProgram()->GetDefaultShaderConfig();
+    pipelineConfig = shaderInUse->GetShaderProgram()->GetDefaultPipelineConfig();
 }
 
 void Material::InitializeTreeWindDefaults()
@@ -399,8 +399,8 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("textureSamplerIndices", textureSamplerIndices);
     std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
-    s->Serialize("overrideShaderConfig", overrideShaderConfig);
-    s->Serialize("shaderConfig", overrideShaderConfig ? shaderConfig.ToJson() : nlohmann::json());
+    s->Serialize("overridePipelineConfig", overridePipelineConfig);
+    s->Serialize("pipelineConfig", overridePipelineConfig ? pipelineConfig.ToJson() : nlohmann::json());
     SERIALIZE(s, shaderName);
 }
 
@@ -475,14 +475,20 @@ void Material::Deserialize(Serializer* s)
     {
         EnableFeature(f);
     }
-    nlohmann::json shaderConfigJson;
-    s->Deserialize("shaderConfig", shaderConfigJson);
-    shaderConfig = Gfx::PipelineConfig::FromJson(shaderConfigJson);
-    s->Deserialize("overrideShaderConfig", overrideShaderConfig);
+    nlohmann::json pipelineConfigJson;
+    bool deserializedOverridePipelineConfig = false;
+    s->Deserialize("pipelineConfig", pipelineConfigJson);
+    s->Deserialize("overridePipelineConfig", deserializedOverridePipelineConfig);
     DESERIALIZE(s, shaderName);
     if (!shaderName.empty())
     {
         SetShader(shaderName);
+    }
+
+    overridePipelineConfig = deserializedOverridePipelineConfig;
+    if (overridePipelineConfig)
+    {
+        pipelineConfig = Gfx::PipelineConfig::FromJson(pipelineConfigJson);
     }
 }
 
@@ -662,14 +668,14 @@ void Material::WriteParameterDataToBuffer(
     }
 }
 
-const Gfx::PipelineConfig& Material::GetShaderConfig()
+const Gfx::PipelineConfig& Material::GetPipelineConfig()
 {
-    if (overrideShaderConfig || shaderInUse == nullptr)
-        return shaderConfig;
+    if (overridePipelineConfig || shaderInUse == nullptr)
+        return pipelineConfig;
     else
     {
         Shader* s = shaderInUse;
-        return s->GetShaderProgram()->GetDefaultShaderConfig();
+        return s->GetShaderProgram()->GetDefaultPipelineConfig();
     }
 }
 

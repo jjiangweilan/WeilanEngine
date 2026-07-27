@@ -1707,7 +1707,7 @@ void VKCommandBufferProcessor::Execute(
                     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - BindShaderProgram");
                     auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
                     exeState.pendingBindedShader = args.program;
-                    exeState.shaderConfig = *args.config;
+                    exeState.pipelineConfig = *args.config;
                     break;
                 }
             case VKCmdType::BindIndexBuffer:
@@ -2077,7 +2077,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
 {
     ENGINE_SCOPED_PROFILE("VKCommandBufferProcessor - TryBindShader");
 
-    if ((exeState.bindedShader != exeState.pendingBindedShader || exeState.shaderConfig != exeState.pendingShaderConfig) &&
+    if ((exeState.bindedShader != exeState.pendingBindedShader || exeState.pipelineConfig != exeState.pendingPipelineConfig) &&
         exeState.pendingBindedShader != nullptr)
     {
         bool requirePushDescriptorSet = false;
@@ -2095,7 +2095,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                 vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
                 exeState.lastBindedPipeline = pipeline;
                 exeState.bindedShader = exeState.pendingBindedShader;
-                exeState.shaderConfig = exeState.pendingShaderConfig;
+                exeState.pipelineConfig = exeState.pendingPipelineConfig;
 
                 for (int setIndex = 0; setIndex < 4; ++setIndex)
                 {
@@ -2112,7 +2112,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
             if (exeState.renderPass != nullptr)
             {
                 auto pipeline = exeState.pendingBindedShader->RequestGraphicsPipeline(
-                    exeState.shaderConfig,
+                    exeState.pipelineConfig,
                     std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
                     exeState.renderPass,
                     exeState.subpassIndex,
@@ -2124,7 +2124,7 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
                     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
                     exeState.lastBindedPipeline = pipeline;
                     exeState.bindedShader = exeState.pendingBindedShader;
-                    exeState.shaderConfig = exeState.pendingShaderConfig;
+                    exeState.pipelineConfig = exeState.pendingPipelineConfig;
 
                     for (int setIndex = 0; setIndex < 4; ++setIndex)
                     {

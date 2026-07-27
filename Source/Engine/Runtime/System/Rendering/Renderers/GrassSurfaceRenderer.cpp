@@ -32,7 +32,7 @@ void GrassSurfaceRenderer::Draw(
     const auto& group = grassSurface.grassPatchGroup;
 
     Gfx::ShaderProgram* shaderProgram = grass->GetShaderProgram();
-    auto config = *shaderProgram->GetDefaultShaderConfig();
+    auto config = *shaderProgram->GetDefaultPipelineConfig();
     config.stencil.testEnable = true;
     config.stencil.front.passOp = Gfx::StencilOp::Replace;
     config.stencil.front.compareOp = Gfx::CompareOp::Always;
@@ -79,7 +79,7 @@ void GrassSurfaceRenderer::DrawMotionVectors(
     Gfx::ShaderProgram* shaderProgram = grassMotionVector->GetShaderProgram();
 
     BindGrassParams(grassSurface.grassPatchGroup, cmd, motionVectorParamsSetIndex, renderingData);
-    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultPipelineConfig());
 
     for (const auto& batch : batches)
     {
