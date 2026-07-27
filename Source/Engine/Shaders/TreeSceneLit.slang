@@ -68,7 +68,13 @@ struct PushConstant
 [vk_push_constant]
 PushConstant pconst;
 
-VertexOutput TreeSceneLitVertex(uint vertexIndex, uint drawIndex)
+struct TreeVertexOutput
+{
+    VertexOutput base;
+    float billboardFade;
+};
+
+ TreeVertexOutput TreeSceneLitVertex(uint vertexIndex, uint drawIndex)
 {
     GpuDrawExtra drawExtra = perScene.gpuObjectOffsets[pconst.firstGpuObjectOffset + drawIndex];
     ObjectEntity entity = ObjectEntity(perScene, drawExtra.objectOffset, drawExtra.renderDataIndex, vertexIndex);
@@ -87,34 +93,44 @@ VertexOutput TreeSceneLitVertex(uint vertexIndex, uint drawIndex)
         hasBoneWeight
     );
     GpuMaterial material = entity.GetMaterial(perScene);
-    float3 worldPosition = ApplyTreeWind(
-        entity.GetPosition(),
-        objectModelMatrix,
-        material,
-        perScene.scene.time
-    );
+    // float3 worldPosition = ApplyTreeWind(
+    //     entity.GetPosition(),
+    //     objectModelMatrix,
+    //     material,
+    //     perScene.scene.time
+    // );
+    float3 worldPosition = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
     matrix<float, 3, 3> model33 = hasBoneWeight ? (float3x3)modelMatrix : (float3x3)invTspModelMatrix;
 
-    VertexOutput output = (VertexOutput)0;
-    output.position = mul(perScene.camera.viewProjection, float4(worldPosition, 1.0f));
-    output.positionWS = worldPosition;
-    output.normalWS = mul(model33, normal).xyz;
-    output.tangentWS = mul(model33, tangent.xyz);
-    output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
-    output.uv = entity.GetUV();
-    output.objectOffset = drawExtra.objectOffset;
-    output.renderDataIndex = drawExtra.renderDataIndex;
+    float3 viewDirectionWS =
+        normalize(worldPosition - perScene.camera.position.xyz);
+    float3 trueNormal = entity.GetColor(perScene, 0).xyz;
+    float3 trueNormalWS = mul((float3x3)invTspModelMatrix, trueNormal * 2 - 1);
+    float billboardFade = abs(dot(viewDirectionWS, trueNormalWS));
+
+    TreeVertexOutput output = (TreeVertexOutput)0;
+    output.base.position = mul(perScene.camera.viewProjection, float4(worldPosition, 1.0f));
+    output.base.positionWS = worldPosition;
+    output.base.normalWS = mul(model33, normal).xyz;
+    output.base.tangentWS = mul(model33, tangent.xyz);
+    output.base.bitangentWS = tangent.w * cross(output.base.normalWS, output.base.tangentWS);
+    output.base.uv = entity.GetUV();
+    output.base.objectOffset = drawExtra.objectOffset;
+    output.base.renderDataIndex = drawExtra.renderDataIndex;
+    output.billboardFade = billboardFade;
     return output;
 }
 
 [shader("vertex")]
-VertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint geometryOffset : SV_InstanceID)
+TreeVertexOutput VertexMain(uint vertexID : SV_VertexID, uint drawIndex : SV_DrawIndex, uint geometryOffset : SV_InstanceID)
 {
     return TreeSceneLitVertex(vertexID, drawIndex);
 }
 
 [shader("fragment")]
-FragmentOutput FragmentMain(VertexOutput input)
+FragmentOutput FragmentMain(TreeVertexOutput input)
 {
-    return SceneLitFragment(input, _AlphaClip);
+    FragmentOutput output = SceneLitFragment(input.base, _AlphaClip);
+    output.albedo = input.billboardFade;
+    return output;
 }

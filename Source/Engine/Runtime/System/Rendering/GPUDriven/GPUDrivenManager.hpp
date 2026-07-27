@@ -64,12 +64,19 @@ struct GpuGeometry
     uint32_t tangentOffset;
     uint32_t uvOffset;
     uint32_t boneOffset;
+    uint32_t colorOffset;
 
     static uint32_t GetNormalBit() { return 0x1; }
     static uint32_t GetTangentBit() { return 0x2; }
     static uint32_t GetHasUVBit() { return 0x4; }
     static uint32_t GetBoneBit() { return 0x8; }
+    static uint32_t GetColorBit() { return 0x10; }
 };
+
+static_assert(offsetof(GpuGeometry, attributeOffset) == 12);
+static_assert(offsetof(GpuGeometry, boneOffset) == 36);
+static_assert(offsetof(GpuGeometry, colorOffset) == 40);
+static_assert(sizeof(GpuGeometry) == 44);
 
 struct GpuRenderData
 {

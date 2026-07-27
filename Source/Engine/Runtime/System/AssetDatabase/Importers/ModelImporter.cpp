@@ -26,7 +26,7 @@ DEFINE_ASSET_IMPORTER(ModelImporter, "glb,gltf,fbx");
 
 namespace
 {
-constexpr uint64_t ModelImporterVersion = 10;
+constexpr uint64_t ModelImporterVersion = 11;
 
 uint64_t ComputeMetaHash(const nlohmann::json& meta)
 {
@@ -342,27 +342,46 @@ void ProcessMeshes(ModelImportContext& context)
 
         const char* texCoordNames[8] = {"TEXCOORD0", "TEXCOORD1", "TEXCOORD2", "TEXCOORD3", "TEXCOORD4", "TEXCOORD5", "TEXCOORD6", "TEXCOORD7"};
         const int MaxTexcoordChannels = 8;
+        const uint32_t texCoordSize = sizeof(glm::vec2);
+        int texCoordChannelCount = 0;
         for (int i = 0; i < MaxTexcoordChannels; ++i)
         {
             if (mesh->HasTextureCoords(i))
             {
-                texCoordStrideOffsets[i] = attributeStrideSize;
-                uint32_t size = mesh->mNumUVComponents[i] * 4;
-                attributeStrideSize += size;
-                attributes.AddAttribute(texCoordNames[i], VertexAttributeSemantics::Texcoord, i, size);
+                texCoordChannelCount = i + 1;
+                if (mesh->mNumUVComponents[i] == 3)
+                {
+                    spdlog::warn(
+                        "ModelImporter: mesh '{}' ({}) TEXCOORD{} has 3 components; the Z component will be discarded.",
+                        mesh->mName.C_Str(),
+                        meshIndex,
+                        i
+                    );
+                }
             }
+        }
+        for (int i = 0; i < texCoordChannelCount; ++i)
+        {
+            texCoordStrideOffsets[i] = attributeStrideSize;
+            attributeStrideSize += texCoordSize;
+            attributes.AddAttribute(texCoordNames[i], VertexAttributeSemantics::Texcoord, i, texCoordSize);
         }
 
         const char* vertexColorNames[8] = {"COLOR0", "COLOR1", "COLOR2", "COLOR3", "COLOR4", "COLOR5", "COLOR6", "COLOR7"};
         const uint32_t vertexColorSize = 16; // assimp imported vertex color size is always 4 channels no matter if it's color2 or color3 or color4
+        int vertexColorChannelCount = 0;
         for (int i = 0; i < AI_MAX_NUMBER_OF_COLOR_SETS; ++i)
         {
             if (mesh->HasVertexColors(i))
             {
-                vertexColorStrideOffsets[i] = attributeStrideSize;
-                attributeStrideSize += vertexColorSize;
-                attributes.AddAttribute(vertexColorNames[i], VertexAttributeSemantics::Color, i, vertexColorSize);
+                vertexColorChannelCount = i + 1;
             }
+        }
+        for (int i = 0; i < vertexColorChannelCount; ++i)
+        {
+            vertexColorStrideOffsets[i] = attributeStrideSize;
+            attributeStrideSize += vertexColorSize;
+            attributes.AddAttribute(vertexColorNames[i], VertexAttributeSemantics::Color, i, vertexColorSize);
         }
 
         const uint32_t boneSize = 16;
@@ -407,10 +426,12 @@ void ProcessMeshes(ModelImportContext& context)
             {
                 for (int vi = 0; vi < static_cast<int>(mesh->mNumVertices); ++vi)
                 {
-                    for (int uvi = 0; uvi < mesh->mNumUVComponents[i]; uvi++)
+                    *reinterpret_cast<float*>(data + attributeStrideSize * vi + texCoordStrideOffsets[i]) =
+                        mesh->mTextureCoords[i][vi].x;
+                    if (mesh->mNumUVComponents[i] >= 2)
                     {
-                        float val = mesh->mTextureCoords[i][vi][uvi];
-                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + texCoordStrideOffsets[i] + uvi * 4) = val;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + texCoordStrideOffsets[i] + sizeof(float)) =
+                            mesh->mTextureCoords[i][vi].y;
                     }
                 }
             }

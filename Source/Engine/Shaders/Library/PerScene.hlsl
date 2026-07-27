@@ -234,11 +234,13 @@ struct GpuGeometry
     uint tangentOffset;
     uint uvOffset;
     uint boneOffset;
+    uint colorOffset;
 
     bool HasNormal() { return (attributeFlags & 0x1) != 0; }
     bool HasTangent() { return (attributeFlags & 0x2) != 0; }
     bool HasUV() { return (attributeFlags & 0x4) != 0; }
     bool HasBone() { return (attributeFlags & 0x8) != 0; }
+    bool HasColor() { return (attributeFlags & 0x10) != 0; }
 };
 
 struct GpuRenderData
@@ -268,6 +270,14 @@ struct ObjectEntity
     float4 GetTangent() {return tangent;}
     float2 GetUV() {return uv;}
     float4 GetBone() {return bone;}
+    float2 GetTexCoord(ParameterBlock<PerScene> perScene, uint index)
+    {
+        return perScene.LoadData<float2>(vertexAttributeOffset + texcoordOffset + index * sizeof(float2));
+    }
+    float4 GetColor(ParameterBlock<PerScene> perScene, uint index)
+    {
+        return perScene.LoadData<float4>(vertexAttributeOffset + colorOffset + index * sizeof(float4));
+    }
     GpuMaterial GetMaterial(ParameterBlock<PerScene> perScene)
     {
         return perScene.LoadData<GpuMaterial>(renderData.materialOffset);
@@ -282,6 +292,9 @@ struct ObjectEntity
     float4 bone;
     int skeletonOffset;
     GpuRenderData renderData;
+    uint vertexAttributeOffset;
+    uint texcoordOffset;
+    uint colorOffset;
 
     __init(ParameterBlock<PerScene> perScene, uint32_t objectOffset, uint renderDataIndex, uint vertexIndex)
     {
@@ -302,6 +315,9 @@ struct ObjectEntity
 
         uint vertexOffset = geometry.attributeStride * vertexIndex;
         attributeOffset += vertexOffset;
+        vertexAttributeOffset = attributeOffset;
+        texcoordOffset = geometry.uvOffset;
+        colorOffset = geometry.colorOffset;
         bool hasNormal = geometry.HasNormal();
         bool hasTangent = geometry.HasTangent();
         bool hasUV = geometry.HasUV();

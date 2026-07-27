@@ -171,6 +171,7 @@ void GPUDrivenManager::AllocateForMesh(GpuGeometryDescriptor& descriptor, const 
     descriptor.geometry.tangentOffset = 0;
     descriptor.geometry.uvOffset = 0;
     descriptor.geometry.boneOffset = 0;
+    descriptor.geometry.colorOffset = 0;
 
     uint32_t attributeStride = 0;
     for (const auto& attr : submesh.GetAttribute().GetDescription())
@@ -196,6 +197,11 @@ void GPUDrivenManager::AllocateForMesh(GpuGeometryDescriptor& descriptor, const 
             {
                 descriptor.geometry.attributeFlags |= GpuGeometry::GetBoneBit();
                 descriptor.geometry.boneOffset = attributeStride;
+            }
+            else if (attr.semanticName == VertexAttributeSemantics::Color)
+            {
+                descriptor.geometry.attributeFlags |= GpuGeometry::GetColorBit();
+                descriptor.geometry.colorOffset = attributeStride;
             }
         }
 
