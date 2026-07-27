@@ -1,4 +1,5 @@
 #include "Editor/Inspectors/Inspector.hpp"
+#include "Editor/Widgets/CurveModifier.hpp"
 #include "Engine/Runtime/Object/Component/ParticleSystem.hpp"
 #include "Engine/Runtime/Object/Mesh/Model.hpp"
 #include "Engine/Runtime/System/Rendering/ShaderLibrary.hpp"
@@ -21,54 +22,6 @@ bool DrawEnum(const char* label, Enum& value, const char* items)
     return true;
 }
 
-bool DrawCurve(const char* label, Particles::Curve& curve)
-{
-    bool changed = false;
-    ImGui::PushID(label);
-    if (ImGui::TreeNode("Curve"))
-    {
-        int removeIndex = -1;
-        for (int i = 0; i < static_cast<int>(curve.keys.size()); ++i)
-        {
-            auto& key = curve.keys[i];
-            ImGui::PushID(i);
-            ImGui::Text("Key %d", i);
-            ImGui::SameLine();
-            if (curve.keys.size() > 1 && ImGui::SmallButton("Remove"))
-                removeIndex = i;
-            changed |= ImGui::DragFloat("Time", &key.time, 0.01f, 0.0f, 1.0f);
-            changed |= ImGui::DragFloat("Value", &key.value, 0.01f);
-            changed |= DrawEnum("Interpolation", key.interpolation, "Constant\0Linear\0Cubic\0");
-            if (key.interpolation == Particles::CurveInterpolation::Cubic)
-            {
-                changed |= ImGui::DragFloat("In Tangent", &key.inTangent, 0.01f);
-                changed |= ImGui::DragFloat("Out Tangent", &key.outTangent, 0.01f);
-            }
-            ImGui::Separator();
-            ImGui::PopID();
-        }
-        if (removeIndex >= 0)
-        {
-            curve.keys.erase(curve.keys.begin() + removeIndex);
-            changed = true;
-        }
-        if (ImGui::SmallButton("Add Key"))
-        {
-            curve.keys.push_back({1.0f, curve.keys.empty() ? 1.0f : curve.keys.back().value});
-            changed = true;
-        }
-        if (changed)
-        {
-            for (auto& key : curve.keys)
-                key.time = std::clamp(key.time, 0.0f, 1.0f);
-            curve.SortKeys();
-        }
-        ImGui::TreePop();
-    }
-    ImGui::PopID();
-    return changed;
-}
-
 bool DrawScalarParameter(const char* label, Particles::ScalarParameter& parameter)
 {
     bool changed = false;
@@ -85,11 +38,11 @@ bool DrawScalarParameter(const char* label, Particles::ScalarParameter& paramete
             changed |= ImGui::DragFloat("Maximum", &parameter.constantMax, 0.01f);
             break;
         case Particles::ScalarMode::Curve:
-            changed |= DrawCurve("Value", parameter.curveMax);
+            changed |= CurveModifier::Draw("Value", parameter.curveMax);
             break;
         case Particles::ScalarMode::RandomBetweenCurves:
-            changed |= DrawCurve("Minimum", parameter.curveMin);
-            changed |= DrawCurve("Maximum", parameter.curveMax);
+            changed |= CurveModifier::Draw("Minimum", parameter.curveMin);
+            changed |= CurveModifier::Draw("Maximum", parameter.curveMax);
             break;
     }
     ImGui::Separator();
