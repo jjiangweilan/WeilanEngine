@@ -14,7 +14,6 @@ struct ParticleDraw
     Submesh* instancingMesh;
     size_t particleCount;
     Gfx::ShaderResource* particleShaderParameters;
-    float4x4 rootTransform; 
 };
 
 class ParticleRenderer

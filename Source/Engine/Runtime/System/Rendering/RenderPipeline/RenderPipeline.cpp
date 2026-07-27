@@ -470,10 +470,29 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // draw particles
         cmd->BindResource(0, GetPerSceneGPUResource());
         cmd->BeginLabel("Particles", {0.55, 0.11, 0.57, 1.0f});
-        auto particleSystems = scene.GetRenderingScene().GetParticleSystems();
+        const auto particleSystemSpan = scene.GetRenderingScene().GetParticleSystems();
+        std::vector<ParticleSystem*> particleSystems(particleSystemSpan.begin(), particleSystemSpan.end());
+        const float3 particleCameraPosition = camera.GetGameObject()->GetPosition();
+        std::stable_sort(
+            particleSystems.begin(),
+            particleSystems.end(),
+            [&particleCameraPosition](ParticleSystem* a, ParticleSystem* b)
+            {
+                const AABB& aBounds = a->GetBounds();
+                const AABB& bBounds = b->GetBounds();
+                const float aDistance = glm::distance((aBounds.min + aBounds.max) * 0.5f, particleCameraPosition) +
+                                        a->GetRendererModule().sortBias;
+                const float bDistance = glm::distance((bBounds.min + bBounds.max) * 0.5f, particleCameraPosition) +
+                                        b->GetRendererModule().sortBias;
+                return aDistance > bDistance;
+            }
+        );
         for (auto p : particleSystems)
         {
-            particleRenderer->Draw(*cmd, p->GetDraw());
+            const bool visible = p->IsVisible(renderingData.cameraFrustum);
+            p->SetVisible(visible);
+            if (visible)
+                particleRenderer->Draw(*cmd, p->GetDraw(camera));
         }
         cmd->EndLabel(); // Particles
 

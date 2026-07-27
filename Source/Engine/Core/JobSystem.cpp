@@ -46,9 +46,7 @@ int JobSystem::GetTotalWorkers()
         totalWorkers = 4;
     }
 
-    totalWorkers -= 1; // Reserve one thread for main thread
-
-    return totalWorkers;
+    return std::max(totalWorkers - 1, 1); // Reserve one thread for main thread.
 }
 
 JobHandle JobSystem::Schedule(std::function<void()>&& f)
