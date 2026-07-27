@@ -64,7 +64,12 @@ public:
 
     // file system
     void CreateFolderAtPath(const AssetPath& path);
-    void Rename(const AssetPath& oldPath, const AssetPath& newPath);
+    bool Rename(const AssetPath& oldPath, const AssetPath& newPath, std::string& error);
+    bool Move(
+        const std::vector<AssetPath>& sources,
+        const AssetPath& destinationDirectory,
+        std::string& error
+    );
     void Remove(const AssetPath& path);
 
     void Reimport(const AssetPath& path);

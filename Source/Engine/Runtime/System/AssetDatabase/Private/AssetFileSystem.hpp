@@ -4,6 +4,8 @@
 #include "Engine/Core/Asset.hpp"
 #include "Engine/Runtime/System/AssetDatabase/AssetPath.hpp"
 #include <filesystem>
+#include <string>
+#include <vector>
 
 class AssetFileSystem
 {
@@ -21,7 +23,12 @@ public:
     AssetData* GetAssetData(const AssetPath& path) const;
     AssetData* GetAssetData(const UUID& uuid) const;
 
-    void Rename(const AssetPath& oldPath, const AssetPath& newPath);
+    bool Rename(const AssetPath& oldPath, const AssetPath& newPath, std::string& error);
+    bool Move(
+        const std::vector<AssetPath>& sources,
+        const AssetPath& destinationDirectory,
+        std::string& error
+    );
     void Remove(const AssetPath& path);
     void RemoveAssetData(AssetData* assetData);
     void UnloadAsset(Asset& asset);

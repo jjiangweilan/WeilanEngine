@@ -477,6 +477,7 @@ void Material::Deserialize(Serializer* s)
     }
     nlohmann::json shaderConfigJson;
     s->Deserialize("shaderConfig", shaderConfigJson);
+    shaderConfig = Gfx::PipelineConfig::FromJson(shaderConfigJson);
     s->Deserialize("overrideShaderConfig", overrideShaderConfig);
     DESERIALIZE(s, shaderName);
     if (!shaderName.empty())
@@ -576,23 +577,23 @@ void Material::WriteParameterDataToBuffer(
 
     if (bufferDataDescription.IsVector())
     {
-        #define COPY_TO_BUFFER(type) \
-            auto iter = ubo.vectors.find(bufferDataDescription.name);\
-            if (iter != ubo.vectors.end())\
-            {\
-                if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)\
-                {\
-                    ASSERT(offset + sizeof(glm::type##4) <= bufSize);\
-                    *((glm::type##4*)(buf + offset)) = iter->second;\
-                }\
-                else if (bufferDataDescription.rowCount == 2)\
-                {\
-                    ASSERT(offset + sizeof(glm::type##2) <= bufSize);\
-                    *((glm::type##2*)(buf + offset)) = glm::type##2(iter->second);\
-                }\
-            }
+#define COPY_TO_BUFFER(type)                                                            \
+    auto iter = ubo.vectors.find(bufferDataDescription.name);                           \
+    if (iter != ubo.vectors.end())                                                      \
+    {                                                                                   \
+        if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4) \
+        {                                                                               \
+            ASSERT(offset + sizeof(glm::type##4) <= bufSize);                           \
+            *((glm::type##4 *)(buf + offset)) = iter->second;                           \
+        }                                                                               \
+        else if (bufferDataDescription.rowCount == 2)                                   \
+        {                                                                               \
+            ASSERT(offset + sizeof(glm::type##2) <= bufSize);                           \
+            *((glm::type##2 *)(buf + offset)) = glm::type##2(iter->second);             \
+        }                                                                               \
+    }
 
-        if(bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
+        if (bufferDataDescription.type == Gfx::ShaderPipelineInfo::MemberDataType::Float)
         {
             COPY_TO_BUFFER(vec)
         }

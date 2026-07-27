@@ -16,6 +16,7 @@
 #include "Engine/WeilanEngine.hpp"
 #include "Engine/Library/Utils.hpp"
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 namespace Editor
@@ -44,10 +45,49 @@ void ReimportFolderRecursively(const std::filesystem::path& folder)
         }
     }
 }
+
+bool IsSameOrDescendant(const AssetPath& path, const AssetPath& parent)
+{
+    const std::filesystem::path relative =
+        path.ToFilesystemPath().lexically_normal().lexically_relative(parent.ToFilesystemPath().lexically_normal());
+    return relative.empty() || (!relative.is_absolute() && *relative.begin() != "..");
+}
+
+std::optional<AssetPath> RemapMovedPath(
+    const AssetPath& path,
+    const std::vector<AssetPath>& sources,
+    const AssetPath& destinationDirectory
+)
+{
+    const AssetPath* matchingSource = nullptr;
+    for (const AssetPath& source : sources)
+    {
+        if (IsSameOrDescendant(path, source) &&
+            (matchingSource == nullptr || source.string().size() < matchingSource->string().size()))
+        {
+            matchingSource = &source;
+        }
+    }
+
+    if (matchingSource == nullptr)
+    {
+        return std::nullopt;
+    }
+
+    const std::filesystem::path relative =
+        path.ToFilesystemPath().lexically_relative(matchingSource->ToFilesystemPath());
+    std::filesystem::path remapped =
+        destinationDirectory.ToFilesystemPath() / matchingSource->ToFilesystemPath().filename();
+    if (relative != ".")
+    {
+        remapped /= relative;
+    }
+    return AssetPath(remapped);
+}
 } // namespace
 
 AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
-    : engine(engine), gameEditor(gameEditor), currentDragDropAssetFileDepth(0)
+    : engine(engine), gameEditor(gameEditor)
 {
     currentDirectory = engine->GetProjectAssetPath();
 }
@@ -350,6 +390,84 @@ void AssetBrowser::RequestDelete(const std::vector<AssetPath>& paths)
     );
 }
 
+void AssetBrowser::RequestMove(const AssetPath& draggedPath, const AssetPath& destinationDirectory)
+{
+    if (draggedPath.empty() || destinationDirectory.IsInternal())
+    {
+        return;
+    }
+
+    const std::vector<AssetPath> sources =
+        IsSelected(draggedPath) ? selectedPaths : std::vector<AssetPath>{draggedPath};
+    gameEditor->endEvents.Register(
+        [this, sources, destinationDirectory]()
+        {
+            std::string error;
+            if (!AssetDatabase::Singleton()->Move(sources, destinationDirectory, error))
+            {
+                moveErrorMessage = error.empty() ? "The selected items could not be moved." : std::move(error);
+                return;
+            }
+
+            RemapBrowserPathsAfterMove(sources, destinationDirectory);
+        }
+    );
+}
+
+void AssetBrowser::RemapBrowserPathsAfterMove(
+    const std::vector<AssetPath>& sources,
+    const AssetPath& destinationDirectory
+)
+{
+    auto remap = [&sources, &destinationDirectory](AssetPath& path)
+    {
+        if (const std::optional<AssetPath> remapped = RemapMovedPath(path, sources, destinationDirectory))
+        {
+            path = *remapped;
+        }
+    };
+
+    for (AssetPath& selectedPath : selectedPaths)
+    {
+        remap(selectedPath);
+    }
+    std::sort(selectedPaths.begin(), selectedPaths.end());
+    selectedPaths.erase(std::unique(selectedPaths.begin(), selectedPaths.end()), selectedPaths.end());
+
+    remap(activeSelectedPath);
+    remap(changeFileNameTarget);
+
+    if (!searchSelectedPath.empty())
+    {
+        AssetPath path(searchSelectedPath);
+        remap(path);
+        searchSelectedPath = path.ToAbsolutePath();
+    }
+
+    AssetPath currentPath(currentDirectory);
+    remap(currentPath);
+    currentDirectory = currentPath.ToAbsolutePath();
+}
+
+void AssetBrowser::ShowMoveErrorPopup()
+{
+    if (!moveErrorMessage.empty())
+    {
+        ImGui::OpenPopup("Move Assets Failed");
+    }
+
+    if (ImGui::BeginPopupModal("Move Assets Failed", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::TextWrapped("%s", moveErrorMessage.c_str());
+        if (ImGui::Button("OK") || ImGui::IsKeyPressed(ImGuiKey_Enter) || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            moveErrorMessage.clear();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
 void AssetBrowser::PinAsset(const AssetPath& path)
 {
     if (path.empty() || path.IsInternal())
@@ -433,6 +551,7 @@ void AssetBrowser::Show(bool& isOpen)
             }
         }
 
+        ShowMoveErrorPopup();
         ImGui::End();
         ENGINE_END_PROFILE;
     }
@@ -483,10 +602,6 @@ void AssetBrowser::ShowInternalAssets()
 
 void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 {
-
-    // Need access to GameEditor's deferred events.
-    auto& endEvents = gameEditor->endEvents;
-
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
@@ -495,25 +610,12 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             auto relative = AssetPath(path);
             bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
 
-            if (EditorGUI::DragDropSource(relative))
-            {
-                currentDragDropAssetFileDepth = depth;
-            }
+            EditorGUI::DragDropSource(relative);
 
             AssetPath pathStr;
             if (EditorGUI::DragDropTarget(pathStr))
             {
-                endEvents.Register(
-                    [pathStr, newDirectory = entry.path().string()]()
-                    {
-                        std::filesystem::path oldPath(pathStr);
-                        auto newPath = newDirectory / oldPath.filename();
-                        AssetDatabase::Singleton()->Rename(
-                            oldPath,
-                            std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
-                        );
-                    }
-                );
+                RequestMove(pathStr, AssetPath(entry.path()));
             }
 
             Object* gameObject;
@@ -550,7 +652,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         }
     }
 
-    if (depth == 0 && currentDragDropAssetFileDepth != 0)
+    if (depth == 0)
     {
         auto windowPos = ImGui::GetWindowPos();
         auto currentCursor = ImGui::GetCursorPos() + windowPos - ImVec2{ImGui::GetScrollX(), ImGui::GetScrollY()};
@@ -558,17 +660,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         AssetPath pathStr;
         if (EditorGUI::DragDropTarget(pathStr, {currentCursor, contextRegionMax}))
         {
-            endEvents.Register(
-                [pathStr]()
-                {
-                    std::filesystem::path oldPath(pathStr);
-                    auto newPath = AssetDatabase::Singleton()->GetAssetDirectory() / oldPath.filename();
-                    AssetDatabase::Singleton()->Rename(
-                        std::filesystem::relative(oldPath, AssetDatabase::Singleton()->GetAssetDirectory()),
-                        std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
-                    );
-                }
-            );
+            RequestMove(pathStr, AssetPath{});
         }
     }
 
@@ -730,6 +822,15 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
                                     mousePosition.y >= childContentMin.y && mousePosition.y <= childContentMax.y;
         const bool gridHovered = ImGui::IsWindowHovered() && mouseInContent;
 
+        if (gridHovered && !mouseOverItem)
+        {
+            AssetPath droppedPath;
+            if (EditorGUI::DragDropTarget(droppedPath, {childContentMin, childContentMax}))
+            {
+                RequestMove(droppedPath, AssetPath(path));
+            }
+        }
+
         if (gridHovered && !mouseOverItem && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
         {
             openCreateMenuPopup = true;
@@ -839,9 +940,6 @@ void AssetBrowser::ShowAssetIconItem(
     const std::filesystem::directory_entry& entry, float iconSize, int& currentColumn, int itemsPerRow, bool isDirectory
 )
 {
-    // Access to GameEditor's endEvents here since we can't pass it as a parameter
-    auto& endEvents = gameEditor->endEvents;
-
     ImGui::PushID(entry.path().string().c_str());
 
     // Calculate position
@@ -963,17 +1061,7 @@ void AssetBrowser::ShowAssetIconItem(
         AssetPath pathStr;
         if (EditorGUI::DragDropTarget(pathStr))
         {
-            endEvents.Register(
-                [pathStr, newDirectory = entry.path().string()]()
-                {
-                    std::filesystem::path oldPath(pathStr);
-                    auto newPath = newDirectory / oldPath.filename();
-                    AssetDatabase::Singleton()->Rename(
-                        oldPath,
-                        std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
-                    );
-                }
-            );
+            RequestMove(pathStr, itemPath);
         }
     }
     else
@@ -1318,25 +1406,32 @@ void AssetBrowser::ShowChangeFileNameField()
             finalPath.replace_extension(fileNameExtCache);
             const AssetPath oldPath = changeFileNameTarget;
             const AssetPath renamedPath(finalPath);
-            AssetDatabase::Singleton()->Rename(oldPath, renamedPath);
-
-            for (AssetPath& selectedPath : selectedPaths)
+            std::string error;
+            if (!AssetDatabase::Singleton()->Rename(oldPath, renamedPath, error))
             {
-                if (selectedPath == oldPath)
+                moveErrorMessage = error.empty() ? "The item could not be renamed." : std::move(error);
+                ImGui::CloseCurrentPopup();
+            }
+            else
+            {
+                for (AssetPath& selectedPath : selectedPaths)
                 {
-                    selectedPath = renamedPath;
+                    if (selectedPath == oldPath)
+                    {
+                        selectedPath = renamedPath;
+                    }
                 }
+                if (activeSelectedPath == oldPath)
+                {
+                    activeSelectedPath = renamedPath;
+                }
+                if (!searchSelectedPath.empty() && AssetPath(searchSelectedPath) == oldPath)
+                {
+                    searchSelectedPath = renamedPath.ToAbsolutePath();
+                }
+                changeFileNameTarget = renamedPath;
+                ImGui::CloseCurrentPopup();
             }
-            if (activeSelectedPath == oldPath)
-            {
-                activeSelectedPath = renamedPath;
-            }
-            if (!searchSelectedPath.empty() && AssetPath(searchSelectedPath) == oldPath)
-            {
-                searchSelectedPath = renamedPath.ToAbsolutePath();
-            }
-            changeFileNameTarget = renamedPath;
-            ImGui::CloseCurrentPopup();
         }
         if (ImGui::Selectable("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
         {

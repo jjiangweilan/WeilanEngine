@@ -485,10 +485,20 @@ void AssetDatabase::CreateFolderAtPath(const AssetPath& path)
     std::filesystem::create_directory(fileName);
 }
 
-void AssetDatabase::Rename(const AssetPath& oldPath, const AssetPath& newPath)
+bool AssetDatabase::Rename(const AssetPath& oldPath, const AssetPath& newPath, std::string& error)
 {
     // TODO: sync async works before accessing assetFileSystem
-    assetFileSystem.Rename(oldPath, newPath);
+    return assetFileSystem.Rename(oldPath, newPath, error);
+}
+
+bool AssetDatabase::Move(
+    const std::vector<AssetPath>& sources,
+    const AssetPath& destinationDirectory,
+    std::string& error
+)
+{
+    // TODO: sync async works before accessing assetFileSystem
+    return assetFileSystem.Move(sources, destinationDirectory, error);
 }
 
 void AssetDatabase::Remove(const AssetPath& path)

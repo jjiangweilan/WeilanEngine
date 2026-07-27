@@ -44,7 +44,6 @@ private:
 
     WeilanEngine* engine;
     GameEditor* gameEditor;
-    int currentDragDropAssetFileDepth = 0;
 
     struct VisibleIconItem
     {
@@ -82,6 +81,14 @@ private:
     void ApplyMarqueeSelection();
     void RequestReimport(const std::vector<AssetPath>& paths);
     void RequestDelete(const std::vector<AssetPath>& paths);
+    void RequestMove(const AssetPath& draggedPath, const AssetPath& destinationDirectory);
+    void RemapBrowserPathsAfterMove(
+        const std::vector<AssetPath>& sources,
+        const AssetPath& destinationDirectory
+    );
+
+    std::string moveErrorMessage;
+    void ShowMoveErrorPopup();
 
     // Change File Name //
     bool changeFileName = false;

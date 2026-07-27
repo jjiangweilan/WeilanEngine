@@ -1,4 +1,7 @@
 #include "AssetFileSystem.hpp"
+#include <algorithm>
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 namespace
 {
@@ -10,6 +13,23 @@ bool IsMetaFile(const std::filesystem::path& path)
 std::filesystem::path GetMetaPath(const std::filesystem::path& assetPath)
 {
     return std::filesystem::path(assetPath.string() + ".meta");
+}
+
+bool StartsOutsideAssetDirectory(const std::filesystem::path& path)
+{
+    if (path.is_absolute())
+    {
+        return true;
+    }
+
+    const std::filesystem::path normalized = path.lexically_normal();
+    return !normalized.empty() && *normalized.begin() == "..";
+}
+
+bool IsSameOrDescendant(const std::filesystem::path& path, const std::filesystem::path& parent)
+{
+    const std::filesystem::path relative = path.lexically_normal().lexically_relative(parent.lexically_normal());
+    return relative.empty() || (!relative.is_absolute() && *relative.begin() != "..");
 }
 } // namespace
 
@@ -59,16 +79,41 @@ void AssetFileSystem::UpdateAssetData(AssetData* assetData)
     }
 }
 
-void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
+bool AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath, std::string& error)
 {
+    error.clear();
     if (oldPath == newPath)
-        return;
+        return true;
+
+    if (oldPath.empty() || oldPath.IsInternal() || newPath.IsInternal() ||
+        StartsOutsideAssetDirectory(oldPath.ToFilesystemPath()) ||
+        StartsOutsideAssetDirectory(newPath.ToFilesystemPath()))
+    {
+        error = "Source and destination must be inside the project Assets directory.";
+        return false;
+    }
 
     auto fullNewPath = GetAssetDirectory() / newPath.ToFilesystemPath();
     auto fullOldPath = GetAssetDirectory() / oldPath.ToFilesystemPath();
-    if (!std::filesystem::exists(fullNewPath.parent_path()) || !std::filesystem::exists(fullOldPath))
+    if (!std::filesystem::is_directory(fullNewPath.parent_path()))
     {
-        return;
+        error = fmt::format("Destination directory '{}' does not exist.", newPath.GetParentPath().string());
+        return false;
+    }
+    if (!std::filesystem::exists(fullOldPath))
+    {
+        error = fmt::format("Source '{}' does not exist.", oldPath.string());
+        return false;
+    }
+    if (std::filesystem::exists(fullNewPath))
+    {
+        error = fmt::format("An item named '{}' already exists in the destination.", newPath.GetFileName());
+        return false;
+    }
+    if (std::filesystem::is_directory(fullOldPath) && IsSameOrDescendant(fullNewPath, fullOldPath))
+    {
+        error = fmt::format("Folder '{}' cannot be moved into itself.", oldPath.GetFileName());
+        return false;
     }
 
     // collect all data before we actually move any file
@@ -103,26 +148,54 @@ void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
         }
     }
     else
-        return; // anything else return
+    {
+        error = fmt::format("Source '{}' is not a movable file or folder.", oldPath.string());
+        return false;
+    }
 
     std::error_code renameErrorCode;
     std::filesystem::rename(fullOldPath, fullNewPath, renameErrorCode);
 
     // move failed
     if (renameErrorCode)
-        return;
+    {
+        error = fmt::format(
+            "Failed to move '{}' to '{}': {}",
+            oldPath.string(),
+            newPath.string(),
+            renameErrorCode.message()
+        );
+        return false;
+    }
 
     if (std::filesystem::is_regular_file(fullNewPath))
     {
-        std::error_code metaRenameError;
         auto oldMetaPath = GetMetaPath(fullOldPath);
         auto newMetaPath = GetMetaPath(fullNewPath);
         if (std::filesystem::exists(oldMetaPath))
         {
+            std::error_code metaRenameError;
             std::filesystem::rename(oldMetaPath, newMetaPath, metaRenameError);
             if (metaRenameError)
             {
-                spdlog::warn("failed to rename asset meta from {} to {}: {}", oldMetaPath.string(), newMetaPath.string(), metaRenameError.message());
+                std::error_code rollbackError;
+                std::filesystem::rename(fullNewPath, fullOldPath, rollbackError);
+                error = fmt::format(
+                    "Failed to move metadata for '{}': {}",
+                    oldPath.string(),
+                    metaRenameError.message()
+                );
+                if (rollbackError)
+                {
+                    spdlog::error(
+                        "failed to roll back asset move from {} to {}: {}",
+                        fullNewPath.string(),
+                        fullOldPath.string(),
+                        rollbackError.message()
+                    );
+                    error += " The asset move could not be rolled back; see the log.";
+                }
+                return false;
             }
         }
     }
@@ -137,6 +210,163 @@ void AssetFileSystem::Rename(const AssetPath& oldPath, const AssetPath& newPath)
 
         assetData->SaveToDisk(GetProjectRoot());
     }
+
+    return true;
+}
+
+bool AssetFileSystem::Move(
+    const std::vector<AssetPath>& sources,
+    const AssetPath& destinationDirectory,
+    std::string& error
+)
+{
+    error.clear();
+    if (destinationDirectory.IsInternal() || StartsOutsideAssetDirectory(destinationDirectory.ToFilesystemPath()))
+    {
+        error = "Destination must be inside the project Assets directory.";
+        return false;
+    }
+
+    const std::filesystem::path destinationPath =
+        GetAssetDirectory() / destinationDirectory.ToFilesystemPath();
+    if (!std::filesystem::is_directory(destinationPath))
+    {
+        error = fmt::format("Destination '{}' is not a folder.", destinationDirectory.string());
+        return false;
+    }
+
+    std::vector<AssetPath> normalizedSources;
+    normalizedSources.reserve(sources.size());
+    for (const AssetPath& source : sources)
+    {
+        if (source.empty() || source.IsInternal() || StartsOutsideAssetDirectory(source.ToFilesystemPath()))
+        {
+            error = "Every moved item must be inside the project Assets directory.";
+            return false;
+        }
+        if (std::find(normalizedSources.begin(), normalizedSources.end(), source) == normalizedSources.end())
+        {
+            normalizedSources.push_back(source);
+        }
+    }
+
+    std::sort(
+        normalizedSources.begin(),
+        normalizedSources.end(),
+        [](const AssetPath& left, const AssetPath& right)
+        {
+            return left.ToFilesystemPath().lexically_normal().native().size() <
+                   right.ToFilesystemPath().lexically_normal().native().size();
+        }
+    );
+    std::vector<AssetPath> topLevelSources;
+    topLevelSources.reserve(normalizedSources.size());
+    for (const AssetPath& candidate : normalizedSources)
+    {
+        const bool coveredByParent = std::any_of(
+            topLevelSources.begin(),
+            topLevelSources.end(),
+            [&candidate](const AssetPath& possibleParent)
+            {
+                return IsSameOrDescendant(
+                    candidate.ToFilesystemPath(),
+                    possibleParent.ToFilesystemPath()
+                );
+            }
+        );
+        if (!coveredByParent)
+        {
+            topLevelSources.push_back(candidate);
+        }
+    }
+    normalizedSources = std::move(topLevelSources);
+
+    struct PlannedMove
+    {
+        AssetPath source;
+        AssetPath destination;
+    };
+    std::vector<PlannedMove> plannedMoves;
+    plannedMoves.reserve(normalizedSources.size());
+
+    for (const AssetPath& source : normalizedSources)
+    {
+        const std::filesystem::path sourcePath = GetAssetDirectory() / source.ToFilesystemPath();
+        if (!std::filesystem::exists(sourcePath))
+        {
+            error = fmt::format("Source '{}' does not exist.", source.string());
+            return false;
+        }
+
+        const AssetPath destination(
+            destinationDirectory.ToFilesystemPath() / source.ToFilesystemPath().filename()
+        );
+        if (source == destination)
+        {
+            continue;
+        }
+
+        const std::filesystem::path fullDestination = GetAssetDirectory() / destination.ToFilesystemPath();
+        if (std::filesystem::is_directory(sourcePath) && IsSameOrDescendant(destinationPath, sourcePath))
+        {
+            error = fmt::format("Folder '{}' cannot be moved into itself.", source.GetFileName());
+            return false;
+        }
+        if (std::filesystem::exists(fullDestination))
+        {
+            error = fmt::format(
+                "An item named '{}' already exists in '{}'.",
+                destination.GetFileName(),
+                destinationDirectory.string()
+            );
+            return false;
+        }
+        if (std::filesystem::exists(GetMetaPath(sourcePath)) &&
+            std::filesystem::exists(GetMetaPath(fullDestination)))
+        {
+            error = fmt::format("Metadata already exists for '{}'.", destination.string());
+            return false;
+        }
+        if (std::any_of(
+                plannedMoves.begin(),
+                plannedMoves.end(),
+                [&destination](const PlannedMove& move) { return move.destination == destination; }
+            ))
+        {
+            error = fmt::format("Multiple selected items would become '{}'.", destination.string());
+            return false;
+        }
+        plannedMoves.push_back({source, destination});
+    }
+
+    std::vector<PlannedMove> completedMoves;
+    completedMoves.reserve(plannedMoves.size());
+    for (const PlannedMove& move : plannedMoves)
+    {
+        if (Rename(move.source, move.destination, error))
+        {
+            completedMoves.push_back(move);
+            continue;
+        }
+
+        for (auto iter = completedMoves.rbegin(); iter != completedMoves.rend(); ++iter)
+        {
+            std::string rollbackError;
+            if (!Rename(iter->destination, iter->source, rollbackError))
+            {
+                spdlog::error(
+                    "failed to roll back asset move from {} to {}: {}",
+                    iter->destination.string(),
+                    iter->source.string(),
+                    rollbackError
+                );
+                error += " One or more completed moves could not be rolled back; see the log.";
+            }
+        }
+        return false;
+    }
+
+    return true;
 }
 
 void AssetFileSystem::Remove(const AssetPath& path)
