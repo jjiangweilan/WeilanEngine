@@ -100,6 +100,6 @@ FragmentOutput Fragment(Varyings input)
     output.color = float4(0, 0, 0, 0);
     output.albedo = float4(albedo, 1.0f);
     output.normal = float4(EncodeGBufferNormal(normalize(input.normalWS)), 0);
-    output.property = float4(0, 0, 0, 0);
+    output.property = float4(0, 0, 1, 0);
     return output;
 }

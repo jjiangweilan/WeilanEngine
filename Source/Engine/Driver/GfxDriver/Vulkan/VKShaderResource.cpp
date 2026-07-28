@@ -338,9 +338,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(int currentInflightIndex, uin
                                 std::string bufferName =
                                     fmt::format("Default Buffer for {}", shaderProgram->GetName());
                                 Buffer::CreateInfo createInfo{
-                                    .usages = (b.descriptorType == DescriptorType::UniformBuffer
-                                                   ? BufferUsage::Uniform
-                                                   : BufferUsage::Storage) |
+                                    .usages = BufferUsage::Uniform | BufferUsage::Storage |
                                               BufferUsage::Transfer_Dst,
                                     .size = 1,
                                     .visibleInCPU = false,

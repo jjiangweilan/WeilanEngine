@@ -10,6 +10,7 @@
 
 namespace
 {
+constexpr std::string_view SceneLitShaderName = "SceneLit";
 constexpr std::string_view TreeSceneLitShaderName = "TreeSceneLit";
 
 std::string ResolveShaderNameAlias(std::string_view shaderName)
@@ -330,9 +331,6 @@ void Material::SetShader(Shader* shader)
 {
     if (this->shaderInUse.Get() != shader)
     {
-        if (shader != nullptr && shader->GetName() == TreeSceneLitShaderName)
-            InitializeTreeWindDefaults();
-
         needRequestNewShader = false;
         this->shaderName = shader->GetName();
         SetShaderNoProtection(shader);
@@ -345,9 +343,6 @@ void Material::SetShader(std::string_view shaderName)
     std::string resolvedShaderName = ResolveShaderNameAlias(shaderName);
     if (shaderInUse == nullptr || this->shaderName != resolvedShaderName)
     {
-        if (resolvedShaderName == TreeSceneLitShaderName)
-            InitializeTreeWindDefaults();
-
         auto shaderFeatures = &ShaderLibrary::QueryShaderFeatures(resolvedShaderName.c_str());
 
         if (shaderFeatures)
@@ -369,9 +364,20 @@ void Material::SetShader(std::string_view shaderName)
 
 void Material::SetShaderNoProtection(ObjPtr<Shader> shaderProgram)
 {
+    if (shaderProgram->GetName() == SceneLitShaderName || shaderProgram->GetName() == TreeSceneLitShaderName)
+        InitializeSceneLitDefaults();
+    if (shaderProgram->GetName() == TreeSceneLitShaderName)
+        InitializeTreeWindDefaults();
+
     this->shaderInUse = shaderProgram;
     uploadNeeded = true;
     pipelineConfig = shaderInUse->GetShaderProgram()->GetDefaultPipelineConfig();
+}
+
+void Material::InitializeSceneLitDefaults()
+{
+    if (!ubo.floats.contains("shadowIntensityScale"))
+        SetFloat("shadowIntensityScale", 1.0f);
 }
 
 void Material::InitializeTreeWindDefaults()
@@ -779,6 +785,7 @@ Rendering::GpuMaterial Material::BuildGPUMaterialData() const
     data.roughness = getFloat("roughness");
     data.metallic = getFloat("metallic");
     data.alphaCutoff = getFloat("alphaCutoff");
+    data.shadowIntensityScale = getFloat("shadowIntensityScale");
     data.baseColorTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.normalMapTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);
     data.metallicRoughnessTexIndex = glm::uvec2(Rendering::InvalidTextureIndex, 1);

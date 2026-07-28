@@ -202,7 +202,7 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     }
     else
     {
-        top->SetParent(gameObject.GetParent());
+        top->SetParent(gameObject.GetParent(), false);
     }
 
     if (top->GetWantsTobeEnabledStateAndReset())

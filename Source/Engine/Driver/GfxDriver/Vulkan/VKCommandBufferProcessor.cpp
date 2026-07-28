@@ -2312,14 +2312,14 @@ VKCommandBufferProcessor::VKCommandBufferProcessor(int inflightCount, VKRayTraci
     transientDescriptorSets.resize(inflightCount);
 
     Buffer::CreateInfo createInfo{
-        .usages = BufferUsage::Storage | BufferUsage::Transfer_Dst,
+        .usages = BufferUsage::Uniform | BufferUsage::Storage | BufferUsage::Transfer_Dst,
         .size = 1,
         .visibleInCPU = false,
         .debugName = "Default Buffer"
     };
     defaultSSBOBuffer = std::make_unique<VKBuffer>(createInfo);
 
-    createInfo.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst;
+    createInfo.usages = BufferUsage::Uniform | BufferUsage::Storage | BufferUsage::Transfer_Dst;
     defaultUBOBuffer = std::make_unique<VKBuffer>(createInfo);
 }
 

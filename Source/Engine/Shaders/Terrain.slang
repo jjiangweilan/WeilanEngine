@@ -87,6 +87,6 @@ FragmentOutput FragmentMain(VertexOutput input)
     output.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
     output.albedo = float4(surface.albedo, 1.0f);
     output.normal = float4(EncodeGBufferNormal(normalWS), 1.0f);
-    output.property = float4(surface.metallic, clamp(surface.roughness, 0.01f, 0.99f), 0.0f, 1.0f);
+    output.property = float4(surface.metallic, clamp(surface.roughness, 0.01f, 0.99f), 1.0f, 1.0f);
     return output;
 }

@@ -25,6 +25,7 @@ struct ShadingObject
     float3 viewDir;
     float metallic;
     float roughness;
+    float shadowIntensityScale;
 };
 
 struct MainLightShadowData
@@ -245,6 +246,7 @@ float3 StandardLightShading(
         kd *= 1 - object.metallic;
 
         float3 inputLight = dotNL * light.intensity * light.lightColor.xyz;
+        const float shadowIntensityScale = saturate(object.shadowIntensityScale);
 
         // falloff
         float falloff = 1.0f;
@@ -255,10 +257,11 @@ float3 StandardLightShading(
             // point light shadow
             if (lightIndex == pointLightShadowData.lightIndex && pointLightShadowData.farPlane > 0)
             {
-                falloff *= GetPointLightShadowAttenuation(
+                float pointLightShadowAttenuation = GetPointLightShadowAttenuation(
                     objPos, pointLightShadowData.lightPosition,
                     pointLightShadowData.farPlane, pointLightShadowData.depthBias,
                     pointLightShadowData.shadowMap, pointLightShadowData.shadowSampler);
+                falloff *= lerp(1.0f, pointLightShadowAttenuation, shadowIntensityScale);
             }
         }
 
@@ -284,7 +287,11 @@ float3 StandardLightShading(
         // Apply screen space shadow
         float contactShadow = contactShadowMap.SampleLevel(linearClamp, screenUV, 0.0).x;
 
-        float shadowAttenuation = min(contactShadow, mainLightShadowAttenuation);
+        float shadowAttenuation = lerp(
+            1.0f,
+            min(contactShadow, mainLightShadowAttenuation),
+            shadowIntensityScale
+        );
 
         float3 color = lighting * shadowAttenuation;
         return color;

@@ -93,13 +93,13 @@ struct TreeVertexOutput
         hasBoneWeight
     );
     GpuMaterial material = entity.GetMaterial(perScene);
-    // float3 worldPosition = ApplyTreeWind(
-    //     entity.GetPosition(),
-    //     objectModelMatrix,
-    //     material,
-    //     perScene.scene.time
-    // );
-    float3 worldPosition = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
+    float3 worldPosition = ApplyTreeWind(
+        entity.GetPosition(),
+        objectModelMatrix,
+        material,
+        perScene.scene.time
+    );
+    // float3 worldPosition = mul(objectModelMatrix, float4(entity.GetPosition(), 1.0)).xyz;
     matrix<float, 3, 3> model33 = hasBoneWeight ? (float3x3)modelMatrix : (float3x3)invTspModelMatrix;
 
     TreeVertexOutput output = (TreeVertexOutput)0;

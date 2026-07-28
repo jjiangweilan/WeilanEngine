@@ -217,7 +217,7 @@ struct GpuMaterial
     uint2 emissiveMapTexIndex;
     uint extraMaterialData;
     uint shaderHash;
-    uint _pad0;
+    float shadowIntensityScale;
     uint _pad1;
 };
 

@@ -145,6 +145,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     shadingObject.viewDir = viewDir;
     shadingObject.metallic = mask.x;
     shadingObject.roughness = mask.y;
+    shadingObject.shadowIntensityScale = mask.z;
 
     MainLightShadowData mainLightShadowData;
     mainLightShadowData.shadowConstantBias = perMaterial.input.shadowConstantBias;

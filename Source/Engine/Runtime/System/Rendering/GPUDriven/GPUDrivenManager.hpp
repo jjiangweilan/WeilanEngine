@@ -41,7 +41,7 @@ struct GpuMaterial
     glm::uvec2 emissiveMapTexIndex;
     uint32_t extraMaterialData = InvalidTextureIndex;
     uint32_t shaderHash;
-    uint32_t _pad0;
+    float shadowIntensityScale;
     uint32_t _pad1;
 };
 
@@ -49,6 +49,7 @@ static_assert(offsetof(GpuMaterial, windDirectionStrengthSpeed) == 32);
 static_assert(offsetof(GpuMaterial, windFrequencyHeights) == 48);
 static_assert(offsetof(GpuMaterial, extraMaterialData) == 108);
 static_assert(offsetof(GpuMaterial, shaderHash) == 112);
+static_assert(offsetof(GpuMaterial, shadowIntensityScale) == 116);
 static_assert(sizeof(GpuMaterial) == 124);
 
 struct GpuGeometry

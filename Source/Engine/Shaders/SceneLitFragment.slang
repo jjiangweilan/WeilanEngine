@@ -87,6 +87,6 @@ FragmentOutput SceneLitFragment(VertexOutput input, bool alphaClip)
     output.color = float4(emission.xyz, 1.0f);
     output.albedo = float4(baseColor.xyz, 1.0f);
     output.normal = float4(n, 1.0f);
-    output.property = float4(metallic, roughness, 0, 1.0f);
+    output.property = float4(metallic, roughness, matData.shadowIntensityScale, 1.0f);
     return output;
 }

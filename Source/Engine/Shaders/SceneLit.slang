@@ -26,6 +26,9 @@ struct SceneLitUI
     [Range(0, 1), Group("Surface")]
     float alphaCutoff;
 
+    [Range(0, 1), Group("Shadow")]
+    float shadowIntensityScale;
+
     [Color, Group("Emission")]
     float3 emissive;
 

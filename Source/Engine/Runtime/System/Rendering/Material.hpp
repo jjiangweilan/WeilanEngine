@@ -201,6 +201,7 @@ private:
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
     );
     Rendering::GpuMaterial BuildGPUMaterialData() const;
+    void InitializeSceneLitDefaults();
     void InitializeTreeWindDefaults();
     void MarkGPUMaterialUploadNeeded();
 };

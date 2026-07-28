@@ -122,6 +122,7 @@ void SceneEditor::Deinit() {}
 
 void SceneEditor::SetActiveTool(SceneEditorTool* tool)
 {
+    rectSelect.Reset();
     if (activeTool)
         activeTool->OnDeactivate();
     activeTool = tool;
@@ -735,6 +736,9 @@ bool SceneEditor::Tick()
             toolConsumedInput = activeTool->Tick(ctx);
         }
 
+        if (toolConsumedInput)
+            rectSelect.Reset();
+
         if (scene && showGizmos)
         {
             // Gizmo
@@ -890,9 +894,7 @@ bool SceneEditor::Tick()
                     EditorState::SelectObject(nullptr);
                 }
             }
-            rectSelect.isActive = false;
-            rectSelect.hasDragged = false;
-            rectSelect.pendingClick = false;
+            rectSelect.Reset();
         }
 
         // Draw View Gizmos
